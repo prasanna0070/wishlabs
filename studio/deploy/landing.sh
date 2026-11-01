@@ -1,13 +1,14 @@
 #!/bin/bash
 # Put the Wishwright Labs site on a public Cloud Run URL (static nginx, scales to zero).
 # Claude's auto mode refuses production deploys, so Prasanna runs:  ! bash studio/deploy/landing.sh
-# Deploys studio/site (the animated site) when present, else studio/landing (the simple page).
+# Deploys studio/site (the animated site) ONLY once Claude has checked it and created studio/site/READY;
+# until then it deploys studio/landing (the simple page). Override with DIR=/abs/path.
 set -euo pipefail
 P=your-gcp-project
 R=asia-south1
 SVC=${SVC:-wishwright-labs}
 STUDIO="$(cd "$(dirname "$0")/.." && pwd)"
-DIR="$STUDIO/site"; [ -f "$DIR/index.html" ] && [ -f "$DIR/Dockerfile" ] || DIR="$STUDIO/landing"
+if [ -z "${DIR:-}" ]; then DIR="$STUDIO/site"; [ -f "$DIR/READY" ] || DIR="$STUDIO/landing"; fi
 echo "deploying $DIR as $SVC"
 gcloud run deploy "$SVC" --source="$DIR" --project=$P --region=$R \
   --allow-unauthenticated --cpu=1 --memory=256Mi --min-instances=0 --max-instances=5 \
