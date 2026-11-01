@@ -112,9 +112,15 @@ h2 { font-size: clamp(30px, 4.6vw, 46px); line-height: 1.08; letter-spacing: -0.
 .ticks { list-style: none; padding: 0; margin: 28px 0 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 24px; font-size: 15px; color: var(--muted); }
 .ticks li { display: inline-flex; align-items: center; gap: 8px; }
 .ticks svg { width: 18px; height: 18px; color: var(--accent-text); flex: none; }
-.hero-media { position: relative; margin-top: 44px; border-radius: 28px; overflow: hidden; background: var(--sunk); aspect-ratio: 16 / 9; }
-@media (min-width: 768px) { .hero-media { margin-top: 64px; } }
-.hero-media img { width: 100%; height: 100%; object-fit: cover; }
+.hero-figure { margin: 40px 0 0; }
+@media (min-width: 768px) { .hero-figure { margin-top: 56px; } }
+/* The lineup photo is 16:9; wider boxes trim plain wall from the top, never a gadget. */
+.hero-media { position: relative; border-radius: 28px; overflow: hidden; background: var(--sunk); aspect-ratio: 16 / 9; }
+@media (max-width: 639px) { .hero-media { border-radius: 18px; aspect-ratio: 2 / 1; } }
+@media (min-width: 900px) { .hero-media { aspect-ratio: 21 / 9; } }
+.hero-media img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 72%; }
+.hero-cap { margin: 14px auto 0; max-width: 64ch; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.nw { white-space: nowrap; }
 
 /* "AI-generated" tag on generated concept pictures; screenshots carry no tag */
 .tag {
@@ -123,6 +129,7 @@ h2 { font-size: clamp(30px, 4.6vw, 46px); line-height: 1.08; letter-spacing: -0.
   padding: 7px 10px; border-radius: 999px;
   background: rgba(255, 255, 255, .9); color: var(--ink);
 }
+@media (max-width: 639px) { .tag { top: 10px; left: 10px; font-size: 11px; padding: 6px 8px; } }
 
 /* A real example */
 .ask { display: grid; gap: 10px; justify-items: start; margin-bottom: 32px; }
@@ -142,9 +149,10 @@ h2 { font-size: clamp(30px, 4.6vw, 46px); line-height: 1.08; letter-spacing: -0.
 .out h3 { font-size: 18px; line-height: 1.3; letter-spacing: -0.01em; font-weight: 600; }
 .out p { font-size: 15px; color: var(--muted); margin-top: 4px; }
 .out.wide { grid-column: 1 / -1; }
-@media (min-width: 1000px) {
-  .out.wide { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); align-items: center; gap: 12px; }
-  .out.wide figcaption { order: -1; padding: 16px 20px; }
+/* The price card has no picture: on wide screens its text sits in two columns instead of leaving the card half empty. */
+@media (min-width: 720px) {
+  .out.wide figcaption { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); column-gap: 48px; align-items: end; padding: 16px 20px 12px; }
+  .out.wide .price-r p { margin-top: 0; }
 }
 .out.wide .shot { aspect-ratio: auto; background: transparent; }
 .out.wide .shot img { height: auto; }
@@ -183,25 +191,25 @@ h2 { font-size: clamp(30px, 4.6vw, 46px); line-height: 1.08; letter-spacing: -0.
 .step-media img { width: 100%; height: 100%; object-fit: cover; }
 .step:last-child .step-media { margin-bottom: 20px; }
 
-/* Ideas */
+/* Ideas: six example designs, life photo first, studio photo on hover (and as the fallback) */
 .ideas { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
-@media (min-width: 720px) { .ideas { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; } }
+@media (min-width: 600px) { .ideas { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; } }
+@media (min-width: 960px) { .ideas { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .idea { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; margin: 0; }
-.idea .pic { position: relative; aspect-ratio: 1 / 1; background: var(--sunk); }
-.idea .pic img { width: 100%; height: 100%; object-fit: cover; }
-.idea figcaption { padding: 20px 20px 22px; display: flex; flex-direction: column; flex: 1; }
-.idea h3 { font-size: 20px; font-weight: 600; letter-spacing: -0.015em; }
-.idea p { color: var(--muted); font-size: 16px; margin-top: 6px; }
-/* Phones: compact side-by-side idea cards instead of three full-width squares. */
-@media (max-width: 719px) {
-  .ideas { gap: 12px; }
-  .idea { flex-direction: row; align-items: center; }
-  .idea .pic { flex: 0 0 38%; }
-  .idea figcaption { padding: 14px 16px; }
-  .idea h3 { font-size: 17px; }
-  .idea p { font-size: 15px; line-height: 1.45; }
-  .idea .tag { top: 8px; left: 8px; font-size: 10px; padding: 5px 7px; }
-}
+.idea .pic { position: relative; aspect-ratio: 4 / 3; background: var(--sunk); overflow: hidden; }
+.idea .pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.idea .pic .studio { object-fit: contain; }
+.idea .pic .studio-bg { filter: blur(28px); transform: scale(1.25); }
+.idea .pic .life { transition: opacity .35s ease; }
+@media (hover: hover) { .idea:hover .pic .life { opacity: 0; } }
+.idea .tag { z-index: 2; }
+.idea .body { padding: 18px 20px 22px; display: flex; flex-direction: column; align-items: flex-start; flex: 1; }
+.chip { font-size: 13px; font-weight: 600; line-height: 1; padding: 7px 11px; border-radius: 999px; background: var(--sunk); color: var(--ink); }
+.idea h3 { font-size: 20px; font-weight: 600; letter-spacing: -0.015em; margin-top: 14px; }
+.idea .one { color: var(--muted); font-size: 16px; margin-top: 6px; }
+.said { margin: 16px 0 0; padding: 12px 14px 13px; border-left: 2px solid var(--line); font-size: 14.5px; line-height: 1.5; color: var(--ink); }
+.said span { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 3px; }
+.ideas-note { margin-top: 24px; font-size: 14px; color: var(--muted); }
 
 /* FAQ */
 .faq-grid { display: grid; gap: 32px; }
@@ -290,11 +298,14 @@ footer .wrap { display: grid; gap: 16px; }
         <li><svg aria-hidden="true"><use href="#i-check"/></svg>Price shown before you order</li>
         <li><svg aria-hidden="true"><use href="#i-check"/></svg>Change it later by asking</li>
       </ul>
-      <div class="hero-media">
-        <span class="tag">AI-generated</span>
-        <img src="assets/img/hero-bedtime-robot.jpg" width="2400" height="1340" loading="eager" fetchpriority="high" decoding="async"
-             alt="The bedtime story robot: a pale teal gadget with bear ears and screen eyes, on a bedside table next to a storybook at dusk.">
-      </div>
+      <figure class="hero-figure">
+        <div class="hero-media">
+          <span class="tag">AI-generated</span>
+          <img src="assets/img/hero-lineup.jpg" width="2400" height="1350" loading="eager" fetchpriority="high" decoding="async"
+               alt="Six different gadgets in a row on a wooden table: a white desk robot with a screen face, a green book-shaped lamp, a pink heart engraved A + R, a white-and-mint capsule with a small screen, a charcoal cube with a red ring and the number 25, and a yellow shop sign reading KIRAN STORES and WELCOME.">
+        </div>
+        <figcaption class="hero-cap">Six example designs from our engine, left to right: a desk robot, a book light, a <span class="nw">love-note gift</span>, a medicine reminder, a focus timer and a shop greeter.</figcaption>
+      </figure>
     </div>
   </section>
 
@@ -339,8 +350,8 @@ footer .wrap { display: grid; gap: 16px; }
               <p class="more">We print the shell, fit the parts, load the software and check that each part works before it ships.</p>
             </div>
             <figure class="step-media"><span class="tag">AI-generated</span>
-              <img src="assets/img/step-manufacture.jpg" width="1600" height="1195" loading="lazy" decoding="async"
-                   alt="Hands fitting the robot's printed shell over its circuit board, with a laptop loading software and a test checklist on the desk.">
+              <img src="assets/img/step-manufacture.jpg" width="1200" height="800" loading="lazy" decoding="async"
+                   alt="Hands plugging a cable into the circuit board that goes inside the green book light, its printed shell standing beside it and a 3D printer behind.">
             </figure>
           </li>
           <li class="step">
@@ -351,8 +362,8 @@ footer .wrap { display: grid; gap: 16px; }
               <p class="more">Plug it in, then connect it to your home Wi-Fi from your phone.</p>
             </div>
             <figure class="step-media"><span class="tag">AI-generated</span>
-              <img src="assets/img/step-receive.jpg" width="1600" height="1195" loading="lazy" decoding="async"
-                   alt="Hands opening a delivery box with the robot inside, next to a USB-C cable and a quick-start card.">
+              <img src="assets/img/step-receive.jpg" width="1200" height="800" loading="lazy" decoding="async"
+                   alt="The blush-pink heart gift, engraved A + R, just unboxed in front of its kraft box, with an untied pink ribbon and a USB-C cable.">
             </figure>
           </li>
           <li class="step">
@@ -363,8 +374,8 @@ footer .wrap { display: grid; gap: 16px; }
               <p class="more">Ask for a new story, a new light or a whole new job, in plain words.</p>
             </div>
             <figure class="step-media"><span class="tag">AI-generated</span>
-              <img src="assets/img/step-modify.jpg" width="1600" height="1195" loading="lazy" decoding="async"
-                   alt="The robot on a desk with happy screen eyes, beside a phone showing a chat.">
+              <img src="assets/img/step-modify.jpg" width="1200" height="800" loading="lazy" decoding="async"
+                   alt="The white desk robot with happy closed eyes on its screen, beside a phone showing a chat.">
             </figure>
           </li>
           <li class="step">
@@ -375,8 +386,8 @@ footer .wrap { display: grid; gap: 16px; }
               <p class="more">A new version runs on trial first. If it fails its checks, the gadget goes back to the last good one by itself.</p>
             </div>
             <figure class="step-media"><span class="tag">AI-generated</span>
-              <img src="assets/img/step-repurpose.jpg" width="1600" height="1195" loading="lazy" decoding="async"
-                   alt="The robot showing an update ring on its screen, beside its cable and a ticked note.">
+              <img src="assets/img/step-repurpose.jpg" width="1200" height="800" loading="lazy" decoding="async"
+                   alt="The white-and-mint medicine reminder showing an update ring on its screen, plugged in, beside a ticked sticky note.">
             </figure>
           </li>
         </ol>
@@ -418,14 +429,15 @@ footer .wrap { display: grid; gap: 16px; }
           <figcaption><span class="n">3</span><h3>A 3D design, to real size</h3><p>About 142 × 110 × 188 mm, shown next to an apple.</p></figcaption>
         </figure>
         <figure class="out wide">
-          <div class="shot"><img src="assets/shots/price.webp" width="1000" height="274" loading="lazy" decoding="async"
-                 alt="The studio's price panel: 18,999 rupees delivered in India including GST, marked as an estimate with review required, arriving in 10 to 24 days.">
-          </div>
           <figcaption>
-            <span class="n">4</span><h3>A delivered price, before you order</h3>
-            <p class="price">About ₹18,999</p>
-            <p>For one unit, delivered in India, GST included. About 10 to 24 days to arrive.</p>
-            <span class="est">Estimate, pending our review</span>
+            <div class="price-l">
+              <span class="n">4</span><h3>A delivered price, before you order</h3>
+              <p class="price">₹7,826</p>
+            </div>
+            <div class="price-r">
+              <p>One price that covers parts, printing, assembly, testing, courier and GST, delivered in India.</p>
+              <span class="est">Illustrative price. Your real price is shown before you order.</span>
+            </div>
           </figcaption>
         </figure>
       </div>
@@ -441,46 +453,101 @@ footer .wrap { display: grid; gap: 16px; }
     </div>
   </section>
 
-  <!-- 4. Ideas: who it is for, and three example designs from the studio -->
+  <!-- 4. Ideas: six example designs from the engine, for six very different people -->
   <section id="ideas" aria-labelledby="ideas-title">
     <div class="wrap">
       <div class="head">
         <p class="eyebrow">Ideas</p>
-        <h2 id="ideas-title">Made for people with an idea, not a workshop.</h2>
-        <p class="lede">Parents, gift-givers, teachers, makers and small brands in India. Here are three example designs from the studio.</p>
+        <h2 id="ideas-title">Different people. Very different gadgets.</h2>
+        <p class="lede">Six example designs from our design engine. Each card shows the kind of sentence you might type to start one.</p>
       </div>
       <div class="ideas">
-        <figure class="idea">
+        <article class="idea">
           <div class="pic"><span class="tag">AI-generated</span>
-            <img src="assets/img/gallery-bedtime-robot.jpg" width="1200" height="1200" loading="lazy" decoding="async"
-                 alt="Momo, a lavender bedtime robot with small antennae, screen eyes, a printed smile and a big button on top.">
+            <img class="studio-bg" src="assets/img/ideas/desk-bot-studio.jpg" width="1200" height="1200" loading="lazy" decoding="async" alt="" aria-hidden="true">
+            <img class="studio" src="assets/img/ideas/desk-bot-studio.jpg" width="1200" height="1200" loading="lazy" decoding="async" alt="">
+            <img class="life" src="assets/img/ideas/desk-bot-life.jpg" width="1600" height="1200" loading="lazy" decoding="async" onerror="this.remove()"
+                 alt="Bolt, a white desk robot with an orange chest panel and a cartoon face on its screen, next to a keyboard where someone is typing.">
           </div>
-          <figcaption>
-            <h3>Momo, a bedtime robot</h3>
-            <p>A sleepy little robot that tells bedtime stories starring her favourite characters.</p>
-          </figcaption>
-        </figure>
-        <figure class="idea">
+          <div class="body">
+            <span class="chip">For your desk</span>
+            <h3>Bolt Desk Bot</h3>
+            <p class="one">A little desk robot that notices you sit down, says hi, and keeps the time and your notifications on its screen face.</p>
+            <blockquote class="said"><span>You might type</span>“Make me a little desk robot for my gaming setup: a boxy head with a screen face and an antenna that notices when I sit down, says hi, shows the time and my notifications, and beeps when something comes in. White with an orange accent, techy, not a cute animal.”</blockquote>
+          </div>
+        </article>
+        <article class="idea">
           <div class="pic"><span class="tag">AI-generated</span>
-            <img src="assets/img/gallery-cloud-lamp.jpg" width="1200" height="1200" loading="lazy" decoding="async"
-                 alt="Nimbus, a white cloud-shaped lamp with a sleepy printed face and a softly glowing round moon on one side.">
+            <img class="studio-bg" src="assets/img/ideas/book-light-studio.jpg" width="1200" height="1200" loading="lazy" decoding="async" alt="" aria-hidden="true">
+            <img class="studio" src="assets/img/ideas/book-light-studio.jpg" width="1200" height="1200" loading="lazy" decoding="async" alt="">
+            <img class="life" src="assets/img/ideas/book-light-life.jpg" width="1600" height="1200" loading="lazy" decoding="async" onerror="this.remove()"
+                 alt="Folio, a forest-green hardback-shaped lamp glowing warm through its cream page edge on a bedside table, a hand pressing its top button.">
           </div>
-          <figcaption>
-            <h3>Nimbus, a cloud lamp</h3>
-            <p>A sleepy cloud with a glowing moon cheek that dims itself when the room goes dark.</p>
-          </figcaption>
-        </figure>
-        <figure class="idea">
+          <div class="body">
+            <span class="chip">For readers</span>
+            <h3>Folio Book Light</h3>
+            <p class="one">A forest-green hardback that stands on your bedside, glows warm through its cream page edge and plays audiobooks and rain sounds from a memory card.</p>
+            <blockquote class="said"><span>You might type</span>“Make me a bedside lamp shaped like a thick green hardback book whose page edge glows warm, with a speaker for audiobooks and rain sounds and a button on top.”</blockquote>
+          </div>
+        </article>
+        <article class="idea">
           <div class="pic"><span class="tag">AI-generated</span>
-            <img src="assets/img/gallery-desk-buddy.jpg" width="1200" height="1200" loading="lazy" decoding="async"
-                 alt="Mochi, a round peach desk buddy with bear ears and a cartoon face on a small colour screen.">
+            <img class="studio-bg" src="assets/img/ideas/love-note-studio.jpg" width="1200" height="1200" loading="lazy" decoding="async" alt="" aria-hidden="true">
+            <img class="studio" src="assets/img/ideas/love-note-studio.jpg" width="1200" height="1200" loading="lazy" decoding="async" alt="">
+            <img class="life" src="assets/img/ideas/love-note-life.jpg" width="1600" height="1200" loading="lazy" decoding="async" onerror="this.remove()"
+                 alt="The Love Note Heart, a blush-pink heart engraved A + R, glowing softly on a bedside table as a finger taps it.">
           </div>
-          <figcaption>
-            <h3>Mochi, a desk buddy</h3>
-            <p>A round little desk friend with a colour face that reacts to your day.</p>
-          </figcaption>
-        </figure>
+          <div class="body">
+            <span class="chip">For someone you love</span>
+            <h3>Love Note Heart</h3>
+            <p class="one">A blush-pink heart for her bedside that glows softly when you send a voice note and plays it when she taps the heart.</p>
+            <blockquote class="said"><span>You might type</span>“Make a heart-shaped bedside gift for my girlfriend that glows when I send her a message and plays my voice note when she taps it, with our initials A + R engraved on it, in blush pink.”</blockquote>
+          </div>
+        </article>
+        <article class="idea">
+          <div class="pic"><span class="tag">AI-generated</span>
+            <img class="studio-bg" src="assets/img/ideas/pill-reminder-studio.jpg" width="1200" height="1200" loading="lazy" decoding="async" alt="" aria-hidden="true">
+            <img class="studio" src="assets/img/ideas/pill-reminder-studio.jpg" width="1200" height="1200" loading="lazy" decoding="async" alt="">
+            <img class="life" src="assets/img/ideas/pill-reminder-life.jpg" width="1600" height="1200" loading="lazy" decoding="async" onerror="this.remove()"
+                 alt="Dose, a white-and-mint capsule showing a pill on its screen, an older hand pressing its big teal button, beside a pill organiser.">
+          </div>
+          <div class="body">
+            <span class="chip">For grandparents</span>
+            <h3>Dose Medicine Reminder</h3>
+            <p class="one">A big white-and-mint capsule that shows which tablet to take now, lights up and chimes at the set time, and has one big button to press once the tablet is taken.</p>
+            <blockquote class="said"><span>You might type</span>“Make a medicine reminder for my grandparents shaped like a big capsule pill, white and mint, with a colour screen that shows which tablet to take, one big button to press when it's taken, a chime and a spoken reminder at set times, and let the family set the schedule from their phones.”</blockquote>
+          </div>
+        </article>
+        <article class="idea">
+          <div class="pic"><span class="tag">AI-generated</span>
+            <img class="studio-bg" src="assets/img/ideas/shop-greeter-studio.jpg" width="1200" height="1200" loading="lazy" decoding="async" alt="" aria-hidden="true">
+            <img class="studio" src="assets/img/ideas/shop-greeter-studio.jpg" width="1200" height="1200" loading="lazy" decoding="async" alt="">
+            <img class="life" src="assets/img/ideas/shop-greeter-life.jpg" width="1600" height="1200" loading="lazy" decoding="async" onerror="this.remove()"
+                 alt="Swagat, a marigold arched sign reading KIRAN STORES and WELCOME, glowing on a shop counter by the doorway.">
+          </div>
+          <div class="body">
+            <span class="chip">For your shop</span>
+            <h3>Swagat Shop Greeter</h3>
+            <p class="one">An arched counter sign with your shop's name that glows and plays a welcome chime when a customer walks in.</p>
+            <blockquote class="said"><span>You might type</span>“A welcome sign for my shop counter: an arch with my shop name KIRAN STORES on it that lights up and plays a welcome chime when a customer walks in. Bright marigold, red and teal, like shop signage.”</blockquote>
+          </div>
+        </article>
+        <article class="idea">
+          <div class="pic"><span class="tag">AI-generated</span>
+            <img class="studio-bg" src="assets/img/ideas/focus-cube-studio.jpg" width="1200" height="1200" loading="lazy" decoding="async" alt="" aria-hidden="true">
+            <img class="studio" src="assets/img/ideas/focus-cube-studio.jpg" width="1200" height="1200" loading="lazy" decoding="async" alt="">
+            <img class="life" src="assets/img/ideas/focus-cube-life.jpg" width="1600" height="1200" loading="lazy" decoding="async" onerror="this.remove()"
+                 alt="Pomo, a charcoal cube with a red ring and the number 25, on a student's desk beside an open notebook.">
+          </div>
+          <div class="body">
+            <span class="chip">For exam season</span>
+            <h3>Pomo Focus Cube</h3>
+            <p class="one">Flip the cube to start 25 minutes of focus; a ring of light counts down the time and a soft chime tells you when to take a break.</p>
+            <blockquote class="said"><span>You might type</span>“A focus cube for exam prep: I flip it to start a 25-minute study session, a light ring shows how much time is left and a soft chime tells me when to take a break. Matte charcoal, minimal, one bright ring, no face.”</blockquote>
+          </div>
+        </article>
       </div>
+      <p class="ideas-note">Example designs made with our design engine; photos are AI-generated scenes of those designs.</p>
     </div>
   </section>
 
@@ -502,7 +569,7 @@ footer .wrap { display: grid; gap: 16px; }
         <details>
           <summary>What does it cost?<span class="pm" aria-hidden="true"></span></summary>
           <div class="a">
-            <p>You see one delivered price before you order: parts, printing, assembly, testing, courier and GST, all in. The bedtime robot came to about ₹18,999 for one unit.</p>
+            <p>You see one delivered price before you order: parts, printing, assembly, testing, courier and GST, all in. For example, ₹7,826 (illustrative).</p>
             <p>For now every price is an estimate until our team reviews the design, and nothing is charged or reserved. The bedtime robot runs on a USB-C phone charger, which is not in the box.</p>
           </div>
         </details>
@@ -559,13 +626,13 @@ footer .wrap { display: grid; gap: 16px; }
         <a href="#faq">Questions</a>
       </nav>
     </div>
-    <p class="fine">India first. Pictures marked AI-generated are concept images, not photos of a finished product. Screenshots are from the real studio. Prices and delivery times are estimates until our team reviews the design.</p>
+    <p class="fine">India first. Pictures marked AI-generated are scenes made from our real design renders, not photos of finished products. Screenshots are from the real studio. Prices and delivery times are estimates until our team reviews the design.</p>
   </div>
 </footer>
 
 <script>
   // Where every "Start" button goes. Change this one value when the web app serves this page.
-  var STUDIO_URL = "/app";
+  var STUDIO_URL = "https://gstudio-web-xxxxxxxxxx-el.a.run.app";
   document.querySelectorAll("[data-studio-link]").forEach(function (a) { a.setAttribute("href", STUDIO_URL); });
 
   // A hairline under the header once the page scrolls.

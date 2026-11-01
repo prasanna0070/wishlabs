@@ -1,0 +1,22 @@
+{
+ "ok": true,
+ "errors": [],
+ "error_items": [],
+ "normalized": {
+  "name": "Love Note Heart",
+  "slug": "love-note",
+  "instances": [
+   "U1",
+   "BP1",
+   "PWR1",
+   "LED1",
+   "TCH1",
+   "SPK1",
+   "BTN1",
+   "AMP1",
+   "SD1",
+   "CBL1"
+  ]
+ },
+ "warnings": []
+}

@@ -1,0 +1,513 @@
+{
+ "schema": "gadget-spec/1",
+ "name": "Folio Book Light",
+ "slug": "book-light",
+ "tagline": "A hardback that glows warm through its page edge and plays audiobooks and rain sounds",
+ "audience": {
+  "child_directed": false
+ },
+ "region": "IN",
+ "colors": {
+  "body": "#3B5F4C",
+  "accent": "#F2EADB",
+  "detail": "#C7B28A",
+  "body_name": "forest green",
+  "accent_name": "paper cream",
+  "detail_name": "page tan"
+ },
+ "body": {
+  "family": "blob",
+  "primitives": [
+   {
+    "kind": "rounded_box",
+    "center": [
+     0,
+     -5,
+     99
+    ],
+    "size": [
+     89,
+     130,
+     208
+    ],
+    "radius": 1.5
+   },
+   {
+    "kind": "rounded_box",
+    "center": [
+     43,
+     -7.5,
+     100.5
+    ],
+    "size": [
+     4,
+     131,
+     211
+    ],
+    "radius": 1.5
+   },
+   {
+    "kind": "rounded_box",
+    "center": [
+     -43,
+     -7.5,
+     100.5
+    ],
+    "size": [
+     4,
+     131,
+     211
+    ],
+    "radius": 1.5
+   },
+   {
+    "kind": "cylinder",
+    "axis": "z",
+    "center": [
+     0,
+     59,
+     100.5
+    ],
+    "size": [
+     90,
+     28,
+     211
+    ],
+    "radius": 2
+   }
+  ],
+  "edge_round": 2,
+  "wall": 2.4,
+  "split": "base_plate",
+  "feet": 4
+ },
+ "decor": [
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    30.15,
+    197.15
+   ],
+   "size": [
+    18.3,
+    7.3
+   ],
+   "depth": 0.6,
+   "relief": "engrave",
+   "color": "accent"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    36.65,
+    190.15
+   ],
+   "size": [
+    5.3,
+    21.3
+   ],
+   "depth": 0.7,
+   "relief": "engrave",
+   "color": "accent"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    30.15,
+    5.85
+   ],
+   "size": [
+    18.3,
+    7.3
+   ],
+   "depth": 0.6,
+   "relief": "engrave",
+   "color": "accent"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    36.65,
+    12.85
+   ],
+   "size": [
+    5.3,
+    21.3
+   ],
+   "depth": 0.7,
+   "relief": "engrave",
+   "color": "accent"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    -30.15,
+    197.15
+   ],
+   "size": [
+    18.3,
+    7.3
+   ],
+   "depth": 0.6,
+   "relief": "engrave",
+   "color": "accent"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    -36.65,
+    190.15
+   ],
+   "size": [
+    5.3,
+    21.3
+   ],
+   "depth": 0.7,
+   "relief": "engrave",
+   "color": "accent"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    -30.15,
+    5.85
+   ],
+   "size": [
+    18.3,
+    7.3
+   ],
+   "depth": 0.6,
+   "relief": "engrave",
+   "color": "accent"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    -36.65,
+    12.85
+   ],
+   "size": [
+    5.3,
+    21.3
+   ],
+   "depth": 0.7,
+   "relief": "engrave",
+   "color": "accent"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    0,
+    101.5
+   ],
+   "size": [
+    79,
+    199
+   ],
+   "depth": 0.5,
+   "relief": "engrave",
+   "color": "accent"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    -34.0,
+    101.5
+   ],
+   "size": [
+    1.0,
+    189
+   ],
+   "depth": 0.5,
+   "relief": "engrave",
+   "color": "detail"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    -29.14,
+    101.5
+   ],
+   "size": [
+    1.4,
+    189
+   ],
+   "depth": 0.5,
+   "relief": "engrave",
+   "color": "detail"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    -24.29,
+    101.5
+   ],
+   "size": [
+    1.0,
+    189
+   ],
+   "depth": 0.5,
+   "relief": "engrave",
+   "color": "detail"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    -19.43,
+    101.5
+   ],
+   "size": [
+    1.0,
+    189
+   ],
+   "depth": 0.5,
+   "relief": "engrave",
+   "color": "detail"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    -14.57,
+    101.5
+   ],
+   "size": [
+    1.4,
+    189
+   ],
+   "depth": 0.5,
+   "relief": "engrave",
+   "color": "detail"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    -9.71,
+    101.5
+   ],
+   "size": [
+    1.0,
+    189
+   ],
+   "depth": 0.5,
+   "relief": "engrave",
+   "color": "detail"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    -4.86,
+    101.5
+   ],
+   "size": [
+    1.0,
+    189
+   ],
+   "depth": 0.5,
+   "relief": "engrave",
+   "color": "detail"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    0.0,
+    101.5
+   ],
+   "size": [
+    1.4,
+    189
+   ],
+   "depth": 0.5,
+   "relief": "engrave",
+   "color": "detail"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    4.86,
+    101.5
+   ],
+   "size": [
+    1.0,
+    189
+   ],
+   "depth": 0.5,
+   "relief": "engrave",
+   "color": "detail"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    9.71,
+    101.5
+   ],
+   "size": [
+    1.0,
+    189
+   ],
+   "depth": 0.5,
+   "relief": "engrave",
+   "color": "detail"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    14.57,
+    101.5
+   ],
+   "size": [
+    1.4,
+    189
+   ],
+   "depth": 0.5,
+   "relief": "engrave",
+   "color": "detail"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    19.43,
+    101.5
+   ],
+   "size": [
+    1.0,
+    189
+   ],
+   "depth": 0.5,
+   "relief": "engrave",
+   "color": "detail"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    24.29,
+    101.5
+   ],
+   "size": [
+    1.0,
+    189
+   ],
+   "depth": 0.5,
+   "relief": "engrave",
+   "color": "detail"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    29.14,
+    101.5
+   ],
+   "size": [
+    1.4,
+    189
+   ],
+   "depth": 0.5,
+   "relief": "engrave",
+   "color": "detail"
+  },
+  {
+   "type": "face_plate",
+   "shape": "rounded_rect",
+   "at": [
+    34.0,
+    101.5
+   ],
+   "size": [
+    1.0,
+    189
+   ],
+   "depth": 0.5,
+   "relief": "engrave",
+   "color": "detail"
+  }
+ ],
+ "features": [
+  {
+   "id": "page_glow",
+   "module": "LED_RING_12_WS2812_50MM",
+   "face": "front",
+   "at": [
+    0,
+    150
+   ],
+   "label": "Warm glow through the page edge"
+  },
+  {
+   "id": "speaker",
+   "module": "SPK_40MM_4R_3W",
+   "face": "left",
+   "at": [
+    -8,
+    118
+   ],
+   "label": "Audiobooks and rain sounds",
+   "grille": {
+    "pattern": "concentric",
+    "w": 35.6,
+    "h": 35.6,
+    "hole": 2.0,
+    "pitch": 4.0
+   }
+  },
+  {
+   "id": "play_button",
+   "module": "BUTTON_TACTILE_KY004",
+   "face": "top",
+   "at": [
+    -16,
+    -8
+   ],
+   "label": "Tap: play the next track. Tap again: stop"
+  }
+ ],
+ "electronics": {
+  "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+  "extra_modules": [],
+  "power": {
+   "input": "usb_c_5v",
+   "adapter_in_box": false
+  }
+ },
+ "behaviour": {
+  "template": "story_player",
+  "summary": "Tap the button on the head to play the next audiobook chapter or rain track from the microSD card; tap again to stop. The page edge glows warm while it plays and for an hour after. Volume and glow are set on its local Wi-Fi page.",
+  "settings": {
+   "capture_mode": "none",
+   "night_light": true,
+   "night_light_minutes": 60,
+   "night_light_brightness": 60,
+   "night_light_color": "#FFB36B",
+   "story_order": "sequential",
+   "volume_default": 35,
+   "volume_max": 80
+  }
+ },
+ "safety": {
+  "flags": [
+   "NIGHT_USE"
+  ],
+  "notes": "LED brightness capped in firmware; no microphone; audio files stay on the microSD card. External certified USB-C supply."
+ }
+}

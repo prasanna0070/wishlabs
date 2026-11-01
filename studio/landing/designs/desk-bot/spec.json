@@ -1,0 +1,222 @@
+{
+  "schema": "gadget-spec/1",
+  "name": "Bolt Desk Bot",
+  "slug": "desk-bot",
+  "tagline": "A little desk robot that notices you sit down, says hi, and keeps your time and pings in view",
+  "audience": {
+    "child_directed": false
+  },
+  "region": "IN",
+  "colors": {
+    "body": "#F2F0EB",
+    "accent": "#FF6A13",
+    "detail": "#2B2E33",
+    "body_name": "chalk white",
+    "accent_name": "signal orange",
+    "detail_name": "graphite"
+  },
+  "body": {
+    "family": "blob",
+    "primitives": [
+      {
+        "kind": "rounded_box",
+        "center": [
+          0,
+          0,
+          26
+        ],
+        "size": [
+          100,
+          104,
+          72
+        ],
+        "radius": 12
+      },
+      {
+        "kind": "cylinder",
+        "center": [
+          0,
+          0,
+          68
+        ],
+        "size": [
+          56,
+          56,
+          16
+        ],
+        "radius": 3,
+        "axis": "z"
+      },
+      {
+        "kind": "rounded_box",
+        "center": [
+          0,
+          0,
+          118
+        ],
+        "size": [
+          130,
+          100,
+          88
+        ],
+        "radius": 16
+      },
+      {
+        "kind": "capsule",
+        "center": [
+          56,
+          0,
+          30
+        ],
+        "size": [
+          18,
+          24,
+          40
+        ],
+        "radius": 4,
+        "axis": "z"
+      },
+      {
+        "kind": "capsule",
+        "center": [
+          -56,
+          0,
+          30
+        ],
+        "size": [
+          18,
+          24,
+          40
+        ],
+        "radius": 4,
+        "axis": "z"
+      }
+    ],
+    "edge_round": 6,
+    "wall": 2.4,
+    "split": "base_plate",
+    "feet": 4
+  },
+  "decor": [
+    {
+      "type": "face_plate",
+      "shape": "rounded_rect",
+      "at": [
+        0,
+        118
+      ],
+      "size": [
+        94,
+        62
+      ],
+      "depth": 1.2,
+      "relief": "engrave",
+      "color": "detail"
+    },
+    {
+      "type": "face_plate",
+      "shape": "rounded_rect",
+      "at": [
+        0,
+        28
+      ],
+      "size": [
+        64,
+        40
+      ],
+      "depth": 1.2,
+      "relief": "engrave",
+      "color": "accent"
+    },
+    {
+      "type": "ear",
+      "style": "antenna",
+      "side": "both",
+      "at": [
+        0,
+        162
+      ],
+      "size": [
+        14,
+        32
+      ]
+    }
+  ],
+  "features": [
+    {
+      "id": "face",
+      "module": "LCD_200_ST7789_240X320_WAVESHARE",
+      "face": "front",
+      "at": [
+        0,
+        114
+      ],
+      "label": "Colour screen face, time and pings"
+    },
+    {
+      "id": "presence",
+      "module": "TOF_VL53L0X_POLOLU_2490",
+      "face": "front",
+      "at": [
+        0,
+        141
+      ],
+      "label": "Notices you sit down",
+      "rotate": 90
+    },
+    {
+      "id": "status_light",
+      "module": "LED_WS2812B_1PX_MODULE",
+      "face": "front",
+      "at": [
+        0,
+        45
+      ],
+      "label": "Notification light"
+    },
+    {
+      "id": "speaker",
+      "module": "SPK_28MM_8R_2W",
+      "face": "front",
+      "at": [
+        0,
+        23
+      ],
+      "label": "Beeps and chimes",
+      "grille": {
+        "pattern": "slots",
+        "w": 26,
+        "h": 22,
+        "hole": 2.0,
+        "pitch": 4.0
+      }
+    },
+    {
+      "id": "ear_button",
+      "module": "BUTTON_ARCADE_30MM_SNAPIN",
+      "face": "left",
+      "at": [
+        0,
+        116
+      ],
+      "label": "Press the ear: snooze or dismiss"
+    }
+  ],
+  "electronics": {
+    "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "extra_modules": [],
+    "power": {
+      "input": "usb_c_5v",
+      "adapter_in_box": false
+    }
+  },
+  "behaviour": {
+    "template": "desk_companion",
+    "summary": "Wakes up and says hi with a chirp when you sit down at your desk, then shows the time and your notifications on its screen face. Its eyes react to new pings with a beep and the chest light. Press the ear to snooze or dismiss; it naps when you leave.",
+    "settings": {}
+  },
+  "safety": {
+    "flags": [],
+    "notes": "Presence sensing uses a Class 1 time-of-flight distance sensor; no camera and no microphone. Notifications arrive over the local JSON API on your Wi-Fi. External certified USB-C supply."
+  }
+}

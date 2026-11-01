@@ -1,0 +1,147 @@
+{
+  "schema": "gadget-spec/1",
+  "name": "Pomo Focus Cube",
+  "slug": "focus-cube",
+  "tagline": "Flip it to start 25 minutes of deep focus; a glowing ring counts down and a soft chime calls the break",
+  "audience": {
+    "child_directed": false
+  },
+  "region": "IN",
+  "colors": {
+    "body": "#2F3135",
+    "accent": "#FF5A3C",
+    "detail": "#C9C4BA",
+    "body_name": "matte charcoal",
+    "accent_name": "tomato",
+    "detail_name": "warm grey"
+  },
+  "body": {
+    "family": "blob",
+    "primitives": [
+      {
+        "kind": "rounded_box",
+        "center": [
+          0,
+          0,
+          47
+        ],
+        "size": [
+          102,
+          106,
+          106
+        ],
+        "radius": 13
+      }
+    ],
+    "edge_round": 4,
+    "wall": 2.4,
+    "split": "base_plate",
+    "feet": 4
+  },
+  "decor": [
+    {
+      "type": "face_plate",
+      "shape": "circle",
+      "at": [
+        0,
+        54
+      ],
+      "size": [
+        60,
+        60
+      ],
+      "depth": 1.0,
+      "relief": "emboss",
+      "color": "accent"
+    },
+    {
+      "type": "text",
+      "text": "25",
+      "at": [
+        0,
+        13
+      ],
+      "height": 7,
+      "relief": "engrave",
+      "depth": 0.6,
+      "color": "detail"
+    }
+  ],
+  "features": [
+    {
+      "id": "time_ring",
+      "module": "LED_RING_12_WS2812_50MM",
+      "face": "front",
+      "at": [
+        0,
+        54
+      ],
+      "label": "Time-left ring"
+    },
+    {
+      "id": "chime",
+      "module": "SPK_28MM_8R_2W",
+      "face": "top",
+      "at": [
+        0,
+        10
+      ],
+      "label": "Break chime",
+      "grille": {
+        "pattern": "dots_ellipse",
+        "w": 25,
+        "h": 25,
+        "hole": 2.0,
+        "pitch": 3.4
+      }
+    },
+    {
+      "id": "pause_touch",
+      "module": "TOUCH_TTP223_SMALL_15X11",
+      "face": "top",
+      "at": [
+        0,
+        -26
+      ],
+      "label": "Tap the top to pause"
+    }
+  ],
+  "electronics": {
+    "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "extra_modules": [
+      "IMU_MPU6050_GY521"
+    ],
+    "power": {
+      "input": "usb_c_5v",
+      "adapter_in_box": false
+    }
+  },
+  "behaviour": {
+    "template": "ambient_light",
+    "summary": "Flip the cube upright to start a 25-minute focus session; the ring lights fully and empties as time runs out. A soft chime marks the 5-minute break. Lay it on its back to pause, tap the top to stop.",
+    "settings": {
+      "scenes": [
+        {
+          "name": "Focus",
+          "color": "#FF5A3C",
+          "brightness": 45,
+          "effect": "solid"
+        },
+        {
+          "name": "Break",
+          "color": "#7FD3B0",
+          "brightness": 35,
+          "effect": "breathe"
+        }
+      ],
+      "default_scene": 0,
+      "auto_dim": false,
+      "off_after_minutes": 0,
+      "motion_wake": false
+    }
+  },
+  "safety": {
+    "flags": [],
+    "notes": "LED brightness capped in firmware; the chime volume is capped; external certified USB-C supply."
+  }
+}

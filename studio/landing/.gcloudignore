@@ -1,0 +1,7 @@
+# Only the page and its assets go into the image.
+*
+!Dockerfile
+!nginx.conf
+!index.html
+!assets/
+!assets/**
