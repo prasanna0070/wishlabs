@@ -1,0 +1,502 @@
+{
+ "prompt": "I want a cute robot that tells my daughter bedtime stories and remembers her favorite characters.",
+ "slice": {
+  "slicer": "PrusaSlicer 2.7.2, 0.4 mm nozzle, 0.2 mm layers, 3 perimeters, 15% gyroid, PETG, supports from plate only",
+  "parts": {
+   "shell_print": {
+    "filament_g": 116.56,
+    "filament_cm3": 91.78,
+    "print_h": 8.591
+   },
+   "plate": {
+    "filament_g": 10.86,
+    "filament_cm3": 8.55,
+    "print_h": 1.214
+   }
+  },
+  "model_volume_cm3": {
+   "shell": 90.2,
+   "plate": 10.0
+  }
+ },
+ "compute_seconds_all_quotes": 1.57,
+ "draws_per_quote": 20000,
+ "bureau_crosscheck_inr": {
+  "low": 301,
+  "high": 501
+ },
+ "quotes": [
+  {
+   "variant": "B_parent_run",
+   "scenario": "pilot one-off today",
+   "breakdown_mean": {
+    "parts": 4060.4,
+    "print": 839.9,
+    "assembly_test": 652.9,
+    "setup_nre": 3000.0,
+    "courier": 252.0,
+    "warranty_reserve": 283.5,
+    "returns": 539.4,
+    "total_excl_fee": 9628.2,
+    "filament_g": 127.4,
+    "print_h": 9.8,
+    "assembly_min": 109.8,
+    "billable_kg": 1.6
+   },
+   "p5": 9063.243147085603,
+   "p50": 9621.022988621333,
+   "p95": 10217.914864277995,
+   "price_p50_pretax": 14313.760858587542,
+   "price_p95_floor_pretax": 11715.750080579985,
+   "list_price_incl_gst": 16899,
+   "margin_at_list_p50": 0.3003485130141918,
+   "margin_at_list_p95": 0.2586695726464268,
+   "status": "ESTIMATE_REVIEW_REQUIRED",
+   "reasons": [
+    "child-directed product: needs safety, toy-category and child-data review before any binding price (blueprint \u00a711)",
+    "no supplier rate card or contract: every cost is a planning range or assumption (blueprint \u00a77.1, \u00a71.3)",
+    "delivery pincode unknown: courier cost is an estimate (blueprint \u00a78.5)"
+   ],
+   "cloud_month": {
+    "low": 15,
+    "mode": 40,
+    "high": 90
+   }
+  },
+  {
+   "variant": "B_parent_run",
+   "scenario": "pilot batch of 10 variants",
+   "breakdown_mean": {
+    "parts": 3815.8,
+    "print": 839.9,
+    "assembly_test": 336.9,
+    "setup_nre": 300.0,
+    "courier": 252.0,
+    "warranty_reserve": 257.3,
+    "returns": 385.3,
+    "total_excl_fee": 6187.2,
+    "filament_g": 127.4,
+    "print_h": 9.8,
+    "assembly_min": 56.7,
+    "billable_kg": 1.6
+   },
+   "p5": 5717.9081937591245,
+   "p50": 6182.962211198092,
+   "p95": 6671.744159471704,
+   "price_p50_pretax": 9198.755952817357,
+   "price_p95_floor_pretax": 7649.749309147607,
+   "list_price_incl_gst": 10899,
+   "margin_at_list_p50": 0.3027423835935638,
+   "margin_at_list_p95": 0.24982351957274884,
+   "status": "ESTIMATE_REVIEW_REQUIRED",
+   "reasons": [
+    "child-directed product: needs safety, toy-category and child-data review before any binding price (blueprint \u00a711)",
+    "no supplier rate card or contract: every cost is a planning range or assumption (blueprint \u00a77.1, \u00a71.3)",
+    "delivery pincode unknown: courier cost is an estimate (blueprint \u00a78.5)"
+   ],
+   "cloud_month": {
+    "low": 15,
+    "mode": 40,
+    "high": 90
+   }
+  },
+  {
+   "variant": "B_parent_run",
+   "scenario": "steady state, 100+/month",
+   "breakdown_mean": {
+    "parts": 3510.1,
+    "print": 839.9,
+    "assembly_test": 336.9,
+    "setup_nre": 0.0,
+    "courier": 252.0,
+    "warranty_reserve": 243.0,
+    "returns": 351.3,
+    "total_excl_fee": 5533.2,
+    "filament_g": 127.4,
+    "print_h": 9.8,
+    "assembly_min": 56.7,
+    "billable_kg": 1.6
+   },
+   "p5": 5064.357699047464,
+   "p50": 5524.343562344099,
+   "p95": 6031.011432564866,
+   "price_p50_pretax": 8218.890314012455,
+   "price_p95_floor_pretax": 6915.092131377174,
+   "list_price_incl_gst": 9699,
+   "margin_at_list_p50": 0.30004916428847955,
+   "margin_at_list_p95": 0.23840692417501383,
+   "status": "ESTIMATE_REVIEW_REQUIRED",
+   "reasons": [
+    "child-directed product: needs safety, toy-category and child-data review before any binding price (blueprint \u00a711)",
+    "no supplier rate card or contract: every cost is a planning range or assumption (blueprint \u00a77.1, \u00a71.3)",
+    "delivery pincode unknown: courier cost is an estimate (blueprint \u00a78.5)"
+   ],
+   "cloud_month": {
+    "low": 15,
+    "mode": 40,
+    "high": 90
+   }
+  },
+  {
+   "variant": "B_parent_run",
+   "scenario": "steady state, toy-style returns",
+   "breakdown_mean": {
+    "parts": 3510.1,
+    "print": 839.9,
+    "assembly_test": 336.9,
+    "setup_nre": 0.0,
+    "courier": 252.0,
+    "warranty_reserve": 243.0,
+    "returns": 2584.5,
+    "total_excl_fee": 7766.3,
+    "filament_g": 127.4,
+    "print_h": 9.8,
+    "assembly_min": 56.7,
+    "billable_kg": 1.6
+   },
+   "p5": 6986.20380067231,
+   "p50": 7751.9835623315685,
+   "p95": 8596.248982897434,
+   "price_p50_pretax": 11533.081151780503,
+   "price_p95_floor_pretax": 9856.365613903808,
+   "list_price_incl_gst": 13699,
+   "margin_at_list_p50": 0.3044141648623075,
+   "margin_at_list_p95": 0.23169110505737855,
+   "status": "ESTIMATE_REVIEW_REQUIRED",
+   "reasons": [
+    "child-directed product: needs safety, toy-category and child-data review before any binding price (blueprint \u00a711)",
+    "no supplier rate card or contract: every cost is a planning range or assumption (blueprint \u00a77.1, \u00a71.3)",
+    "delivery pincode unknown: courier cost is an estimate (blueprint \u00a78.5)"
+   ],
+   "cloud_month": {
+    "low": 15,
+    "mode": 40,
+    "high": 90
+   }
+  },
+  {
+   "variant": "A_as_asked",
+   "scenario": "pilot one-off today",
+   "breakdown_mean": {
+    "parts": 4039.2,
+    "print": 839.9,
+    "assembly_test": 652.9,
+    "setup_nre": 3000.0,
+    "courier": 252.0,
+    "warranty_reserve": 282.5,
+    "returns": 538.0,
+    "total_excl_fee": 9604.6,
+    "filament_g": 127.4,
+    "print_h": 9.8,
+    "assembly_min": 109.8,
+    "billable_kg": 1.6
+   },
+   "p5": 9042.134057093428,
+   "p50": 9600.571391787002,
+   "p95": 10195.34899936965,
+   "price_p50_pretax": 14283.333817033948,
+   "price_p95_floor_pretax": 11689.876305242262,
+   "list_price_incl_gst": 16899,
+   "margin_at_list_p50": 0.3017765788325545,
+   "margin_at_list_p95": 0.2602452706517435,
+   "status": "UNSUPPORTED_AT_LAUNCH",
+   "reasons": [
+    "child-directed device with a microphone and cloud AI: excluded at launch (blueprint \u00a71.1, \u00a74.1)",
+    "no supplier rate card or contract: every cost is a planning range or assumption (blueprint \u00a77.1, \u00a71.3)",
+    "delivery pincode unknown: courier cost is an estimate (blueprint \u00a78.5)"
+   ],
+   "cloud_month": {
+    "low": 90,
+    "mode": 200,
+    "high": 450
+   }
+  },
+  {
+   "variant": "A_as_asked",
+   "scenario": "pilot batch of 10 variants",
+   "breakdown_mean": {
+    "parts": 3795.9,
+    "print": 839.9,
+    "assembly_test": 336.9,
+    "setup_nre": 300.0,
+    "courier": 252.0,
+    "warranty_reserve": 256.3,
+    "returns": 384.0,
+    "total_excl_fee": 6165.1,
+    "filament_g": 127.4,
+    "print_h": 9.8,
+    "assembly_min": 56.7,
+    "billable_kg": 1.6
+   },
+   "p5": 5696.878651286021,
+   "p50": 6162.5402361766955,
+   "p95": 6646.760941532823,
+   "price_p50_pretax": 9168.372981374296,
+   "price_p95_floor_pretax": 7621.10382310976,
+   "list_price_incl_gst": 10899,
+   "margin_at_list_p50": 0.3049534057538764,
+   "margin_at_list_p95": 0.2525283729691961,
+   "status": "UNSUPPORTED_AT_LAUNCH",
+   "reasons": [
+    "child-directed device with a microphone and cloud AI: excluded at launch (blueprint \u00a71.1, \u00a74.1)",
+    "no supplier rate card or contract: every cost is a planning range or assumption (blueprint \u00a77.1, \u00a71.3)",
+    "delivery pincode unknown: courier cost is an estimate (blueprint \u00a78.5)"
+   ],
+   "cloud_month": {
+    "low": 90,
+    "mode": 200,
+    "high": 450
+   }
+  },
+  {
+   "variant": "A_as_asked",
+   "scenario": "steady state, 100+/month",
+   "breakdown_mean": {
+    "parts": 3491.8,
+    "print": 839.9,
+    "assembly_test": 336.9,
+    "setup_nre": 0.0,
+    "courier": 252.0,
+    "warranty_reserve": 242.1,
+    "returns": 350.1,
+    "total_excl_fee": 5512.9,
+    "filament_g": 127.4,
+    "print_h": 9.8,
+    "assembly_min": 56.7,
+    "billable_kg": 1.6
+   },
+   "p5": 5045.7401375486315,
+   "p50": 5504.665977559834,
+   "p95": 6007.8508012764405,
+   "price_p50_pretax": 8189.614815636693,
+   "price_p95_floor_pretax": 6888.536403375146,
+   "list_price_incl_gst": 9699,
+   "margin_at_list_p50": 0.3024431791400553,
+   "margin_at_list_p95": 0.24122469352446652,
+   "status": "UNSUPPORTED_AT_LAUNCH",
+   "reasons": [
+    "child-directed device with a microphone and cloud AI: excluded at launch (blueprint \u00a71.1, \u00a74.1)",
+    "no supplier rate card or contract: every cost is a planning range or assumption (blueprint \u00a77.1, \u00a71.3)",
+    "delivery pincode unknown: courier cost is an estimate (blueprint \u00a78.5)"
+   ],
+   "cloud_month": {
+    "low": 90,
+    "mode": 200,
+    "high": 450
+   }
+  },
+  {
+   "variant": "A_as_asked",
+   "scenario": "steady state, toy-style returns",
+   "breakdown_mean": {
+    "parts": 3491.8,
+    "print": 839.9,
+    "assembly_test": 336.9,
+    "setup_nre": 0.0,
+    "courier": 252.0,
+    "warranty_reserve": 242.1,
+    "returns": 2575.6,
+    "total_excl_fee": 7738.4,
+    "filament_g": 127.4,
+    "print_h": 9.8,
+    "assembly_min": 56.7,
+    "billable_kg": 1.6
+   },
+   "p5": 6968.718642160072,
+   "p50": 7724.643152549823,
+   "p95": 8567.84899001619,
+   "price_p50_pretax": 11492.405218685391,
+   "price_p95_floor_pretax": 9823.80249086878,
+   "list_price_incl_gst": 13599,
+   "margin_at_list_p50": 0.30187632384669527,
+   "margin_at_list_p95": 0.22871043751605977,
+   "status": "UNSUPPORTED_AT_LAUNCH",
+   "reasons": [
+    "child-directed device with a microphone and cloud AI: excluded at launch (blueprint \u00a71.1, \u00a74.1)",
+    "no supplier rate card or contract: every cost is a planning range or assumption (blueprint \u00a77.1, \u00a71.3)",
+    "delivery pincode unknown: courier cost is an estimate (blueprint \u00a78.5)"
+   ],
+   "cloud_month": {
+    "low": 90,
+    "mode": 200,
+    "high": 450
+   }
+  }
+ ],
+ "scenarios": [
+  {
+   "name": "pilot one-off today",
+   "qty_key": "1",
+   "first_article": true,
+   "nre_units": 1,
+   "returns": "returns_defect_only",
+   "note": "first unit of a never-built design: retail-ish parts, first-article labour, full 3,000 setup"
+  },
+  {
+   "name": "pilot batch of 10 variants",
+   "qty_key": "10",
+   "first_article": false,
+   "nre_units": 10,
+   "returns": "returns_defect_only",
+   "note": "10 different shells on the same core: setup spread over 10"
+  },
+  {
+   "name": "steady state, 100+/month",
+   "qty_key": "100",
+   "first_article": false,
+   "nre_units": 0,
+   "returns": "returns_defect_only",
+   "note": "qualified shell family, volume parts, no per-design setup"
+  },
+  {
+   "name": "steady state, toy-style returns",
+   "qty_key": "100",
+   "first_article": false,
+   "nre_units": 0,
+   "returns": "returns_novelty",
+   "note": "as above but with BubblePal-like 20-30% novelty returns"
+  }
+ ],
+ "price_points": [
+  {
+   "scenario": "pilot one-off today",
+   "5999": {
+    "p50": -0.92,
+    "p95": -1.038
+   },
+   "7999": {
+    "p50": -0.447,
+    "p95": -0.535
+   },
+   "9999": {
+    "p50": -0.163,
+    "p95": -0.234
+   }
+  },
+  {
+   "scenario": "pilot batch of 10 variants",
+   "5999": {
+    "p50": -0.244,
+    "p95": -0.34
+   },
+   "7999": {
+    "p50": 0.06,
+    "p95": -0.012
+   },
+   "9999": {
+    "p50": 0.242,
+    "p95": 0.185
+   }
+  },
+  {
+   "scenario": "steady state, 100+/month",
+   "5999": {
+    "p50": -0.114,
+    "p95": -0.214
+   },
+   "7999": {
+    "p50": 0.157,
+    "p95": 0.082
+   },
+   "9999": {
+    "p50": 0.32,
+    "p95": 0.26
+   }
+  },
+  {
+   "scenario": "steady state, toy-style returns",
+   "5999": {
+    "p50": -0.553,
+    "p95": -0.719
+   },
+   "7999": {
+    "p50": -0.171,
+    "p95": -0.296
+   },
+   "9999": {
+    "p50": 0.057,
+    "p95": -0.042
+   }
+  }
+ ],
+ "levers": [
+  {
+   "lever": "Ship without the USB-C adapter",
+   "basis": "drops catalog row 04; parent uses any phone charger (also avoids BIS adapter registration)",
+   "p50": 5078,
+   "delta_p50": -446,
+   "list_incl_gst": 8999,
+   "delta_list": -700
+  },
+  {
+   "lever": "Drop the microSD story library",
+   "basis": "drops catalog row 37; stories fit in the board's own flash, fewer offline",
+   "p50": 5267,
+   "delta_p50": -258,
+   "list_incl_gst": 9299,
+   "delta_list": -400
+  },
+  {
+   "lever": "Faster printer (Bambu-class)",
+   "basis": "ASSUMPTION: print time x0.45 vs the Prusa-default slicer estimate",
+   "p50": 5318,
+   "delta_p50": -207,
+   "list_incl_gst": 9399,
+   "delta_list": -300
+  },
+  {
+   "lever": "Smaller box (20 x 15 x 17 cm)",
+   "basis": "ASSUMPTION: tighter packaging drops billable weight",
+   "p50": 5463,
+   "delta_p50": -61,
+   "list_incl_gst": 9599,
+   "delta_list": -100
+  },
+  {
+   "lever": "Toy-style returns (20-30%)",
+   "basis": "RESEARCH: BubblePal return rate",
+   "p50": 7752,
+   "delta_p50": 2228,
+   "list_incl_gst": 13699,
+   "delta_list": 4000
+  }
+ ],
+ "top_parts": [
+  [
+   "ESP32-S3 core dev board, flash+PSRAM",
+   "CORE_ESP32S3_A",
+   650,
+   1300
+  ],
+  [
+   "Approved external USB-C adapter",
+   "ADAPTER_USBC_A",
+   250,
+   600
+  ],
+  [
+   "Standard expansion/backplane PCB",
+   "BACKPLANE_A",
+   120,
+   450
+  ],
+  [
+   "MicroSD module + qualified storage",
+   "MICROSD_A",
+   120,
+   380
+  ],
+  [
+   "0.96-inch mono OLED",
+   "DISPLAY_OLED_096_A",
+   130,
+   350
+  ],
+  [
+   "I2S amplifier board",
+   "AMP_I2S_A",
+   110,
+   300
+  ]
+ ]
+}

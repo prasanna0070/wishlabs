@@ -1,0 +1,19 @@
+{
+ "slicer": "PrusaSlicer 2.7.2, 0.4 mm nozzle, 0.2 mm layers, 3 perimeters, 15% gyroid, PETG, supports from plate only",
+ "parts": {
+  "shell_print": {
+   "filament_g": 116.56,
+   "filament_cm3": 91.78,
+   "print_h": 8.591
+  },
+  "plate": {
+   "filament_g": 10.86,
+   "filament_cm3": 8.55,
+   "print_h": 1.214
+  }
+ },
+ "model_volume_cm3": {
+  "shell": 90.2,
+  "plate": 10.0
+ }
+}

@@ -1,0 +1,16 @@
+; perimeters extrusion width = 0.45mm
+; filament used [mm] = 3555.99
+; filament used [cm3] = 8.55
+; filament used [g] = 10.86
+; total filament cost = 20.64
+; estimated printing time (normal mode) = 1h 12m 51s
+; estimated printing time (silent mode) = 1h 13m 28s
+; filament_cost = 1900
+; filament_density = 1.27
+; fill_density = 15%
+; layer_height = 0.2
+; nozzle_diameter = 0.4
+; perimeters = 3
+; support_material = 1
+; support_material_auto = 1
+; support_material_buildplate_only = 1
