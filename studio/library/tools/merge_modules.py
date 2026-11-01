@@ -124,7 +124,8 @@ def port_for(m: dict, role: str) -> dict:
         return {"port": "none", "slots": [], "cable": None, "supported": False,
                 "why": "needs a switched 5 V output or 4 control GPIOs; not on backplane-v1 (P2 rows)"}
     if role == "harness":
-        return {"port": "harness", "slots": [], "cable": None, "supported": True}
+        return {"port": "harness", "slots": list(m.get("slots") or []), "cable": None, "supported": True,
+                **({"proposed_row": True} if m.get("proposed_row") else {})}
     return {"port": "none", "slots": [], "cable": None, "supported": True, "why": "mechanical or consumable; no electrical port"}
 
 
@@ -155,6 +156,53 @@ FACE_OVERRIDE = {"PIR_AM312_MINI": ((12.0, 12.0), 27.0, "dims_mm x is the axial 
                  "SPK_GASKET_FOAM_25X3_ADH": (None, None, "consumable strip")}
 
 
+# ---------------------------------------------------------------------------------------------- foundation harness cables
+HARNESS_PINS = {2: ("06b", None, ["SPK+", "SPK-"], ["J_SPK"]),
+                3: ("07", "CABLE_3PIN_A", ["GND", "3V3/5V", "SIG"], ["J_IO1", "J_IO2", "J_IO3", "J_LED"]),
+                4: ("06", "CABLE_4PIN_A", ["GND", "3V3", "SDA", "SCL"], ["J_I2C1", "J_I2C2", "J_I2C3"]),
+                6: ("06c", None, ["GND", "3V3", "SCK", "WS", "SD", "LR"], ["J_MIC"]),
+                8: ("06d", None, ["VCC", "GND", "DIN", "CLK", "CS", "DC", "RST", "BL"], ["J_DISP"])}
+HARNESS_LENGTHS = (100, 150, 200, 300)
+
+
+def harness_id(pins: int, length: int) -> str:
+    return f"CABLE_JSTPH_{pins}P_{length}"
+
+
+def foundation_cables() -> list[dict]:
+    """Double-ended pre-crimped harnesses, one per backplane-v1 port size and length class (used by derived.harness)."""
+    out = []
+    for n, (row, cid, order, slots) in HARNESS_PINS.items():
+        for L in HARNESS_LENGTHS:
+            proposed = cid is None
+            out.append({
+                "id": harness_id(n, L), "catalog_row": row, "catalog_id": cid,
+                "role": "cable", "name": f"JST-PH 2.0 {n}-pin harness, {L} mm, pre-crimped both ends",
+                "reference_product": {"maker": "any JST-PH 2.0 compatible (PHR-%d housing + crimped wire)" % n, "mpn_or_model":
+                                      f"PHR-{n} housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"},
+                "dims_mm": {"x": L, "y": round(2.0 * (n - 1) + 3.9, 2), "z": 4.5,
+                            "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule "
+                                     "as library rows 06/07); z = housing height estimate"},
+                "pcb_thickness_mm": None, "mount": {"type": "none", "holes": [], "hole_origin": "n/a", "notes": "tie to printed anchors"},
+                "pins": [{"name": p, "func": "wire"} for p in order],
+                "module_connector": {"type": "jst_ph_2.0", "pin_order": order, "location": "backplane end: PHR housing; module end per module"},
+                "backplane_harness": {"backplane_connector": f"JST-PH 2.0 {n}p ({'/'.join(slots)})", "wires": [], "length_mm": L},
+                "aperture": {"needs": "none", "size_mm": {"w": 0, "h": 0, "d": 0}, "notes": "internal"},
+                "electrical": {"supply_v": "n/a", "logic_v": "n/a", "current_ma_typ": 0, "current_ma_max": 0, "bus": "n/a (harness)"},
+                "firmware": {"arduino_libraries": [], "driver_notes": ""},
+                "kicad": {"backplane_footprint": "NONE", "notes": f"mates the slot header JST_PH_B{n}B-PH-K"},
+                "sourcing_in": [],
+                "price_inr_planning": [30, 100],
+                "evidence": ["blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+                             "pin counts and order from library/backplane-v1.json slot pins"],
+                "uncertain": (["pin count not in the blueprint catalog: proposed new row " + row + "; planning price borrowed from rows 06/07"]
+                              if proposed else []) + ["no Indian listing read for this exact length; price is the planning range only",
+                                                      "housing dimensions are estimates"],
+                "slots": slots, "proposed_row": proposed,
+            })
+    return out
+
+
 def merge() -> tuple[list[dict], list[str]]:
     notes: list[str] = []
     rows: list[dict] = []
@@ -174,6 +222,14 @@ def merge() -> tuple[list[dict], list[str]]:
             m = dict(m)
             m["source_file"] = f.name
             rows.append(m)
+    for m in foundation_cables():
+        if m["id"] in seen:
+            notes.append(f"generated cable id {m['id']} already exists in {seen[m['id']]}; kept the library one")
+            continue
+        seen[m["id"]] = "foundation"
+        m["source_file"] = "foundation (tools/merge_modules.py)"
+        ROLE[m["id"]] = "harness"
+        rows.append(m)
     out = []
     for m in rows:
         oid = m["id"]
@@ -282,10 +338,12 @@ def merge() -> tuple[list[dict], list[str]]:
                 m["kicad"] = {"backplane_footprint": "NONE", "notes": "see library/backplane-v1.json parts[] for every footprint"}
                 m.setdefault("merge_notes", []).append("renamed from BACKPLANE_S3_V0_CUSTOM; geometry now from backplane-v1.json")
             if m["id"] == "USBC_RECEPTACLE_GCT_USB4105":
+                slot = next(x for x in bp["slots"] if x["id"] == "J_PWR")
                 k = dict(m.get("kicad") or {})
-                k["alt_footprint"] = k.get("backplane_footprint")
-                k["backplane_footprint"] = "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12"
-                k["notes"] = (k.get("notes") or "") + " | backplane-v1 places the HRO TYPE-C-31-M-12 (courtyard read on the VM); GCT USB4105 is the alternate."
+                if k.get("backplane_footprint") != slot["footprint"]:
+                    m.setdefault("merge_notes", []).append(f"kicad.backplane_footprint set to the J_PWR slot footprint {slot['footprint']}")
+                    k["backplane_footprint"] = slot["footprint"]
+                k["alt_footprint"] = slot.get("alt_footprint")
                 m["kicad"] = k
     order = {r: i for i, r in enumerate(sorted({m["catalog_row"] for m in out}))}
     out.sort(key=lambda m: (order[m["catalog_row"]], m["id"]))
@@ -339,6 +397,10 @@ def readme(mods: list[dict], notes: list[str]) -> str:
           "| 06d | JST-PH 8-pin to JST-PH 8-pin, same order, 100-300 mm | `J_DISP` (Waveshare 2in LCD) |",
           "| 06e | JST-PH 3-pin to servo 3-way 2.54 plug adapter | `J_LED` when it drives a servo |",
           "| 06f | JST-PH 5-pin / 6-pin | encoder / DRV8833: not on backplane-v1, kept for backplane-v2 |",
+          "",
+          "Harness modules `CABLE_JSTPH_<n>P_<len>` (n = 2, 3, 4, 6, 8; len = 100/150/200/300 mm) are generated by "
+          "`tools/merge_modules.py` and referenced by `spec.derived.harness[].module`. 3-pin and 4-pin map to rows 07/06; "
+          "2, 6 and 8-pin are proposed rows 06b/06c/06d with the 06/07 planning price (marked `backplane_v1.proposed_row`).",
           "| 02a | 2 x 1x22, 1x7, 1x6, 2 x 1x1 female 2.54 sockets | DevKitC, amp and microSD sockets on the backplane |", "",
           "## Rules worth knowing", "",
           "- I2C clash: `IMU_MPU6050_GY521` and `RTC_DS3231_ZS042` both default to 0x68. Normalize rejects the pair unless the "

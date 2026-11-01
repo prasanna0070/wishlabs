@@ -372,6 +372,8 @@ class DHarness(_D):
     pins: int = 0
     length_mm: int = 0  # length class 100/150/200/300
     distance_mm: float = 0.0  # estimated routed distance
+    module: Optional[str] = None  # library harness module, e.g. CABLE_JSTPH_4P_150
+    module_end: Optional[str] = None  # jst_ph | dupont_2.54 | spade_2.8 | solder (the far end, set by the module's connector)
 
 
 class DHardware(_D):

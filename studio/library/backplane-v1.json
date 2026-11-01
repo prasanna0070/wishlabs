@@ -2151,24 +2151,27 @@
     "power_in"
    ],
    "module": "USBC_RECEPTACLE_GCT_USB4105",
-   "footprint": "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
-   "alt_footprint": "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal",
+   "footprint": "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal",
+   "alt_footprint": "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
+   "mpn": "GCT USB4105-GF-A",
+   "edge_line_local_y": 3.675,
    "at": [
     31.4,
-    74.75
+    74.925
    ],
    "rotation_deg": 180,
    "kicad": {
     "x": 31.4,
-    "y": 3.85,
+    "y": 3.675,
     "rot": 180
    },
    "courtyard": [
     26.08,
     36.72,
-    69.48,
-    78.9
+    70.17,
+    79.11
    ],
+   "front_face_board_y": 79.105,
    "facing": "rear (+y), board edge",
    "edge": "rear",
    "pins": [
@@ -2764,27 +2767,27 @@
   },
   {
    "ref": "J_PWR",
-   "footprint": "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
+   "footprint": "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal",
    "at": [
     31.4,
-    74.75
+    74.925
    ],
    "rotation_deg": 180,
    "side": "top",
    "kicad": {
     "x": 31.4,
-    "y": 3.85,
+    "y": 3.675,
     "rot": 180
    },
    "courtyard": [
     26.08,
     36.72,
-    69.48,
-    78.9
+    70.17,
+    79.11
    ],
    "role": "power_in",
    "slot": "J_PWR",
-   "note": "opening faces +y (rear); front face 0.3 mm past the board edge (estimate, check the HRO drawing)"
+   "note": "GCT USB4105-GF-A; opening faces +y (rear); the footprint's 'PCB Edge' line sits on the board edge (PCB stage alignment, +0.175 mm vs the earlier HRO position); body front 0.505 mm past the edge"
   },
   {
    "ref": "J_I2C3",
@@ -2814,20 +2817,20 @@
    "footprint": "Fuse:Fuse_1812_4532Metric",
    "at": [
     31.4,
-    62.0
+    60.0
    ],
    "rotation_deg": 0,
    "side": "top",
    "kicad": {
     "x": 31.4,
-    "y": 16.6,
+    "y": 18.6,
     "rot": 0
    },
    "courtyard": [
     28.45,
     34.35,
-    60.05,
-    63.95
+    58.05,
+    61.95
    ],
    "value": "PTC fuse 1.5 A hold, >= 6 V (1812)",
    "role": "support",
@@ -2843,20 +2846,20 @@
    "footprint": "Diode_SMD:D_SMA",
    "at": [
     22.5,
-    62.0
+    60.0
    ],
    "rotation_deg": 0,
    "side": "top",
    "kicad": {
     "x": 22.5,
-    "y": 16.6,
+    "y": 18.6,
     "rot": 0
    },
    "courtyard": [
     18.99,
     26.0,
-    60.25,
-    63.75
+    58.25,
+    61.75
    ],
    "value": "TVS 5.0 V standoff, unidirectional (SMAJ5.0A class); pad 1 = cathode",
    "role": "support",
@@ -2872,20 +2875,20 @@
    "footprint": "Capacitor_SMD:C_0805_2012Metric",
    "at": [
     38.0,
-    62.0
+    60.0
    ],
    "rotation_deg": 0,
    "side": "top",
    "kicad": {
     "x": 38.0,
-    "y": 16.6,
+    "y": 18.6,
     "rot": 0
    },
    "courtyard": [
     36.3,
     39.7,
-    61.02,
-    62.98
+    59.02,
+    60.98
    ],
    "value": "10 uF 25 V X5R",
    "role": "support",
@@ -2901,20 +2904,20 @@
    "footprint": "Capacitor_SMD:C_0603_1608Metric",
    "at": [
     41.5,
-    62.0
+    60.0
    ],
    "rotation_deg": 0,
    "side": "top",
    "kicad": {
     "x": 41.5,
-    "y": 16.6,
+    "y": 18.6,
     "rot": 0
    },
    "courtyard": [
     40.02,
     42.98,
-    61.27,
-    62.73
+    59.27,
+    60.73
    ],
    "value": "100 nF 50 V X7R",
    "role": "support",
@@ -3869,7 +3872,7 @@
    -5.35,
    64.8,
    0.0,
-   78.9
+   79.11
   ],
   "keepout_height_above_floor": 32.0,
   "keepout_bottom_above_floor": 4.9,
@@ -4037,8 +4040,8 @@
     "plan": [
      26.08,
      36.72,
-     69.48,
-     78.9
+     70.17,
+     79.11
     ],
     "z_above_board_top": [
      0.0,
@@ -4150,7 +4153,7 @@
   "DevKitC seated height (socket 8.5 + spacer 2.5) is an estimate; measure on the first article",
   "S1 module header position and pin order are estimates (library row 37)",
   "amp VO pin trick (2.54 pins in 3.5 mm terminal pads) is untested",
-  "USB-C receptacle front-face position relative to the board edge (HRO drawing not read)",
+  "USB-C receptacle: board-edge position follows the KiCad footprint's own PCB Edge line; GCT drawing not read",
   "USB D+/D- stub shared with the DevKitC's own USB connector: works at full speed in principle; physical check still needed",
   "antenna keep-out distance 15 mm comes from secondary sources",
   "PTC/TVS/ESD/level-shifter parts are classes, not chosen MPNs; values follow ARCHITECTURE \u00a76"

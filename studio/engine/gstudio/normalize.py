@@ -514,13 +514,13 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
     derived_cart = None
     if y_off is not None:
         board_top = floor + cart["board_top_above_floor"]
-        usb_center = (0.0 + (cart["usb_c_opening"]["center_board_x"] - W / 2), y_off + H, board_top + cart["usb_c_opening"]["center_above_board_top"])
+        usb_center = (0.0 + (cart["usb_c_opening"]["center_board_x"] - W / 2), y_off + ky1, board_top + cart["usb_c_opening"]["center_above_board_top"])
         # gap from the receptacle face to the outer surface behind it
         t = geom.surface_depth("rear", usb_center[0], usb_center[2])
         wall_gap = None
         if t is not None:
             outer_y = 400.0 - t
-            wall_gap = outer_y - (y_off + H + 0.3)
+            wall_gap = outer_y - (y_off + ky1)  # ky1 = receptacle front face (board frame)
             if wall_gap > geom.wall + 3.0:
                 warnings.append(f"USB-C face sits {wall_gap:.1f} mm behind the outer rear surface; the shell needs a recess so the plug seats")
         derived_cart = DCartridge(
@@ -625,9 +625,13 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
             _err(errors, i.get("path", "features"), f"{i['ref']} is about {dist:.0f} mm of cable from {slot_id}; the longest harness is 300 mm",
                  "move the feature closer to the bottom rear of the body", "harness_length")
             cls = LENGTH_CLASSES[-1]
+        hmod = f"CABLE_JSTPH_{slot['pins_count']}P_{cls}"
+        if not lib.has(hmod):
+            warnings.append(f"{i['ref']}: no library harness module {hmod}")
+            hmod = None
         harness.append(DHarness(id=f"H{hid}", ref=i["ref"], slot=slot_id, kind="speaker_lead" if slot_id == "J_SPK" else "jst_ph",
                                 cable=f"{slot['connector']} {slot['pins_count']}p {cls} mm", pins=slot["pins_count"], length_mm=cls,
-                                distance_mm=_r(dist)))
+                                distance_mm=_r(dist), module=hmod, module_end=_module_end(lib.get(i["module"]))))
         i["harness"] = f"H{hid}"
 
     # ---------------------------------------------------------------- hardware kit (planned; CAD counts win)
@@ -666,6 +670,18 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
     if raise_on_error and errors:
         raise SpecError(errors)
     return sp, report
+
+
+def _module_end(m: dict) -> str:
+    mc = m.get("module_connector") or {}
+    t, loc = str(mc.get("type", "")), str(mc.get("location", "")).lower()
+    if t == "jst_ph_2.0":
+        return "jst_ph"
+    if t == "header_2.54":
+        return "dupont_2.54"
+    if "spade" in loc or "spade" in str((m.get("backplane_harness") or {})).lower():
+        return "spade_2.8"
+    return "solder"
 
 
 # =============================================================================================== planned hardware

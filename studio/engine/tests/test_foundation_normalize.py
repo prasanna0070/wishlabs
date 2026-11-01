@@ -36,6 +36,10 @@ def test_good_spec_normalizes(lib):
     for h in sp.derived.harness:
         assert h.length_mm in (100, 150, 200, 300)
         assert h.pins in (2, 3, 4, 6, 8)
+        assert h.module == f"CABLE_JSTPH_{h.pins}P_{h.length_mm}" and lib.has(h.module)
+        assert h.module_end in ("jst_ph", "dupont_2.54", "spade_2.8", "solder")
+    ends = {h.ref: h.module_end for h in sp.derived.harness}
+    assert ends["DISP1"] == "dupont_2.54" and ends["BTN1"] == "spade_2.8"
     hw = {h.name: h.qty for h in sp.derived.hardware}
     assert hw["adhesive bumper foot"] == 4
     # same rules as the CAD stage: 4 cartridge + 4 cover + speaker ring 3 + display 2 + LED 2 + mic 2 (+ arcade button 0)

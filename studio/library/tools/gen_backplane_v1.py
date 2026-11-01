@@ -34,6 +34,7 @@ FP = {
     "Connector_PinSocket_2.54mm:PinSocket_1x06_P2.54mm_Vertical": (-1.80, 1.75, -1.80, 14.45),
     "Connector_PinSocket_2.54mm:PinSocket_1x01_P2.54mm_Vertical": (-1.80, 1.75, -1.80, 1.75),
     "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12": (-5.32, 5.32, -5.27, 4.15),
+    "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal": (-5.32, 5.32, -4.76, 4.18),
     "MountingHole:MountingHole_2.7mm_M2.5": (-2.95, 2.95, -2.95, 2.95),
     "TestPoint:TestPoint_Pad_D1.5mm": (-1.25, 1.25, -1.25, 1.25),
     "Fuse:Fuse_1812_4532Metric": (-2.95, 2.95, -1.95, 1.95),
@@ -46,6 +47,9 @@ FP = {
     "Capacitor_SMD:C_1206_3216Metric": (-2.30, 2.30, -1.15, 1.15),
 }
 PITCH = {"PH": 2.0, "XH": 2.5}
+USB_FP = "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal"
+USB_ALT_FP = "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12"
+USB_EDGE_LINE_LOCAL_Y = 3.675  # the footprint's own 'PCB Edge' Dwgs.User line (local KiCad y), as aligned by the PCB stage
 
 
 def xf(x, y, X, Y, rot):
@@ -328,9 +332,11 @@ def build():
                   "a mis-plugged 3-pin IO module from this library sees 5 V (all of them accept 3.3-5 V) and its output meets "
                   "the buffer, never a GPIO; an LED plugged into J_IO just gets 3.3 V. Silkscreen 'LED 5V' and a red housing mark.")
     # ---- rear: USB-C power + I2C3
-    usb_x, usb_y = round(W / 2, 3), 74.75
-    add_part("J_PWR", "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12", usb_x, usb_y, 180, role="power_in", slot="J_PWR",
-             note="opening faces +y (rear); front face 0.3 mm past the board edge (estimate, check the HRO drawing)")
+    # rot 180 maps local (xk, yk) -> board (X - xk, Y + yk): put the footprint's PCB Edge line exactly on the rear edge
+    usb_x, usb_y = round(W / 2, 3), round(H - USB_EDGE_LINE_LOCAL_Y, 3)
+    add_part("J_PWR", USB_FP, usb_x, usb_y, 180, role="power_in", slot="J_PWR",
+             note="GCT USB4105-GF-A; opening faces +y (rear); the footprint's 'PCB Edge' line sits on the board edge "
+                  "(PCB stage alignment, +0.175 mm vs the earlier HRO position); body front 0.505 mm past the edge")
     pwr_pins = [{"pin": p, "name": n, "net": net, "gpio": None, **({} if net else {"kind": "nc"})} for p, n, net in [
         ("A1", "GND", "GND"), ("B1", "GND", "GND"), ("A12", "GND", "GND"), ("B12", "GND", "GND"),
         ("A4", "VBUS", "VBUS"), ("B4", "VBUS", "VBUS"), ("A9", "VBUS", "VBUS"), ("B9", "VBUS", "VBUS"),
@@ -338,10 +344,11 @@ def build():
         ("A7", "D-", "USB_DN"), ("B7", "D-", "USB_DN"), ("A8", "SBU1", None), ("B8", "SBU2", None), ("S1", "SHIELD", "GND")]]
     SLOTS.append({
         "id": "J_PWR", "kind": "power_in", "title": "USB-C receptacle (power + native USB for flashing)", "accepts_roles": ["power_in"],
-        "module": "USBC_RECEPTACLE_GCT_USB4105", "footprint": "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
-        "alt_footprint": "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal",
+        "module": "USBC_RECEPTACLE_GCT_USB4105", "footprint": USB_FP, "alt_footprint": USB_ALT_FP,
+        "mpn": "GCT USB4105-GF-A", "edge_line_local_y": USB_EDGE_LINE_LOCAL_Y,
         "at": [usb_x, usb_y], "rotation_deg": 180, "kicad": {"x": usb_x, "y": round(H - usb_y, 3), "rot": 180},
-        "courtyard": court("Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12", usb_x, usb_y, 180),
+        "courtyard": court(USB_FP, usb_x, usb_y, 180),
+        "front_face_board_y": round(usb_y + FP[USB_FP][3], 3),
         "facing": "rear (+y), board edge", "edge": "rear", "pins": pwr_pins,
         "opening_center_board": [usb_x, H], "receptacle_center_above_board_top": 1.6,
         "shell_opening_mm": {"w": 13.0, "h": 7.0, "corner_r": 2.5, "why": "plug overmold estimate from library row 03; confirm with the shipped cable"},
@@ -352,10 +359,10 @@ def build():
     # (ref, footprint, x, y, rot, value, group, {pad: net}); pinouts: 74AHCT1G125 SOT-23-5 1=OE# 2=A 3=GND 4=Y 5=VCC,
     # USBLC6-2SC6 1=I/O1 2=GND 3=I/O2 4=I/O2 5=VBUS 6=I/O1 (standard pinouts; verify against the chosen MPN datasheet)
     sup = [
-        ("F1", "Fuse:Fuse_1812_4532Metric", 31.4, 62.0, 0, "PTC fuse 1.5 A hold, >= 6 V (1812)", "power", {1: "VBUS", 2: "+5V"}),
-        ("D1", "Diode_SMD:D_SMA", 22.5, 62.0, 0, "TVS 5.0 V standoff, unidirectional (SMAJ5.0A class); pad 1 = cathode", "power", {1: "+5V", 2: "GND"}),
-        ("C1", "Capacitor_SMD:C_0805_2012Metric", 38.0, 62.0, 0, "10 uF 25 V X5R", "power", {1: "+5V", 2: "GND"}),
-        ("C2", "Capacitor_SMD:C_0603_1608Metric", 41.5, 62.0, 0, "100 nF 50 V X7R", "power", {1: "+5V", 2: "GND"}),
+        ("F1", "Fuse:Fuse_1812_4532Metric", 31.4, 60.0, 0, "PTC fuse 1.5 A hold, >= 6 V (1812)", "power", {1: "VBUS", 2: "+5V"}),
+        ("D1", "Diode_SMD:D_SMA", 22.5, 60.0, 0, "TVS 5.0 V standoff, unidirectional (SMAJ5.0A class); pad 1 = cathode", "power", {1: "+5V", 2: "GND"}),
+        ("C1", "Capacitor_SMD:C_0805_2012Metric", 38.0, 60.0, 0, "10 uF 25 V X5R", "power", {1: "+5V", 2: "GND"}),
+        ("C2", "Capacitor_SMD:C_0603_1608Metric", 41.5, 60.0, 0, "100 nF 50 V X7R", "power", {1: "+5V", 2: "GND"}),
         ("R1", "Resistor_SMD:R_0603_1608Metric", 22.0, 72.0, 90, "5.1 k 1% (CC1 to GND)", "power", {1: "CC1", 2: "GND"}),
         ("R2", "Resistor_SMD:R_0603_1608Metric", 24.5, 72.0, 90, "5.1 k 1% (CC2 to GND)", "power", {1: "CC2", 2: "GND"}),
         ("U2", "Package_TO_SOT_SMD:SOT-23-6", 53.5, 72.0, 0, "USBLC6-2SC6 USB ESD array", "usb",
@@ -448,7 +455,8 @@ def cartridge() -> dict:
     u1 = next(s for s in SLOTS if s["id"] == "U1")
     xmin = min(u1["antenna_plan"][0], 0.0)
     xmax = max(u1["usb_end_x"] + 1.0, W)  # devkit micro-USB shells stick out ~1 mm (estimate)
-    ymax = H + 0.3
+    usb = next(s for s in SLOTS if s["id"] == "J_PWR")
+    ymax = max(H, usb["front_face_board_y"])
     return {
         "board_top_above_floor": 8.0,
         "board_bottom_above_floor": round(8.0 - T, 2),
@@ -590,7 +598,7 @@ def main() -> int:
             "DevKitC seated height (socket 8.5 + spacer 2.5) is an estimate; measure on the first article",
             "S1 module header position and pin order are estimates (library row 37)",
             "amp VO pin trick (2.54 pins in 3.5 mm terminal pads) is untested",
-            "USB-C receptacle front-face position relative to the board edge (HRO drawing not read)",
+            "USB-C receptacle: board-edge position follows the KiCad footprint's own PCB Edge line; GCT drawing not read",
             "USB D+/D- stub shared with the DevKitC's own USB connector: works at full speed in principle; physical check still needed",
             "antenna keep-out distance 15 mm comes from secondary sources",
             "PTC/TVS/ESD/level-shifter parts are classes, not chosen MPNs; values follow ARCHITECTURE §6",

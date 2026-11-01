@@ -95,3 +95,18 @@ def test_readme_has_one_row_per_module(lib):
     txt = (lib.dir / "README.md").read_text()
     for m in lib:
         assert f"| `{m['id']}` |" in txt
+
+
+def test_slot_and_module_footprints_agree(lib):
+    usb = lib.get("USBC_RECEPTACLE_GCT_USB4105")
+    assert usb["kicad"]["backplane_footprint"] == lib.slot("J_PWR")["footprint"]
+    assert "GCT_USB4105" in lib.slot("J_PWR")["footprint"]
+
+
+def test_harness_modules(lib):
+    for n in (2, 3, 4, 6, 8):
+        for L in (100, 150, 200, 300):
+            m = lib.get(f"CABLE_JSTPH_{n}P_{L}")
+            assert m["role"] == "harness" and m["price_inr_planning"] == [30, 100]
+            assert m["backplane_v1"].get("proposed_row", False) == (n in (2, 6, 8))
+    assert lib.catalog_id_for_price("CABLE_JSTPH_4P_150") == "CABLE_4PIN_A"

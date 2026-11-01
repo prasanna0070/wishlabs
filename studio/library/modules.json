@@ -992,9 +992,9 @@
    "driver_notes": "With 5.1k Rd on each CC the source supplies default USB power or advertises 1.5 A / 3.0 A via Rp; reading CC voltage on an ADC lets firmware pick an LED/amp power budget."
   },
   "kicad": {
-   "backplane_footprint": "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
-   "notes": "Alternate footprint Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12 (JLC/LCSC-friendly). Both present in kicad-footprints 9.0.9. | backplane-v1 places the HRO TYPE-C-31-M-12 (courtyard read on the VM); GCT USB4105 is the alternate.",
-   "alt_footprint": "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal"
+   "backplane_footprint": "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal",
+   "notes": "Alternate footprint Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12 (JLC/LCSC-friendly). Both present in kicad-footprints 9.0.9.",
+   "alt_footprint": "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12"
   },
   "sourcing_in": [
    {
@@ -1331,6 +1331,510 @@
   }
  },
  {
+  "id": "CABLE_JSTPH_4P_100",
+  "catalog_row": "06",
+  "catalog_id": "CABLE_4PIN_A",
+  "role": "harness",
+  "name": "JST-PH 2.0 4-pin harness, 100 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-4 housing + crimped wire)",
+   "mpn_or_model": "PHR-4 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 100,
+   "y": 9.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "GND",
+    "func": "wire"
+   },
+   {
+    "name": "3V3",
+    "func": "wire"
+   },
+   {
+    "name": "SDA",
+    "func": "wire"
+   },
+   {
+    "name": "SCL",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "GND",
+    "3V3",
+    "SDA",
+    "SCL"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 4p (J_I2C1/J_I2C2/J_I2C3)",
+   "wires": [],
+   "length_mm": 100
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": "+3V3",
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B4B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_I2C1",
+   "J_I2C2",
+   "J_I2C3"
+  ],
+  "proposed_row": false,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   100,
+   9.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_I2C1",
+    "J_I2C2",
+    "J_I2C3"
+   ],
+   "cable": null,
+   "supported": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_4P_150",
+  "catalog_row": "06",
+  "catalog_id": "CABLE_4PIN_A",
+  "role": "harness",
+  "name": "JST-PH 2.0 4-pin harness, 150 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-4 housing + crimped wire)",
+   "mpn_or_model": "PHR-4 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 150,
+   "y": 9.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "GND",
+    "func": "wire"
+   },
+   {
+    "name": "3V3",
+    "func": "wire"
+   },
+   {
+    "name": "SDA",
+    "func": "wire"
+   },
+   {
+    "name": "SCL",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "GND",
+    "3V3",
+    "SDA",
+    "SCL"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 4p (J_I2C1/J_I2C2/J_I2C3)",
+   "wires": [],
+   "length_mm": 150
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": "+3V3",
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B4B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_I2C1",
+   "J_I2C2",
+   "J_I2C3"
+  ],
+  "proposed_row": false,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   150,
+   9.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_I2C1",
+    "J_I2C2",
+    "J_I2C3"
+   ],
+   "cable": null,
+   "supported": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_4P_200",
+  "catalog_row": "06",
+  "catalog_id": "CABLE_4PIN_A",
+  "role": "harness",
+  "name": "JST-PH 2.0 4-pin harness, 200 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-4 housing + crimped wire)",
+   "mpn_or_model": "PHR-4 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 200,
+   "y": 9.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "GND",
+    "func": "wire"
+   },
+   {
+    "name": "3V3",
+    "func": "wire"
+   },
+   {
+    "name": "SDA",
+    "func": "wire"
+   },
+   {
+    "name": "SCL",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "GND",
+    "3V3",
+    "SDA",
+    "SCL"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 4p (J_I2C1/J_I2C2/J_I2C3)",
+   "wires": [],
+   "length_mm": 200
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": "+3V3",
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B4B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_I2C1",
+   "J_I2C2",
+   "J_I2C3"
+  ],
+  "proposed_row": false,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   200,
+   9.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_I2C1",
+    "J_I2C2",
+    "J_I2C3"
+   ],
+   "cable": null,
+   "supported": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_4P_300",
+  "catalog_row": "06",
+  "catalog_id": "CABLE_4PIN_A",
+  "role": "harness",
+  "name": "JST-PH 2.0 4-pin harness, 300 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-4 housing + crimped wire)",
+   "mpn_or_model": "PHR-4 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 300,
+   "y": 9.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "GND",
+    "func": "wire"
+   },
+   {
+    "name": "3V3",
+    "func": "wire"
+   },
+   {
+    "name": "SDA",
+    "func": "wire"
+   },
+   {
+    "name": "SCL",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "GND",
+    "3V3",
+    "SDA",
+    "SCL"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 4p (J_I2C1/J_I2C2/J_I2C3)",
+   "wires": [],
+   "length_mm": 300
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": "+3V3",
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B4B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_I2C1",
+   "J_I2C2",
+   "J_I2C3"
+  ],
+  "proposed_row": false,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   300,
+   9.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_I2C1",
+    "J_I2C2",
+    "J_I2C3"
+   ],
+   "cable": null,
+   "supported": true
+  }
+ },
+ {
   "id": "CABLE_JSTPH_4P_300MM",
   "catalog_row": "06",
   "catalog_id": "CABLE_4PIN_A",
@@ -1488,6 +1992,2066 @@
   "backplane_v1": {
    "port": "harness",
    "slots": [],
+   "cable": null,
+   "supported": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_2P_100",
+  "catalog_row": "06b",
+  "catalog_id": null,
+  "role": "harness",
+  "name": "JST-PH 2.0 2-pin harness, 100 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-2 housing + crimped wire)",
+   "mpn_or_model": "PHR-2 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 100,
+   "y": 5.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "SPK+",
+    "func": "wire"
+   },
+   {
+    "name": "SPK-",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "SPK+",
+    "SPK-"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 2p (J_SPK)",
+   "wires": [],
+   "length_mm": 100
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": null,
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B2B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "pin count not in the blueprint catalog: proposed new row 06b; planning price borrowed from rows 06/07",
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_SPK"
+  ],
+  "proposed_row": true,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   100,
+   5.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_SPK"
+   ],
+   "cable": null,
+   "supported": true,
+   "proposed_row": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_2P_150",
+  "catalog_row": "06b",
+  "catalog_id": null,
+  "role": "harness",
+  "name": "JST-PH 2.0 2-pin harness, 150 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-2 housing + crimped wire)",
+   "mpn_or_model": "PHR-2 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 150,
+   "y": 5.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "SPK+",
+    "func": "wire"
+   },
+   {
+    "name": "SPK-",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "SPK+",
+    "SPK-"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 2p (J_SPK)",
+   "wires": [],
+   "length_mm": 150
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": null,
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B2B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "pin count not in the blueprint catalog: proposed new row 06b; planning price borrowed from rows 06/07",
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_SPK"
+  ],
+  "proposed_row": true,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   150,
+   5.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_SPK"
+   ],
+   "cable": null,
+   "supported": true,
+   "proposed_row": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_2P_200",
+  "catalog_row": "06b",
+  "catalog_id": null,
+  "role": "harness",
+  "name": "JST-PH 2.0 2-pin harness, 200 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-2 housing + crimped wire)",
+   "mpn_or_model": "PHR-2 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 200,
+   "y": 5.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "SPK+",
+    "func": "wire"
+   },
+   {
+    "name": "SPK-",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "SPK+",
+    "SPK-"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 2p (J_SPK)",
+   "wires": [],
+   "length_mm": 200
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": null,
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B2B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "pin count not in the blueprint catalog: proposed new row 06b; planning price borrowed from rows 06/07",
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_SPK"
+  ],
+  "proposed_row": true,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   200,
+   5.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_SPK"
+   ],
+   "cable": null,
+   "supported": true,
+   "proposed_row": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_2P_300",
+  "catalog_row": "06b",
+  "catalog_id": null,
+  "role": "harness",
+  "name": "JST-PH 2.0 2-pin harness, 300 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-2 housing + crimped wire)",
+   "mpn_or_model": "PHR-2 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 300,
+   "y": 5.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "SPK+",
+    "func": "wire"
+   },
+   {
+    "name": "SPK-",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "SPK+",
+    "SPK-"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 2p (J_SPK)",
+   "wires": [],
+   "length_mm": 300
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": null,
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B2B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "pin count not in the blueprint catalog: proposed new row 06b; planning price borrowed from rows 06/07",
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_SPK"
+  ],
+  "proposed_row": true,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   300,
+   5.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_SPK"
+   ],
+   "cable": null,
+   "supported": true,
+   "proposed_row": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_6P_100",
+  "catalog_row": "06c",
+  "catalog_id": null,
+  "role": "harness",
+  "name": "JST-PH 2.0 6-pin harness, 100 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-6 housing + crimped wire)",
+   "mpn_or_model": "PHR-6 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 100,
+   "y": 13.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "GND",
+    "func": "wire"
+   },
+   {
+    "name": "3V3",
+    "func": "wire"
+   },
+   {
+    "name": "SCK",
+    "func": "wire"
+   },
+   {
+    "name": "WS",
+    "func": "wire"
+   },
+   {
+    "name": "SD",
+    "func": "wire"
+   },
+   {
+    "name": "LR",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "GND",
+    "3V3",
+    "SCK",
+    "WS",
+    "SD",
+    "LR"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 6p (J_MIC)",
+   "wires": [],
+   "length_mm": 100
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": "+3V3",
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B6B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "pin count not in the blueprint catalog: proposed new row 06c; planning price borrowed from rows 06/07",
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_MIC"
+  ],
+  "proposed_row": true,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   100,
+   13.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_MIC"
+   ],
+   "cable": null,
+   "supported": true,
+   "proposed_row": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_6P_150",
+  "catalog_row": "06c",
+  "catalog_id": null,
+  "role": "harness",
+  "name": "JST-PH 2.0 6-pin harness, 150 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-6 housing + crimped wire)",
+   "mpn_or_model": "PHR-6 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 150,
+   "y": 13.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "GND",
+    "func": "wire"
+   },
+   {
+    "name": "3V3",
+    "func": "wire"
+   },
+   {
+    "name": "SCK",
+    "func": "wire"
+   },
+   {
+    "name": "WS",
+    "func": "wire"
+   },
+   {
+    "name": "SD",
+    "func": "wire"
+   },
+   {
+    "name": "LR",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "GND",
+    "3V3",
+    "SCK",
+    "WS",
+    "SD",
+    "LR"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 6p (J_MIC)",
+   "wires": [],
+   "length_mm": 150
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": "+3V3",
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B6B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "pin count not in the blueprint catalog: proposed new row 06c; planning price borrowed from rows 06/07",
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_MIC"
+  ],
+  "proposed_row": true,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   150,
+   13.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_MIC"
+   ],
+   "cable": null,
+   "supported": true,
+   "proposed_row": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_6P_200",
+  "catalog_row": "06c",
+  "catalog_id": null,
+  "role": "harness",
+  "name": "JST-PH 2.0 6-pin harness, 200 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-6 housing + crimped wire)",
+   "mpn_or_model": "PHR-6 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 200,
+   "y": 13.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "GND",
+    "func": "wire"
+   },
+   {
+    "name": "3V3",
+    "func": "wire"
+   },
+   {
+    "name": "SCK",
+    "func": "wire"
+   },
+   {
+    "name": "WS",
+    "func": "wire"
+   },
+   {
+    "name": "SD",
+    "func": "wire"
+   },
+   {
+    "name": "LR",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "GND",
+    "3V3",
+    "SCK",
+    "WS",
+    "SD",
+    "LR"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 6p (J_MIC)",
+   "wires": [],
+   "length_mm": 200
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": "+3V3",
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B6B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "pin count not in the blueprint catalog: proposed new row 06c; planning price borrowed from rows 06/07",
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_MIC"
+  ],
+  "proposed_row": true,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   200,
+   13.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_MIC"
+   ],
+   "cable": null,
+   "supported": true,
+   "proposed_row": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_6P_300",
+  "catalog_row": "06c",
+  "catalog_id": null,
+  "role": "harness",
+  "name": "JST-PH 2.0 6-pin harness, 300 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-6 housing + crimped wire)",
+   "mpn_or_model": "PHR-6 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 300,
+   "y": 13.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "GND",
+    "func": "wire"
+   },
+   {
+    "name": "3V3",
+    "func": "wire"
+   },
+   {
+    "name": "SCK",
+    "func": "wire"
+   },
+   {
+    "name": "WS",
+    "func": "wire"
+   },
+   {
+    "name": "SD",
+    "func": "wire"
+   },
+   {
+    "name": "LR",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "GND",
+    "3V3",
+    "SCK",
+    "WS",
+    "SD",
+    "LR"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 6p (J_MIC)",
+   "wires": [],
+   "length_mm": 300
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": "+3V3",
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B6B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "pin count not in the blueprint catalog: proposed new row 06c; planning price borrowed from rows 06/07",
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_MIC"
+  ],
+  "proposed_row": true,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   300,
+   13.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_MIC"
+   ],
+   "cable": null,
+   "supported": true,
+   "proposed_row": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_8P_100",
+  "catalog_row": "06d",
+  "catalog_id": null,
+  "role": "harness",
+  "name": "JST-PH 2.0 8-pin harness, 100 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-8 housing + crimped wire)",
+   "mpn_or_model": "PHR-8 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 100,
+   "y": 17.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "VCC",
+    "func": "wire"
+   },
+   {
+    "name": "GND",
+    "func": "wire"
+   },
+   {
+    "name": "DIN",
+    "func": "wire"
+   },
+   {
+    "name": "CLK",
+    "func": "wire"
+   },
+   {
+    "name": "CS",
+    "func": "wire"
+   },
+   {
+    "name": "DC",
+    "func": "wire"
+   },
+   {
+    "name": "RST",
+    "func": "wire"
+   },
+   {
+    "name": "BL",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "VCC",
+    "GND",
+    "DIN",
+    "CLK",
+    "CS",
+    "DC",
+    "RST",
+    "BL"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 8p (J_DISP)",
+   "wires": [],
+   "length_mm": 100
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": "+3V3",
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B8B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "pin count not in the blueprint catalog: proposed new row 06d; planning price borrowed from rows 06/07",
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_DISP"
+  ],
+  "proposed_row": true,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   100,
+   17.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_DISP"
+   ],
+   "cable": null,
+   "supported": true,
+   "proposed_row": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_8P_150",
+  "catalog_row": "06d",
+  "catalog_id": null,
+  "role": "harness",
+  "name": "JST-PH 2.0 8-pin harness, 150 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-8 housing + crimped wire)",
+   "mpn_or_model": "PHR-8 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 150,
+   "y": 17.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "VCC",
+    "func": "wire"
+   },
+   {
+    "name": "GND",
+    "func": "wire"
+   },
+   {
+    "name": "DIN",
+    "func": "wire"
+   },
+   {
+    "name": "CLK",
+    "func": "wire"
+   },
+   {
+    "name": "CS",
+    "func": "wire"
+   },
+   {
+    "name": "DC",
+    "func": "wire"
+   },
+   {
+    "name": "RST",
+    "func": "wire"
+   },
+   {
+    "name": "BL",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "VCC",
+    "GND",
+    "DIN",
+    "CLK",
+    "CS",
+    "DC",
+    "RST",
+    "BL"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 8p (J_DISP)",
+   "wires": [],
+   "length_mm": 150
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": "+3V3",
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B8B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "pin count not in the blueprint catalog: proposed new row 06d; planning price borrowed from rows 06/07",
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_DISP"
+  ],
+  "proposed_row": true,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   150,
+   17.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_DISP"
+   ],
+   "cable": null,
+   "supported": true,
+   "proposed_row": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_8P_200",
+  "catalog_row": "06d",
+  "catalog_id": null,
+  "role": "harness",
+  "name": "JST-PH 2.0 8-pin harness, 200 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-8 housing + crimped wire)",
+   "mpn_or_model": "PHR-8 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 200,
+   "y": 17.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "VCC",
+    "func": "wire"
+   },
+   {
+    "name": "GND",
+    "func": "wire"
+   },
+   {
+    "name": "DIN",
+    "func": "wire"
+   },
+   {
+    "name": "CLK",
+    "func": "wire"
+   },
+   {
+    "name": "CS",
+    "func": "wire"
+   },
+   {
+    "name": "DC",
+    "func": "wire"
+   },
+   {
+    "name": "RST",
+    "func": "wire"
+   },
+   {
+    "name": "BL",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "VCC",
+    "GND",
+    "DIN",
+    "CLK",
+    "CS",
+    "DC",
+    "RST",
+    "BL"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 8p (J_DISP)",
+   "wires": [],
+   "length_mm": 200
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": "+3V3",
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B8B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "pin count not in the blueprint catalog: proposed new row 06d; planning price borrowed from rows 06/07",
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_DISP"
+  ],
+  "proposed_row": true,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   200,
+   17.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_DISP"
+   ],
+   "cable": null,
+   "supported": true,
+   "proposed_row": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_8P_300",
+  "catalog_row": "06d",
+  "catalog_id": null,
+  "role": "harness",
+  "name": "JST-PH 2.0 8-pin harness, 300 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-8 housing + crimped wire)",
+   "mpn_or_model": "PHR-8 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 300,
+   "y": 17.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "VCC",
+    "func": "wire"
+   },
+   {
+    "name": "GND",
+    "func": "wire"
+   },
+   {
+    "name": "DIN",
+    "func": "wire"
+   },
+   {
+    "name": "CLK",
+    "func": "wire"
+   },
+   {
+    "name": "CS",
+    "func": "wire"
+   },
+   {
+    "name": "DC",
+    "func": "wire"
+   },
+   {
+    "name": "RST",
+    "func": "wire"
+   },
+   {
+    "name": "BL",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "VCC",
+    "GND",
+    "DIN",
+    "CLK",
+    "CS",
+    "DC",
+    "RST",
+    "BL"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 8p (J_DISP)",
+   "wires": [],
+   "length_mm": 300
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": "+3V3",
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B8B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "pin count not in the blueprint catalog: proposed new row 06d; planning price borrowed from rows 06/07",
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_DISP"
+  ],
+  "proposed_row": true,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   300,
+   17.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_DISP"
+   ],
+   "cable": null,
+   "supported": true,
+   "proposed_row": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_3P_100",
+  "catalog_row": "07",
+  "catalog_id": "CABLE_3PIN_A",
+  "role": "harness",
+  "name": "JST-PH 2.0 3-pin harness, 100 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-3 housing + crimped wire)",
+   "mpn_or_model": "PHR-3 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 100,
+   "y": 7.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "GND",
+    "func": "wire"
+   },
+   {
+    "name": "3V3/5V",
+    "func": "wire"
+   },
+   {
+    "name": "SIG",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "GND",
+    "3V3/5V",
+    "SIG"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 3p (J_IO1/J_IO2/J_IO3/J_LED)",
+   "wires": [],
+   "length_mm": 100
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": "+3V3",
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B3B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_IO1",
+   "J_IO2",
+   "J_IO3",
+   "J_LED"
+  ],
+  "proposed_row": false,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   100,
+   7.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_IO1",
+    "J_IO2",
+    "J_IO3",
+    "J_LED"
+   ],
+   "cable": null,
+   "supported": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_3P_150",
+  "catalog_row": "07",
+  "catalog_id": "CABLE_3PIN_A",
+  "role": "harness",
+  "name": "JST-PH 2.0 3-pin harness, 150 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-3 housing + crimped wire)",
+   "mpn_or_model": "PHR-3 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 150,
+   "y": 7.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "GND",
+    "func": "wire"
+   },
+   {
+    "name": "3V3/5V",
+    "func": "wire"
+   },
+   {
+    "name": "SIG",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "GND",
+    "3V3/5V",
+    "SIG"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 3p (J_IO1/J_IO2/J_IO3/J_LED)",
+   "wires": [],
+   "length_mm": 150
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": "+3V3",
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B3B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_IO1",
+   "J_IO2",
+   "J_IO3",
+   "J_LED"
+  ],
+  "proposed_row": false,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   150,
+   7.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_IO1",
+    "J_IO2",
+    "J_IO3",
+    "J_LED"
+   ],
+   "cable": null,
+   "supported": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_3P_200",
+  "catalog_row": "07",
+  "catalog_id": "CABLE_3PIN_A",
+  "role": "harness",
+  "name": "JST-PH 2.0 3-pin harness, 200 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-3 housing + crimped wire)",
+   "mpn_or_model": "PHR-3 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 200,
+   "y": 7.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "GND",
+    "func": "wire"
+   },
+   {
+    "name": "3V3/5V",
+    "func": "wire"
+   },
+   {
+    "name": "SIG",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "GND",
+    "3V3/5V",
+    "SIG"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 3p (J_IO1/J_IO2/J_IO3/J_LED)",
+   "wires": [],
+   "length_mm": 200
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": "+3V3",
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B3B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_IO1",
+   "J_IO2",
+   "J_IO3",
+   "J_LED"
+  ],
+  "proposed_row": false,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   200,
+   7.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_IO1",
+    "J_IO2",
+    "J_IO3",
+    "J_LED"
+   ],
+   "cable": null,
+   "supported": true
+  }
+ },
+ {
+  "id": "CABLE_JSTPH_3P_300",
+  "catalog_row": "07",
+  "catalog_id": "CABLE_3PIN_A",
+  "role": "harness",
+  "name": "JST-PH 2.0 3-pin harness, 300 mm, pre-crimped both ends",
+  "reference_product": {
+   "maker": "any JST-PH 2.0 compatible (PHR-3 housing + crimped wire)",
+   "mpn_or_model": "PHR-3 housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"
+  },
+  "dims_mm": {
+   "x": 300,
+   "y": 7.9,
+   "z": 4.5,
+   "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule as library rows 06/07); z = housing height estimate"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "tie to printed anchors"
+  },
+  "pins": [
+   {
+    "name": "GND",
+    "func": "wire"
+   },
+   {
+    "name": "3V3/5V",
+    "func": "wire"
+   },
+   {
+    "name": "SIG",
+    "func": "wire"
+   }
+  ],
+  "module_connector": {
+   "type": "jst_ph_2.0",
+   "pin_order": [
+    "GND",
+    "3V3/5V",
+    "SIG"
+   ],
+   "location": "backplane end: PHR housing; module end per module"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 3p (J_IO1/J_IO2/J_IO3/J_LED)",
+   "wires": [],
+   "length_mm": 300
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal",
+   "feature_allowed": false,
+   "required": false
+  },
+  "electrical": {
+   "supply_v": "n/a",
+   "logic_v": "n/a",
+   "current_ma_typ": 0.0,
+   "current_ma_max": 0.0,
+   "bus": "n/a (harness)",
+   "supply_rail": "+3V3",
+   "current_basis": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "mates the slot header JST_PH_B3B-PH-K"
+  },
+  "sourcing_in": [],
+  "price_inr_planning": [
+   30,
+   100
+  ],
+  "evidence": [
+   "blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+   "pin counts and order from library/backplane-v1.json slot pins"
+  ],
+  "uncertain": [
+   "no Indian listing read for this exact length; price is the planning range only",
+   "housing dimensions are estimates"
+  ],
+  "slots": [
+   "J_IO1",
+   "J_IO2",
+   "J_IO3",
+   "J_LED"
+  ],
+  "proposed_row": false,
+  "source_file": "foundation (tools/merge_modules.py)",
+  "category": "cable",
+  "aliases": [],
+  "ref_prefix": "W",
+  "face_mm": [
+   300,
+   7.9
+  ],
+  "depth_mm": 4.5,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "plug-in connector or crimped spade (library text)",
+  "backplane_v1": {
+   "port": "harness",
+   "slots": [
+    "J_IO1",
+    "J_IO2",
+    "J_IO3",
+    "J_LED"
+   ],
    "cable": null,
    "supported": true
   }
