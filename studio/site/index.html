@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wish it. We'll build it.</title>
+<meta name="description" content="Describe a gadget in plain words. We design it, build it, test it and ship it to you. No electronics skills needed. India first.">
+<meta name="theme-color" content="#FBF7F0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%2316132B'/%3E%3Cpath d='M16 5c.6 5.6 4.4 9.4 10 10-5.6.6-9.4 4.4-10 10-.6-5.6-4.4-9.4-10-10 5.6-.6 9.4-4.4 10-10z' fill='%237C5CFF'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter:wght@400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/site.css">
+<script>
+  /* Decide the motion mode before first paint, so reduced-motion and phone layouts never flash. */
+  (function () {
+    var d = document.documentElement, mq = function (q) { return window.matchMedia && window.matchMedia(q).matches; };
+    d.classList.add("js");
+    if (mq("(prefers-reduced-motion: reduce)")) d.classList.add("rm");
+    if (mq("(hover: hover) and (pointer: fine)")) d.classList.add("fine");
+    if (!d.classList.contains("rm") && mq("(min-width: 1024px) and (min-height: 600px)")) d.classList.add("pin");
+  })();
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 1.5c.7 5.6 4.9 9.8 10.5 10.5-5.6.7-9.8 4.9-10.5 10.5-.7-5.6-4.9-9.8-10.5-10.5C7.1 11.3 11.3 7.1 12 1.5z" fill="currentColor"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-rewind" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-drag" viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<canvas class="fx" id="fx" aria-hidden="true"></canvas>
+
+<header class="top" id="top">
+  <div class="top-inner">
+    <a class="brand" href="#main" data-brand-label="{brand}, back to top">
+      <span class="brand-mark" aria-hidden="true"><svg><use href="#i-star"/></svg></span>
+      <span class="brand-name" data-brand></span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="#how">How it works</a>
+      <a href="#gadgets">Gadgets</a>
+      <a href="#example">Example</a>
+      <a href="#faq">Questions</a>
+    </nav>
+    <a class="btn btn-ink btn-sm magnetic" href="https://gstudio-web-xxxxxxxxxx-el.a.run.app" data-studio-link>Make a wish</a>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- 1. Hero: kinetic headline, a wish box that types itself, and a real 3D design that appears for each wish -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-bg" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span></div>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="kicker"><span class="pulse" aria-hidden="true"></span>Physical gadgets from plain words. India first.</p>
+        <h1 id="hero-title" class="kinetic">
+          <span class="sr-only">Wish it. We’ll build it.</span>
+          <span class="k-line" aria-hidden="true" data-split>Wish it.</span>
+          <span class="k-line k-line-2" aria-hidden="true"><span data-split>We’ll</span> <span class="k-hl"><span data-split>build it.</span><svg class="squiggle" viewBox="0 0 300 24" preserveAspectRatio="none"><path d="M4 16c30-12 52-12 74 0s46 12 70 0 48-12 72 0 46 10 76-4" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" pathLength="1"/></svg></span></span>
+        </h1>
+        <p class="lede">Describe a gadget in plain words. We design it, build it, test it and ship it to your door. No electronics skills needed.</p>
+
+        <form class="wishbox" id="wishbox" method="get" action="https://gstudio-web-xxxxxxxxxx-el.a.run.app" data-studio-form>
+          <span class="wish-icon" aria-hidden="true"><svg><use href="#i-star"/></svg></span>
+          <label class="sr-only" for="wish-input">Describe the gadget you wish for</label>
+          <div class="wish-field">
+            <textarea id="wish-input" rows="2" autocomplete="off" spellcheck="false" placeholder="Describe your gadget in plain words"></textarea>
+            <p class="wish-typed" aria-hidden="true"><span class="wish-pre">I wish for </span><span class="wish-txt">a little desk robot that says hi when I sit down</span><span class="caret"></span></p>
+          </div>
+          <div class="wish-foot">
+            <span class="wish-hint">Plain words are fine</span>
+            <button class="btn btn-accent magnetic wish-go" type="submit">Make a wish <svg aria-hidden="true"><use href="#i-star"/></svg></button>
+          </div>
+        </form>
+        <p class="wish-toast" id="wish-toast" role="status" aria-live="polite"></p>
+
+        <div class="hero-actions">
+          <a class="btn btn-ghost" href="#how">See how it works <svg aria-hidden="true"><use href="#i-down"/></svg></a>
+          <span class="hero-hint">Or click the box and type your own wish.</span>
+        </div>
+      </div>
+
+      <div class="hero-stage" id="hero-stage">
+        <div class="stage-glow" aria-hidden="true"></div>
+        <div class="stage-orbit" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="stage-canvas" id="hero-canvas" aria-hidden="true"></div>
+        <img class="stage-fallback" id="hero-fallback" src="assets/img/fallback/desk-bot.webp" width="1000" height="1000" alt="Bolt Desk Bot, an example design rendered by our engine" decoding="async">
+        <p class="stage-chip" id="hero-chip" aria-live="polite"><span class="dot" aria-hidden="true"></span><span class="chip-name">Bolt Desk Bot</span><span class="chip-sep" aria-hidden="true">·</span><span class="chip-aud">for your desk</span></p>
+        <p class="stage-note">Real 3D designs from our engine<span class="fine-only">. Drag to spin.</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Marquee of ideas people could type (examples, not quotes) -->
+  <section class="marquee" aria-labelledby="mq-title">
+    <div class="wrap mq-head">
+      <h2 id="mq-title" class="mq-title">Ideas people could type</h2>
+      <p class="mq-note">Examples to spark your own. Not quotes from customers.</p>
+    </div>
+    <div class="mq-rows">
+      <div class="mq-row" data-dir="-1">
+        <ul class="mq-track">
+          <li class="mq-item"><svg aria-hidden="true"><use href="#i-star"/></svg>a lamp that turns red when my plant is thirsty</li>
+          <li class="mq-item alt"><svg aria-hidden="true"><use href="#i-star"/></svg>a doorbell that plays a different tune for each friend</li>
+          <li class="mq-item"><svg aria-hidden="true"><use href="#i-star"/></svg>a cricket score ticker for Dad's desk</li>
+          <li class="mq-item alt"><svg aria-hidden="true"><use href="#i-star"/></svg>a rocket that times two minutes of tooth brushing</li>
+          <li class="mq-item"><svg aria-hidden="true"><use href="#i-star"/></svg>a night light that fades out after one story</li>
+          <li class="mq-item alt"><svg aria-hidden="true"><use href="#i-star"/></svg>a cloud that glows blue when it will rain today</li>
+        </ul>
+      </div>
+      <div class="mq-row" data-dir="1">
+        <ul class="mq-track">
+          <li class="mq-item alt"><svg aria-hidden="true"><use href="#i-star"/></svg>a cookie jar that counts how many I've taken</li>
+          <li class="mq-item"><svg aria-hidden="true"><use href="#i-star"/></svg>a clock that counts the days until our trip</li>
+          <li class="mq-item alt"><svg aria-hidden="true"><use href="#i-star"/></svg>a dino that roars when the fridge is left open</li>
+          <li class="mq-item"><svg aria-hidden="true"><use href="#i-star"/></svg>a plant pot that says thank you when watered</li>
+          <li class="mq-item alt"><svg aria-hidden="true"><use href="#i-star"/></svg>a desk flag that pops up when I'm in a meeting</li>
+          <li class="mq-item"><svg aria-hidden="true"><use href="#i-star"/></svg>a wake-up lamp that rises like the sun</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. How it works: a pinned scroll story with one 3D stage (stacked cards on phones and with reduced motion) -->
+  <section id="how" class="story" aria-labelledby="how-title">
+    <div class="wrap story-head">
+      <p class="eyebrow">How it works</p>
+      <h2 id="how-title" class="h2">From a wish to your hands, <span class="nw">and beyond.</span></h2>
+      <p class="lede">You bring the idea. We do the engineering, the building and the shipping. Follow the real robot design from our engine test through every step.</p>
+    </div>
+
+    <div class="story-pin" id="story-pin">
+      <div class="wrap story-grid">
+        <ol class="story-steps" id="story-steps">
+          <li class="story-step" data-step="0">
+            <span class="num" aria-hidden="true">1</span>
+            <div class="st-text">
+              <h3>Imagine</h3>
+              <p class="sub">Describe the physical product you want</p>
+              <p class="more">Plain words are enough. We ask a couple of questions and show you concepts.</p>
+            </div>
+            <figure class="st-media"><span class="tag">Real studio screen</span>
+              <img src="assets/img/shots/step-imagine.webp" width="880" height="550" loading="lazy" decoding="async" alt="The studio home screen: 'What will you make today?', a box to describe your gadget, and example ideas to tap.">
+            </figure>
+          </li>
+          <li class="story-step" data-step="1">
+            <span class="num" aria-hidden="true">2</span>
+            <div class="st-text">
+              <h3>Engineer</h3>
+              <p class="sub">AI designs hardware, enclosure, and editable software</p>
+              <p class="more">Every part is placed to real size: shell, speaker, button, screen and circuit board. You see it all before you order.</p>
+            </div>
+            <figure class="st-media"><span class="tag">Real studio screen</span>
+              <img src="assets/img/shots/step-engineer.webp" width="960" height="600" loading="lazy" decoding="async" alt="The 3D preview with a see-through shell, showing the screen, speaker, button and circuit board placed inside the robot.">
+            </figure>
+          </li>
+          <li class="story-step" data-step="2">
+            <span class="num" aria-hidden="true">3</span>
+            <div class="st-text">
+              <h3>Manufacture</h3>
+              <p class="sub">Build, flash firmware, verify, and ship</p>
+              <p class="more">We print the shell, fit the parts, load the software and check that each part works before it ships.</p>
+            </div>
+            <figure class="st-media">
+              <img src="assets/img/step-manufacture.webp" width="1200" height="800" loading="lazy" decoding="async" alt="Hands plugging a cable into the circuit board that goes inside the green book light, its printed shell standing beside it and a 3D printer behind.">
+            </figure>
+          </li>
+          <li class="story-step" data-step="3">
+            <span class="num" aria-hidden="true">4</span>
+            <div class="st-text">
+              <h3>Receive</h3>
+              <p class="sub">Unbox it, switch it on, connect it</p>
+              <p class="more">Plug it in, then connect it to your home Wi-Fi from your phone.</p>
+            </div>
+            <figure class="st-media">
+              <img src="assets/img/step-receive.webp" width="1200" height="800" loading="lazy" decoding="async" alt="The blush-pink heart gift, engraved A + R, just unboxed in front of its kraft box, with an untied pink ribbon and a USB-C cable.">
+            </figure>
+          </li>
+          <li class="story-step" data-step="4">
+            <span class="num" aria-hidden="true">5</span>
+            <div class="st-text">
+              <h3>Modify anytime</h3>
+              <p class="sub">Talk to your app, Claude, or another supported AI client</p>
+              <p class="more">Ask for a new story, a new light or a whole new job, in plain words.</p>
+            </div>
+            <figure class="st-media">
+              <img src="assets/img/step-modify.webp" width="1200" height="800" loading="lazy" decoding="async" alt="The white desk robot with happy closed eyes on its screen, beside a phone showing a chat.">
+            </figure>
+          </li>
+          <li class="story-step" data-step="5">
+            <span class="num" aria-hidden="true">6</span>
+            <div class="st-text">
+              <h3>Deploy and repurpose</h3>
+              <p class="sub">Validate, update, verify, and roll back if needed</p>
+              <p class="more">A new version runs on trial first. If it fails its checks, the gadget goes back to the last good one by itself.</p>
+            </div>
+            <figure class="st-media">
+              <img src="assets/img/step-repurpose.webp" width="1200" height="800" loading="lazy" decoding="async" alt="The white-and-mint medicine reminder showing an update ring on its screen, plugged in, beside a ticked sticky note.">
+            </figure>
+          </li>
+        </ol>
+
+        <div class="story-stage" id="story-stage" aria-hidden="true">
+          <div class="ss-glow"></div>
+          <div class="ss-floor"></div>
+          <div class="ss-canvas" id="story-canvas"></div>
+          <div class="ss-labels" id="story-labels"></div>
+
+          <div class="ov ov-wish">
+            <div class="wish-bubble">
+              <span class="wb-label"><svg><use href="#i-star"/></svg>Your wish</span>
+              <p class="wb-text"><span class="wb-typed"></span><span class="caret"></span></p>
+            </div>
+            <div class="wb-sparks"><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+
+          <div class="ov ov-print">
+            <div class="hud">
+              <p class="print-meter"><span class="pm-label">Printing the shell</span><span class="pm-val">0%</span></p>
+              <div class="print-bar"><i></i></div>
+            </div>
+          </div>
+
+          <div class="ov ov-chat">
+            <p class="bubble me">Can her night light glow purple at bedtime?</p>
+            <p class="bubble bot"><span class="who">Your app</span>Sure. Purple at bedtime, from tonight. Sending the update now.</p>
+            <p class="sent-chip"><svg><use href="#i-check"/></svg>Update sent</p>
+          </div>
+
+          <div class="ov ov-ring">
+            <div class="ring-box">
+              <svg class="ring" viewBox="0 0 200 200">
+                <circle class="ring-track" cx="100" cy="100" r="88"/>
+                <circle class="ring-fill" cx="100" cy="100" r="88" pathLength="100"/>
+              </svg>
+              <span class="ring-check"><svg><use href="#i-check"/></svg></span>
+              <span class="ring-rewind"><svg><use href="#i-rewind"/></svg></span>
+            </div>
+            <div class="hud ring-hud">
+              <p class="ring-label"><span class="rl-a">Version 2, on trial</span><span class="rl-b">Checks passed</span><span class="rl-c">Last good version kept</span></p>
+              <ul class="ring-chips">
+                <li><svg><use href="#i-check"/></svg>Validate</li><li><svg><use href="#i-check"/></svg>Update</li><li><svg><use href="#i-check"/></svg>Verify</li><li><svg><use href="#i-rewind"/></svg>Roll back if needed</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="ss-photo" aria-hidden="true">
+            <figure data-step="0"><img data-src="assets/img/shots/step-imagine.webp" alt="" width="880" height="550"><figcaption>Real studio screen</figcaption></figure>
+            <figure data-step="1"><img data-src="assets/img/shots/step-engineer.webp" alt="" width="960" height="600"><figcaption>Real studio screen</figcaption></figure>
+            <figure data-step="2"><img data-src="assets/img/step-manufacture.webp" alt="" width="1200" height="800"></figure>
+            <figure data-step="3"><img data-src="assets/img/step-receive.webp" alt="" width="1200" height="800"></figure>
+            <figure data-step="4"><img data-src="assets/img/step-modify.webp" alt="" width="1200" height="800"></figure>
+            <figure data-step="5"><img data-src="assets/img/step-repurpose.webp" alt="" width="1200" height="800"></figure>
+          </div>
+          <p class="ss-caption" id="story-caption">The real bedtime robot from our engine test</p>
+        </div>
+
+        <div class="story-dots" id="story-dots" aria-label="Jump to a step">
+          <button type="button" data-go="0" aria-label="Step 1, Imagine"></button>
+          <button type="button" data-go="1" aria-label="Step 2, Engineer"></button>
+          <button type="button" data-go="2" aria-label="Step 3, Manufacture"></button>
+          <button type="button" data-go="3" aria-label="Step 4, Receive"></button>
+          <button type="button" data-go="4" aria-label="Step 5, Modify anytime"></button>
+          <button type="button" data-go="5" aria-label="Step 6, Deploy and repurpose"></button>
+        </div>
+        <p class="scroll-hint" aria-hidden="true"><span class="mouse"><i></i></span>Keep scrolling</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Doodle to device: six example designs, a wipe from a pen doodle to the product scene -->
+  <section id="gadgets" class="gallery" aria-labelledby="gadgets-title">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">Doodle to device</p>
+        <h2 id="gadgets-title" class="h2">Different people. <span class="nw">Wildly different gadgets.</span></h2>
+        <p class="lede">Six example designs from our design engine, each with the kind of sentence you might type to start one. Drag the line to turn the doodle into the gadget.</p>
+      </div>
+      <div class="g-grid" id="g-grid"><!-- cards are built from js/config.js; this list is the no-script fallback -->
+        <noscript><p>Turn on JavaScript to see the six example gadgets.</p></noscript>
+      </div>
+      <p class="g-note">Example designs made with our design engine.</p>
+    </div>
+  </section>
+
+  <!-- 5. One sentence in: the real benchmark request, real screens, and the illustrative price -->
+  <section id="example" class="example" aria-labelledby="example-title">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="eyebrow">A real example</p>
+        <h2 id="example-title" class="h2">One sentence in. <span class="nw">A whole design out.</span></h2>
+        <p class="lede">Real screens from our studio, for the request we test our engine with.</p>
+      </div>
+
+      <div class="ex-ask" data-reveal>
+        <span class="ex-label">The request</span>
+        <p class="ex-bubble"><span class="ex-typed">I want a cute robot that tells my daughter bedtime stories and remembers her favorite characters.</span></p>
+      </div>
+
+      <ol class="ex-grid">
+        <li class="ex-card" data-reveal>
+          <div class="ex-shot"><span class="tag">Real studio screen</span><img src="assets/img/shots/questions.webp" width="600" height="450" loading="lazy" decoding="async"
+               alt="The studio asks two questions with tap-to-answer options: how old is she (3, 5 or 8), and should she say new favourites out loud (yes, or no, I will type them)."></div>
+          <h3><span class="n">1</span>A couple of questions</h3>
+          <p>How old is she? Should she say new favourites out loud?</p>
+        </li>
+        <li class="ex-card" data-reveal>
+          <div class="ex-shot"><span class="tag">Real studio screen</span><img src="assets/img/shots/concepts.webp" width="384" height="288" loading="lazy" decoding="async"
+               alt="Six concept pictures to choose from: Sleepy Bear (selected), Little Cloud, Bedtime Owl, Story Mushroom, Magic Lantern and Story Acorn."></div>
+          <h3><span class="n">2</span>Concepts to choose from</h3>
+          <p>Six shapes to pick from. We picked Sleepy Bear.</p>
+        </li>
+        <li class="ex-card" data-reveal>
+          <div class="ex-shot"><span class="tag">Real studio screen</span><img src="assets/img/shots/design-3d.webp" width="693" height="520" loading="lazy" decoding="async"
+               alt="The 3D design of the teal Sleepy Bear robot with its measurements, shown next to an apple for size."></div>
+          <h3><span class="n">3</span>A 3D design, to real size</h3>
+          <p>About 142 × 110 × 188 mm, shown next to an apple.</p>
+        </li>
+      </ol>
+
+      <div class="board-card" id="board-card" data-reveal>
+        <div class="bc-stage" id="board-stage" aria-hidden="true">
+          <div class="bc-canvas" id="board-canvas"></div>
+          <span class="tag">Real engine output</span>
+          <span class="bc-hint fine-only"><svg><use href="#i-drag"/></svg>Drag to spin</span>
+        </div>
+        <div class="bc-text">
+          <h3><span class="n">4</span>The inside, worked out</h3>
+          <p>This is the circuit board our engine designed and routed for the bedtime robot, in 3D. Every part has its place, and every plug fits only one way.</p>
+          <ul class="ex-also">
+            <li><svg aria-hidden="true"><use href="#i-check"/></svg>A circuit board where plugs fit only one way</li>
+            <li><svg aria-hidden="true"><use href="#i-check"/></svg>The software, with 58 of 58 tests passed</li>
+            <li><svg aria-hidden="true"><use href="#i-check"/></svg>An 18-step illustrated build guide</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="price-card" id="price-card" data-reveal>
+        <div class="pc-l">
+          <p class="pc-k"><span class="n">5</span>A delivered price, before you order</p>
+          <p class="price" aria-label="₹7,826"><span class="rs" aria-hidden="true">₹</span><span class="pv" id="price-val" aria-hidden="true">7,826</span></p>
+        </div>
+        <div class="pc-r">
+          <p>One price that covers parts, printing, assembly, testing, courier and GST, delivered in India.</p>
+          <p class="est">Illustrative price. Your real price is shown before you order.</p>
+        </div>
+        <div class="pc-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. FAQ -->
+  <section id="faq" class="faq-sec" aria-labelledby="faq-title">
+    <div class="wrap faq-grid">
+      <div class="section-head left">
+        <p class="eyebrow">Questions</p>
+        <h2 id="faq-title" class="h2">Good to know before you wish.</h2>
+      </div>
+      <div class="faq">
+        <details open>
+          <summary>Do I need to know electronics?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></summary>
+          <div class="a"><div class="a-in">
+            <p>No. You describe what you want in plain words. We work out the parts, the shell and the software, then build it for you.</p>
+            <p>If you like to tinker, you can also download the parts list, the build guide and the design files.</p>
+          </div></div>
+        </details>
+        <details>
+          <summary>What is inside a gadget?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></summary>
+          <div class="a"><div class="a-in">
+            <p>A 3D-printed shell, a standard ESP32-S3 circuit board and the parts your idea needs, such as a speaker, lights, a button or a small screen. Plugs fit only one way.</p>
+            <p>You also get the software, the wiring plan and a build guide.</p>
+          </div></div>
+        </details>
+        <details>
+          <summary>What does it cost?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></summary>
+          <div class="a"><div class="a-in">
+            <p>You see one delivered price before you order: parts, printing, assembly, testing, courier and GST, all in. For example, ₹7,826 (illustrative).</p>
+            <p>For now every price is an estimate until our team reviews the design, and nothing is charged or reserved. The bedtime robot runs on a USB-C phone charger, which is not in the box.</p>
+          </div></div>
+        </details>
+        <details>
+          <summary>Can I change it later?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></summary>
+          <div class="a"><div class="a-in">
+            <p>Yes. Ask for the change in plain words, in our app, in Claude or in another supported AI client.</p>
+            <p>A new version runs on trial first. If it fails its start-up checks, the gadget goes back to the last good version by itself. Saved favourites are kept apart, so updates do not erase them.</p>
+          </div></div>
+        </details>
+        <details>
+          <summary>Where do you ship?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></summary>
+          <div class="a"><div class="a-in">
+            <p>India first. Prices are in rupees and include courier within India. The delivery window is an estimate until we know your pincode.</p>
+          </div></div>
+        </details>
+        <details>
+          <summary>Is it safe for kids?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></summary>
+          <div class="a"><div class="a-in">
+            <p>Designs made for children get an extra safety and privacy review before we confirm a price. An adult sets the gadget up, with a parent PIN.</p>
+            <p>In the bedtime robot, the microphone is on only while the button is held and the light is blue. Her voice clips stay on the memory card inside the robot. Nothing is uploaded.</p>
+          </div></div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Final call to action -->
+  <section class="final" aria-labelledby="final-title">
+    <div class="wrap">
+      <div class="final-card" id="final-card">
+        <div class="final-stars" aria-hidden="true"></div>
+        <h2 id="final-title" class="final-title"><span class="sr-only">Got a wish?</span><span aria-hidden="true" data-split>Got a wish?</span></h2>
+        <p class="lede">Describe it in one sentence. See the design and a price before you decide anything.</p>
+        <a class="btn btn-accent btn-xl magnetic" href="https://gstudio-web-xxxxxxxxxx-el.a.run.app" data-studio-link data-burst>Make a wish <svg aria-hidden="true"><use href="#i-star"/></svg></a>
+        <figure class="shelf" id="shelf">
+          <div class="shelf-frame">
+            <div class="shelf-in"><div class="shelf-zoom">
+              <img src="assets/img/hero-lineup.webp" width="2400" height="1350" loading="lazy" decoding="async"
+                   alt="The six example gadgets side by side on a wooden shelf: the white desk robot, the green book light, the pink heart, the white-and-mint medicine reminder, the charcoal focus cube and the marigold Corner Store welcome sign.">
+              <a class="spot" href="#card-desk-bot" style="--x:9.2%;--y:47%"><i aria-hidden="true"></i><span>Bolt Desk Bot</span></a>
+              <a class="spot" href="#card-book-light" style="--x:23%;--y:43%"><i aria-hidden="true"></i><span>Folio Book Light</span></a>
+              <a class="spot" href="#card-love-note" style="--x:38.2%;--y:48%"><i aria-hidden="true"></i><span>Love Note Heart</span></a>
+              <a class="spot" href="#card-pill-reminder" style="--x:56.7%;--y:56%"><i aria-hidden="true"></i><span>Dose Medicine Reminder</span></a>
+              <a class="spot" href="#card-focus-cube" style="--x:73.2%;--y:56%"><i aria-hidden="true"></i><span>Pomo Focus Cube</span></a>
+              <a class="spot" href="#card-shop-greeter" style="--x:88.8%;--y:46%"><i aria-hidden="true"></i><span>Welcome Chime</span></a>
+            </div></div>
+            
+          </div>
+          <figcaption>Six wishes, six designs from our engine, shown together. Tap one to see it up close.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-top">
+      <a class="brand" href="#main" data-brand-label="{brand}, back to top">
+        <span class="brand-mark" aria-hidden="true"><svg><use href="#i-star"/></svg></span>
+        <span class="brand-name" data-brand></span>
+      </a>
+      <nav aria-label="Footer">
+        <a href="#how">How it works</a>
+        <a href="#gadgets">Gadgets</a>
+        <a href="#example">Example</a>
+        <a href="#faq">Questions</a>
+      </nav>
+    </div>
+    <p class="fine">Product scenes are rendered from our real designs. Screenshots and 3D models are from our real studio and design engine. Prices and delivery times are estimates until our team reviews the design.</p>
+    <p class="copy">© 2026 <span data-brand></span>. India first.</p>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+<script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js" defer></script>
+<script src="js/config.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,795 @@
+{
+ "name": "Sleepy Bear",
+ "source": "_out/e2e/v3/cad/assembly.glb + components.json (e2e v3 benchmark build)",
+ "units": "mm",
+ "up": "+Y",
+ "front": "+Z",
+ "howTo": "Each part is a top-level group node named `node` with an identity rest transform. Exploded pose: group.position = explode * t (t from 0 to 1). Order is the build-guide sequence.",
+ "bbox": [
+  -70.9,
+  0,
+  -55.2,
+  70.9,
+  188,
+  55.3
+ ],
+ "explodedBbox": [
+  -70.9,
+  -79.6,
+  -220.2,
+  70.9,
+  265.5,
+  275.3
+ ],
+ "center": [
+  0,
+  94,
+  0
+ ],
+ "boardGlb": {
+  "replaces": "PURCHASE_Backplane",
+  "translate": [
+   0,
+   10.4,
+   -7.05
+  ]
+ },
+ "parts": [
+  {
+   "node": "PRINT_Shell",
+   "kind": "print",
+   "label": "Front shell",
+   "explode": [
+    0,
+    0,
+    220
+   ],
+   "order": 1,
+   "detail": "main shell",
+   "color": "#8CC9C0",
+   "center": [
+    0,
+    94.8,
+    3.9
+   ],
+   "bbox": [
+    -70.9,
+    1.6,
+    -47.4,
+    70.9,
+    188,
+    55.3
+   ],
+   "tris": 46958
+  },
+  {
+   "node": "PURCHASE_HeatSetInserts",
+   "kind": "fastener",
+   "label": "Brass screw threads",
+   "explode": [
+    0,
+    0,
+    220
+   ],
+   "order": 2,
+   "detail": "M2.5 heat-set inserts x17",
+   "color": "#B89E4C",
+   "center": [
+    -1.9,
+    83,
+    0.2
+   ],
+   "bbox": [
+    -63.7,
+    6.4,
+    -45.2,
+    60,
+    159.6,
+    45.5
+   ],
+   "tris": 3808
+  },
+  {
+   "node": "PURCHASE_Backplane",
+   "kind": "pcb",
+   "label": "Circuit board",
+   "explode": [
+    0,
+    -90,
+    -11
+   ],
+   "order": 3,
+   "detail": "Backplane PCB backplane-v1 (assembled)",
+   "color": "#1277BD",
+   "center": [
+    0,
+    15.4,
+    -7.3
+   ],
+   "bbox": [
+    -31.4,
+    10.4,
+    -46.9,
+    31.4,
+    20.5,
+    32.3
+   ],
+   "tris": 1204
+  },
+  {
+   "node": "PURCHASE_CoreBoard",
+   "kind": "pcb",
+   "label": "Brain board (ESP32-S3)",
+   "explode": [
+    0,
+    -52,
+    -15
+   ],
+   "order": 4,
+   "detail": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+   "color": "#141417",
+   "center": [
+    -1.6,
+    24.1,
+    -23.4
+   ],
+   "bbox": [
+    -36.7,
+    20.5,
+    -36.2,
+    33.5,
+    27.7,
+    -10.7
+   ],
+   "tris": 96
+  },
+  {
+   "node": "PURCHASE_Amplifier",
+   "kind": "pcb",
+   "label": "Sound amplifier",
+   "explode": [
+    4,
+    -52,
+    -7
+   ],
+   "order": 5,
+   "detail": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+   "color": "#143D8C",
+   "center": [
+    22,
+    23,
+    14.2
+   ],
+   "bbox": [
+    13,
+    20.5,
+    4.7,
+    30.9,
+    25.5,
+    23.8
+   ],
+   "tris": 60
+  },
+  {
+   "node": "PURCHASE_MicroSdModule",
+   "kind": "pcb",
+   "label": "Memory card reader",
+   "explode": [
+    -2,
+    -53,
+    -8
+   ],
+   "order": 6,
+   "detail": "microSD SPI module with LDO and level shifter (Catalex-type)",
+   "color": "#143D8C",
+   "center": [
+    -9.9,
+    23.5,
+    11.8
+   ],
+   "bbox": [
+    -30.9,
+    20.5,
+    -0.2,
+    11.1,
+    26.5,
+    23.8
+   ],
+   "tris": 60
+  },
+  {
+   "node": "PURCHASE_CartridgeScrews",
+   "kind": "fastener",
+   "label": "Board screws",
+   "explode": [
+    0,
+    -70,
+    -11
+   ],
+   "order": 7,
+   "detail": "M2.5 cartridge screws x4",
+   "color": "#1F1F21",
+   "center": [
+    0,
+    10.8,
+    -7
+   ],
+   "bbox": [
+    -30.1,
+    7,
+    -45.1,
+    30.1,
+    14.5,
+    31
+   ],
+   "tris": 1328
+  },
+  {
+   "node": "PURCHASE_SpeakerGasket",
+   "kind": "purchase",
+   "label": "Speaker foam seal",
+   "explode": [
+    0,
+    -11,
+    111
+   ],
+   "order": 8,
+   "detail": "foam gasket ring (cut from strip)",
+   "color": "#333338",
+   "center": [
+    0,
+    57.6,
+    52.7
+   ],
+   "bbox": [
+    -19.7,
+    37.9,
+    51.7,
+    19.7,
+    77.3,
+    53.7
+   ],
+   "tris": 444
+  },
+  {
+   "node": "PURCHASE_Speaker",
+   "kind": "purchase",
+   "label": "Speaker",
+   "explode": [
+    0,
+    -13,
+    83
+   ],
+   "order": 9,
+   "detail": "Speaker 40 mm round, 4 ohm, 3 W",
+   "color": "#1A1A1C",
+   "center": [
+    0,
+    57.6,
+    42.9
+   ],
+   "bbox": [
+    -20,
+    37.6,
+    34.2,
+    20,
+    77.6,
+    51.7
+   ],
+   "tris": 1356
+  },
+  {
+   "node": "PRINT_SpeakerRing",
+   "kind": "print",
+   "label": "Speaker holder",
+   "explode": [
+    0,
+    -12,
+    56
+   ],
+   "order": 10,
+   "detail": "speaker clamp ring",
+   "color": "#ADD5CD",
+   "center": [
+    0,
+    61.3,
+    46.4
+   ],
+   "bbox": [
+    -25.2,
+    36.4,
+    42.8,
+    25.2,
+    86.1,
+    50
+   ],
+   "tris": 7092
+  },
+  {
+   "node": "PURCHASE_Display",
+   "kind": "purchase",
+   "label": "Screen",
+   "explode": [
+    0,
+    10,
+    85
+   ],
+   "order": 11,
+   "detail": "1.3 in 128x64 mono OLED, SH1106, I2C 4-pin",
+   "color": "#143D8C",
+   "center": [
+    0,
+    121.6,
+    46.6
+   ],
+   "bbox": [
+    -17.7,
+    104.8,
+    41,
+    17.7,
+    138.4,
+    52.3
+   ],
+   "tris": 60
+  },
+  {
+   "node": "PRINT_DisplayClip",
+   "kind": "print",
+   "label": "Screen holder",
+   "explode": [
+    0,
+    13,
+    56
+   ],
+   "order": 12,
+   "detail": "printed clamp strap",
+   "color": "#ADD5CD",
+   "center": [
+    0,
+    130,
+    44.9
+   ],
+   "bbox": [
+    -25.5,
+    126.4,
+    40.3,
+    25.5,
+    133.6,
+    49.5
+   ],
+   "tris": 652
+  },
+  {
+   "node": "PURCHASE_Button",
+   "kind": "purchase",
+   "label": "Big button",
+   "explode": [
+    0,
+    95,
+    220
+   ],
+   "order": 13,
+   "detail": "Big 30 mm snap-in arcade push button (microswitch)",
+   "color": "#FFF6EA",
+   "center": [
+    0,
+    151.5,
+    10.3
+   ],
+   "bbox": [
+    -16.5,
+    132.5,
+    -6.2,
+    16.5,
+    170.5,
+    26.8
+   ],
+   "tris": 2822
+  },
+  {
+   "node": "PRINT_LedDiffuser",
+   "kind": "print",
+   "label": "Night light cover",
+   "explode": [
+    0,
+    -3,
+    115
+   ],
+   "order": 14,
+   "detail": "light diffuser (natural PETG)",
+   "color": "#F7F5EB",
+   "center": [
+    0,
+    86.6,
+    53.5
+   ],
+   "bbox": [
+    -5.2,
+    81.4,
+    51.7,
+    5.2,
+    91.8,
+    55.3
+   ],
+   "tris": 388
+  },
+  {
+   "node": "PURCHASE_Led",
+   "kind": "purchase",
+   "label": "Night light",
+   "explode": [
+    0,
+    -3,
+    88
+   ],
+   "order": 15,
+   "detail": "Addressable RGB LED, single WS2812B 5050 on a mini board",
+   "color": "#17171A",
+   "center": [
+    0,
+    86.6,
+    45.8
+   ],
+   "bbox": [
+    -5,
+    81.6,
+    43,
+    5,
+    91.6,
+    48.7
+   ],
+   "tris": 36
+  },
+  {
+   "node": "PRINT_LedClip",
+   "kind": "print",
+   "label": "Night light holder",
+   "explode": [
+    0,
+    -3,
+    60
+   ],
+   "order": 16,
+   "detail": "printed clamp strap",
+   "color": "#ADD5CD",
+   "center": [
+    0,
+    86.7,
+    42.8
+   ],
+   "bbox": [
+    -12.8,
+    83,
+    40,
+    12.8,
+    90.4,
+    45.5
+   ],
+   "tris": 668
+  },
+  {
+   "node": "PURCHASE_MicGasket",
+   "kind": "purchase",
+   "label": "Microphone foam seal",
+   "explode": [
+    10,
+    -2,
+    112
+   ],
+   "order": 17,
+   "detail": "foam gasket ring around the mic port (cut from the gasket strip)",
+   "color": "#333338",
+   "center": [
+    30,
+    86.6,
+    52.8
+   ],
+   "bbox": [
+    26.2,
+    82.8,
+    52.3,
+    33.8,
+    90.4,
+    53.3
+   ],
+   "tris": 236
+  },
+  {
+   "node": "PURCHASE_Microphone",
+   "kind": "purchase",
+   "label": "Microphone",
+   "explode": [
+    11,
+    -3,
+    85
+   ],
+   "order": 18,
+   "detail": "INMP441 I2S MEMS microphone module",
+   "color": "#143D8C",
+   "center": [
+    30,
+    86.6,
+    47.6
+   ],
+   "bbox": [
+    23,
+    79.6,
+    42.8,
+    37,
+    93.6,
+    52.3
+   ],
+   "tris": 48
+  },
+  {
+   "node": "PRINT_MicClip",
+   "kind": "print",
+   "label": "Microphone holder",
+   "explode": [
+    11,
+    -3,
+    57
+   ],
+   "order": 19,
+   "detail": "printed clamp strap",
+   "color": "#ADD5CD",
+   "center": [
+    30,
+    86.6,
+    47.3
+   ],
+   "bbox": [
+    26.4,
+    71.8,
+    43.2,
+    33.6,
+    101.4,
+    51.3
+   ],
+   "tris": 652
+  },
+  {
+   "node": "PURCHASE_ModuleScrews",
+   "kind": "fastener",
+   "label": "Holder screws",
+   "explode": [
+    2,
+    -3,
+    34
+   ],
+   "order": 20,
+   "detail": "M2.5 module clamp screws x9",
+   "color": "#1F1F21",
+   "center": [
+    4.1,
+    87.6,
+    44.4
+   ],
+   "bbox": [
+    -24.1,
+    42.9,
+    37.5,
+    32.3,
+    132.2,
+    51.2
+   ],
+   "tris": 2988
+  },
+  {
+   "node": "REFERENCE_CableSpk1",
+   "kind": "cable",
+   "label": "Speaker cable",
+   "explode": [
+    6,
+    -48,
+    32
+   ],
+   "order": 21,
+   "detail": "JST-PH 2.0 2p 200 mm (display-only route)",
+   "color": "#9E241F",
+   "center": [
+    18.8,
+    38.2,
+    20.7
+   ],
+   "bbox": [
+    14.8,
+    17.6,
+    0.3,
+    22.9,
+    58.7,
+    41.1
+   ],
+   "tris": 2182
+  },
+  {
+   "node": "REFERENCE_CableDisp1",
+   "kind": "cable",
+   "label": "Screen cable",
+   "explode": [
+    4,
+    -43,
+    40
+   ],
+   "order": 22,
+   "detail": "JST-PH 2.0 4p 300 mm (display-only route)",
+   "color": "#294C9E",
+   "center": [
+    5.2,
+    77.7,
+    18.4
+   ],
+   "bbox": [
+    -1.7,
+    17.6,
+    -6.4,
+    12,
+    137.9,
+    43.1
+   ],
+   "tris": 4408
+  },
+  {
+   "node": "REFERENCE_CableBtn1",
+   "kind": "cable",
+   "label": "Button cable",
+   "explode": [
+    -6,
+    -41,
+    40
+   ],
+   "order": 23,
+   "detail": "JST-PH 2.0 3p 300 mm (display-only route)",
+   "color": "#333338",
+   "center": [
+    -10,
+    75.3,
+    25.9
+   ],
+   "bbox": [
+    -21.7,
+    17.6,
+    8.9,
+    1.7,
+    133.1,
+    42.8
+   ],
+   "tris": 3704
+  },
+  {
+   "node": "REFERENCE_CableLed1",
+   "kind": "cable",
+   "label": "Night light cable",
+   "explode": [
+    2,
+    -45,
+    38
+   ],
+   "order": 24,
+   "detail": "JST-PH 2.0 3p 200 mm (display-only route)",
+   "color": "#333338",
+   "center": [
+    5.8,
+    51.9,
+    35.4
+   ],
+   "bbox": [
+    -1.5,
+    17.7,
+    27.5,
+    13.1,
+    86.1,
+    43.3
+   ],
+   "tris": 6378
+  },
+  {
+   "node": "REFERENCE_CableMic1",
+   "kind": "cable",
+   "label": "Microphone cable",
+   "explode": [
+    3,
+    -48,
+    33
+   ],
+   "order": 25,
+   "detail": "JST-PH 2.0 6p 300 mm (display-only route)",
+   "color": "#4C6B33",
+   "center": [
+    6.2,
+    53,
+    18.3
+   ],
+   "bbox": [
+    -25.4,
+    17.4,
+    -6.7,
+    37.8,
+    88.6,
+    43.3
+   ],
+   "tris": 5999
+  },
+  {
+   "node": "PRINT_RearCover",
+   "kind": "print",
+   "label": "Back shell",
+   "explode": [
+    0,
+    0,
+    -115
+   ],
+   "order": 26,
+   "detail": "rear cover",
+   "color": "#8CC9C0",
+   "center": [
+    0,
+    84.1,
+    -49.6
+   ],
+   "bbox": [
+    -70.9,
+    1.6,
+    -54.7,
+    70.9,
+    166.6,
+    -44.4
+   ],
+   "tris": 16370
+  },
+  {
+   "node": "PURCHASE_CoverScrews",
+   "kind": "fastener",
+   "label": "Back shell screws",
+   "explode": [
+    0,
+    0,
+    -165
+   ],
+   "order": 27,
+   "detail": "M2.5 cover screws x4",
+   "color": "#1F1F21",
+   "center": [
+    -1.9,
+    87.9,
+    -48
+   ],
+   "bbox": [
+    -63.7,
+    16.2,
+    -55.2,
+    59.9,
+    159.5,
+    -40.7
+   ],
+   "tris": 1328
+  },
+  {
+   "node": "PURCHASE_Feet",
+   "kind": "purchase",
+   "label": "Rubber feet",
+   "explode": [
+    0,
+    -20,
+    220
+   ],
+   "order": 28,
+   "detail": "adhesive bumper feet x4",
+   "color": "#333336",
+   "center": [
+    0,
+    1.1,
+    -1.4
+   ],
+   "bbox": [
+    -57.6,
+    0,
+    -41,
+    57.6,
+    2.2,
+    38.1
+   ],
+   "tris": 2000
+  }
+ ]
+}
