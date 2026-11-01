@@ -381,6 +381,9 @@ class DHardware(_D):
     use: str = ""
     module: Optional[str] = None
     catalog_row: Optional[str] = None
+    group: Optional[str] = None  # CAD fastener group name (HeatSetInserts, CartridgeScrews, CoverScrews, ...)
+    size: Optional[str] = None  # e.g. "M2.5"
+    qty_basis: str = "planned"  # "planned" = pre-CAD estimate; the CAD stage's components.json qty is the source of truth
 
 
 class DCartridge(_D):

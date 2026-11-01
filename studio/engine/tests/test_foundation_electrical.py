@@ -138,3 +138,20 @@ def test_run_writes_file(lib, tmp_path):
     data = json.loads((tmp_path / "electrical.json").read_text())
     assert data["schema"] == "gadget-electrical/1"
     assert ctx.electrical == data and summary["instances"] == len(data["instances"])
+
+
+def test_led_din_reports_its_gpio_through_the_buffer(lib):
+    _, el = electrical(good(), lib)
+    assert el["gpio"]["LED_DIN"] == 2
+    led = next(i for i in el["instances"] if i["ref"] == "LED1")
+    din = next(w for w in led["harness"]["wires"] if w["module_pin"] == "DIN")
+    assert din["net"] == "LED_DIN_5V" and din["gpio"] == 2 and "74AHCT1G125" in din["via"] and din["via"].startswith("U3")
+    assert led["pins"]["DIN"]["gpio"] == 2
+    conn = next(c for c in el["connections"] if c["from"] == "LED1.DIN")
+    assert conn["gpio"] == 2 and conn["through"].startswith("U3") and conn["note"].startswith("GPIO02 via U3")
+    assert el["gpio_paths"]["LED_DIN_5V"]["gpio"] == 2
+    # every signal wire of every cabled instance now names its GPIO (directly or through a buffer)
+    for i in el["instances"]:
+        for w in (i.get("harness") or {}).get("wires", []):
+            if w["net"] not in ("GND", "+5V", "+3V3", "SPK_P", "SPK_N"):
+                assert w["gpio"] is not None, (i["ref"], w)

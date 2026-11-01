@@ -38,7 +38,13 @@ def test_good_spec_normalizes(lib):
         assert h.pins in (2, 3, 4, 6, 8)
     hw = {h.name: h.qty for h in sp.derived.hardware}
     assert hw["adhesive bumper foot"] == 4
-    assert hw["M2.5 heat-set insert"] == 8
+    # same rules as the CAD stage: 4 cartridge + 4 cover + speaker ring 3 + display 2 + LED 2 + mic 2 (+ arcade button 0)
+    assert hw["M2.5 heat-set insert"] == 17
+    assert sum(h.qty for h in sp.derived.hardware if h.size == "M2.5" and "screw" in h.name) == 17
+    assert {h.group for h in sp.derived.hardware} >= {"CartridgeScrews", "CoverScrews", "ModuleScrews", "HeatSetInserts"}
+    assert all(h.qty_basis == "planned" for h in sp.derived.hardware)
+    m2 = [h for h in sp.derived.hardware if h.size == "M2"]
+    assert [h.group for h in m2] == ["SupportPostScrews"] and m2[0].qty == 2
     c = sp.derived.cartridge
     assert c is not None and c.board_top_z == pytest.approx(c.floor_z + 8.0)
     # cartridge keep-out lies inside the inner shell

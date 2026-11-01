@@ -630,54 +630,8 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
                                 distance_mm=_r(dist)))
         i["harness"] = f"H{hid}"
 
-    # ---------------------------------------------------------------- hardware kit
-    hw: list[DHardware] = []
-
-    def first(role):
-        xs = lib.by_role(role)
-        return xs[0] if xs else None
-
-    screws = first("screws")
-    ins = next((m for m in lib.by_role("inserts") if "M2_5" in m["id"]), first("inserts"))
-    if screws:
-        hw.append(DHardware(id=screws["id"], name="M2.5 x 6 socket head screw", qty=4, use="backplane to shell bosses", module=screws["id"],
-                            catalog_row=screws.get("catalog_row")))
-        cover_n = 4
-        hw.append(DHardware(id=screws["id"], name="M2.5 x 8 socket head screw", qty=cover_n,
-                            use=f"{'rear cover' if sp.body.split == 'rear_cover' else 'base plate'} (default count; CAD may change it)",
-                            module=screws["id"], catalog_row=screws.get("catalog_row")))
-        mod_screws = 0
-        for f in sp.features:
-            m = feat_mods.get(f.id)
-            if m and (m.get("mount") or {}).get("type") == "holes":
-                mod_screws += len((m.get("mount") or {}).get("holes") or [])
-        if any(i.get("slot") == "S1" for i in inst):
-            mod_screws += 2
-        if mod_screws:
-            hw.append(DHardware(id=screws["id"], name="M2 x 5 socket head screw", qty=mod_screws,
-                                use="module mounting holes (and the two S1 support posts)", module=screws["id"], catalog_row=screws.get("catalog_row")))
-    if ins:
-        hw.append(DHardware(id=ins["id"], name="M2.5 heat-set insert", qty=8, use="4 backplane bosses + 4 cover bosses", module=ins["id"],
-                            catalog_row=ins.get("catalog_row")))
-    feet = first("feet")
-    if feet and sp.body.feet:
-        hw.append(DHardware(id=feet["id"], name="adhesive bumper foot", qty=sp.body.feet, use="underside", module=feet["id"],
-                            catalog_row=feet.get("catalog_row")))
-    ties = first("ties")
-    if ties and harness:
-        hw.append(DHardware(id=ties["id"], name="cable tie 100 x 2.5 mm", qty=max(3, len(harness) + 1), use="harness retention at printed anchors",
-                            module=ties["id"], catalog_row=ties.get("catalog_row")))
-    if has_speaker:
-        g = first("gasket")
-        if g:
-            hw.append(DHardware(id=g["id"], name="speaker foam gasket strip", qty=1, use="seal the speaker to the baffle", module=g["id"],
-                                catalog_row=g.get("catalog_row")))
-    lab = first("label")
-    if lab:
-        hw.append(DHardware(id=lab["id"], name="device ID label + packing kit", qty=1, use="serial/QR label and packing", module=lab["id"],
-                            catalog_row=lab.get("catalog_row")))
-    for c in ("CABLE_JSTPH_4P_300MM", "CABLE_JSTPH_3P_300MM"):
-        pass  # harness cables are listed in derived.harness; BOM maps them to rows 06/07
+    # ---------------------------------------------------------------- hardware kit (planned; CAD counts win)
+    hw = planned_hardware(sp, lib, feat_mods, inst, harness, has_speaker)
 
     # ---------------------------------------------------------------- antenna rule (metal near the antenna)
     if y_off is not None:
@@ -712,6 +666,73 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
     if raise_on_error and errors:
         raise SpecError(errors)
     return sp, report
+
+
+# =============================================================================================== planned hardware
+# Mirrors the CAD stage's fastener rules (gstudio.cad: internals.py cartridge, enclosure.py cover/plate, features.py kits):
+#   cartridge 4 x (insert + M2.5 screw); cover/base plate 4 x (insert + M2.5 screw);
+#   per feature: speaker ring 3, snap-in button 0, touch pad 0 (adhesive), every other board-clamped module 2 posts.
+# All screws are M2.5 into M2.5 heat-set inserts. The S1 support posts take 2 x M2 screws into printed pilot holes
+# (CAD models the posts, not those screws yet). These are PLANNED counts: components.json qty from CAD is authoritative.
+MODULE_POSTS = {"speaker": 3, "touch": 0}
+
+
+def module_posts(m: dict) -> int:
+    role = m.get("role")
+    if role in MODULE_POSTS:
+        return MODULE_POSTS[role]
+    if role == "button" and (m.get("mount") or {}).get("type") == "panel_snap":
+        return 0
+    return 2
+
+
+def planned_hardware(sp: Spec, lib, feat_mods: dict, inst: list, harness: list, has_speaker: bool) -> list[DHardware]:
+    hw: list[DHardware] = []
+
+    def first(role, pred=None):
+        xs = [m for m in lib.by_role(role) if pred is None or pred(m)]
+        return xs[0] if xs else None
+
+    screws = first("screws")
+    ins = first("inserts", lambda m: "M2_5" in m["id"]) or first("inserts")
+    n_cart, n_cover = 4, 4
+    n_mod = sum(module_posts(m) for m in feat_mods.values())
+    cover = "CoverScrews" if sp.body.split == "rear_cover" else "PlateScrews"
+    if screws:
+        sid, row = screws["id"], screws.get("catalog_row")
+        hw.append(DHardware(id=sid, name="M2.5 socket head screw", qty=n_cart, size="M2.5", group="CartridgeScrews",
+                            use="backplane to the 4 cartridge bosses", module=sid, catalog_row=row))
+        hw.append(DHardware(id=sid, name="M2.5 socket head screw", qty=n_cover, size="M2.5", group=cover,
+                            use="rear cover" if cover == "CoverScrews" else "base plate", module=sid, catalog_row=row))
+        if n_mod:
+            hw.append(DHardware(id=sid, name="M2.5 socket head screw", qty=n_mod, size="M2.5", group="ModuleScrews",
+                                use="module clamp straps and the speaker ring", module=sid, catalog_row=row))
+        if any(i.get("slot") == "S1" for i in inst):
+            hw.append(DHardware(id=sid, name="M2 socket head screw", qty=2, size="M2", group="SupportPostScrews",
+                                use="microSD module corners into the 2 printed support posts (1.8 mm pilot holes)",
+                                module=sid, catalog_row=row))
+    if ins:
+        hw.append(DHardware(id=ins["id"], name="M2.5 heat-set insert", qty=n_cart + n_cover + n_mod, size="M2.5", group="HeatSetInserts",
+                            use=f"{n_cart} cartridge + {n_cover} {'cover' if cover == 'CoverScrews' else 'plate'} + {n_mod} module bosses",
+                            module=ins["id"], catalog_row=ins.get("catalog_row")))
+    feet = first("feet")
+    if feet and sp.body.feet:
+        hw.append(DHardware(id=feet["id"], name="adhesive bumper foot", qty=sp.body.feet, group="Feet", use="underside",
+                            module=feet["id"], catalog_row=feet.get("catalog_row")))
+    ties = first("ties")
+    if ties and harness:
+        hw.append(DHardware(id=ties["id"], name="cable tie 100 x 2.5 mm", qty=max(3, len(harness) + 1), group="CableTies",
+                            use="harness retention at printed anchors", module=ties["id"], catalog_row=ties.get("catalog_row")))
+    if has_speaker:
+        g = first("gasket")
+        if g:
+            hw.append(DHardware(id=g["id"], name="speaker foam gasket strip", qty=1, group="SpeakerGasket",
+                                use="seal the speaker to the baffle", module=g["id"], catalog_row=g.get("catalog_row")))
+    lab = first("label")
+    if lab:
+        hw.append(DHardware(id=lab["id"], name="device ID label + packing kit", qty=1, group="Label",
+                            use="serial/QR label and packing", module=lab["id"], catalog_row=lab.get("catalog_row")))
+    return hw
 
 
 # =============================================================================================== cartridge search

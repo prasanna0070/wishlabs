@@ -2128,6 +2128,8 @@
       "PWM",
       "S"
      ],
+     "source_gpio": 2,
+     "via": "U3 74AHCT1G125 (3.3 V -> 5 V) + R3 330 ohm",
      "at": [
       45.0,
       3.8

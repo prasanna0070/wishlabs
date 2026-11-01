@@ -158,6 +158,8 @@ def build_electrical(spec: "Spec", lib: "Library") -> dict:
                     connections.append({"from": node_mod, "to": node_bp, "via": f"socket {slot_id}", "kind": "socket",
                                         "color": None, "net": sp["net"]})
             rec["harness"] = None
+            rec["pins"] = {sp["name"]: {k: v for k, v in (("net", sp.get("net")), ("gpio", sp.get("gpio")), ("slot_pin", sp["pin"]))
+                                        if v is not None} for sp in slot["pins"] if sp.get("net")}
         else:
             mod_pins = [p.get("name") for p in (m.get("pins") or []) if p.get("name")]
             order = (m.get("module_connector") or {}).get("pin_order") or mod_pins
@@ -177,8 +179,11 @@ def build_electrical(spec: "Spec", lib: "Library") -> dict:
                 else:
                     colour = FIXED.get(net) or SIGNAL_COLOURS[sig_i % len(SIGNAL_COLOURS)]
                     sig_i += 1
-                wires.append({"module_pin": mp, "slot_pin": sp["pin"], "slot_pin_name": sp["name"], "net": net, "color": colour,
-                              "gpio": sp.get("gpio")})
+                w = {"module_pin": mp, "slot_pin": sp["pin"], "slot_pin_name": sp["name"], "net": net, "color": colour,
+                     "gpio": sp.get("gpio") if sp.get("gpio") is not None else sp.get("source_gpio")}
+                if sp.get("via"):
+                    w["via"] = sp["via"]  # driven through a buffer: the GPIO is upstream of this part
+                wires.append(w)
             # straps that live only on the backplane side (e.g. J_MIC LR -> GND) still need a wire if the module has the pin
             mapped = {w["slot_pin"] for w in wires}
             for sp in slot["pins"]:
@@ -203,8 +208,15 @@ def build_electrical(spec: "Spec", lib: "Library") -> dict:
                 node_bp = f"BP1.{slot_id}.{w['slot_pin']}"
                 net_add(w["net"], node_mod)
                 net_add(w["net"], node_bp)
-                connections.append({"from": node_mod, "to": node_bp, "via": cable, "kind": "cable", "color": w["color"],
-                                    "net": w["net"]})
+                conn = {"from": node_mod, "to": node_bp, "via": cable, "kind": "cable", "color": w["color"], "net": w["net"]}
+                if w.get("gpio") is not None:
+                    conn["gpio"] = w["gpio"]
+                if w.get("via"):
+                    conn["through"] = w["via"]
+                    conn["note"] = f"GPIO{w['gpio']:02d} via {w['via']}"
+                connections.append(conn)
+            rec["pins"] = {w["module_pin"]: {k: v for k, v in (("net", w["net"]), ("gpio", w.get("gpio")), ("via", w.get("via")),
+                                                                ("slot_pin", w["slot_pin"])) if v is not None} for w in wires}
         # I2C devices
         e = m.get("electrical") or {}
         if slot_id and slot_id.startswith("J_I2C"):
@@ -279,6 +291,12 @@ def build_electrical(spec: "Spec", lib: "Library") -> dict:
         n = "LED_DIN_3V3" if sig == "LED_DIN" else sig
         if n in nets or sig in sys_sigs:
             gpio[sig] = g
+    gpio_paths = {}
+    for sid in slots_used:
+        for sp in slots[sid]["pins"]:
+            if sp.get("source_gpio") is not None and sp.get("net") in nets:
+                gpio_paths[sp["net"]] = {"gpio": sp["source_gpio"], "via": sp.get("via", ""),
+                                         "signal": next((k for k, v in gpio_map.items() if v == sp["source_gpio"]), None)}
     # sanity: unique and legal
     reserved = {int(k) for k in bp.get("gpio_reserved", {})}
     vals = [g for s, g in gpio.items() if s not in sys_sigs]
@@ -296,6 +314,7 @@ def build_electrical(spec: "Spec", lib: "Library") -> dict:
         "instances": instances_out,
         "slots_used": slots_used,
         "gpio": gpio,
+        "gpio_paths": gpio_paths,
         "buses": buses,
         "nets": [{"name": k, "nodes": sorted(v)} for k, v in sorted(nets.items())],
         "connections": connections,

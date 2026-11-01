@@ -320,7 +320,8 @@ def build():
         add_port(f"J_IO{n}", PH.format(n=3), x, 3.8, 0, io_pins(n), io_roles, f"Digital/analog IO {n}", "up", 20.0, "+3V3", io_cable,
                  note=f"GPIO{GPIO[f'IO{n}_SIG']} (ADC1 + touch capable). 3.3 V logic and 3.3 V supply only.")
     add_port("J_LED", PH.format(n=3), 41.0, 3.8, 0,
-             [P(1, "GND", "GND", ALIAS_GND, "power"), P(2, "5V", "+5V", ALIAS_5V, "power"), P(3, "DIN", "LED_DIN_5V", ["DIN", "DI", "IN", "D", "SIG", "PWM", "S"])],
+             [P(1, "GND", "GND", ALIAS_GND, "power"), P(2, "5V", "+5V", ALIAS_5V, "power"), {**P(3, "DIN", "LED_DIN_5V", ["DIN", "DI", "IN", "D", "SIG", "PWM", "S"]),
+              "source_gpio": GPIO["LED_DIN"], "via": "U3 74AHCT1G125 (3.3 V -> 5 V) + R3 330 ohm"}],
              ["led", "servo"], "Addressable LED or servo (5 V supply, 5 V data via level shifter)", "up", 20.0, "+5V",
              {"family": "JST-PH 2.0", "pins": 3, "type": "PHR-3; port and cable labelled LED 5V"},
              note="DIN is driven by U3 (74AHCT1G125 at 5 V) through R3 330 ohm from GPIO2. Same 3-pin PH family as J_IO: "
