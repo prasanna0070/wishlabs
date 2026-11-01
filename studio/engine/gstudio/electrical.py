@@ -333,11 +333,38 @@ def _ref_on(spec: "Spec", slot: str) -> str:
 
 
 # ------------------------------------------------------------------------------------------- power
+def effective_caps(spec: "Spec") -> dict:
+    """Firmware output caps for this design: behaviour.settings as validated by gstudio.firmware.settings (normalize stores
+    the validated settings), else asked from validate_settings directly. Missing values mean no cap (100 %)."""
+    st = dict(spec.behaviour.settings or {})
+    src = "behaviour.settings (validated by gstudio.firmware.settings)"
+    if "volume_max" not in st or "led_max_percent" not in st:
+        try:
+            from .firmware.settings import validate_settings  # light module (pydantic only)
+
+            try:
+                eff, _ = validate_settings(spec.behaviour.template, st, child_directed=spec.audience.child_directed)
+            except TypeError:
+                eff, _ = validate_settings(spec.behaviour.template, st)
+            if isinstance(eff, dict):
+                st = {**eff, **st}
+                src = "gstudio.firmware.settings.validate_settings defaults"
+        except Exception:
+            src = "none found: uncapped"
+    vol = st.get("volume_max")
+    led = st.get("led_max_percent")
+    return {"volume_max": float(vol) if isinstance(vol, (int, float)) else None,
+            "led_max_percent": float(led) if isinstance(led, (int, float)) else None, "source": src}
+
+
 def power_budget(spec: "Spec", lib: "Library") -> dict:
+    """Two figures: worst case uncapped (every module at its max) and the effective peak with the firmware caps applied
+    (LED current scales with led_max_percent; amp max current scales with (volume_max/100)^2, an estimate). `ok` uses
+    the capped figure."""
     lim = lib.backplane["power"]["limits"]
+    caps = effective_caps(spec)
     rows = []
-    tot5 = {"typ": 0.0, "max": 0.0}
-    tot3 = {"typ": 0.0, "max": 0.0}
+    tot = {"+5V": [0.0, 0.0, 0.0], "+3V3": [0.0, 0.0, 0.0]}  # typ, max, max_capped
     for inst in spec.derived.instances:
         m = lib.get(inst.module)
         e = m.get("electrical") or {}
@@ -353,35 +380,54 @@ def power_budget(spec: "Spec", lib: "Library") -> dict:
         if inst.role == "servo":
             # SG90 current is not in the library (0); use a conservative planning figure, labelled
             typ, mx, basis = 150.0, 700.0, "estimate (no datasheet figure; SG90-class stall planning value)"
-        rows.append({"ref": inst.ref, "module": m["id"], "rail": rail, "ma_typ": typ, "ma_max": mx, "basis": basis})
-        t = tot5 if rail == "+5V" else tot3
-        t["typ"] += typ
-        t["max"] += mx
-    # +3V3 comes out of the DevKitC LDO, whose input is +5V: add the 3V3 load to the 5V total
-    total5_typ = tot5["typ"] + tot3["typ"]
-    total5_max = tot5["max"] + tot3["max"]
-    ok5 = total5_max <= lim["limit_5v_ma"]
-    ok3 = tot3["max"] <= lim["limit_3v3_ma"]
+        capped, cap = mx, None
+        if inst.role == "led" and caps["led_max_percent"] is not None:
+            capped = max(typ * min(1.0, caps["led_max_percent"] / 100.0), mx * caps["led_max_percent"] / 100.0)
+            cap = f"led_max_percent {caps['led_max_percent']:g} (estimate: LED current scales with brightness)"
+        elif inst.role == "amp" and caps["volume_max"] is not None:
+            capped = max(typ, mx * (caps["volume_max"] / 100.0) ** 2)
+            cap = f"volume_max {caps['volume_max']:g} (estimate: amp max current x (volume/100)^2)"
+        row = {"ref": inst.ref, "module": m["id"], "rail": rail, "ma_typ": typ, "ma_max": mx, "ma_max_capped": round(capped, 1),
+               "basis": basis}
+        if cap:
+            row["cap"] = cap
+        rows.append(row)
+        t = tot[rail]
+        t[0] += typ
+        t[1] += mx
+        t[2] += capped
+    # +3V3 comes out of the DevKitC LDO, whose input is +5V: the 3V3 load is part of the 5V total
+    t5 = [tot["+5V"][i] + tot["+3V3"][i] for i in range(3)]
+    t3 = tot["+3V3"]
+    ok5_unc = t5[1] <= lim["limit_5v_ma"]
+    ok5 = t5[2] <= lim["limit_5v_ma"]
+    ok3 = t3[2] <= lim["limit_3v3_ma"]
     notes = []
+    if not ok5_unc:
+        notes.append(f"Uncapped worst case {t5[1]:.0f} mA exceeds the {lim['limit_5v_ma']} mA budget (90% of the 1.5 A fuse hold); "
+                     f"with the firmware caps the peak is {t5[2]:.0f} mA" + (" (within budget)." if ok5 else " (still over budget)."))
     if not ok5:
-        notes.append(f"Peak 5 V draw {total5_max:.0f} mA exceeds the {lim['limit_5v_ma']} mA budget (90% of the 1.5 A fuse hold): "
-                     "firmware must cap LED brightness and amp volume so peaks cannot coincide.")
+        notes.append("Even with the firmware caps the 5 V peak is over budget: lower led_max_percent or volume_max, or drop a module.")
     if not ok3:
-        notes.append(f"Peak 3.3 V draw {tot3['max']:.0f} mA exceeds the {lim['limit_3v3_ma']} mA LDO budget.")
-    notes.append("Figures marked 'estimate' are not datasheet values; peaks are summed worst-case, which real use rarely reaches.")
+        notes.append(f"Peak 3.3 V draw {t3[2]:.0f} mA exceeds the {lim['limit_3v3_ma']} mA LDO budget.")
+    notes.append("Capped figures are estimates (LED current x brightness, amp current x volume squared); peaks are summed "
+                 "worst-case, which real use rarely reaches. Figures marked 'estimate' are not datasheet values.")
     return {
         "rails": [{"name": "+5V", "source": "USB-C VBUS via F1 (PTC 1.5 A hold)", "limit_ma": lim["limit_5v_ma"]},
                   {"name": "+3V3", "source": "DevKitC on-board LDO SGM2212-3.3 (800 mA rating)", "limit_ma": lim["limit_3v3_ma"]}],
+        "caps": caps,
         "budget": rows,
-        "total_ma_typ": round(total5_typ, 1),
-        "total_ma_max": round(total5_max, 1),
-        "rail_3v3_ma_typ": round(tot3["typ"], 1),
-        "rail_3v3_ma_max": round(tot3["max"], 1),
+        "total_ma_typ": round(t5[0], 1),
+        "total_ma_max": round(t5[1], 1),
+        "total_ma_max_capped": round(t5[2], 1),
+        "rail_3v3_ma_typ": round(t3[0], 1),
+        "rail_3v3_ma_max": round(t3[2], 1),
         "limit_ma": lim["limit_5v_ma"],
         "ok": bool(ok5 and ok3),
+        "ok_uncapped": bool(ok5_unc and t3[1] <= lim["limit_3v3_ma"]),
         "ok_5v": bool(ok5),
         "ok_3v3": bool(ok3),
-        "firmware_caps_required": not ok5,
+        "firmware_caps_required": not ok5_unc,
         "notes": " ".join(notes),
     }
 
@@ -398,7 +444,8 @@ def run(ctx: "BuildContext") -> dict:
         ctx.warn("electrical", w)
     ctx.progress("electrical", "electrical.json written", 100)
     return {"slots_used": doc["slots_used"], "instances": len(doc["instances"]), "nets": len(doc["nets"]),
-            "power_ok": doc["power"]["ok"], "total_ma_max": doc["power"]["total_ma_max"], "warnings": doc["warnings"]}
+            "power_ok": doc["power"]["ok"], "total_ma_max": doc["power"]["total_ma_max"],
+            "total_ma_max_capped": doc["power"]["total_ma_max_capped"], "warnings": doc["warnings"]}
 
 
-__all__ = ["run", "build_electrical", "assign_slots", "power_budget"]
+__all__ = ["run", "build_electrical", "assign_slots", "power_budget", "effective_caps"]

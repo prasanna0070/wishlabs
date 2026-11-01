@@ -682,7 +682,8 @@
   "depth_mm": 17.6,
   "harness_clearance_mm": 0.0,
   "requires_soldering": false,
-  "requires_soldering_basis": "mechanical/consumable or PCB-assembled part",
+  "factory_soldering": true,
+  "requires_soldering_basis": "soldered during backplane PCB assembly, not by the maker",
   "backplane_v1": {
    "port": "backplane",
    "slots": [],
@@ -1033,8 +1034,9 @@
   ],
   "depth_mm": 3.2,
   "harness_clearance_mm": 10.0,
-  "requires_soldering": true,
-  "requires_soldering_basis": "module connector is solder pads/eyelets (library text)",
+  "requires_soldering": false,
+  "factory_soldering": true,
+  "requires_soldering_basis": "soldered during backplane PCB assembly, not by the maker",
   "backplane_v1": {
    "port": "on_board",
    "slots": [
@@ -5901,8 +5903,20 @@
   ],
   "depth_mm": 3.2,
   "harness_clearance_mm": 10.0,
-  "requires_soldering": true,
-  "requires_soldering_basis": "module connector is solder pads/eyelets (library text)",
+  "prewire": {
+   "by": "factory",
+   "lead": "JST-PH 2.0 3p 100 mm",
+   "pads": [
+    "GND",
+    "5V",
+    "DIN"
+   ],
+   "slot": "J_LED",
+   "note": "The factory solders a JST-PH 3-pin lead (stock: CABLE_JSTPH_3P_<len> with the module-end housing cut off; length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into J_LED. The maker never solders. DOUT stays unconnected."
+  },
+  "requires_soldering": false,
+  "factory_soldering": true,
+  "requires_soldering_basis": "the factory pre-wires it (see prewire); the maker never solders",
   "backplane_v1": {
    "port": "led",
    "slots": [
@@ -6088,8 +6102,20 @@
   ],
   "depth_mm": 3.2,
   "harness_clearance_mm": 10.0,
-  "requires_soldering": true,
-  "requires_soldering_basis": "module connector is solder pads/eyelets (library text)",
+  "prewire": {
+   "by": "factory",
+   "lead": "JST-PH 2.0 3p 100 mm",
+   "pads": [
+    "GND",
+    "5V",
+    "DI"
+   ],
+   "slot": "J_LED",
+   "note": "The factory solders a JST-PH 3-pin lead (stock: CABLE_JSTPH_3P_<len> with the module-end housing cut off; length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into J_LED. The maker never solders. DO stays unconnected."
+  },
+  "requires_soldering": false,
+  "factory_soldering": true,
+  "requires_soldering_basis": "the factory pre-wires it (see prewire); the maker never solders",
   "backplane_v1": {
    "port": "led",
    "slots": [
@@ -6622,8 +6648,20 @@
   ],
   "depth_mm": 3.0,
   "harness_clearance_mm": 10.0,
-  "requires_soldering": true,
-  "requires_soldering_basis": "backplane-v1 A1: header pins-down + two VO pins soldered by the factory",
+  "prewire": {
+   "by": "factory",
+   "lead": null,
+   "pads": [
+    "7-pin header (pins down)",
+    "VO+ pin",
+    "VO- pin"
+   ],
+   "slot": "A1",
+   "note": "The factory solders the 7-pin header pins-down and two 2.54 mm pins into the VO+/VO- terminal pads (instead of the screw terminal) so the amp plugs straight into A1. The maker never solders."
+  },
+  "requires_soldering": false,
+  "factory_soldering": true,
+  "requires_soldering_basis": "the factory pre-wires it (see prewire); the maker never solders",
   "backplane_v1": {
    "port": "socket",
    "slots": [
@@ -6815,8 +6853,19 @@
   ],
   "depth_mm": 5.2,
   "harness_clearance_mm": 10.0,
-  "requires_soldering": null,
-  "requires_soldering_basis": "unknown: the library does not say whether the header comes fitted",
+  "prewire": {
+   "by": "factory",
+   "lead": "JST-PH 2.0 2p 100 mm",
+   "pads": [
+    "+",
+    "-"
+   ],
+   "slot": "J_SPK",
+   "note": "The factory solders a JST-PH 2-pin lead (stock: CABLE_JSTPH_2P_<len> with the module-end housing cut off; length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into J_SPK. The maker never solders."
+  },
+  "requires_soldering": false,
+  "factory_soldering": true,
+  "requires_soldering_basis": "the factory pre-wires it (see prewire); the maker never solders",
   "backplane_v1": {
    "port": "speaker",
    "slots": [
@@ -6951,6 +7000,18 @@
     "notes": "DIFFERENT generic 40 mm 4 ohm 3 W speaker, 40 x 23 mm, Rs 89 excl. GST, out of stock; needs measurement",
     "gst": "excl",
     "pack_size": null
+   },
+   {
+    "vendor": "Pimoroni (UK)",
+    "url": "https://shop.pimoroni.com/products/mini-speaker-4-3w-with-jst-ph-connector",
+    "price_inr_seen": null,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "variant": "prewired_jst_ph",
+    "same_part": false,
+    "gst": null,
+    "pack_size": null,
+    "notes": "COM1606 'Mini Speaker 4 ohm (3W) with JST-PH Connector': 40x40x20 mm per the seller (the PUI reference is 40 mm OD, 17.5 mm overall), about 80 mm of 20 AWG lead with a 2-pin JST-PH plug. Price not shown on the page (a search snippet said GBP 2.50); the page shows 'Notify me'. Ships from the UK; no Indian seller found. Different body: needs its own module entry and a measured sample before the CAD can use it."
    }
   ],
   "price_inr_planning": [
@@ -6975,8 +7036,19 @@
   ],
   "depth_mm": 17.5,
   "harness_clearance_mm": 10.0,
-  "requires_soldering": true,
-  "requires_soldering_basis": "module connector is solder pads/eyelets (library text)",
+  "prewire": {
+   "by": "factory",
+   "lead": "JST-PH 2.0 2p 100 mm",
+   "pads": [
+    "+ eyelet",
+    "- eyelet"
+   ],
+   "slot": "J_SPK",
+   "note": "The factory solders a JST-PH 2-pin lead (stock: CABLE_JSTPH_2P_<len> with the module-end housing cut off; length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into J_SPK. The maker never solders."
+  },
+  "requires_soldering": false,
+  "factory_soldering": true,
+  "requires_soldering_basis": "the factory pre-wires it (see prewire); the maker never solders",
   "backplane_v1": {
    "port": "speaker",
    "slots": [
@@ -11666,8 +11738,9 @@
   ],
   "depth_mm": 0,
   "harness_clearance_mm": 10.0,
-  "requires_soldering": true,
-  "requires_soldering_basis": "module connector is solder pads/eyelets (library text)",
+  "requires_soldering": false,
+  "factory_soldering": true,
+  "requires_soldering_basis": "soldered during backplane PCB assembly, not by the maker",
   "backplane_v1": {
    "port": "none",
    "slots": [],

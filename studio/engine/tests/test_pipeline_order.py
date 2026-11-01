@@ -410,3 +410,19 @@ def test_cad_group_qty_rules():
     assert bom.cad_group_qty({"label": "M2.5 heat-set inserts x17", "solids": 17}) == (17, "label")
     assert bom.cad_group_qty({"label": "M2.5 x 8", "solids": 4}) == (4, "solids")   # a length is not a count
     assert bom.cad_group_qty({"label": "feet"}) == (None, "none")
+
+
+def test_prewired_modules_are_factory_work_and_pass_qb28():
+    """Coordinator 2026-11-01: we deliver built devices; factory pre-wiring is fine, only maker soldering fails QB-28."""
+    spk = {"id": "SPK", "name": "Speaker 40 mm", "role": "speaker", "requires_soldering": True,
+           "requires_soldering_basis": "module connector is solder pads", "price_inr_planning": [80, 250],
+           "prewire": {"by": "factory", "what": "2-pin JST-PH lead soldered to the speaker tabs"}, "sourcing_in": []}
+    led = {"id": "LED", "name": "WS2812B mini", "role": "led", "requires_soldering": True, "price_inr_planning": [25, 100], "sourcing_in": []}
+    rs = bom._row("Speaker 40 mm", 1, spk, module_id="SPK", catalog_row=None, refs=["SPK1"], model_parts=[], kind="module")
+    rl = bom._row("WS2812B mini", 1, led, module_id="LED", catalog_row=None, refs=["LED1"], model_parts=[], kind="module")
+    assert rs["solderedBy"] == "factory" and rl["solderedBy"] == "maker"
+    work = bom.factory_work([rs, rl])
+    assert work == [{"name": "Speaker 40 mm", "module_id": "SPK", "refs": ["SPK1"], "by": "factory",
+                     "what": "2-pin JST-PH lead soldered to the speaker tabs", "prewire": spk["prewire"]}]
+    led["prewire"] = {"by": "factory", "what": "3-pin lead"}
+    assert bom._row("WS2812B mini", 1, led, module_id="LED", catalog_row=None, refs=[], model_parts=[], kind="module")["solderedBy"] == "factory"

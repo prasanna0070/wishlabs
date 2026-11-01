@@ -156,6 +156,36 @@ FACE_OVERRIDE = {"PIR_AM312_MINI": ((12.0, 12.0), 27.0, "dims_mm x is the axial 
                  "SPK_GASKET_FOAM_25X3_ADH": (None, None, "consumable strip")}
 
 
+# ---------------------------------------------------------------------------------------------- factory pre-wiring
+_LEAD_NOTE = ("The factory solders a JST-PH {n}-pin lead (stock: CABLE_JSTPH_{n}P_<len> with the module-end housing cut off; "
+              "length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into {slot}. "
+              "The maker never solders.")
+PREWIRE = {
+    "SPK_40MM_4R_3W": {"by": "factory", "lead": "JST-PH 2.0 2p 100 mm", "pads": ["+ eyelet", "- eyelet"], "slot": "J_SPK",
+                       "note": _LEAD_NOTE.format(n=2, slot="J_SPK")},
+    "SPK_28MM_8R_2W": {"by": "factory", "lead": "JST-PH 2.0 2p 100 mm", "pads": ["+", "-"], "slot": "J_SPK",
+                       "note": _LEAD_NOTE.format(n=2, slot="J_SPK")},
+    "LED_WS2812B_1PX_MODULE": {"by": "factory", "lead": "JST-PH 2.0 3p 100 mm", "pads": ["GND", "5V", "DIN"], "slot": "J_LED",
+                               "note": _LEAD_NOTE.format(n=3, slot="J_LED") + " DOUT stays unconnected."},
+    "LED_RING_12_WS2812_50MM": {"by": "factory", "lead": "JST-PH 2.0 3p 100 mm", "pads": ["GND", "5V", "DI"], "slot": "J_LED",
+                                "note": _LEAD_NOTE.format(n=3, slot="J_LED") + " DO stays unconnected."},
+    "AMP_MAX98357A_I2S": {"by": "factory", "lead": None, "pads": ["7-pin header (pins down)", "VO+ pin", "VO- pin"], "slot": "A1",
+                          "note": "The factory solders the 7-pin header pins-down and two 2.54 mm pins into the VO+/VO- terminal pads "
+                                  "(instead of the screw terminal) so the amp plugs straight into A1. The maker never solders."},
+}
+# real pre-wired listings found 2026-11-01; flagged when they are not the same physical part as the reference
+EXTRA_SOURCING = {
+    "SPK_40MM_4R_3W": [{
+        "vendor": "Pimoroni (UK)", "url": "https://shop.pimoroni.com/products/mini-speaker-4-3w-with-jst-ph-connector",
+        "price_inr_seen": None, "seen_on": "2026-11-01", "status": "page_read", "variant": "prewired_jst_ph", "same_part": False,
+        "gst": None, "pack_size": None,
+        "notes": "COM1606 'Mini Speaker 4 ohm (3W) with JST-PH Connector': 40x40x20 mm per the seller (the PUI reference is "
+                 "40 mm OD, 17.5 mm overall), about 80 mm of 20 AWG lead with a 2-pin JST-PH plug. Price not shown on the page "
+                 "(a search snippet said GBP 2.50); the page shows 'Notify me'. Ships from the UK; no Indian seller found. "
+                 "Different body: needs its own module entry and a measured sample before the CAD can use it."}],
+}
+
+
 # ---------------------------------------------------------------------------------------------- foundation harness cables
 HARNESS_PINS = {2: ("06b", None, ["SPK+", "SPK-"], ["J_SPK"]),
                 3: ("07", "CABLE_3PIN_A", ["GND", "3V3/5V", "SIG"], ["J_IO1", "J_IO2", "J_IO3", "J_LED"]),
@@ -258,10 +288,23 @@ def merge() -> tuple[list[dict], list[str]]:
         m["depth_mm"] = depth
         mc = (m.get("module_connector") or {}).get("type", "")
         m["harness_clearance_mm"] = 10.0 if mc in ("header_2.54", "wire_leads", "jst_ph_2.0", "solder_pads") else 0.0
+        # requires_soldering = the person following BUILD_GUIDE must solder (coordinator 2026-11-01: we ship built devices).
+        # Factory work is recorded separately: `prewire` (leads and pins fitted before assembly) and `factory_soldering`.
+        if m["id"] in PREWIRE:
+            m["prewire"] = PREWIRE[m["id"]]
+            m["requires_soldering"], m["factory_soldering"] = False, True
+            m["requires_soldering_basis"] = "the factory pre-wires it (see prewire); the maker never solders"
+            for row in EXTRA_SOURCING.get(m["id"], []):
+                m.setdefault("sourcing_in", []).append(dict(row))
+        elif role in ("power_in", "test_interface", "backplane") and m["id"] != "USBC_BREAKOUT_ADAFRUIT_4090":
+            m["requires_soldering"], m["factory_soldering"] = False, True
+            m["requires_soldering_basis"] = "soldered during backplane PCB assembly, not by the maker"
         # soldering: only from explicit library text (pipeline request 2026-11-01); otherwise null = unknown
         mc_loc = " ".join(str((m.get("module_connector") or {}).get(k, "")) for k in ("type", "location")).lower()
         mount_n = str((m.get("mount") or {}).get("notes", "")).lower()
-        if mc == "solder_pads" or "solder 2 leads" in mc_loc or "solder" in mc_loc:
+        if "prewire" in m or m.get("factory_soldering"):
+            pass
+        elif mc == "solder_pads" or "solder 2 leads" in mc_loc or "solder" in mc_loc:
             m["requires_soldering"], m["requires_soldering_basis"] = True, "module connector is solder pads/eyelets (library text)"
         elif mc in ("jst_ph_2.0",) or role in ("harness", "usb_cable", "adapter") or "spade" in mc_loc:
             m["requires_soldering"], m["requires_soldering_basis"] = False, "plug-in connector or crimped spade (library text)"
@@ -270,8 +313,7 @@ def merge() -> tuple[list[dict], list[str]]:
             m["requires_soldering"], m["requires_soldering_basis"] = False, "mechanical/consumable or PCB-assembled part"
         else:
             m["requires_soldering"], m["requires_soldering_basis"] = None, "unknown: the library does not say whether the header comes fitted"
-        if m["id"] == "AMP_MAX98357A_I2S":
-            m["requires_soldering"], m["requires_soldering_basis"] = True, "backplane-v1 A1: header pins-down + two VO pins soldered by the factory"
+
         for row in m.get("sourcing_in") or []:
             txt = (str(row.get("notes", "")) + " " + str(row.get("status", ""))).lower()
             if re.search(r"incl\.?\s*(18%\s*)?gst|inclusive of gst|including gst|incl gst", txt):
@@ -382,7 +424,9 @@ def readme(mods: list[dict], notes: list[str]) -> str:
           "- `electrical.supply_rail`, `electrical.i2c_addr[]`, `electrical.i2c_addr_alt[]`, `electrical.current_basis` "
           "(`estimate` when the module's `uncertain` mentions current).",
           "- `aperture.feature_allowed`, `aperture.required`.",
-          "- `requires_soldering` (true/false/null = unknown) + `requires_soldering_basis`; `sourcing_in[].gst` "
+          "- `requires_soldering`: does the maker (the person following BUILD_GUIDE) solder? true/false/null = unknown, plus "
+          "`requires_soldering_basis`. Factory work is separate: `prewire` {by, lead, pads, slot, note} and `factory_soldering`. "
+          "`sourcing_in[].variant`/`same_part` flag pre-wired listings that are a different physical part. `sourcing_in[].gst` "
           "(`incl`/`excl`/null, parsed from the row's notes) and `sourcing_in[].pack_size` (parsed, else null).",
           "- `backplane_harness_library`: the library agent's original harness proposal when backplane-v1 differs.", "",
           "## Connector policy (backplane-v1) and proposed catalog rows", "",

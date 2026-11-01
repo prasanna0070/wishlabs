@@ -157,19 +157,18 @@ def run(ctx) -> dict:
     tiers = {t: sum(1 for r in purchased if r["evidence_tier"] == t) for t in ("seen", "estimate", "not_confirmed")}
     checks.append(_check("price-evidence", "every price is a dated observation or labelled an estimate", True,
                          f"{tiers['seen']} seen, {tiers['estimate']} estimate, {tiers['not_confirmed']} not confirmed", "QB-23"))
-    maker = [r["name"] for r in purchased if r.get("requiresSoldering") and r.get("solderedBy") in (None, "maker")]
-    factory = [f"{r['name']} ({'backplane PCBA' if r.get('solderedBy') == 'pcb_fab' else 'factory'})" for r in purchased
-               if r.get("requiresSoldering") and r.get("solderedBy") in ("pcb_fab", "factory")]
+    # QB-28: we deliver built devices, so PCBA and factory pre-wiring are fine; only maker soldering fails
+    maker = [r["name"] for r in purchased if r.get("solderedBy") == "maker"]
+    work = bom.factory_work(purchased)
     unsure = [r["name"] for r in purchased if not r.get("requiresSoldering") and str(r.get("requiresSoldering_basis", "")).startswith("unverified")]
     detail = ("maker soldering: " + ", ".join(maker) if maker else "no maker soldering") \
-        + (f"; done by the PCB fab or factory: {', '.join(factory)}" if factory else "") \
+        + (f"; done before delivery: {', '.join(w['name'] + ' (' + w['by'] + ')' for w in work)}" if work else "") \
         + (f"; not stated by the library for: {', '.join(unsure)}" if unsure else "")
-    checks.append(_check("no-soldering", "the build needs no soldering by the maker", False if maker else (False if unsure else True),
-                         detail, "QB-28", warn=not maker))
+    checks.append(_check("no-soldering", "no part needs soldering by the maker", not maker, detail, "QB-28"))
 
-    merge_build_json(out, {"purchased": purchased, "printed": printed})
+    merge_build_json(out, {"purchased": purchased, "printed": printed, "factory_work": work})
     # authoritative copy: the checks stage re-assembles build.json from these fragments (no lost updates)
-    _write(out / ".gstudio" / "fragments" / "order.json", {"purchased": purchased, "printed": printed})
+    _write(out / ".gstudio" / "fragments" / "order.json", {"purchased": purchased, "printed": printed, "factory_work": work})
 
     # 4. quote -----------------------------------------------------------------------------------
     prints_ok = {k: v for k, v in stats_parts.items() if k.startswith("PRINT_") and v.get("ok")}
@@ -187,7 +186,7 @@ def run(ctx) -> dict:
         checks.append(_check("quote", "delivered price computed", False, why))
         nq = {"list_price_inr": None, "status": "NOT_QUOTED", "reason": why}
         merge_build_json(out, {"order": nq})
-        _write(out / ".gstudio" / "fragments" / "order.json", {"purchased": purchased, "printed": printed, "order": nq})
+        _write(out / ".gstudio" / "fragments" / "order.json", {"purchased": purchased, "printed": printed, "factory_work": work, "order": nq})
         (out / "order" / "quote.json").unlink(missing_ok=True)  # never leave a stale price from an earlier run
         raise StageError(f"parts list written, but no quote: {why}", {"summary": summary})
     ctx.progress(STAGE, "pricing four scenarios", 70)
@@ -202,7 +201,7 @@ def run(ctx) -> dict:
                    "status": q["status"], "lead_time_days": [q["lead_time_days"]["low"], q["lead_time_days"]["high"]],
                    "quote": "order/quote.json"}
     merge_build_json(out, {"order": order_block})
-    _write(out / ".gstudio" / "fragments" / "order.json", {"purchased": purchased, "printed": printed, "order": order_block})
+    _write(out / ".gstudio" / "fragments" / "order.json", {"purchased": purchased, "printed": printed, "factory_work": work, "order": order_block})
     summary.update({"delivered_price_inr": q["delivered_price_inr"], "status": q["status"],
                     "lead_time_days": [q["lead_time_days"]["low"], q["lead_time_days"]["high"]],
                     "seconds": round(time.perf_counter() - t0, 2),

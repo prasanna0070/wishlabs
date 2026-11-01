@@ -245,6 +245,7 @@ def assemble_build_json(out: Path, records: dict | None = None) -> dict:
     b["firmware"] = fw if fw is not None else cur.get("firmware")
     b["pcb"] = pcb if pcb is not None else cur.get("pcb")
     b["order"] = frag.get("order", cur.get("order"))
+    b["factory_work"] = frag.get("factory_work", cur.get("factory_work", []))
     for k, v in cur.items():  # keep anything else a stage added (e.g. hardware)
         b.setdefault(k, v)
     return b
@@ -435,9 +436,20 @@ def cross_checks(out: Path, spec: dict, build: dict, electrical: dict | None) ->
     pw = (electrical or {}).get("power") or {}
     if pw:
         ok = pw.get("ok")
+        capped = pw.get("total_ma_max_capped", pw.get("total_ma_max"))
+        unc = next((pw[k] for k in ("total_ma_max_uncapped", "uncapped_ma_max", "uncapped_total_ma_max") if isinstance(pw.get(k), (int, float))), None)
+        if unc is None and isinstance(pw.get("uncapped"), dict):
+            unc = pw["uncapped"].get("total_ma_max")
+        if unc is None and "total_ma_max_capped" in pw:
+            unc = pw.get("total_ma_max")
         cs.append(check("power-budget", "worst-case current is within the USB-C supply limit", "passed" if ok else ("failed" if ok is False else "not_run"),
-                        f"{pw.get('total_ma_max')} mA max vs {pw.get('limit_ma')} mA limit (calculated from module data, not measured)", qb="QB-20",
-                        artifact="electrical.json"))
+                        f"{capped} mA max vs {pw.get('limit_ma')} mA limit" + (" with the firmware caps" if unc is not None else "")
+                        + " (calculated from module data, not measured)", qb="QB-20", artifact="electrical.json"))
+        lim = pw.get("limit_ma")
+        if isinstance(unc, (int, float)) and isinstance(lim, (int, float)) and unc > lim:
+            cs.append(check("power-budget-uncapped", "worst case without firmware caps", "warning",
+                            f"{unc} mA uncapped vs {lim} mA limit: the budget relies on the firmware limiting LED brightness and "
+                            "volume (calculated, not measured)", qb="QB-20", artifact="electrical.json"))
     inp = ((spec.get("electronics") or {}).get("power") or {}).get("input")
     cs.append(check("no-mains", "no mains voltage inside the enclosure (5 V USB-C input only)", inp == "usb_c_5v", f"power input: {inp}", qb="QB-21"))
 

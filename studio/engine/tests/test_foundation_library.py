@@ -110,3 +110,13 @@ def test_harness_modules(lib):
             assert m["role"] == "harness" and m["price_inr_planning"] == [30, 100]
             assert m["backplane_v1"].get("proposed_row", False) == (n in (2, 6, 8))
     assert lib.catalog_id_for_price("CABLE_JSTPH_4P_150") == "CABLE_4PIN_A"
+
+
+def test_prewire_and_maker_soldering(lib):
+    for mid, n in (("SPK_40MM_4R_3W", 2), ("SPK_28MM_8R_2W", 2), ("LED_WS2812B_1PX_MODULE", 3), ("LED_RING_12_WS2812_50MM", 3)):
+        m = lib.get(mid)
+        assert m["requires_soldering"] is False and m["factory_soldering"] is True
+        assert m["prewire"]["by"] == "factory" and m["prewire"]["lead"] == f"JST-PH 2.0 {n}p 100 mm"
+    assert lib.get("AMP_MAX98357A_I2S")["requires_soldering"] is False
+    pim = [r for r in lib.get("SPK_40MM_4R_3W")["sourcing_in"] if r.get("variant") == "prewired_jst_ph"]
+    assert pim and pim[0]["same_part"] is False

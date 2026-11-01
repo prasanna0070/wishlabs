@@ -126,11 +126,26 @@ def render(b: Bundle, lib: Any = None) -> str:
         un = _uncertain_text(m)
         if un:
             L.append(f"- Not verified: {un}")
-        L.append(f"- Soldering: {'required' if r.get('requiresSoldering') else 'none'} ({r.get('requiresSoldering_basis', 'library')}).")
+        who = {"factory": "done at the factory", "pcb_fab": "done at PCB assembly", "maker": "by the maker"}.get(r.get("solderedBy"))
+        L.append(f"- Soldering: {'required' if r.get('requiresSoldering') or r.get('solderedBy') else 'none'}"
+                 + (f", {who}" if who else "") + f" ({r.get('requiresSoldering_basis', 'library')}).")
         if r.get("modelPart"):
             L.append(f"- CAD: `{r['modelPart']}`" + (f" and {', '.join('`' + x + '`' for x in r.get('modelParts', [])[1:])}" if len(r.get("modelParts", [])) > 1 else "")
                      + ", a simplified envelope from the published dimensions, not factory CAD.")
         L.append("")
+
+    fw = b.build.get("factory_work") or []
+    L += ["## Done before delivery", ""]
+    if fw:
+        L.append("We deliver built devices. These joints are made at PCB assembly or at the factory, not by the maker:")
+        L.append("")
+        L.append(table(["Part", "Refs", "Done by", "What"], [[w.get("name"), ", ".join(w.get("refs") or []), w.get("by"), w.get("what")] for w in fw]))
+    else:
+        L.append("No part needs soldering or pre-wiring.")
+    maker = [r["name"] for r in rows if r.get("solderedBy") == "maker"]
+    if maker:
+        L += ["", f"Soldering the maker would have to do (QB-28 fails until these are pre-wired or replaced): {', '.join(maker)}."]
+    L.append("")
 
     pr = b.build.get("printed") or []
     if pr:

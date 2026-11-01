@@ -673,6 +673,8 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
 
 
 def _module_end(m: dict) -> str:
+    if (m.get("prewire") or {}).get("lead"):
+        return "factory_prewired"  # the factory solders the PH-terminated lead to the module before assembly
     mc = m.get("module_connector") or {}
     t, loc = str(mc.get("type", "")), str(mc.get("location", "")).lower()
     if t == "jst_ph_2.0":

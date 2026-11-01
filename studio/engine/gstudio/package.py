@@ -198,6 +198,8 @@ def delivery_checks(out: Path, build: dict, digital: dict | None) -> dict:
         "missingImages": sorted(r for r in refs if not (out / r).exists()),
         "orphanImages": sorted(i for i in imgs if i not in refs and i not in in_guide),
         "unconfirmedPrices": [r.get("name") for r in build.get("purchased") or [] if r.get("estimate")],
+        "factoryWork": [f"{w.get('name')} ({w.get('by')})" for w in build.get("factory_work") or []],
+        "makerSoldering": [r.get("name") for r in build.get("purchased") or [] if r.get("solderedBy") == "maker"],
         "firmwareCompiled": fw.get("compiled"),
         "firmwareTests": f"{fw.get('tests_passed')}/{fw.get('tests_total')}" if fw.get("tests_total") is not None else None,
         "pcbDrcErrors": pcb.get("drc_errors"),

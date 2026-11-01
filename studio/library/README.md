@@ -90,7 +90,7 @@ Every object has the library agents' keys (`id, catalog_row, catalog_id, role, n
 - `backplane_v1`: `{port, slots[], cable, supported, why?}`.
 - `electrical.supply_rail`, `electrical.i2c_addr[]`, `electrical.i2c_addr_alt[]`, `electrical.current_basis` (`estimate` when the module's `uncertain` mentions current).
 - `aperture.feature_allowed`, `aperture.required`.
-- `requires_soldering` (true/false/null = unknown) + `requires_soldering_basis`; `sourcing_in[].gst` (`incl`/`excl`/null, parsed from the row's notes) and `sourcing_in[].pack_size` (parsed, else null).
+- `requires_soldering`: does the maker (the person following BUILD_GUIDE) solder? true/false/null = unknown, plus `requires_soldering_basis`. Factory work is separate: `prewire` {by, lead, pads, slot, note} and `factory_soldering`. `sourcing_in[].variant`/`same_part` flag pre-wired listings that are a different physical part. `sourcing_in[].gst` (`incl`/`excl`/null, parsed from the row's notes) and `sourcing_in[].pack_size` (parsed, else null).
 - `backplane_harness_library`: the library agent's original harness proposal when backplane-v1 differs.
 
 ## Connector policy (backplane-v1) and proposed catalog rows

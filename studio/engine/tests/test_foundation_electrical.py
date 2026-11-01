@@ -115,21 +115,29 @@ def test_power_budget(lib):
     _, el = electrical(good(), lib)
     p = el["power"]
     assert p["limit_ma"] == 1350
-    assert p["total_ma_max"] >= p["total_ma_typ"] > 0
+    assert p["total_ma_max"] >= p["total_ma_max_capped"] >= p["total_ma_typ"] > 0
     assert all(r["basis"] for r in p["budget"])
-    assert isinstance(p["ok"], bool)
+    assert p["caps"]["volume_max"] is not None and p["caps"]["led_max_percent"] is not None
+    amp = next(r for r in p["budget"] if r["ref"] == "AMP1")
+    v = p["caps"]["volume_max"] / 100
+    assert amp["ma_max_capped"] == pytest.approx(max(amp["ma_typ"], amp["ma_max"] * v * v), abs=0.1) and "volume_max" in amp["cap"]
+    led = next(r for r in p["budget"] if r["ref"] == "LED1")
+    assert led["ma_max_capped"] == pytest.approx(led["ma_max"] * p["caps"]["led_max_percent"] / 100, abs=0.1)
+    assert p["ok"] == (p["total_ma_max_capped"] <= p["limit_ma"])
 
 
 def test_power_budget_flags_led_ring(lib):
     d = good()
     d["features"][1]["module"] = "LED_RING_12_WS2812_50MM"
     d["features"][1]["at"] = [0, 125]
-    d["features"][4]["at"] = [0, 125]
     d["features"] = [f for f in d["features"] if f["id"] != "eyes"]
     d["decor"] = []
     _, el = electrical(d, lib)
-    assert el["power"]["ok"] is False and el["power"]["firmware_caps_required"] is True
-    assert "cap LED brightness" in el["power"]["notes"]
+    p = el["power"]
+    assert p["ok_uncapped"] is False and p["firmware_caps_required"] is True  # 650 mA ring + 800 mA amp uncapped
+    assert p["total_ma_max_capped"] < p["total_ma_max"]
+    assert p["ok"] is True  # firmware caps keep the peak inside the budget
+    assert "Uncapped worst case" in p["notes"]
 
 
 def test_run_writes_file(lib, tmp_path):

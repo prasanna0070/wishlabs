@@ -118,3 +118,18 @@ def test_stage_physical_checks_reach_delivery_checks(tmp_path):
     d = package.delivery_checks(tmp_path, {"tests": [{"title": "Power on", "expected": "boots", "kind": "physical"}]}, None)
     titles = [x["title"] for x in d["physicalChecksStillNeeded"]]
     assert titles == ["Power on", "A fabricated board passes continuity"]
+
+
+def test_power_budget_reads_ok_and_warns_on_the_uncapped_figure(tmp_path):
+    from gstudio import checks
+
+    spec = {"electronics": {"power": {"input": "usb_c_5v"}}}
+    capped = {"power": {"ok": True, "total_ma_max": 1367.4, "total_ma_max_capped": 1290.0, "limit_ma": 1350}}
+    cs = {c["id"]: c for c in checks.cross_checks(tmp_path, spec, {}, capped)}
+    assert cs["power-budget"]["status"] == "passed" and "1290.0 mA" in cs["power-budget"]["detail"]
+    assert cs["power-budget-uncapped"]["status"] == "warning" and "1367.4 mA uncapped" in cs["power-budget-uncapped"]["detail"]
+    alt = {"power": {"ok": True, "total_ma_max": 1200, "total_ma_max_uncapped": 1400, "limit_ma": 1350}}
+    assert {c["id"]: c for c in checks.cross_checks(tmp_path, spec, {}, alt)}["power-budget-uncapped"]["status"] == "warning"
+    over = {"power": {"ok": False, "total_ma_max": 1500, "limit_ma": 1350}}
+    cs = {c["id"]: c for c in checks.cross_checks(tmp_path, spec, {}, over)}
+    assert cs["power-budget"]["status"] == "failed" and "power-budget-uncapped" not in cs

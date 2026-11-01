@@ -143,6 +143,14 @@ def requires_soldering(m: dict, src: dict | None = None) -> tuple[Optional[bool]
 def soldered_by(m: dict, solder: bool, basis: str) -> Optional[str]:
     """Who makes the joint: 'pcb_fab' (part mounted on our backplane PCBA), 'factory' (library says the factory solders
     it), else 'maker'. None when no soldering is needed."""
+    pw = m.get("prewire") if isinstance(m.get("prewire"), dict) else {}
+    by = str(pw.get("by") or "").lower()
+    if by in ("factory", "supplier", "vendor"):
+        return "factory"  # pre-wired before the unit reaches the maker (we deliver built devices)
+    if by in ("pcb_fab", "pcba"):
+        return "pcb_fab"
+    if by == "maker":
+        return "maker"
     if not solder:
         return None
     bp = m.get("backplane_v1") if isinstance(m.get("backplane_v1"), dict) else {}
@@ -151,6 +159,21 @@ def soldered_by(m: dict, solder: bool, basis: str) -> Optional[str]:
     if "factory" in str(m.get("requires_soldering_basis") or basis).lower():
         return "factory"
     return "maker"
+
+
+def factory_work(rows: list[dict]) -> list[dict]:
+    """Joints made before the maker gets the parts: backplane PCBA and factory pre-wiring (build.json `factory_work`)."""
+    out = []
+    for r in rows:
+        if r.get("solderedBy") not in ("factory", "pcb_fab"):
+            continue
+        pw = r.get("prewire") or {}
+        what = pw.get("what") or pw.get("detail") or pw.get("notes") or pw.get("leads") or (
+            "soldered onto the backplane PCB at PCB assembly" if r["solderedBy"] == "pcb_fab" else r.get("requiresSoldering_basis"))
+        out.append({"name": r["name"], "module_id": r.get("module_id"), "refs": r.get("refs") or [],
+                    "by": "PCB fab (backplane PCBA)" if r["solderedBy"] == "pcb_fab" else "factory",
+                    "what": what if isinstance(what, str) else str(what), "prewire": pw or None})
+    return out
 
 
 def pack_known(src: dict, m: dict) -> bool:
@@ -367,6 +390,7 @@ def _row(name: str, qty: int, m: dict, *, module_id: str | None, catalog_row: st
         "requiresSoldering": bool(sold),
         "requiresSoldering_basis": sold_basis,
         "solderedBy": soldered_by(m, bool(sold), sold_basis),
+        "prewire": m.get("prewire") if isinstance(m.get("prewire"), dict) else None,
         "url": first(src, "url"),
         "vendor": first(src, "vendor", "seller", "store"),
         "sku": first(src, "sku", "SKU", "product_code"),

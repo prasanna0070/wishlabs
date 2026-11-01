@@ -212,6 +212,8 @@ def test_full_run_with_failures_is_robust(fakes, tmp_path):
     assert dc["all_passed"] is False
     for f in ("PROJECT.md", "PARTS_EVIDENCE.md", "SOFTWARE_SETUP.md", "manifest.json", "export.zip", "checks/delivery-checks.json", "spec.json", "project.json"):
         assert (tmp_path / f).exists(), f
+    assert "## Done before delivery" in (tmp_path / "PARTS_EVIDENCE.md").read_text()
+    assert "factory_work" in b
     proj = (tmp_path / "PROJECT.md").read_text()
     assert "Frame conventions" in proj and "failed" in proj
     m = json.loads((tmp_path / "manifest.json").read_text())
