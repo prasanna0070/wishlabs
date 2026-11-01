@@ -426,3 +426,20 @@ def test_prewired_modules_are_factory_work_and_pass_qb28():
                      "what": "2-pin JST-PH lead soldered to the speaker tabs", "prewire": spk["prewire"]}]
     led["prewire"] = {"by": "factory", "what": "3-pin lead"}
     assert bom._row("WS2812B mini", 1, led, module_id="LED", catalog_row=None, refs=[], model_parts=[], kind="module")["solderedBy"] == "factory"
+
+
+def test_on_board_parts_join_the_backplane_and_in_box_items_need_no_geometry():
+    lib = FakeLib()
+    lib.MODS = dict(FakeLib.MODS,
+                    PWR={"id": "PWR", "name": "USB-C receptacle on backplane", "role": "power_in", "backplane_v1": {"port": "on_board"},
+                         "price_inr_planning": [80, 250], "sourcing_in": []},
+                    CBL={"id": "CBL", "name": "USB-C cable", "role": "usb_cable", "price_inr_planning": [70, 180], "sourcing_in": []})
+    spec = json.loads(json.dumps(SPEC))
+    spec["derived"]["instances"] += [{"ref": "PWR1", "module": "PWR", "role": "power_in", "source": "implied"},
+                                     {"ref": "CBL1", "module": "CBL", "role": "usb_cable", "source": "implied"}]
+    comps = dict(COMPS, PURCHASE_Backplane={"kind": "PURCHASE", "module_id": "BP", "ref": "BP1"})
+    rows, _ = bom.build_purchased(spec, lib, comps)
+    by = {r["name"]: r for r in rows}
+    assert by["USB-C receptacle on backplane"]["modelPart"] == "PURCHASE_Backplane"
+    assert by["USB-C receptacle on backplane"]["mounted_on"] == "backplane PCB"
+    assert by["USB-C cable"]["in_box"] is True and by["USB-C cable"]["modelPart"] is None

@@ -312,7 +312,7 @@ def cross_checks(out: Path, spec: dict, build: dict, electrical: dict | None) ->
         cs.append(check("cad-bom-join", "every PURCHASE_ component maps to a purchased row (modelPart)", not unlinked and not dangling,
                         (f"{len(pcs) - len(unlinked)}/{len(pcs)} linked" + (f"; unlinked: {unlinked}" if unlinked else "")
                          + (f"; modelPart not in CAD: {dangling}" if dangling else "")), qb="QB-06", artifact="cad/components.json"))
-        nogeo = [r["name"] for r in purchased if r.get("kind") in ("module",) and not r.get("modelPart")]
+        nogeo = [r["name"] for r in purchased if r.get("kind") in ("module",) and not r.get("modelPart") and not r.get("in_box")]
         cs.append(check("bom-cad-join", "every purchased module has CAD geometry", "passed" if not nogeo else "warning",
                         "all linked" if not nogeo else f"no PURCHASE_ component for: {nogeo}", qb="QB-06"))
     else:

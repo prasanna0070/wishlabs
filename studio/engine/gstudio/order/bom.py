@@ -105,6 +105,7 @@ def catalog_range(lib: Any, mid: Optional[str], catalog_row: Optional[str]) -> t
     return None, None, None
 
 
+IN_BOX_ROLES = {"usb_cable", "adapter"}
 NO_SOLDER_ROLES = {"cable", "harness", "usb_cable", "fastener", "screws", "inserts", "feet", "ties", "mechanical", "consumable",
                    "label", "backplane", "cartridge", "gasket", "diffuser", "magnet", "panel", "servo_bracket", "servo_horn", "adapter"}
 SOCKET_ROLES = {"controller", "core", "amp", "storage"}
@@ -168,7 +169,8 @@ def factory_work(rows: list[dict]) -> list[dict]:
         if r.get("solderedBy") not in ("factory", "pcb_fab"):
             continue
         pw = r.get("prewire") or {}
-        what = pw.get("what") or pw.get("detail") or pw.get("notes") or pw.get("leads") or (
+        lead = pw.get("lead") or pw.get("leads")
+        what = pw.get("what") or pw.get("note") or pw.get("notes") or pw.get("detail") or (f"pre-wired lead: {lead}" if lead else None) or (
             "soldered onto the backplane PCB at PCB assembly" if r["solderedBy"] == "pcb_fab" else r.get("requiresSoldering_basis"))
         out.append({"name": r["name"], "module_id": r.get("module_id"), "refs": r.get("refs") or [],
                     "by": "PCB fab (backplane PCBA)" if r["solderedBy"] == "pcb_fab" else "factory",
@@ -444,9 +446,18 @@ def build_purchased(spec: dict, lib: Any, components: dict | None) -> tuple[list
             problems.append(f"module {mid} is not in the library")
         name = str(first(m, "name", "title", default=(g["names"] or [mid])[0]))
         parts = component_names(comps, module_id=mid, refs=g["refs"], role=m.get("role"))
+        on_board = isinstance(m.get("backplane_v1"), dict) and m["backplane_v1"].get("port") == "on_board"
+        if not parts and on_board:  # soldered on the backplane PCBA: modelled as part of the backplane component
+            parts = sorted(n for n, c in comps.items() if as_dict(c).get("ref") == "BP1"
+                           and str(as_dict(c).get("kind") or n.split("_", 1)[0]).upper() == "PURCHASE") \
+                or [n for n in comps if n == "PURCHASE_Backplane"]
         uses = sorted({f for f in g["features"]})
         rows.append(_row(name, g["qty"], m, module_id=mid, catalog_row=None, refs=[r for r in g["refs"] if r],
                          model_parts=parts, kind="module", use=", ".join(uses), lib=lib))
+        if on_board:
+            rows[-1]["mounted_on"] = "backplane PCB"
+        if str(m.get("role") or "").lower() in IN_BOX_ROLES:
+            rows[-1]["in_box"] = True  # ships in the box, not inside the gadget: no CAD geometry expected
 
     # harness cables, grouped by (module or cable description)
     cables: dict[str, dict] = {}
