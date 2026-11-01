@@ -461,9 +461,11 @@ def cartridge() -> dict:
         "board_top_above_floor": 8.0,
         "board_bottom_above_floor": round(8.0 - T, 2),
         "boss": {"od": 7.2, "height_above_floor": round(8.0 - T, 2), "insert_hole_d": 4.0, "insert_hole_depth": 5.0,
-                 "insert": "INSERT_HEATSET_M2_5X4_STD", "screw": "M2.5 x 6 socket head (SCREW_SET_M2_M2_5_SHCS_A2)",
-                 "screw_head_d": SCREW_HEAD_D, "why": "CNC Kitchen table via library row 10: hole 4.0, wall >= 1.6 -> OD >= 7.2; "
-                 "1.6 board + 4.0 insert -> 6 mm screw (head size estimate)"},
+                 "insert": "INSERT_HEATSET_M2_5X4_STD", "screw": "M2.5 x 5 socket head (SCREW_SET_M2_M2_5_SHCS_A2)",
+                 "screw_length_mm": 5,
+                 "screw_head_d": SCREW_HEAD_D, "why": "CNC Kitchen table via library row 10: hole 4.0, wall >= 1.6 -> OD >= 7.2. "
+                 "M2.5 is stocked only in 5/8/10/12 mm (library row 09); the shortest that engages >= 3 mm through the 1.6 mm "
+                 "board is 5 mm (3.4 mm engagement), as the CAD picks (head size estimate)"},
         "holes": [{"id": h, "at": [x, y], "d": 2.7} for h, x, y in HOLES],
         "support_posts": [
             {"id": "S1_POST1", "board_hole": {"at": [3.0, 11.0], "d": 4.5}, "post_d": 4.0, "top_above_board_top": 11.0,
@@ -487,6 +489,9 @@ def cartridge() -> dict:
         "placement_rule": "Board lies flat (rotation 0: board +x = world +X, board +y = world +Y). Board centre x = world x 0. "
                           "Board slides as far toward the rear (+Y) as the inner shell allows: the J_PWR front face sits 0.2 mm "
                           "inside the inner rear wall surface, and the whole keep-out box keeps clearance_mm to every inner wall. "
+                          "With a rear cover the rear bosses (board y 75.1, OD 7.2) also stay 0.8 mm forward of the cover seam: "
+                          "y_off + 75.1 + 3.6 + 0.8 <= seam_y (silhouette seam_y = depth/2 - min(edge_round, 6) - 1.5); the CAD "
+                          "then cuts the 13 x 7 plug tunnel from the outer surface to the receptacle face. Base plate: floor = 3.5. "
                           "World point = (bx - W/2, by + y_offset, floor_z + 6.4 + bz). gstudio.normalize writes the chosen "
                           "board_origin into spec.derived.cartridge.",
         "rear_gap_mm": 0.2,

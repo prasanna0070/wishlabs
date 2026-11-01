@@ -210,7 +210,7 @@ def test_revolve_and_blob_bodies(lib):
     assert rep["ok"], rep["errors"]
     assert sp.derived.cartridge is not None
     d["body"] = {"family": "blob", "primitives": [
-        {"kind": "rounded_box", "center": [0, 0, 50], "size": [140, 120, 100], "radius": 20},
+        {"kind": "rounded_box", "center": [0, 0, 50], "size": [140, 120, 100], "radius": 6},
         {"kind": "sphere", "center": [0, 0, 120], "size": [90, 90, 90]}]}
     sp, rep = normalize(d, lib)
     assert rep["ok"], rep["errors"]
@@ -233,3 +233,30 @@ def test_desk_companion_lcd_and_touch(lib):
     assert refs["DISP1"].slot == "J_DISP"
     assert "SD1" not in refs  # desk companion without audio files: no microSD
     assert refs["TCH1"].slot.startswith("J_IO")
+
+
+def test_rear_cover_seam_and_base_plate_floor(lib):
+    sp, rep = normalize(good(), lib)  # silhouette, rear_cover, depth 120, edge_round 12
+    c = sp.derived.cartridge
+    seam = 120 / 2 - min(12, 6) - 1.5
+    assert c.seam_y == pytest.approx(seam)
+    assert c.board_origin[1] + 75.1 + 3.6 + 0.8 <= seam + 1e-6  # rear bosses stay forward of the cover seam
+    assert c.floor_z == pytest.approx(2.4) and c.usb_c_tunnel_mm > 2.4
+    d = good()
+    d["body"]["split"] = "base_plate"
+    sp, rep = normalize(d, lib)
+    assert rep["ok"], rep["errors"]
+    assert sp.derived.cartridge.floor_z == pytest.approx(3.5) and sp.derived.cartridge.board_top_z == pytest.approx(11.5)
+    assert sp.derived.cartridge.seam_y is None
+
+
+def test_blob_base_plate_opening_too_small(lib):
+    d = good()
+    d["decor"] = []
+    d["features"] = [{"id": "story_button", "module": "BUTTON_TACTILE_KY004", "face": "top", "at": [0, -20]},
+                     {"id": "speaker", "module": "SPK_28MM_8R_2W", "face": "front", "at": [0, 60]}]
+    d["behaviour"]["settings"] = {"capture_mode": "parent_web"}
+    d["body"] = {"family": "blob", "primitives": [{"kind": "rounded_box", "center": [0, 0, 50], "size": [140, 120, 100], "radius": 20}]}
+    _, rep = normalize(d, lib)
+    e = next(e for e in rep["errors"] if e.get("code") == "cartridge_fit")
+    assert "base-plate opening" in e["fix"] or "rear_cover" in e["fix"]

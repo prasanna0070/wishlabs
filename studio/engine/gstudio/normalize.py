@@ -39,6 +39,8 @@ BED = (250.0, 210.0, 210.0)
 CLEAR = 3.0  # cartridge clearance to the inner wall
 APERTURE_MARGIN = 3.0
 LENGTH_CLASSES = (100, 150, 200, 300)
+BASE_PLATE_T = 3.5  # CAD base plate thickness (gstudio.cad.build t_bp)
+SEAM_BOSS_MARGIN = 3.6 + 0.8  # rear cartridge boss radius + gap to the rear-cover seam (gstudio.cad.enclosure.place_cartridge)
 FACES = ("front", "rear", "left", "right", "top")
 
 
@@ -146,7 +148,8 @@ class ShellGeometry:
             boxes = [p.aabb() for p in b.primitives]
             self.bbox = (min(q[0] for q in boxes), max(q[1] for q in boxes), min(q[2] for q in boxes),
                          max(q[3] for q in boxes), 0.0, max(q[5] for q in boxes))
-        self.floor_z = self.wall
+        # inner floor: the shell's own bottom skin (rear_cover) or the top of the CAD's 3.5 mm base plate (base_plate)
+        self.floor_z = BASE_PLATE_T if b.split == "base_plate" else self.wall
 
     # ---- distance field
     def outer_sdf(self, x: float, y: float, z: float) -> float:
@@ -503,14 +506,27 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
     if not any(e.get("code") in ("size",) for e in errors):
         kb = cart.get("keepout_bottom_above_floor", 0.0)
         bosses = [(h["at"][0] - W / 2, h["at"][1], cart["boss"]["od"] / 2) for h in cart["holes"]]
+        y_seam = seam_y(geom, W, floor) if sp.body.split == "rear_cover" else None
+        y_cap = None
+        if y_seam is not None:
+            holes_y = max(h["at"][1] for h in cart["holes"])
+            y_cap = y_seam - SEAM_BOSS_MARGIN - holes_y
+        usb_slot = lib.slot("J_PWR")
+        usb_bx = (usb_slot["courtyard"][0] + usb_slot["courtyard"][1]) / 2
         y_off, cart_box, why = _place_cartridge(geom, W, (kx0, kx1, ky0, ky1), floor, kz, rear_gap, kb, bosses,
-                                                cart["board_bottom_above_floor"])
+                                                cart["board_bottom_above_floor"], y_cap, usb_bx=usb_bx,
+                                                base_plate=sp.body.split == "base_plate")
+        if y_off is not None:
+            warnings += boss_warnings(geom, bosses, y_off, floor, cart["board_bottom_above_floor"])
         if y_off is None:
             need_w = (kx1 - kx0) + 2 * CLEAR + 2 * geom.wall
             need_d = (ky1 - ky0) + CLEAR + rear_gap + 2 * geom.wall
+            fix = f"make the lower body at least {need_w:.0f} mm wide and {need_d:.0f} mm deep for the first {kz + floor:.0f} mm of height"
+            if "base-plate opening" in why:
+                fix = (f"the board goes in through the base-plate opening: make the flat bottom at least {kx1 - kx0 + 2 * geom.wall:.0f} x "
+                       f"{ky1 - ky0 + 2 * geom.wall:.0f} mm (smaller bottom fillets), or use split rear_cover")
             _err(errors, "body", f"the core cartridge ({kx1 - kx0:.0f} x {ky1 - ky0:.0f} x {kz:.0f} mm keep-out) does not fit inside the shell: {why}",
-                 f"make the lower body at least {need_w:.0f} mm wide and {need_d:.0f} mm deep for the first {kz + floor:.0f} mm of height",
-                 "cartridge_fit")
+                 fix, "cartridge_fit")
     derived_cart = None
     if y_off is not None:
         board_top = floor + cart["board_top_above_floor"]
@@ -520,9 +536,10 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
         wall_gap = None
         if t is not None:
             outer_y = 400.0 - t
-            wall_gap = outer_y - (y_off + ky1)  # ky1 = receptacle front face (board frame)
-            if wall_gap > geom.wall + 3.0:
-                warnings.append(f"USB-C face sits {wall_gap:.1f} mm behind the outer rear surface; the shell needs a recess so the plug seats")
+            wall_gap = outer_y - (y_off + ky1)  # ky1 = receptacle front face (board frame) -> CAD's 13 x 7 plug tunnel length
+            if wall_gap > 15.0:
+                warnings.append(f"USB-C plug tunnel is {wall_gap:.1f} mm long (outer rear surface to receptacle face): the plug "
+                                "overmold passes through the 13 x 7 tunnel, but little of it is left to grip; a flatter rear helps")
         derived_cart = DCartridge(
             backplane="backplane-v1",
             board_origin=(_r(-W / 2, 3), _r(y_off, 3), _r(floor + cart["board_bottom_above_floor"], 3)),
@@ -533,6 +550,10 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
             keepout_box=tuple(_r(v, 2) for v in cart_box),
             usb_c_center=tuple(_r(v, 2) for v in usb_center),
             usb_c_wall_gap=None if wall_gap is None else _r(wall_gap, 2),
+            usb_c_tunnel_mm=None if wall_gap is None else _r(wall_gap, 2),
+            usb_c_tunnel_size=(cart["usb_c_opening"]["w"], cart["usb_c_opening"]["h"]),
+            split=sp.body.split,
+            seam_y=None if y_seam is None else _r(y_seam, 2),
         )
 
     # ---------------------------------------------------------------- features: placement, depth, overlaps
@@ -754,94 +775,107 @@ def planned_hardware(sp: Spec, lib, feat_mods: dict, inst: list, harness: list, 
 
 
 # =============================================================================================== cartridge search
-def _place_cartridge(geom: ShellGeometry, W, plan, floor, kz, rear_gap, kb=0.0, bosses=(), boss_top=6.4):
-    """Largest y offset (board y=0 -> world y_off) for which the keep-out box (from floor+kb to floor+kz) fits with
-    CLEAR mm (rear: rear_gap) and every boss column (x, board y, radius) stands on the floor inside the cavity."""
+def seam_y(geom: ShellGeometry, W: float, floor: float) -> float:
+    """Rear-cover seam y, same rule as gstudio.cad.enclosure.seam_y: silhouette = depth/2 - rear fillet - 1.5 (rear fillet
+    = min(edge_round, 6, depth/2 - 2)); other families = the largest y (2 mm steps) whose cavity section contains the
+    cartridge front envelope [-W/2-3, W/2+3] x [floor+0.5, floor+26]."""
+    b = geom.body
+    if isinstance(b, SilhouetteBody):
+        return b.depth / 2 - min(b.edge_round, 6.0, b.depth / 2 - 2.0) - 1.5
+    _, _, y0, y1, _, _ = geom.bbox
+    y = y1 - geom.wall - 2.0
+    xs = _lin(-W / 2 - 3.0, W / 2 + 3.0, 6.0)
+    zs = _lin(floor + 0.5, floor + 26.0, 6.0)
+    while y > y0 + 10.0:
+        ok = all(geom.outer_sdf(x, y, z) <= -geom.wall for x in xs for z in (zs[0], zs[-1])) and \
+            all(geom.outer_sdf(x, y, z) <= -geom.wall for z in zs for x in (xs[0], xs[-1]))
+        if ok:
+            return y
+        y -= 2.0
+    return (y0 + y1) / 2
+
+
+def _place_cartridge(geom: ShellGeometry, W, plan, floor, kz, rear_gap, kb=0.0, bosses=(), boss_top=6.4, y_cap=None,
+                     usb_bx=None, base_plate=False, step=1.0):
+    """Board y offset (board y=0 -> world y_off), mirroring gstudio.cad.enclosure.place_cartridge so normalize and CAD agree:
+    start with the USB-C face `rear_gap` inside the inner rear wall (ray at the receptacle x, board top + 1.6), cap by
+    the rear-cover seam rule (`y_cap`), then step forward 1 mm until the keep-out (CLEAR mm on every side, rear minus
+    0.3; z = floor+1, floor+kz/2, floor+kz) lies inside the cavity, and for a base plate until its plan also lies
+    inside the bottom opening (cavity at floor+0.8 and outer bottom shrunk by the wall)."""
     kx0, kx1, ky0, ky1 = plan
     wx0, wx1 = kx0 - W / 2, kx1 - W / 2
-    zb0, zb1 = floor + kb, floor + kz
+    zt = floor + 8.0
+    ux = (usb_bx if usb_bx is not None else W / 2) - W / 2
+    # inner rear wall behind the receptacle
+    y = 0.0
+    y_rear = None
+    for _ in range(600):
+        if geom.outer_sdf(ux, y, zt + 1.6) > -geom.wall:
+            y_rear = y
+            break
+        y += 0.5
+    if y_rear is None:
+        return None, None, "could not find the inner rear wall behind the USB-C position"
+    # refine to 0.05 mm
+    lo_y, hi_y = y_rear - 0.5, y_rear
+    for _ in range(4):
+        mid = (lo_y + hi_y) / 2
+        if geom.outer_sdf(ux, mid, zt + 1.6) > -geom.wall:
+            hi_y = mid
+        else:
+            lo_y = mid
+    y0 = hi_y - rear_gap - ky1
+    if y_cap is not None and y0 > y_cap:
+        y0 = y_cap
 
-    def bosses_ok(y_off):
-        for bx, by, br in bosses:
-            for z in (floor + 0.5, floor + boss_top):
-                for k in range(8):  # the boss foot fuses with the floor: test its rim laterally only
-                    a = k * math.pi / 4
-                    if not geom.inside(bx + br * math.cos(a), y_off + by + br * math.sin(a), z, margin=0.0):
-                        return False, f"boss at x={bx:.0f}, y={y_off + by:.0f} has no flat floor under it"
-        return True, ""
-
-    def fits(y_off, step):
-        ok, why = bosses_ok(y_off)
-        if not ok:
-            return ok, why
-        bx0, bx1 = wx0 - CLEAR, wx1 + CLEAR
-        by0, by1 = y_off + ky0 - CLEAR, y_off + ky1 + rear_gap
-        bz1 = zb1 + CLEAR
-        if isinstance(geom.body, SilhouetteBody):
-            half = geom.body.depth / 2 - geom.wall
-            if by0 < -half or by1 > half:
-                return False, "not deep enough"
-            # x-z rectangle boundary inside the inner outline
-            xs = _lin(bx0, bx1, step)
-            zs = _lin(zb0 + 0.01, bz1, step)
-            for x in xs:
-                for z in (zs[0], zs[-1]):
-                    if geom.poly.sdf(x, z) > -geom.wall:
-                        return False, f"too narrow or too low at x={x:.0f}, z={z:.0f}"
-            for z in zs:
-                for x in (xs[0], xs[-1]):
-                    if geom.poly.sdf(x, z) > -geom.wall:
-                        return False, f"too narrow at x={x:.0f}, z={z:.0f}"
-            return True, ""
-        xs = _lin(bx0, bx1, step)
-        ys = _lin(by0, by1, step)
-        zs = _lin(zb0 + 0.01, bz1, step)
-        for x in xs:
-            for y in ys:
-                for z in (zs[0], zs[-1]):
-                    if geom.outer_sdf(x, y, z) > -geom.wall:
-                        return False, f"wall reached at x={x:.0f}, y={y:.0f}, z={z:.0f}"
+    def fits(yo):
+        xs = _lin(wx0 - CLEAR, wx1 + CLEAR, (wx1 - wx0 + 2 * CLEAR) / 8)
+        ys = _lin(yo + ky0 - CLEAR, yo + ky1 + CLEAR - 0.3, (ky1 - ky0 + 2 * CLEAR - 0.3) / 8)
+        zs = (floor + 1.0, floor + kz * 0.5, floor + kz)
         for z in zs:
             for x in xs:
-                for y in (ys[0], ys[-1]):
-                    if geom.outer_sdf(x, y, z) > -geom.wall:
-                        return False, f"wall reached at x={x:.0f}, y={y:.0f}, z={z:.0f}"
-            for y in ys:
+                for yy in (ys[0], ys[-1]):
+                    if geom.outer_sdf(x, yy, z) > -geom.wall:
+                        return False, f"wall reached at x={x:.0f}, y={yy:.0f}, z={z:.0f}"
+            for yy in ys:
                 for x in (xs[0], xs[-1]):
-                    if geom.outer_sdf(x, y, z) > -geom.wall:
-                        return False, f"wall reached at x={x:.0f}, y={y:.0f}, z={z:.0f}"
+                    if geom.outer_sdf(x, yy, z) > -geom.wall:
+                        return False, f"wall reached at x={x:.0f}, y={yy:.0f}, z={z:.0f}"
+        if base_plate:
+            pxs = _lin(wx0, wx1, (wx1 - wx0) / 8)
+            pys = _lin(yo + ky0, yo + ky1 - 0.3, (ky1 - ky0 - 0.3) / 8)
+            pts = [(x, yy) for x in pxs for yy in (pys[0], pys[-1])] + [(x, yy) for yy in pys for x in (pxs[0], pxs[-1])]
+            w = geom.wall
+            ring = [(w * math.cos(k * math.pi / 4), w * math.sin(k * math.pi / 4)) for k in range(8)]
+            for x, yy in pts:
+                if geom.outer_sdf(x, yy, floor + 0.8) > -geom.wall:
+                    return False, f"plan leaves the cavity above the base plate at x={x:.0f}, y={yy:.0f}"
+                # outer bottom section at z=0.05 shrunk by the wall (2D buffer, as the CAD's base_plate_opening)
+                if any(geom.outer_sdf(x + dx, yy + dy, 0.05) > 0.0 for dx, dy in [(0.0, 0.0)] + ring):
+                    return False, f"plan leaves the base-plate opening at x={x:.0f}, y={yy:.0f}"
         return True, ""
 
-    _, _, gy0, gy1, _, _ = geom.bbox
-    hi = gy1 - geom.wall - rear_gap - ky1
-    lo = gy0 + geom.wall + CLEAR - ky0
-    if hi < lo:
-        return None, None, f"the body is {gy1 - gy0:.0f} mm deep; the cartridge needs {ky1 - ky0 + CLEAR + rear_gap + 2 * geom.wall:.0f} mm"
-    ok, why = fits(hi, 6.0)
-    if ok and fits(hi, 3.0)[0]:
-        best = hi
-    else:
-        # scan forward in 2 mm steps for the first fit, then refine
-        best = None
-        y = hi
-        while y >= lo:
-            ok, why2 = fits(y, 6.0)
-            if ok and fits(y, 3.0)[0]:
-                best = y
+    first, opening = "", False
+    for _ in range(80):
+        ok, why = fits(y0)
+        if ok:
+            box = (wx0, wx1, y0 + ky0, y0 + ky1, floor, floor + kz)
+            return y0, box, ""
+        first = first or why  # the reason at the rear-most position is the meaningful one
+        opening = opening or "base-plate opening" in why
+        y0 -= step
+    return None, None, first + ("; the plan also never fits the base-plate opening" if opening and "base-plate opening" not in first else "")
+
+
+def boss_warnings(geom: ShellGeometry, bosses, y_off, floor, boss_top) -> list[str]:
+    out = []
+    for bx, by, br in bosses:
+        for z in (floor + 0.5, floor + boss_top):
+            if any(not geom.inside(bx + br * math.cos(k * math.pi / 4), y_off + by + br * math.sin(k * math.pi / 4), z, margin=0.0)
+                   for k in range(8)):
+                out.append(f"cartridge boss at x={bx:.0f}, y={y_off + by:.0f} is not fully on a flat floor; CAD must blend it into the wall")
                 break
-            why = why2 or why
-            y -= 2.0
-        if best is None:
-            return None, None, why
-        top = min(hi, best + 2.0)
-        for _ in range(5):
-            mid = (best + top) / 2
-            if fits(mid, 3.0)[0]:
-                best = mid
-            else:
-                top = mid
-    box = (wx0, wx1, best + ky0, best + ky1, zb0, zb1)
-    return best, box, ""
+    return out
 
 
 def _lin(a, b, step):
