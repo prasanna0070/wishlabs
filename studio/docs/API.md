@@ -363,5 +363,6 @@ The SPA route `/s/{token}` renders the project read-only.
 | `ACCESS_KEY` | string | login key |
 | `PHOTOS` | `1`/`0` | concept photos with the image model (scripted mode never calls it) |
 | `FAKE_BUILD_SECONDS` | number | duration of a fake build (default 4; dev.sh uses 6) |
+| `FAKE_EXAMPLES` | `1`/`0` | fake builds copy `examples/<slug>/_out/` when it exists (default 1); 0 always writes the placeholder tree |
 | `MODEL_PRICES_JSON` | JSON | per-model `{in, out, image}` USD rates for `usage.cost_usd_est` |
 | `STUDIO_ROOT`, `STATIC_DIR`, `COOKIE_SECURE`, `AGENT_THINKING` (`low`/`high`) | | paths, cookie flag, model thinking level |

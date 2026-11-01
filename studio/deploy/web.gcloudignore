@@ -1,0 +1,20 @@
+# Upload only what the gstudio-web image needs (deploy/web.sh passes --ignore-file).
+**/_out/
+**/node_modules/
+**/dist/
+**/.pio/
+**/__pycache__/
+**/*.pyc
+**/.venv/
+.git/
+builder/
+tools/
+engine/gstudio/cad/
+engine/gstudio/pcb/
+engine/gstudio/firmware/
+engine/gstudio/manual/
+engine/gstudio/order/
+engine/gstudio/docs_gen/
+engine/tests/
+examples/*/_out/
+web/server/tests/
