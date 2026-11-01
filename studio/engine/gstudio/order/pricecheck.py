@@ -25,6 +25,7 @@ import json
 import os
 import re
 import secrets
+import tempfile
 import time
 import urllib.error
 import urllib.parse
@@ -48,8 +49,19 @@ Fetcher = Callable[[str], tuple[int, str, bytes]]   # url -> (http status, conte
 
 
 def cache_dir() -> Path:
-    base = os.environ.get("GSTUDIO_CACHE") or os.path.join(os.path.expanduser("~"), ".cache", "gstudio")
-    return Path(base)
+    """$GSTUDIO_CACHE, else ~/.cache/gstudio, else a temp dir when the home is read-only (builder image, Cloud Run)."""
+    env = os.environ.get("GSTUDIO_CACHE")
+    candidates = [env] if env else []
+    candidates += [os.path.join(os.path.expanduser("~"), ".cache", "gstudio"),
+                   os.path.join(tempfile.gettempdir(), "gstudio-cache")]
+    for base in candidates:
+        try:
+            Path(base).mkdir(parents=True, exist_ok=True)
+            if os.access(base, os.W_OK):
+                return Path(base)
+        except OSError:
+            continue
+    return Path(candidates[-1])
 
 
 def signing_key() -> bytes:

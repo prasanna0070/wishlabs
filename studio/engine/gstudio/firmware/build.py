@@ -17,6 +17,7 @@ import fcntl
 import hashlib
 import json
 import os
+import tempfile
 import re
 import shutil
 import subprocess
@@ -38,7 +39,8 @@ def core_dir() -> Path:
 def shared_dir() -> Path:
     env = os.environ.get("GS_FW_SHARED_DIR")
     cands = [Path(env)] if env else []
-    cands += [core_dir().parent / "pio-shared", Path.home() / ".cache" / "gstudio-fw"]
+    cands += [core_dir().parent / "pio-shared", Path.home() / ".cache" / "gstudio-fw",
+              Path(tempfile.gettempdir()) / "gstudio-fw"]
     for c in cands:
         try:
             c.mkdir(parents=True, exist_ok=True)
