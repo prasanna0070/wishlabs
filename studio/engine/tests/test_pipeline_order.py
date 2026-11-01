@@ -381,7 +381,8 @@ def test_hardware_quantity_comes_from_the_cad_groups():
     """CAD's fastener groups are the source of truth for counts (coordinator 2026-11-01); gaskets do not join modules."""
     lib = FakeLib()
     lib.MODS = dict(FakeLib.MODS, GASKET={"id": "GASKET", "name": "Foam gasket strip", "role": "gasket", "price_inr_planning": [30, 120],
-                                          "sourcing_in": []})
+                                          "sourcing_in": []},
+                    screws_m25=dict(FakeLib.MODS["screws_m25"], role="screws"))
     spec = json.loads(json.dumps(SPEC))
     spec["derived"]["hardware"] = [
         {"id": "SCREWS", "name": "M2.5 x 6", "qty": 4, "module": "screws_m25", "use": "backplane"},
@@ -400,7 +401,8 @@ def test_hardware_quantity_comes_from_the_cad_groups():
     assert sc["modelParts"] == ["PURCHASE_CoverScrews", "PURCHASE_ModuleScrews"]
     assert by["30 mm arcade button"]["modelParts"] == ["PURCHASE_Button"] if "modelParts" in by["30 mm arcade button"] else \
         by["30 mm arcade button"]["modelPart"] == "PURCHASE_Button"
-    assert by["Foam gasket strip"]["modelPart"] == "PURCHASE_SpeakerGasket"
+    g = by["Foam gasket strip"]
+    assert g["modelPart"] == "PURCHASE_SpeakerGasket" and g["quantity"] == 1   # rings are cut from one strip: no CAD count
 
 
 def test_cad_group_qty_rules():

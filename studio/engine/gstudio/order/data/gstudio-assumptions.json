@@ -1,0 +1,22 @@
+{
+  "_about": "Gadget Studio additions to the vendored sim assumptions (sim-assumptions.json). Same convention: 'basis' says where each number comes from. ASSUMPTION = no source yet; replace with supplier quotes, courier API results or measured times.",
+
+  "packaging": {
+    "padding_mm_per_side": {"value": 40, "basis": "ASSUMPTION: outer box = assembly bounding box + 40 mm padding per side (the sim used a fixed 22 x 18 x 20 cm box for a 108 x 78 x 124 mm robot)"},
+    "box_and_padding_kg": {"low": 0.18, "mode": 0.25, "high": 0.35, "basis": "ASSUMPTION: corrugated box, insert, manual card"},
+    "electronics_kg": {"low": 0.08, "mode": 0.12, "high": 0.20, "basis": "ASSUMPTION: core board, backplane, modules, cables, fasteners (library has no masses yet)"}
+  },
+
+  "assembly_ops_rule": {
+    "basis": "ASSUMPTION: same operation set as the sim (sim-assumptions.json assembly.minutes_per_op); counts come from this design: one module_install per mounted module, one cable_route per 3 harness cables (minimum 1), one insert_heatset per heat-set insert in the hardware list"
+  },
+
+  "lead_time": {
+    "parts_procurement_days": {"low": 2, "high": 5, "basis": "ASSUMPTION: Indian distributor stock (Robu / Robocraze class), metro delivery; not checked against live stock"},
+    "pcb_fabrication_days": {"low": 5, "high": 12, "basis": "ASSUMPTION: 2-layer prototype backplane from a PCB fab including shipping; zero once populated backplanes are stocked"},
+    "print_hours_per_day": {"value": 20, "basis": "ASSUMPTION: one FDM printer, overnight runs, plate changes during the day"},
+    "assembly_flash_test_days": {"low": 1, "high": 2, "basis": "ASSUMPTION: assembly, flashing and the functional test on one working day; first article may take two"},
+    "remake_buffer_days": {"low": 0, "high": 2, "basis": "ASSUMPTION: one failed print or QC rework"},
+    "courier_days": {"low": 2, "high": 6, "basis": "ASSUMPTION: Indian courier metro to non-metro; a real window needs the delivery pincode and a courier serviceability API (blueprint §8.5)"}
+  }
+}

@@ -1,0 +1,87 @@
+{
+  "customer_prompt": "I want a cute robot that tells my daughter bedtime stories and remembers her favorite characters.",
+  "interpretation": {
+    "buyer": "parent",
+    "end_user": "child (age unknown)",
+    "functions": ["tell bedtime stories (audio)", "remember favourite characters (persistent profile)", "cute robot appearance", "bedside use"],
+    "environment": "indoor_usb_powered, bedside",
+    "safety_flags": [
+      "CHILD_DIRECTED: blueprint §1.1 excludes 'products for unsupervised children with microphones and cloud AI' and §4.1 marks 'Bedroom children's toy' as 'No initially'",
+      "CHILD_DATA: 'remembers her favorite characters' stores a profile about a child; blueprint §11 says no default retention of child voice data",
+      "TOY_CATEGORY_UNCONFIRMED: India toy and data rules for under-18s not yet confirmed by an adviser"
+    ]
+  },
+  "variants": {
+    "A_as_asked": {
+      "label": "As asked: talks with the child (mic + live cloud voice AI)",
+      "hardware_profile": "desk_core_v1",
+      "modules": [
+        {"catalog_id": "CORE_ESP32S3_A", "qty": 1, "mount_id": "core_bay"},
+        {"catalog_id": "BACKPLANE_A", "qty": 1, "mount_id": "core_bay"},
+        {"catalog_id": "USBC_POWER_A", "qty": 1, "mount_id": "rear_port"},
+        {"catalog_id": "ADAPTER_USBC_A", "qty": 1, "mount_id": "in_box"},
+        {"catalog_id": "CABLE_USBC_A", "qty": 1, "mount_id": "in_box"},
+        {"catalog_id": "DISPLAY_OLED_096_A", "qty": 1, "mount_id": "front_eyes"},
+        {"catalog_id": "MIC_I2S_A", "qty": 1, "mount_id": "upper_mic"},
+        {"catalog_id": "AMP_I2S_A", "qty": 1, "mount_id": "core_bay"},
+        {"catalog_id": "SPK_A", "qty": 1, "mount_id": "chest_grille"},
+        {"catalog_id": "SPK_BRACKET_A", "qty": 1, "mount_id": "chest_grille"},
+        {"catalog_id": "LED_RGB_A", "qty": 1, "mount_id": "chest_light"},
+        {"catalog_id": "DIFFUSER_A", "qty": 1, "mount_id": "chest_light"},
+        {"catalog_id": "BUTTON_A", "qty": 1, "mount_id": "top_button"},
+        {"catalog_id": "CABLE_4PIN_A", "qty": 1, "mount_id": "internal"},
+        {"catalog_id": "CABLE_3PIN_A", "qty": 2, "mount_id": "internal"},
+        {"catalog_id": "STRAIN_KIT_A", "qty": 1, "mount_id": "internal"},
+        {"catalog_id": "SCREWS_M2_A", "qty": 1, "mount_id": "base_plate"},
+        {"catalog_id": "INSERTS_A", "qty": 1, "mount_id": "bosses"},
+        {"catalog_id": "FEET_A", "qty": 1, "mount_id": "base_plate"},
+        {"catalog_id": "CORE_CARTRIDGE_A", "qty": 1, "mount_id": "core_bay"},
+        {"catalog_id": "TEST_JIG_IF_A", "qty": 1, "mount_id": "core_bay"},
+        {"catalog_id": "LABEL_PACK_A", "qty": 1, "mount_id": "packaging"}
+      ],
+      "assembly_ops": {"core_prep": 1, "module_install": 6, "cable_route": 1, "insert_heatset": 4, "shell_close": 1, "flash_provision": 1, "functional_test": 1, "qc_photo": 1, "pack": 1},
+      "cloud": "live_voice_conversation",
+      "cloud_minutes_per_night": 12,
+      "launch_status": "UNSUPPORTED_AT_LAUNCH"
+    },
+    "B_parent_run": {
+      "label": "Parent-run: no mic, parent-approved stories stored on the robot",
+      "hardware_profile": "desk_core_v1",
+      "modules": [
+        {"catalog_id": "CORE_ESP32S3_A", "qty": 1, "mount_id": "core_bay"},
+        {"catalog_id": "BACKPLANE_A", "qty": 1, "mount_id": "core_bay"},
+        {"catalog_id": "USBC_POWER_A", "qty": 1, "mount_id": "rear_port"},
+        {"catalog_id": "ADAPTER_USBC_A", "qty": 1, "mount_id": "in_box"},
+        {"catalog_id": "CABLE_USBC_A", "qty": 1, "mount_id": "in_box"},
+        {"catalog_id": "DISPLAY_OLED_096_A", "qty": 1, "mount_id": "front_eyes"},
+        {"catalog_id": "AMP_I2S_A", "qty": 1, "mount_id": "core_bay"},
+        {"catalog_id": "SPK_A", "qty": 1, "mount_id": "chest_grille"},
+        {"catalog_id": "SPK_BRACKET_A", "qty": 1, "mount_id": "chest_grille"},
+        {"catalog_id": "LED_RGB_A", "qty": 1, "mount_id": "chest_light"},
+        {"catalog_id": "DIFFUSER_A", "qty": 1, "mount_id": "chest_light"},
+        {"catalog_id": "BUTTON_A", "qty": 1, "mount_id": "top_button"},
+        {"catalog_id": "MICROSD_A", "qty": 1, "mount_id": "core_bay"},
+        {"catalog_id": "CABLE_4PIN_A", "qty": 1, "mount_id": "internal"},
+        {"catalog_id": "CABLE_3PIN_A", "qty": 2, "mount_id": "internal"},
+        {"catalog_id": "STRAIN_KIT_A", "qty": 1, "mount_id": "internal"},
+        {"catalog_id": "SCREWS_M2_A", "qty": 1, "mount_id": "base_plate"},
+        {"catalog_id": "INSERTS_A", "qty": 1, "mount_id": "bosses"},
+        {"catalog_id": "FEET_A", "qty": 1, "mount_id": "base_plate"},
+        {"catalog_id": "CORE_CARTRIDGE_A", "qty": 1, "mount_id": "core_bay"},
+        {"catalog_id": "TEST_JIG_IF_A", "qty": 1, "mount_id": "core_bay"},
+        {"catalog_id": "LABEL_PACK_A", "qty": 1, "mount_id": "packaging"}
+      ],
+      "assembly_ops": {"core_prep": 1, "module_install": 6, "cable_route": 1, "insert_heatset": 4, "shell_close": 1, "flash_provision": 1, "functional_test": 1, "qc_photo": 1, "pack": 1},
+      "cloud": "story_generation_in_parent_app",
+      "stories_per_month": 30,
+      "launch_status": "REVIEW_REQUIRED"
+    }
+  },
+  "mechanical": {
+    "cad": "shell/bedtime_robot.scad",
+    "printed_parts": ["shell_print", "plate"],
+    "material": "PETG_APPROVED_01",
+    "bounding_box_mm": [108, 78, 124]
+  },
+  "destination": {"pincode": null, "note": "unknown: a binding quote needs the delivery pincode (blueprint §8.5)"}
+}

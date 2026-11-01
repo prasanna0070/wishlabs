@@ -1,0 +1,30 @@
+{
+  "_about": "Catalog entries used by the bedtime robot simulation. low/high are the blueprint §3.3 'indicative planning cost' ranges in INR: hypothetical internal planning ranges, often excluding GST and labour, NOT supplier quotes (blueprint v1.0 line 141). Row numbers are the blueprint table IDs.",
+  "_source": "docs/blueprint-v1.0.md §3.3, lines 143-194",
+  "items": {
+    "CORE_ESP32S3_A":     {"row": "01", "name": "ESP32-S3 core dev board, flash+PSRAM",       "low": 650, "high": 1300, "priority": "P0"},
+    "BACKPLANE_A":        {"row": "02", "name": "Standard expansion/backplane PCB",          "low": 120, "high": 450,  "priority": "P0"},
+    "USBC_POWER_A":       {"row": "03", "name": "USB-C power input/protection module",       "low": 80,  "high": 250,  "priority": "P0"},
+    "ADAPTER_USBC_A":     {"row": "04", "name": "Approved external USB-C adapter",           "low": 250, "high": 600,  "priority": "P0"},
+    "CABLE_USBC_A":       {"row": "05", "name": "USB-C cable",                               "low": 70,  "high": 180,  "priority": "P0"},
+    "CABLE_4PIN_A":       {"row": "06", "name": "Keyed 4-pin module cable",                  "low": 30,  "high": 100,  "priority": "P0"},
+    "CABLE_3PIN_A":       {"row": "07", "name": "Keyed 3-pin actuator cable",                "low": 30,  "high": 100,  "priority": "P0"},
+    "STRAIN_KIT_A":       {"row": "08", "name": "Cable tie + strain relief kit",             "low": 15,  "high": 50,   "priority": "P0"},
+    "SCREWS_M2_A":        {"row": "09", "name": "M2/M2.5 screw set",                         "low": 15,  "high": 70,   "priority": "P0"},
+    "INSERTS_A":          {"row": "10", "name": "Heat-set inserts",                          "low": 20,  "high": 100,  "priority": "P0"},
+    "FEET_A":             {"row": "11", "name": "Adhesive feet / anti-slip pads",            "low": 20,  "high": 70,   "priority": "P0"},
+    "CORE_CARTRIDGE_A":   {"row": "12", "name": "Standard core cartridge frame",             "low": 60,  "high": 300,  "priority": "P0"},
+    "SPK_BRACKET_A":      {"row": "13", "name": "Speaker bracket / acoustic gasket",         "low": 30,  "high": 120,  "priority": "P0"},
+    "DISPLAY_OLED_096_A": {"row": "14", "name": "0.96-inch mono OLED",                       "low": 130, "high": 350,  "priority": "P0"},
+    "DISPLAY_COLOR_15_A": {"row": "16", "name": "1.5-2-inch color display",                  "low": 350, "high": 950,  "priority": "P1"},
+    "LED_RGB_A":          {"row": "17", "name": "Addressable RGB LED mini-board",            "low": 25,  "high": 100,  "priority": "P0"},
+    "DIFFUSER_A":         {"row": "19", "name": "LED diffuser",                              "low": 30,  "high": 150,  "priority": "P0"},
+    "MIC_I2S_A":          {"row": "20", "name": "Digital MEMS microphone module",            "low": 110, "high": 350,  "priority": "P0"},
+    "AMP_I2S_A":          {"row": "21", "name": "I2S amplifier board",                       "low": 110, "high": 300,  "priority": "P0"},
+    "SPK_A":              {"row": "22", "name": "Small 4-8 ohm speaker",                     "low": 80,  "high": 250,  "priority": "P0"},
+    "BUTTON_A":           {"row": "24", "name": "Tactile button module",                     "low": 15,  "high": 70,   "priority": "P0"},
+    "MICROSD_A":          {"row": "37", "name": "MicroSD module + qualified storage",        "low": 120, "high": 380,  "priority": "P1"},
+    "TEST_JIG_IF_A":      {"row": "49", "name": "Factory test/jig connector interface",      "low": 20,  "high": 110,  "priority": "P0"},
+    "LABEL_PACK_A":       {"row": "50", "name": "Device ID QR/serial label + packing kit",   "low": 30,  "high": 150,  "priority": "P0"}
+  }
+}

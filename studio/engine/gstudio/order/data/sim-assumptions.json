@@ -1,0 +1,51 @@
+{
+  "_about": "Every input the price engine uses that is not in catalog.json. 'basis' says where the number comes from. BLUEPRINT = docs/blueprint-v1.0.md (itself an illustrative scenario, not quotes). RESEARCH = research notes from 2026-11-01. ASSUMPTION = my estimate, no source; replace with real quotes or invoices.",
+  "currency": "INR",
+
+  "parts_mode_by_qty": {"value": {"1": 0.70, "10": 0.50, "100": 0.25}, "basis": "ASSUMPTION: where in the blueprint's planning range a part lands; one-off buys sit near the top, volume near the bottom"},
+
+  "print": {
+    "material_rate_per_g": {"low": 1.5, "mode": 1.9, "high": 2.6, "basis": "BLUEPRINT §8.3 illustrative PETG rate 1.90/g; spread is ASSUMPTION"},
+    "machine_rate_per_h":  {"low": 20, "mode": 28, "high": 45, "basis": "BLUEPRINT §8.3 illustrative 28/h; spread is ASSUMPTION"},
+    "setup_support_removal": {"low": 90, "mode": 130, "high": 220, "basis": "BLUEPRINT §8.3 illustrative 130 per job; spread is ASSUMPTION"},
+    "finish_colour_allowance": {"low": 40, "mode": 75, "high": 150, "basis": "BLUEPRINT §8.3 illustrative 75; spread is ASSUMPTION"},
+    "print_fail_prob": {"low": 0.03, "mode": 0.07, "high": 0.15, "basis": "ASSUMPTION; blueprint Experiment A targets >=9/10 first-try prints"},
+    "bureau_fdm_rate_per_cm3": {"low": 3, "high": 5, "basis": "RESEARCH: IamRapid published FDM PLA 3-5 per cm3 (india_landscape.md line 75) - used only as a cross-check"}
+  },
+
+  "assembly": {
+    "minutes_per_op": {"value": {"core_prep": 4, "module_install": 2.5, "cable_route": 4, "insert_heatset": 0.75, "shell_close": 3, "flash_provision": 3, "functional_test": 5, "qc_photo": 1, "pack": 4}, "basis": "ASSUMPTION: my estimate of a trained assembler with a jig; blueprint Experiment B exists to measure this"},
+    "loaded_labour_rate_per_h": {"low": 200, "mode": 320, "high": 550, "basis": "ASSUMPTION: Indian technician wage plus overhead, space and tools"},
+    "overrun_factor": {"low": 0.9, "mode": 1.1, "high": 1.8, "basis": "ASSUMPTION: actual vs planned minutes"},
+    "first_article_factor_qty1": {"value": 2.0, "basis": "ASSUMPTION: a never-built design takes about twice as long the first time"},
+    "rework_prob": {"low": 0.05, "mode": 0.12, "high": 0.25, "basis": "ASSUMPTION; blueprint pilot ambition is first-build yield >85% (§12)"},
+    "rework_minutes": {"low": 10, "mode": 20, "high": 45, "basis": "ASSUMPTION"},
+    "new_design_setup_nre": {"value": 3000, "basis": "BLUEPRINT §8.7 sensitivity example: one-time 3,000 engineering/setup fee"}
+  },
+
+  "logistics": {
+    "box_cm": {"value": [22, 18, 20], "basis": "ASSUMPTION: outer box around the 108 x 78 x 124 mm robot plus padding and adapter"},
+    "packed_weight_kg": {"low": 0.55, "mode": 0.65, "high": 0.8, "basis": "ASSUMPTION"},
+    "volumetric_divisor": {"value": 5000, "basis": "ASSUMPTION: common courier rule (L x W x H cm / 5000); blueprint §8.5 says it is courier specific"},
+    "courier_rate_per_0p5kg_slab": {"low": 35, "mode": 50, "high": 75, "basis": "ASSUMPTION; a binding quote must call the Shiprocket serviceability API (blueprint §8.5)"},
+    "courier_fixed": {"low": 20, "mode": 35, "high": 60, "basis": "ASSUMPTION: first-slab base charge"}
+  },
+
+  "risk": {
+    "warranty_fail_prob": {"low": 0.02, "mode": 0.04, "high": 0.08, "basis": "ASSUMPTION"},
+    "returns_defect_only": {"low": 0.02, "mode": 0.04, "high": 0.07, "basis": "ASSUMPTION: returns accepted for defects only"},
+    "returns_novelty": {"low": 0.20, "mode": 0.25, "high": 0.30, "basis": "RESEARCH: BubblePal (kids AI toy) return rate peaked above 30% and fell to about 20% (modular_devices_and_lessons.md line 149)"},
+    "return_handling": {"low": 150, "mode": 220, "high": 350, "basis": "ASSUMPTION: reverse pickup plus inspection"},
+    "return_salvage_fraction_of_parts": {"low": 0.4, "mode": 0.6, "high": 0.75, "basis": "ASSUMPTION: electronics reused, personalised shell scrapped"}
+  },
+
+  "payment_fee_rate": {"value": 0.02, "basis": "ASSUMPTION: typical Indian gateway rate; GST on the fee is added in the engine"},
+  "gst_rate": {"value": 0.18, "basis": "ASSUMPTION: blueprint §8.7 warns 'do not apply 18% blindly'; HSN classification needs a tax adviser"},
+  "target_gross_margin": {"value": 0.30, "basis": "BLUEPRINT §8.2 / §8.7 illustrative 30%"},
+  "binding_floor_margin_at_p95": {"value": 0.10, "basis": "ASSUMPTION: the 'permitted contribution-loss threshold' of blueprint §8.8"},
+
+  "cloud_per_month": {
+    "A_live_voice": {"low": 90, "mode": 200, "high": 450, "basis": "ASSUMPTION: ~12 min/night of speech-to-text + LLM + speech; pin with real Vertex billing"},
+    "B_story_generation": {"low": 15, "mode": 40, "high": 90, "basis": "ASSUMPTION: 30 stories/month, text + speech generated once each; pin with real Vertex billing"}
+  }
+}

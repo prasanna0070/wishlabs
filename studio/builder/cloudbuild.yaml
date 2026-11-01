@@ -1,0 +1,28 @@
+# Cloud Build for the gstudio-builder image. Submitted by deploy/builder.sh with a staged context
+# (engine/, library/, builder/). The previous :latest image is the layer cache (BuildKit inline cache), so a
+# change to the engine only rebuilds the last layers.
+steps:
+  - id: pull-cache
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args: ["-c", "docker pull ${_IMAGE}:latest || echo 'no cache image yet'"]
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    env: ["DOCKER_BUILDKIT=1"]
+    args: ["build", "-f", "builder/Dockerfile",
+           "--build-arg", "BUILDKIT_INLINE_CACHE=1",
+           "--cache-from", "${_IMAGE}:latest",
+           "-t", "${_IMAGE}:${_TAG}", "-t", "${_IMAGE}:latest", "."]
+  - id: smoke
+    name: ${_IMAGE}:${_TAG}
+    entrypoint: bash
+    args: ["-c", "cd /app/engine && python -m gstudio --help >/dev/null && python -c 'import pcbnew, cadquery' && kicad-cli version && prusa-slicer --help | head -1 && $$GS_JAVA -version && pio --version && ls $$PLAYWRIGHT_BROWSERS_PATH && python -m pytest -q -p no:cacheprovider -o addopts='' -W ignore::DeprecationWarning tests/test_pipeline_price_engine.py tests/test_pipeline_order.py tests/test_pipeline_package.py tests/test_pipeline_run.py tests/test_pipeline_builder.py"]
+images: ["${_IMAGE}:${_TAG}", "${_IMAGE}:latest"]
+substitutions:
+  _IMAGE: asia-south1-docker.pkg.dev/your-gcp-project/gstudio/gstudio-builder
+  _TAG: manual
+options:
+  machineType: E2_HIGHCPU_32
+  diskSizeGb: 300
+  logging: CLOUD_LOGGING_ONLY
+timeout: 7200s
