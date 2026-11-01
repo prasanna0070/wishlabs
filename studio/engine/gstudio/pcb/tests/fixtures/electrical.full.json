@@ -1,0 +1,439 @@
+{
+  "schema": "gadget-electrical/1",
+  "backplane": "backplane-v1",
+  "fixture": "full",
+  "core": {
+    "ref": "U1",
+    "module": "CORE_ESP32S3_DEVKITC1_N8R8"
+  },
+  "slots_used": [
+    "U1",
+    "A1",
+    "J_SPK",
+    "S1",
+    "J_MIC",
+    "J_DISP",
+    "J_I2C1",
+    "J_I2C2",
+    "J_IO1",
+    "J_IO2",
+    "J_IO3",
+    "J_LED",
+    "J_PWR",
+    "J_I2C3"
+  ],
+  "gpio": {
+    "I2C_SDA": 8,
+    "I2C_SCL": 9,
+    "SPI_SCK": 12,
+    "SPI_MOSI": 11,
+    "SPI_MISO": 13,
+    "SD_CS": 10,
+    "DISP_CS": 14,
+    "DISP_DC": 21,
+    "DISP_RST": 18,
+    "DISP_BL": 17,
+    "I2S_SPK_BCLK": 15,
+    "I2S_SPK_LRC": 16,
+    "I2S_SPK_DIN": 7,
+    "AMP_SD": 39,
+    "I2S_MIC_SCK": 41,
+    "I2S_MIC_WS": 42,
+    "I2S_MIC_SD": 40,
+    "IO1_SIG": 4,
+    "IO2_SIG": 5,
+    "IO3_SIG": 6,
+    "LED_DIN": 2,
+    "USB_DP": 20,
+    "USB_DN": 19,
+    "UART0_TX": 43,
+    "UART0_RX": 44,
+    "BOOT_IO0": 0
+  },
+  "nets": [
+    {
+      "name": "+3V3",
+      "nodes": [
+        "BP1.J_DISP.1",
+        "BP1.J_I2C1.2",
+        "BP1.J_I2C2.2",
+        "BP1.J_I2C3.2",
+        "BP1.J_IO1.2",
+        "BP1.J_IO2.2",
+        "BP1.J_IO3.2",
+        "BP1.J_MIC.2",
+        "BP1.J_U1A.1",
+        "BP1.J_U1A.2",
+        "BP1.R4.2",
+        "BP1.R5.2",
+        "BP1.TP2.1",
+        "U1.J1-1",
+        "U1.J1-2"
+      ]
+    },
+    {
+      "name": "+5V",
+      "nodes": [
+        "BP1.A1.7",
+        "BP1.C1.1",
+        "BP1.C2.1",
+        "BP1.C3.1",
+        "BP1.C4.1",
+        "BP1.C5.1",
+        "BP1.D1.1",
+        "BP1.F1.2",
+        "BP1.J_LED.2",
+        "BP1.J_U1A.21",
+        "BP1.S1.2",
+        "BP1.TP1.1",
+        "BP1.U2.5",
+        "BP1.U3.5",
+        "U1.J1-21"
+      ]
+    },
+    {
+      "name": "AMP_SD",
+      "nodes": [
+        "BP1.A1.5",
+        "BP1.J_U1B.9",
+        "BP1.R7.1",
+        "U1.J3-9"
+      ]
+    },
+    {
+      "name": "BOOT_IO0",
+      "nodes": [
+        "BP1.J_U1B.14",
+        "BP1.TP7.1",
+        "U1.J3-14"
+      ]
+    },
+    {
+      "name": "CC1",
+      "nodes": [
+        "BP1.J_PWR.A5",
+        "BP1.R1.1"
+      ]
+    },
+    {
+      "name": "CC2",
+      "nodes": [
+        "BP1.J_PWR.B5",
+        "BP1.R2.1"
+      ]
+    },
+    {
+      "name": "DISP_BL",
+      "nodes": [
+        "BP1.J_DISP.8",
+        "BP1.J_U1A.10",
+        "U1.J1-10"
+      ]
+    },
+    {
+      "name": "DISP_CS",
+      "nodes": [
+        "BP1.J_DISP.5",
+        "BP1.J_U1A.20",
+        "U1.J1-20"
+      ]
+    },
+    {
+      "name": "DISP_DC",
+      "nodes": [
+        "BP1.J_DISP.6",
+        "BP1.J_U1B.18",
+        "U1.J3-18"
+      ]
+    },
+    {
+      "name": "DISP_RST",
+      "nodes": [
+        "BP1.J_DISP.7",
+        "BP1.J_U1A.11",
+        "U1.J1-11"
+      ]
+    },
+    {
+      "name": "EN",
+      "nodes": [
+        "BP1.J_U1A.3",
+        "BP1.TP4.1",
+        "U1.J1-3"
+      ]
+    },
+    {
+      "name": "GND",
+      "nodes": [
+        "BP1.A1.6",
+        "BP1.C1.2",
+        "BP1.C2.2",
+        "BP1.C3.2",
+        "BP1.C4.2",
+        "BP1.C5.2",
+        "BP1.D1.2",
+        "BP1.J_DISP.2",
+        "BP1.J_I2C1.1",
+        "BP1.J_I2C2.1",
+        "BP1.J_I2C3.1",
+        "BP1.J_IO1.1",
+        "BP1.J_IO2.1",
+        "BP1.J_IO3.1",
+        "BP1.J_LED.1",
+        "BP1.J_MIC.1",
+        "BP1.J_MIC.6",
+        "BP1.J_PWR.A1",
+        "BP1.J_PWR.A12",
+        "BP1.J_PWR.B1",
+        "BP1.J_PWR.B12",
+        "BP1.J_PWR.S1",
+        "BP1.J_U1A.22",
+        "BP1.J_U1B.1",
+        "BP1.J_U1B.21",
+        "BP1.J_U1B.22",
+        "BP1.R1.2",
+        "BP1.R2.2",
+        "BP1.R7.2",
+        "BP1.S1.1",
+        "BP1.TP3.1",
+        "BP1.U2.2",
+        "BP1.U3.1",
+        "BP1.U3.3",
+        "U1.J1-22",
+        "U1.J3-1",
+        "U1.J3-21",
+        "U1.J3-22"
+      ]
+    },
+    {
+      "name": "I2C_SCL",
+      "nodes": [
+        "BP1.J_I2C1.4",
+        "BP1.J_I2C2.4",
+        "BP1.J_I2C3.4",
+        "BP1.J_U1A.15",
+        "BP1.R5.1",
+        "U1.J1-15"
+      ]
+    },
+    {
+      "name": "I2C_SDA",
+      "nodes": [
+        "BP1.J_I2C1.3",
+        "BP1.J_I2C2.3",
+        "BP1.J_I2C3.3",
+        "BP1.J_U1A.12",
+        "BP1.R4.1",
+        "U1.J1-12"
+      ]
+    },
+    {
+      "name": "I2S_MIC_SCK",
+      "nodes": [
+        "BP1.J_MIC.3",
+        "BP1.J_U1B.7",
+        "U1.J3-7"
+      ]
+    },
+    {
+      "name": "I2S_MIC_SD",
+      "nodes": [
+        "BP1.J_MIC.5",
+        "BP1.J_U1B.8",
+        "U1.J3-8"
+      ]
+    },
+    {
+      "name": "I2S_MIC_WS",
+      "nodes": [
+        "BP1.J_MIC.4",
+        "BP1.J_U1B.6",
+        "U1.J3-6"
+      ]
+    },
+    {
+      "name": "I2S_SPK_BCLK",
+      "nodes": [
+        "BP1.A1.2",
+        "BP1.J_U1A.8",
+        "U1.J1-8"
+      ]
+    },
+    {
+      "name": "I2S_SPK_DIN",
+      "nodes": [
+        "BP1.A1.3",
+        "BP1.J_U1A.7",
+        "U1.J1-7"
+      ]
+    },
+    {
+      "name": "I2S_SPK_LRC",
+      "nodes": [
+        "BP1.A1.1",
+        "BP1.J_U1A.9",
+        "U1.J1-9"
+      ]
+    },
+    {
+      "name": "IO1_SIG",
+      "nodes": [
+        "BP1.J_IO1.3",
+        "BP1.J_U1A.4",
+        "U1.J1-4"
+      ]
+    },
+    {
+      "name": "IO2_SIG",
+      "nodes": [
+        "BP1.J_IO2.3",
+        "BP1.J_U1A.5",
+        "U1.J1-5"
+      ]
+    },
+    {
+      "name": "IO3_SIG",
+      "nodes": [
+        "BP1.J_IO3.3",
+        "BP1.J_U1A.6",
+        "U1.J1-6"
+      ]
+    },
+    {
+      "name": "LED_DIN_3V3",
+      "nodes": [
+        "BP1.J_U1B.5",
+        "BP1.U3.2",
+        "U1.J3-5"
+      ]
+    },
+    {
+      "name": "LED_DIN_5V",
+      "nodes": [
+        "BP1.J_LED.3",
+        "BP1.R3.2"
+      ]
+    },
+    {
+      "name": "LED_DIN_BUF",
+      "nodes": [
+        "BP1.R3.1",
+        "BP1.U3.4"
+      ]
+    },
+    {
+      "name": "SD_CS",
+      "nodes": [
+        "BP1.J_U1A.16",
+        "BP1.S1.6",
+        "U1.J1-16"
+      ]
+    },
+    {
+      "name": "SPI_MISO",
+      "nodes": [
+        "BP1.J_U1A.19",
+        "BP1.S1.3",
+        "U1.J1-19"
+      ]
+    },
+    {
+      "name": "SPI_MOSI",
+      "nodes": [
+        "BP1.J_DISP.3",
+        "BP1.J_U1A.17",
+        "BP1.S1.4",
+        "U1.J1-17"
+      ]
+    },
+    {
+      "name": "SPI_SCK",
+      "nodes": [
+        "BP1.J_DISP.4",
+        "BP1.J_U1A.18",
+        "BP1.S1.5",
+        "U1.J1-18"
+      ]
+    },
+    {
+      "name": "SPK_N",
+      "nodes": [
+        "BP1.A1.VO-",
+        "BP1.J_SPK.2"
+      ]
+    },
+    {
+      "name": "SPK_P",
+      "nodes": [
+        "BP1.A1.VO+",
+        "BP1.J_SPK.1"
+      ]
+    },
+    {
+      "name": "UART0_RX",
+      "nodes": [
+        "BP1.J_U1B.3",
+        "BP1.TP6.1",
+        "U1.J3-3"
+      ]
+    },
+    {
+      "name": "UART0_TX",
+      "nodes": [
+        "BP1.J_U1B.2",
+        "BP1.TP5.1",
+        "U1.J3-2"
+      ]
+    },
+    {
+      "name": "USB_DN",
+      "nodes": [
+        "BP1.J_PWR.A7",
+        "BP1.J_PWR.B7",
+        "BP1.J_U1B.20",
+        "BP1.U2.3",
+        "BP1.U2.4",
+        "U1.J3-20"
+      ]
+    },
+    {
+      "name": "USB_DP",
+      "nodes": [
+        "BP1.J_PWR.A6",
+        "BP1.J_PWR.B6",
+        "BP1.J_U1B.19",
+        "BP1.U2.1",
+        "BP1.U2.6",
+        "U1.J3-19"
+      ]
+    },
+    {
+      "name": "VBUS",
+      "nodes": [
+        "BP1.F1.1",
+        "BP1.J_PWR.A4",
+        "BP1.J_PWR.A9",
+        "BP1.J_PWR.B4",
+        "BP1.J_PWR.B9"
+      ]
+    }
+  ],
+  "instances": [],
+  "connections": [],
+  "power": {
+    "rails": [
+      {
+        "name": "VBUS",
+        "source": "USB-C J_PWR VBUS pins (sink only)"
+      },
+      {
+        "name": "+5V",
+        "source": "VBUS -> F1 (PTC 1.5 A hold) -> +5V; D1 TVS to GND after F1; C1 10 uF + C2 100 nF"
+      },
+      {
+        "name": "+3V3",
+        "source": "DevKitC on-board LDO SGM2212-3.3 (fed from its VCC_5V net, which is the header 5V pin)"
+      }
+    ]
+  }
+}
