@@ -1,0 +1,36 @@
+{
+  "schema": "gadget-spec/1",
+  "name": "Mochi Desk Buddy",
+  "slug": "desk-buddy",
+  "tagline": "A round little desk friend with a colour face that reacts to your day",
+  "audience": {"child_directed": false},
+  "region": "IN",
+  "colors": {"body": "#F4C7A1", "accent": "#FFF3E4", "detail": "#4B3832", "body_name": "peach", "accent_name": "milk", "detail_name": "cocoa"},
+  "body": {
+    "family": "revolve",
+    "profile": [[0, 0], [74, 0], [81, 24], [82, 56], [74, 94], [52, 123], [0, 137]],
+    "squash_y": 0.9,
+    "edge_round": 8,
+    "wall": 2.4,
+    "split": "base_plate",
+    "feet": 4
+  },
+  "decor": [
+    {"type": "blush", "at": [47, 70], "size": [14, 8], "relief": "emboss", "depth": 0.6, "side": "both"},
+    {"type": "ear", "style": "bear", "side": "both", "at": [46, 120], "size": [30, 26], "tilt": 10}
+  ],
+  "features": [
+    {"id": "face", "module": "LCD_200_ST7789_240X320_WAVESHARE", "face": "front", "at": [0, 84], "label": "Colour face"},
+    {"id": "speaker", "module": "SPK_28MM_8R_2W", "face": "front", "at": [0, 36], "label": "Chimes",
+     "grille": {"pattern": "concentric", "w": 24, "h": 24, "hole": 1.8, "pitch": 3.6}},
+    {"id": "mic", "module": "MIC_INMP441_I2S", "face": "front", "at": [-40, 40], "label": "Clap microphone"},
+    {"id": "pat_button", "module": "BUTTON_ARCADE_30MM_SNAPIN", "face": "top", "at": [0, -4], "label": "Pat the head"}
+  ],
+  "electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8", "extra_modules": [], "power": {"input": "usb_c_5v", "adapter_in_box": false}},
+  "behaviour": {
+    "template": "desk_companion",
+    "summary": "Shows a face that blinks, smiles and naps. Pat the head to say hi; it chimes for timers and reacts to claps.",
+    "settings": {}
+  },
+  "safety": {"flags": ["LOCAL_VOICE_CAPTURE"], "notes": "Clap detection runs on the device; no audio is stored or sent."}
+}

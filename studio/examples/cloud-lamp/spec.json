@@ -1,0 +1,217 @@
+{
+  "schema": "gadget-spec/1",
+  "name": "Nimbus Cloud Lamp",
+  "slug": "cloud-lamp",
+  "tagline": "A sleepy cloud with a glowing moon cheek that dims itself when the room goes dark",
+  "audience": {
+    "child_directed": false
+  },
+  "region": "IN",
+  "colors": {
+    "body": "#E4EEF8",
+    "accent": "#F6B9B4",
+    "detail": "#55607A",
+    "body_name": "morning mist",
+    "accent_name": "rose",
+    "detail_name": "slate"
+  },
+  "body": {
+    "family": "blob",
+    "primitives": [
+      {
+        "kind": "ellipsoid",
+        "center": [
+          0,
+          0,
+          22
+        ],
+        "size": [
+          204,
+          132,
+          96
+        ],
+        "radius": 6
+      },
+      {
+        "kind": "ellipsoid",
+        "center": [
+          -6,
+          0,
+          70
+        ],
+        "size": [
+          118,
+          126,
+          114
+        ],
+        "radius": 6
+      },
+      {
+        "kind": "sphere",
+        "center": [
+          -70,
+          0,
+          52
+        ],
+        "size": [
+          84,
+          84,
+          84
+        ],
+        "radius": 6
+      },
+      {
+        "kind": "ellipsoid",
+        "center": [
+          64,
+          -4,
+          56
+        ],
+        "size": [
+          96,
+          122,
+          96
+        ],
+        "radius": 6
+      }
+    ],
+    "edge_round": 5,
+    "wall": 2.4,
+    "split": "base_plate",
+    "feet": 4
+  },
+  "decor": [
+    {
+      "type": "eye",
+      "style": "arc_closed",
+      "at": [
+        -22,
+        88
+      ],
+      "size": [
+        15,
+        6
+      ],
+      "relief": "engrave",
+      "depth": 0.8
+    },
+    {
+      "type": "eye",
+      "style": "arc_closed",
+      "at": [
+        10,
+        88
+      ],
+      "size": [
+        15,
+        6
+      ],
+      "relief": "engrave",
+      "depth": 0.8
+    },
+    {
+      "type": "mouth",
+      "style": "smile",
+      "at": [
+        -6,
+        77
+      ],
+      "size": [
+        11,
+        5
+      ],
+      "relief": "engrave",
+      "depth": 0.8
+    },
+    {
+      "type": "blush",
+      "at": [
+        -36,
+        80
+      ],
+      "size": [
+        12,
+        7
+      ],
+      "relief": "emboss",
+      "depth": 0.6,
+      "color": "accent"
+    },
+    {
+      "type": "blush",
+      "at": [
+        24,
+        80
+      ],
+      "size": [
+        12,
+        7
+      ],
+      "relief": "emboss",
+      "depth": 0.6,
+      "color": "accent"
+    },
+    {
+      "type": "text",
+      "text": "NIMBUS",
+      "at": [
+        -6,
+        30
+      ],
+      "height": 6,
+      "relief": "engrave",
+      "depth": 0.6
+    }
+  ],
+  "features": [
+    {
+      "id": "moon_light",
+      "module": "LED_RING_12_WS2812_50MM",
+      "face": "front",
+      "at": [
+        66,
+        56
+      ],
+      "label": "Moon glow"
+    },
+    {
+      "id": "tap_button",
+      "module": "BUTTON_TACTILE_KY004",
+      "face": "top",
+      "at": [
+        -6,
+        -8
+      ],
+      "label": "Tap: next scene. Hold: off"
+    },
+    {
+      "id": "light_sensor",
+      "module": "LIGHT_BH1750_GY302_I2C",
+      "face": "rear",
+      "at": [
+        0,
+        70
+      ],
+      "label": "Room light sensor for auto-dim"
+    }
+  ],
+  "electronics": {
+    "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "extra_modules": [],
+    "power": {
+      "input": "usb_c_5v",
+      "adapter_in_box": false
+    }
+  },
+  "behaviour": {
+    "template": "ambient_light",
+    "summary": "A warm moon glow with gentle scenes. Tap the top for the next scene, hold to switch off. It dims itself as the room gets dark.",
+    "settings": {}
+  },
+  "safety": {
+    "flags": [
+      "NIGHT_USE"
+    ],
+    "notes": "LED brightness capped in firmware; external certified USB-C supply."
+  }
+}
