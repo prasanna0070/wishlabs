@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gstudio"
+description = "Gadget Studio engine: spec -> electrical -> CAD | PCB | firmware -> manual -> package"
+requires-python = ">=3.11"
+dynamic = ["version"]
+dependencies = [
+  "pydantic>=2.6",
+]
+
+[project.optional-dependencies]
+# Heavy stage toolchains are installed on the VM / builder image, never pulled in by default.
+geom = ["shapely>=2.0"]
+test = ["pytest>=7"]
+
+[project.scripts]
+gstudio = "gstudio.cli:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "gstudio.version.ENGINE_VERSION"}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["gstudio*"]
+
+[tool.setuptools.package-data]
+gstudio = ["**/*.json", "**/*.j2", "**/*.txt", "**/*.md", "**/*.cpp", "**/*.h", "**/*.ini"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

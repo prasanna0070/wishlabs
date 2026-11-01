@@ -1,0 +1,3794 @@
+[
+  {
+    "id": "STRAIN_TIE_NYLON66_100X2_5",
+    "catalog_row": "08",
+    "catalog_id": "STRAIN_KIT_A",
+    "role": "consumable",
+    "name": "Cable tie 100 x 2.5 mm (nylon 6/6) + printed tie anchors",
+    "reference_product": {
+      "maker": "Generic (Quartz Components listing)",
+      "mpn_or_model": "Nylon Cable Tie / Wire Tag 100X2.5mm (pack of 100)",
+      "product_url": "https://quartzcomponents.com/products/tie-100x2-2-100-pc-in-each",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 100,
+      "y": 2.5,
+      "z": 1.0,
+      "notes": "x = tie length, y = strap width, both from the listing title. z (strap thickness) is an estimate; not stated on the page."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "none",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Preferred retention: tie loops through printed anchor slots moulded into the core cartridge (row 12), not adhesive bases. Adhesive 20x20 mm tie bases are an option but review reports on adhesion are mixed (search snippet). Slot size for a 2.5 mm tie is a design estimate to be test-printed."
+    },
+    "pins": [],
+    "module_connector": {
+      "type": "none",
+      "pin_order": [],
+      "location": "n/a"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE",
+      "wires": [],
+      "length_mm": 0
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": ""
+    },
+    "electrical": {
+      "supply_v": "none",
+      "logic_v": "none",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "none"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": ""
+    },
+    "kicad": {
+      "backplane_footprint": "NONE",
+      "notes": "Optionally add tie-slot cutouts (Edge.Cuts) beside each backplane connector so harnesses can be tied to the board."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/tie-100x2-2-100-pc-in-each",
+        "price_inr_seen": 44,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "Amazon.in",
+        "url": "https://www.amazon.in/Adhesive-Mounts-Cable-Holders-Multi-Purpose/dp/B083R5HT9X",
+        "price_inr_seen": null,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      15,
+      50
+    ],
+    "evidence": [
+      "https://quartzcomponents.com/products/tie-100x2-2-100-pc-in-each.js",
+      "https://www.amazon.in/Cable-Tie-Adhesive-Base-Clamp/dp/B0F9YS3659"
+    ],
+    "uncertain": [
+      "strap thickness (z) is an estimate",
+      "tensile strength, colour and temperature rating not stated on the listing",
+      "anchor-slot size for printed parts is a design estimate; must be test-printed",
+      "Amazon.in tie-mount listings seen only as search results; price not read",
+      "listing says nylon 6/6; UL94 flammability rating not stated"
+    ]
+  },
+  {
+    "id": "SCREW_SET_M2_M2_5_SHCS_A2",
+    "catalog_row": "09",
+    "catalog_id": "SCREWS_M2_A",
+    "role": "fastener",
+    "name": "M2 / M2.5 socket head cap screws (SS304) + ISO 4032 hex nuts",
+    "reference_product": {
+      "maker": "ThinkRobotics (generic SS304)",
+      "mpn_or_model": "Stainless Steel Socket Head Screws (pack of 10), metric",
+      "product_url": "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 4.5,
+      "y": 4.5,
+      "z": 10.5,
+      "notes": "Representative part M2.5 x 8: z = 8 mm under-head length + estimated 2.5 mm head height; x/y = estimated head diameter. Lengths on the page are measured from under the head. Lengths in stock (page read): M2 5/6/8/10/12/16/20/25/30 mm; M2.5 5/8/10/12/16/20/25/30 mm. Typical M2 assortment kits list 4/6/8/10/12/16/20 mm (search snippet). ISO 4032 nuts (page read): M2 s=4.00 max/3.82 min, e min 4.32, m=1.60 max/1.35 min; M2.5 s=5.00/4.82, e min 5.45, m=2.00/1.75; M3 s=5.50/5.32, e min 6.01, m=2.40/2.15."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "none",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Standard pairing proposal: M2.5 x 6 / x 8 into M2.5 heat-set inserts for shells and cartridge; M2 x 5 / x 6 for module PCBs whose holes are 2.2-2.5 mm (Pololu 2490 holes are 2.2 mm 'for #2 or M2 screws'; Adafruit AHT20 holes are 2.5 mm). Printed hex nut traps: across-flats = s max + clearance (clearance to be test-printed)."
+    },
+    "pins": [],
+    "module_connector": {
+      "type": "none",
+      "pin_order": [],
+      "location": "n/a"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE",
+      "wires": [],
+      "length_mm": 0
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": ""
+    },
+    "electrical": {
+      "supply_v": "none",
+      "logic_v": "none",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "none"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": ""
+    },
+    "kicad": {
+      "backplane_footprint": "NONE",
+      "notes": "Backplane mounting holes for M2.5: e.g. MountingHole:MountingHole_2.7mm_M2.5 (KiCad standard library)."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "ThinkRobotics",
+        "url": "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric",
+        "price_inr_seen": 79.99,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/m2-x-6mm-pan-head-phillips-screw-pack-of-4",
+        "price_inr_seen": 8,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      },
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/m2-5-6mm-bolt-mounting-screw-pack-of-4",
+        "price_inr_seen": 8,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      15,
+      70
+    ],
+    "evidence": [
+      "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric.js",
+      "https://www.wermac.org/bolts/dimensions_hex-nuts_across-flats-and-heights_din-iso.html",
+      "https://camelcamelcamel.com/product/B0H35VTLT8"
+    ],
+    "uncertain": [
+      "SHCS head diameter and head height (ISO 4762) not read from a primary page in this pass; x/y and head part of z are estimates",
+      "hex key size for M2/M2.5 SHCS not confirmed",
+      "ThinkRobotics price 79.99 is per pack of 10 for M2x6 and M2.5x8; other lengths differ (49.99-199.99)",
+      "ThinkRobotics lists one M2.5 variant as 'M2.5X0.4 / 12mm' (pitch label inconsistent with 0.45)",
+      "Quartz screw prices are from the store search API, not a product page read",
+      "nut-trap clearance must be found by test print"
+    ]
+  },
+  {
+    "id": "INSERT_HEATSET_M2_5X4_STD",
+    "catalog_row": "10",
+    "catalog_id": "INSERTS_A",
+    "role": "fastener",
+    "name": "Heat-set insert M2.5 x 4.0 (standard)",
+    "reference_product": {
+      "maker": "CNC Kitchen",
+      "mpn_or_model": "Threaded Inserts M2.5 Standard, M2.5 x 4.0",
+      "product_url": "https://www.3djake.com/cnc-kitchen/threaded-inserts-m25-standard?sai=15444",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 4.6,
+      "y": 4.6,
+      "z": 4.0,
+      "notes": "x/y = insert outer diameter D1 4.6, z = length L 4.0; centre tip D2 3.9 (CNC Kitchen comparison table on the 3DJake page). Same table: M2 standard L 3.0, D1 3.6, D2 3.1, hole 3.2, min wall 1.3."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "press_fit",
+      "holes": [
+        {
+          "x": 0,
+          "y": 0,
+          "d": 4.0
+        }
+      ],
+      "hole_origin": "insert axis",
+      "notes": "Printed hole diameter D3 = 4.0 mm, minimum wall around the hole W = 1.6 mm (CNC Kitchen table) -> boss OD >= 4.0 + 2 x 1.6 = 7.2 mm. Hole depth beyond L (melt room) is a design estimate; test-print."
+    },
+    "pins": [],
+    "module_connector": {
+      "type": "none",
+      "pin_order": [],
+      "location": "n/a"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE",
+      "wires": [],
+      "length_mm": 0
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": ""
+    },
+    "electrical": {
+      "supply_v": "none",
+      "logic_v": "none",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "none"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": ""
+    },
+    "kicad": {
+      "backplane_footprint": "NONE",
+      "notes": ""
+    },
+    "sourcing_in": [
+      {
+        "vendor": "ThinkRobotics",
+        "url": "https://thinkrobotics.com/products/brass-heat-set-inserts-for-plastic",
+        "price_inr_seen": 59.99,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      }
+    ],
+    "price_inr_planning": [
+      20,
+      100
+    ],
+    "evidence": [
+      "https://www.3djake.com/cnc-kitchen/threaded-inserts-m25-standard?sai=15444",
+      "https://thinkrobotics.com/products/brass-heat-set-inserts-for-plastic.js"
+    ],
+    "uncertain": [
+      "Indian source (ThinkRobotics 'M2.5 x 4.5mm', pack of 10, in stock) is NOT the CNC Kitchen part: its OD and recommended hole are only in drawing images that were not read",
+      "CNC Kitchen insert availability in India not checked",
+      "hole depth allowance is an estimate",
+      "one aggregator page gave 3.7 mm hole for M2.5 (conflicts with CNC Kitchen 4.0); treat 4.0 as reference until sample-tested"
+    ]
+  },
+  {
+    "id": "INSERT_HEATSET_M3X5_7_STD",
+    "catalog_row": "10",
+    "catalog_id": "INSERTS_A",
+    "role": "fastener",
+    "name": "Heat-set insert M3 x 5.7 (standard)",
+    "reference_product": {
+      "maker": "CNC Kitchen",
+      "mpn_or_model": "Threaded Inserts M3 Standard, M3 x 5.7",
+      "product_url": "https://www.3djake.com/cnc-kitchen/threaded-inserts-m3-standard?sai=15445",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 4.6,
+      "y": 4.6,
+      "z": 5.7,
+      "notes": "D1 4.6, L 5.7, centre tip D2 3.9 (CNC Kitchen table on the 3DJake M2.5 page). CNC Kitchen also lists an M3 short insert, M3 x 3.0 (product title)."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "press_fit",
+      "holes": [
+        {
+          "x": 0,
+          "y": 0,
+          "d": 4.0
+        }
+      ],
+      "hole_origin": "insert axis",
+      "notes": "Hole D3 4.0 mm, min wall 1.6 mm (CNC Kitchen table) -> boss OD >= 7.2 mm. Use M3 only where a part needs it (e.g. 30 mm fan holes are ~3 mm); default shell fastener is M2.5."
+    },
+    "pins": [],
+    "module_connector": {
+      "type": "none",
+      "pin_order": [],
+      "location": "n/a"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE",
+      "wires": [],
+      "length_mm": 0
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": ""
+    },
+    "electrical": {
+      "supply_v": "none",
+      "logic_v": "none",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "none"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": ""
+    },
+    "kicad": {
+      "backplane_footprint": "NONE",
+      "notes": ""
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/m3-x-4mm-brass-heat-set-threaded-round-insert-nut-10-pcs",
+        "price_inr_seen": 43,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "ThinkRobotics",
+        "url": "https://thinkrobotics.com/products/brass-heat-set-inserts-for-plastic",
+        "price_inr_seen": 64.99,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      }
+    ],
+    "price_inr_planning": [
+      20,
+      100
+    ],
+    "evidence": [
+      "https://www.3djake.com/cnc-kitchen/threaded-inserts-m25-standard?sai=15444",
+      "https://www.3djake.com/cnc-kitchen/threaded-inserts-m3-standard?sai=15445",
+      "https://quartzcomponents.com/products/m3-x-4mm-brass-heat-set-threaded-round-insert-nut-10-pcs.js"
+    ],
+    "uncertain": [
+      "Quartz 'M3x4x4.2mm' insert: title says OD 4.2 but the description says OD 4 mm; recommended hole not stated; geometry differs from the CNC Kitchen reference",
+      "ThinkRobotics M3 x 4.5 variant was out of stock (₹64.99 / 10)",
+      "M3 x 5.7 dims are from a retailer reproduction of the CNC Kitchen table, not cnckitchen.com directly"
+    ]
+  },
+  {
+    "id": "FEET_BUMPON_SJ5302_CLEAR",
+    "catalog_row": "11",
+    "catalog_id": "FEET_A",
+    "role": "mechanical",
+    "name": "Adhesive bumper feet, hemispherical ~7.9 mm",
+    "reference_product": {
+      "maker": "3M",
+      "mpn_or_model": "Bumpon SJ5302 (clear)",
+      "product_url": "https://www.eio.com/products/3m-bumpon-protective-products-sj5302-clear-7-94-mm-x-2-2-mm",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 7.9,
+      "y": 7.9,
+      "z": 2.2,
+      "notes": "Diameter ~7.9 mm (0.312 in), height ~2.2 mm (0.085 in), hemispherical polyurethane; from distributor listings (search snippets). Adafruit #550 generic feet (page read): 'approx 8mm diameter and 4mm tall'."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "adhesive",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Proposal: shallow printed locating recess slightly larger than the foot so the assembler places feet repeatably; recess size to be test-printed. Use 4 feet at the base corners."
+    },
+    "pins": [],
+    "module_connector": {
+      "type": "none",
+      "pin_order": [],
+      "location": "n/a"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE",
+      "wires": [],
+      "length_mm": 0
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": ""
+    },
+    "electrical": {
+      "supply_v": "none",
+      "logic_v": "none",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "none"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": ""
+    },
+    "kicad": {
+      "backplane_footprint": "NONE",
+      "notes": ""
+    },
+    "sourcing_in": [
+      {
+        "vendor": "IndiaMART (Adhesive Solutions, New Delhi)",
+        "url": "https://m.indiamart.com/adhesivesolutions/bumpon.html",
+        "price_inr_seen": null,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      20,
+      70
+    ],
+    "evidence": [
+      "https://www.eio.com/products/3m-bumpon-protective-products-sj5302-clear-7-94-mm-x-2-2-mm",
+      "https://www.onlinecomponents.com/en/productdetail/3m/sj5302clear-51197495.html",
+      "https://www.adafruit.com/product/550"
+    ],
+    "uncertain": [
+      "SJ5302 dimensions are from distributor listings seen as search snippets; 3M datasheet not read",
+      "no Indian retail page read with a confirmed price or stock; IndiaMART listing only seen in search",
+      "adhesive performance on textured FDM surfaces not verified (a smooth printed pad may be needed)"
+    ]
+  },
+  {
+    "id": "CORE_CARTRIDGE_FRAME_V0",
+    "catalog_row": "12",
+    "catalog_id": "CORE_CARTRIDGE_A",
+    "role": "mechanical",
+    "name": "Standard core cartridge frame (our printed part; constraints only)",
+    "reference_product": {
+      "maker": "Quarktex (own design)",
+      "mpn_or_model": "CORE_CARTRIDGE_A v0 constraints",
+      "product_url": null,
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": null,
+      "y": null,
+      "z": null,
+      "notes": "Envelope is set by the core board (row 01) and backplane (row 02) chosen elsewhere; not fixed here."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "holes",
+      "holes": [],
+      "hole_origin": "backplane origin (defined by row 02)",
+      "notes": "Constraints: (1) all shell-to-cartridge joints use M2.5 heat-set inserts (row 10): printed hole 4.0 mm, boss OD >= 7.2 mm (CNC Kitchen min wall 1.6 mm). (2) Module PCBs sit in printed pockets or cradles with clearance found by test print; boards whose hole positions are unconfirmed (GY-302, GY-521, ZS-042, KY-040, HC-SR501) are held by cradles, not by guessed holes. (3) ESP32-S3 PCB antenna: keep magnets, inserts, screws, fan and speaker metal out of a zone around the antenna; secondary sources cite >= 15 mm (verify against the Espressif module datasheet before freezing). (4) Leave the factory test footprint (row 49) reachable, including the 3 alignment holes and the retaining clip's underside access. (5) Provide tie-anchor slots next to each harness exit (row 08). (6) USB-C opening aligned to the core board connector, with no cable strain on the board."
+    },
+    "pins": [],
+    "module_connector": {
+      "type": "none",
+      "pin_order": [],
+      "location": "n/a"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE",
+      "wires": [],
+      "length_mm": 0
+    },
+    "aperture": {
+      "needs": "usb_port",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": "USB-C opening size depends on the row 01/03 connector and the cable overmould; not fixed here."
+    },
+    "electrical": {
+      "supply_v": "none",
+      "logic_v": "none",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "none"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": ""
+    },
+    "kicad": {
+      "backplane_footprint": "NONE",
+      "notes": "Backplane must expose mounting holes matching the cartridge bosses; place antenna keep-out on the board edge facing the shell wall."
+    },
+    "sourcing_in": [],
+    "price_inr_planning": [
+      60,
+      300
+    ],
+    "evidence": [
+      "https://www.3djake.com/cnc-kitchen/threaded-inserts-m25-standard?sai=15444",
+      "https://www.nextpcb.com/blog/esp32-antenna-design-guide",
+      "https://www.tag-connect.com/wp-content/uploads/bsk-pdf-manager/2019/12/TC2030-IDC-NL-Datasheet-Rev-B.pdf"
+    ],
+    "uncertain": [
+      "no dimensions: envelope depends on rows 01/02",
+      "15 mm antenna clearance is from secondary sources (NextPCB guide, a KiCad merge request), not the Espressif datasheet",
+      "pocket/cradle clearances, wall thickness and material (PETG vs PLA) are unvalidated design choices"
+    ]
+  },
+  {
+    "id": "SPK_GASKET_FOAM_25X3_ADH",
+    "catalog_row": "13",
+    "catalog_id": "SPK_BRACKET_A",
+    "role": "mechanical",
+    "name": "Speaker gasket: single-sided adhesive foam strip 25 x 3 mm (+ printed clamp ring)",
+    "reference_product": {
+      "maker": "Generic (Quartz Components listing)",
+      "mpn_or_model": "Gasket Black Foam Single Sided Adhesive Tape, Insulation Foam Strip 25mm x 3mm - 10 meter",
+      "product_url": "https://quartzcomponents.com/products/gasket-black-foam-single-sided-adhesive-tape-insulation-foam-strip-25mm-x-3mm-x-10-meter-length",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 10000,
+      "y": 25,
+      "z": 3,
+      "notes": "Roll: 10 m long, 25 mm wide, 3 mm thick, single-sided pressure-sensitive adhesive (page read). Die-cut or knife-cut to a ring matching the speaker frame (speaker is row 22, owned elsewhere)."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "adhesive",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Printed speaker bracket = clamp ring screwed with M2.5 into inserts, compressing the gasket between speaker frame and grille wall. Ring geometry depends on the row 22 speaker drawing. Gasket compression target to be found by test (no source read)."
+    },
+    "pins": [],
+    "module_connector": {
+      "type": "none",
+      "pin_order": [],
+      "location": "n/a"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE",
+      "wires": [],
+      "length_mm": 0
+    },
+    "aperture": {
+      "needs": "grille",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": "Grille open area follows the speaker cone diameter from row 22."
+    },
+    "electrical": {
+      "supply_v": "none",
+      "logic_v": "none",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "none"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": ""
+    },
+    "kicad": {
+      "backplane_footprint": "NONE",
+      "notes": ""
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/gasket-black-foam-single-sided-adhesive-tape-insulation-foam-strip-25mm-x-3mm-x-10-meter-length",
+        "price_inr_seen": 64,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/gasket-black-foam-single-sided-adhesive-tape-insulation-foam-strip",
+        "price_inr_seen": 76,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      30,
+      120
+    ],
+    "evidence": [
+      "https://quartzcomponents.com/products/gasket-black-foam-single-sided-adhesive-tape-insulation-foam-strip-25mm-x-3mm-x-10-meter-length.js"
+    ],
+    "uncertain": [
+      "foam material (EVA/EPDM/PE/neoprene) and open vs closed cell not stated; closed-cell is preferred for an acoustic seal (engineering judgement, unverified for this product)",
+      "the second Quartz option (20 mm EVA, 3 mm, ₹76) seen only via store search API",
+      "bracket/ring dimensions depend on row 22 speaker"
+    ]
+  },
+  {
+    "id": "DIFFUSER_PRINTED_NATURAL_PETG",
+    "catalog_row": "19",
+    "catalog_id": "DIFFUSER_A",
+    "role": "mechanical",
+    "name": "LED diffuser: printed natural PETG wall (alt: opal acrylic sheet)",
+    "reference_product": {
+      "maker": "Quarktex (printed) / generic opal acrylic",
+      "mpn_or_model": "Natural (unpigmented) PETG diffuser wall; alternative 2-3 mm opal white acrylic",
+      "product_url": null,
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": null,
+      "y": null,
+      "z": null,
+      "notes": "Shape follows the shell. Guidance read: natural or white filament diffuses best, more LED-to-diffuser spacing reduces hotspots, thin walls/close spacing show LED dots, test a swatch first (hex-3d-gon lesson); a maker reported good results with 5 mm thick transparent ABS at >= 5 mm from the LEDs; an LED ring lamp used 0.5 mm diffuser walls (makerworld)."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "panel_snap",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Printed diffuser is part of the shell or a snap-in window; opal acrylic is laser-cut and captured in a printed groove."
+    },
+    "pins": [],
+    "module_connector": {
+      "type": "none",
+      "pin_order": [],
+      "location": "n/a"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE",
+      "wires": [],
+      "length_mm": 0
+    },
+    "aperture": {
+      "needs": "led_window",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": "Starting test matrix (proposal, not validated): wall 0.8 / 1.2 / 1.6 mm natural PETG x LED gap 5 / 10 mm. PETG preferred over PLA near warm LEDs (forum reports of PLA softening)."
+    },
+    "electrical": {
+      "supply_v": "none",
+      "logic_v": "none",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "none"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": ""
+    },
+    "kicad": {
+      "backplane_footprint": "NONE",
+      "notes": ""
+    },
+    "sourcing_in": [
+      {
+        "vendor": "IndiaMART (opal acrylic sheet supplier listing)",
+        "url": "https://m.indiamart.com/impcat/cast-acrylic-sheet.html",
+        "price_inr_seen": 72,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      30,
+      150
+    ],
+    "evidence": [
+      "https://hex-3d-gon.pages.dev/lessons/uses-009",
+      "https://forum.makerforums.info/t/been-quiet-for-some-time/58939",
+      "https://makerworld.com/en/models/219349-led-ring-lamp",
+      "https://forum.bambulab.com/t/led-diffuser-using-transparent-pc/185469"
+    ],
+    "uncertain": [
+      "no source gives a validated wall thickness or LED gap; the 0.8-1.6 mm x 5-10 mm matrix is a proposal",
+      "opal acrylic price (₹72 per sq ft, 3 mm, 8x4 ft sheet) is a search snippet from an IndiaMART listing; cut-to-size cost unknown",
+      "light transmission of a specific natural PETG brand not measured"
+    ]
+  },
+  {
+    "id": "ENCODER_KY040_PUSH",
+    "catalog_row": "25",
+    "catalog_id": null,
+    "role": "input",
+    "name": "Rotary encoder module with push switch (KY-040)",
+    "reference_product": {
+      "maker": "Generic KY-040 (EC11-type 11 mm encoder)",
+      "mpn_or_model": "KY-040",
+      "product_url": "https://robocraze.com/products/rotary-encoder-module",
+      "datasheet_url": "https://tech.alpsalpine.com/cms.media/product_catalog_ec_01_ec11e_en_611f078659.pdf"
+    },
+    "dims_mm": {
+      "x": 26,
+      "y": 20,
+      "z": 30,
+      "notes": "PCB 26 x 20 mm, height including shaft 30 mm (ProtoSupplies measured). Joy-IT KY-040 lists 18 x 31 x 30 mm (different board). Encoder family reference (Alps EC11E drawing): body 11.7 x 12 mm, 7.5 mm max body height, shaft dia 6, actuator length 20 mm, push travel 0.5 mm."
+    },
+    "pcb_thickness_mm": 1.6,
+    "mount": {
+      "type": "clip",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Hold the PCB in a printed cradle and pass the shaft through the panel; KY-040 hole positions not confirmed. Panel hole for a 6 mm shaft + knob clearance found by test print."
+    },
+    "pins": [
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": "encoder common C"
+      },
+      {
+        "name": "+",
+        "func": "3v3",
+        "notes": "feeds the CLK/DT pull-ups; module range 3.3-5 V (ProtoSupplies)"
+      },
+      {
+        "name": "SW",
+        "func": "gpio",
+        "notes": "push switch, active LOW; some boards lack a pull-up, enable INPUT_PULLUP (ProtoSupplies)"
+      },
+      {
+        "name": "DT",
+        "func": "gpio",
+        "notes": "channel B, lags CLK by 90 deg"
+      },
+      {
+        "name": "CLK",
+        "func": "gpio",
+        "notes": "channel A"
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "GND",
+        "+",
+        "SW",
+        "DT",
+        "CLK"
+      ],
+      "location": "short edge opposite the shaft side"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_5P (not in rows 06/07; needs a blueprint connector decision)",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "+",
+          "color": "red"
+        },
+        {
+          "module_pin": "SW",
+          "color": "white"
+        },
+        {
+          "module_pin": "DT",
+          "color": "green"
+        },
+        {
+          "module_pin": "CLK",
+          "color": "yellow"
+        }
+      ],
+      "length_mm": 120
+    },
+    "aperture": {
+      "needs": "button_hole",
+      "size_mm": {
+        "w": 7,
+        "h": 7,
+        "d": 0
+      },
+      "notes": "Round hole for the 6 mm shaft; 7 mm is a clearance estimate. Knob covers the hole. Push travel 0.5 mm (Alps EC11E reference)."
+    },
+    "electrical": {
+      "supply_v": "3.3-5",
+      "logic_v": "3.3",
+      "current_ma_typ": 0.5,
+      "current_ma_max": 1,
+      "bus": "gpio"
+    },
+    "firmware": {
+      "arduino_libraries": [
+        "madhephaestus/ESP32Encoder"
+      ],
+      "driver_notes": "Use ESP32-S3 PCNT via ESP32Encoder; detents per rev: 20 (ProtoSupplies) vs 30 positions (components101) - confirm on sample and set counts-per-detent. Swap CLK/DT if direction is reversed. Arduino library names given without version pins; versions were not checked in this pass."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B5B-PH-K_1x05_P2.00mm_Vertical",
+      "notes": "5-pin port. Alternative: split into a 4-pin GPIO port (GND, CLK, DT, SW with ESP32 internal pull-ups, '+' unused) but that reuses the I2C 4-pin connector family for non-I2C signals, which risks mis-plugging. Wire colours and 4-pin order (GND,VCC,SDA,SCL) are a proposal; the row 06/07 owner fixes the canonical pinout. Harness length is a design proposal, not a measured value."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/rotary-encoder-module",
+        "price_inr_seen": 59,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/rotary-encoder-module-ky-040",
+        "price_inr_seen": 47,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      80,
+      220
+    ],
+    "evidence": [
+      "https://protosupplies.com/product/rotary-encoder-module/",
+      "https://www.joy-it.net/en/products/COM-KY040RE",
+      "https://components101.com/modules/KY-04-rotary-encoder-pinout-features-datasheet-working-application-alternative",
+      "https://tech.alpsalpine.com/cms.media/product_catalog_ec_01_ec11e_en_611f078659.pdf",
+      "https://robocraze.com/products/rotary-encoder-module.js"
+    ],
+    "uncertain": [
+      "Robocraze listing has no dimensions or pinout; it calls the part an 'M274' encoder - same board as KY-040 not confirmed",
+      "detent count (20 vs 30) and pulses per detent",
+      "whether the KY-040 encoder has a threaded panel bushing and its thread size (Alps EC11E drawing has none)",
+      "PCB mounting hole positions/diameters",
+      "current figures are estimates from 10k pull-ups at 3.3 V",
+      "PCB thickness 1.6 assumed",
+      "Quartz KY-040 was out of stock (store search API)"
+    ]
+  },
+  {
+    "id": "TOUCH_TTP223_SMALL_15X11",
+    "catalog_row": "26",
+    "catalog_id": null,
+    "role": "input",
+    "name": "Capacitive touch module TTP223 (small 15 x 11 mm)",
+    "reference_product": {
+      "maker": "Generic",
+      "mpn_or_model": "TTP223(B) 1-channel touch module, small",
+      "product_url": "https://robocraze.com/products/ttp223-touch-switch-module",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 15,
+      "y": 11,
+      "z": 3,
+      "notes": "PCB 15 x 11 mm (TinyTronics, same small board type). z is an estimate including the IC on the back."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "adhesive",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "No mounting holes on the small board (none listed). Bond the pad side flat against the inside of a non-metallic wall; non-metal covers work per Robocraze TTP223B description. Larger alternative TTP223B board (Robocraze ₹25) has 4 M2 positioning holes of 2.2 mm."
+    },
+    "pins": [
+      {
+        "name": "I/O",
+        "func": "gpio",
+        "notes": "touch status output; default high when touched (A=0,B=0)"
+      },
+      {
+        "name": "VCC",
+        "func": "3v3",
+        "notes": "2.0-5.5 V"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": ""
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "I/O",
+        "VCC",
+        "GND"
+      ],
+      "location": "short edge"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_3P (keyed, per blueprint row 07)",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VCC",
+          "color": "red"
+        },
+        {
+          "module_pin": "I/O",
+          "color": "white"
+        }
+      ],
+      "length_mm": 120
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": "Touch through the shell wall; mark the touch zone on the shell. Maximum working wall thickness not confirmed - test 1.0/1.5/2.0 mm PETG."
+    },
+    "electrical": {
+      "supply_v": "2.0-5.5",
+      "logic_v": "3.3",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "gpio"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "Plain GPIO read. Jumpers (TinyTronics): A=0,B=0 momentary active-high (default); A=0,B=1 toggle active-high; A=1,B=0 momentary active-low; A=1,B=1 toggle active-low. In momentary mode a touch registers for at most ~7 s. Board self-calibrates at power-up: do not touch during boot."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+      "notes": "Wire colours and 4-pin order (GND,VCC,SDA,SCL) are a proposal; the row 06/07 owner fixes the canonical pinout. Harness length is a design proposal, not a measured value."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/ttp223-touch-switch-module",
+        "price_inr_seen": 9,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      },
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/ttp223b-capacitive-touch-sensor-module",
+        "price_inr_seen": 25,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/red-ttp223-1-channel-capacitive-touch-sensor-module",
+        "price_inr_seen": 9,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      },
+      {
+        "vendor": "ThinkRobotics",
+        "url": "https://thinkrobotics.com/products/ttp223-touch-key-module",
+        "price_inr_seen": 32.99,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      50,
+      160
+    ],
+    "evidence": [
+      "https://www.tinytronics.nl/en/sensors/touch/touch-module-ttp223b-1-channel-small",
+      "https://robocraze.com/products/ttp223b-capacitive-touch-sensor-module.js"
+    ],
+    "uncertain": [
+      "supply current not found (TTP223 datasheet not read); current fields left 0",
+      "pin order along the header differs between vendors; verify silkscreen",
+      "dimensions are from TinyTronics' small board; the Robocraze ₹9 small board is assumed identical (not confirmed)",
+      "jumper semantics conflict across sources (TinyTronics table used)",
+      "max wall thickness for reliable touch not confirmed",
+      "the ₹25 Robocraze page read is the larger TTP223B board, not the small one"
+    ]
+  },
+  {
+    "id": "LIGHT_BH1750_GY302_I2C",
+    "catalog_row": "27",
+    "catalog_id": null,
+    "role": "sensor",
+    "name": "Ambient light sensor BH1750 (GY-302 I2C module)",
+    "reference_product": {
+      "maker": "Generic (ROHM BH1750FVI)",
+      "mpn_or_model": "GY-302",
+      "product_url": "https://robocraze.com/products/gy-302-bh1750-light-intensity-module",
+      "datasheet_url": "https://www.handsontec.com/dataspecs/sensor/BH1750%20Light%20Sensor.pdf"
+    },
+    "dims_mm": {
+      "x": 18.5,
+      "y": 13.5,
+      "z": 2.3,
+      "notes": "Handsontec drawing: 18.5 x 13.5 mm (its text says 13.9 x 18.5). z 2.3 mm from a Purecrea listing (search snippet), header excluded."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "holes",
+      "holes": [
+        {
+          "x": 15.9,
+          "y": 11.4,
+          "d": 3.0
+        },
+        {
+          "x": 15.9,
+          "y": 1.9,
+          "d": 3.0
+        }
+      ],
+      "hole_origin": "bottom-left corner, component side up, 5-pin header on the left short edge (pin 1 VCC at top)",
+      "notes": "Two holes on the right short edge. Positions are scaled from the Handsontec photo-drawing (not a CAD drawing); 3 mm diameter from a listing snippet. Prefer a printed cradle until a sample is measured."
+    },
+    "pins": [
+      {
+        "name": "VCC",
+        "func": "3v3",
+        "notes": ""
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": ""
+      },
+      {
+        "name": "SCL",
+        "func": "i2c_scl",
+        "notes": ""
+      },
+      {
+        "name": "SDA",
+        "func": "i2c_sda",
+        "notes": ""
+      },
+      {
+        "name": "ADDR",
+        "func": "nc",
+        "notes": "low/open = 0x23, high = 0x5C"
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "VCC",
+        "GND",
+        "SCL",
+        "SDA",
+        "ADDR"
+      ],
+      "location": "left short edge"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_4P (keyed, per blueprint row 06)",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VCC",
+          "color": "red"
+        },
+        {
+          "module_pin": "SDA",
+          "color": "blue"
+        },
+        {
+          "module_pin": "SCL",
+          "color": "yellow"
+        }
+      ],
+      "length_mm": 120
+    },
+    "aperture": {
+      "needs": "led_window",
+      "size_mm": {
+        "w": 4,
+        "h": 4,
+        "d": 0
+      },
+      "notes": "Light inlet over the sensor IC; size is an estimate. Angle of half sensitivity +/-45 deg (ProtoSupplies, GY-30 board with the same IC); peak 560 nm. Keep the device's own LEDs out of view of the sensor."
+    },
+    "electrical": {
+      "supply_v": "3.3-5",
+      "logic_v": "3.3",
+      "current_ma_typ": 0.2,
+      "current_ma_max": 1,
+      "bus": "i2c 0x23 (alt 0x5C)"
+    },
+    "firmware": {
+      "arduino_libraries": [
+        "claws/BH1750"
+      ],
+      "driver_notes": "Continuous high-res mode; ~+/-20% measurement variation (ProtoSupplies). Arduino library names given without version pins; versions were not checked in this pass."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B4B-PH-K_1x04_P2.00mm_Vertical",
+      "notes": "Wire colours and 4-pin order (GND,VCC,SDA,SCL) are a proposal; the row 06/07 owner fixes the canonical pinout. Harness length is a design proposal, not a measured value."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/gy-302-bh1750-light-intensity-module",
+        "price_inr_seen": 110,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/gy-302-bh1750-light-intensity-module",
+        "price_inr_seen": 94,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      30,
+      130
+    ],
+    "evidence": [
+      "https://www.handsontec.com/dataspecs/sensor/BH1750%20Light%20Sensor.pdf",
+      "https://protosupplies.com/product/gy-30-bh1750fvi-digital-ambient-light-intensity-sensor-module/",
+      "https://www.bastelgarage.ch/bh1750-gy-302-digital-light-sensor-light-intensity-sensor-with-i2c",
+      "https://robocraze.com/products/gy-302-bh1750-light-intensity-module.js"
+    ],
+    "uncertain": [
+      "board width 13.5 vs 13.9 mm (two values in the same Handsontec PDF)",
+      "hole positions scaled from a photo; hole diameter 3 mm from a listing snippet",
+      "supply current values are estimates (BH1750 datasheet not read)",
+      "whether GY-302 has an on-board regulator (5 V tolerance) not confirmed from a primary source",
+      "Robocraze page has no specs; board assumed to match Handsontec GY-302"
+    ]
+  },
+  {
+    "id": "LIGHT_LDR_LM393_4PIN",
+    "catalog_row": "27",
+    "catalog_id": null,
+    "role": "sensor",
+    "name": "LDR light module, LM393 comparator, analog + digital out (alternative)",
+    "reference_product": {
+      "maker": "Generic",
+      "mpn_or_model": "LM393 Photosensitive LDR Light-Dependent Control Sensor Module (4-pin)",
+      "product_url": "https://robocraze.com/products/lm393-photosensitive-ldr-light-dependent-control-sensor-module",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 30,
+      "y": 14,
+      "z": 8,
+      "notes": "ESTIMATE ONLY - no dimension source read for this board."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "holes",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Listing says the module 'has a mounting hole'; position and diameter not read. Use a printed cradle."
+    },
+    "pins": [
+      {
+        "name": "VCC",
+        "func": "3v3",
+        "notes": "3.3-5 V"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": ""
+      },
+      {
+        "name": "D0",
+        "func": "gpio",
+        "notes": "comparator output, threshold set by on-board pot"
+      },
+      {
+        "name": "A0",
+        "func": "analog",
+        "notes": "analog LDR divider voltage; wire to an ADC1 pin (ADC2 conflicts with Wi-Fi on ESP32-class parts)"
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "VCC",
+        "GND",
+        "D0",
+        "A0"
+      ],
+      "location": "short edge"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_3P (keyed, per blueprint row 07)",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VCC",
+          "color": "red"
+        },
+        {
+          "module_pin": "A0",
+          "color": "white"
+        }
+      ],
+      "length_mm": 120
+    },
+    "aperture": {
+      "needs": "led_window",
+      "size_mm": {
+        "w": 5,
+        "h": 5,
+        "d": 0
+      },
+      "notes": "Window over the LDR; size estimate."
+    },
+    "electrical": {
+      "supply_v": "3.3-5",
+      "logic_v": "3.3",
+      "current_ma_typ": 1,
+      "current_ma_max": 5,
+      "bus": "gpio"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "analogRead on A0 with averaging; D0 optional. Only 3 of 4 pins wired to keep the 3-pin keyed port."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+      "notes": "Wire colours and 4-pin order (GND,VCC,SDA,SCL) are a proposal; the row 06/07 owner fixes the canonical pinout. Harness length is a design proposal, not a measured value."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/lm393-photosensitive-ldr-light-dependent-control-sensor-module",
+        "price_inr_seen": 29,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/photosensitive-light-detection-sensor",
+        "price_inr_seen": 29,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      30,
+      130
+    ],
+    "evidence": [
+      "https://robocraze.com/products/lm393-photosensitive-ldr-light-dependent-control-sensor-module.js"
+    ],
+    "uncertain": [
+      "all dimensions are estimates",
+      "mounting hole position/diameter",
+      "current draw (power LED + comparator) is an estimate",
+      "ADC1-vs-Wi-Fi note is general ESP32 knowledge, not re-verified for ESP32-S3 in this pass"
+    ]
+  },
+  {
+    "id": "TEMPHUM_AHT20_ADAFRUIT_4566",
+    "catalog_row": "28",
+    "catalog_id": null,
+    "role": "sensor",
+    "name": "Temperature/humidity sensor AHT20 (Adafruit 4566, STEMMA QT)",
+    "reference_product": {
+      "maker": "Adafruit",
+      "mpn_or_model": "4566",
+      "product_url": "https://www.adafruit.com/product/4566",
+      "datasheet_url": "https://github.com/adafruit/Adafruit-AHT20-PCB"
+    },
+    "dims_mm": {
+      "x": 25.4,
+      "y": 17.78,
+      "z": 4.6,
+      "notes": "Board outline 25.4 x 17.78 mm read from Adafruit's own Eagle .brd (Dimension layer). z is an estimate including the JST SH connectors."
+    },
+    "pcb_thickness_mm": 1.6,
+    "mount": {
+      "type": "holes",
+      "holes": [
+        {
+          "x": 2.54,
+          "y": 2.54,
+          "d": 2.5
+        },
+        {
+          "x": 22.86,
+          "y": 2.54,
+          "d": 2.5
+        },
+        {
+          "x": 2.54,
+          "y": 15.24,
+          "d": 2.5
+        },
+        {
+          "x": 22.86,
+          "y": 15.24,
+          "d": 2.5
+        }
+      ],
+      "hole_origin": "bottom-left corner of the board outline, top view, 4-pin header along the bottom edge",
+      "notes": "Four plated 2.5 mm holes (Eagle MOUNTINGHOLE_2.5_PLATED). Use M2 screws (or M2.5 tight). Header JP2 pads at y=2.54, x=8.89/11.43/13.97/16.51."
+    },
+    "pins": [
+      {
+        "name": "VIN",
+        "func": "3v3",
+        "notes": "3.3 or 5 V power/logic (Adafruit)"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": ""
+      },
+      {
+        "name": "SCL",
+        "func": "i2c_scl",
+        "notes": ""
+      },
+      {
+        "name": "SDA",
+        "func": "i2c_sda",
+        "notes": ""
+      }
+    ],
+    "module_connector": {
+      "type": "qwiic",
+      "pin_order": [
+        "GND",
+        "VCC",
+        "SDA",
+        "SCL"
+      ],
+      "location": "JST SH 4P on both short edges (x=2.6 and x=22.8, y=8.89); 2.54 mm header on bottom edge"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_4P (keyed, per blueprint row 06); module end JST SH 1.0 4P",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VCC",
+          "color": "red"
+        },
+        {
+          "module_pin": "SDA",
+          "color": "blue"
+        },
+        {
+          "module_pin": "SCL",
+          "color": "yellow"
+        }
+      ],
+      "length_mm": 120
+    },
+    "aperture": {
+      "needs": "vent",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": "Place on a shell wall away from the ESP32 and regulators, with vent slots in front of the sensor; size to be set with the shell."
+    },
+    "electrical": {
+      "supply_v": "3.3-5",
+      "logic_v": "3.3",
+      "current_ma_typ": 1,
+      "current_ma_max": 1,
+      "bus": "i2c 0x38"
+    },
+    "firmware": {
+      "arduino_libraries": [
+        "adafruit/Adafruit AHTX0"
+      ],
+      "driver_notes": "Single fixed address 0x38 - only one AHT20 per bus (Adafruit). Accuracy +/-2% RH, +/-0.3 C typical at 20-80% RH / 20-60 C. Self-heating from nearby electronics biases readings; sample infrequently. Arduino library names given without version pins; versions were not checked in this pass."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B4B-PH-K_1x04_P2.00mm_Vertical",
+      "notes": "Cable is JST SH 4P (module) to JST PH 4P (backplane); STEMMA QT order GND,VCC,SDA,SCL read from the Adafruit .brd. Wire colours and 4-pin order (GND,VCC,SDA,SCL) are a proposal; the row 06/07 owner fixes the canonical pinout. Harness length is a design proposal, not a measured value."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Evelta",
+        "url": "https://evelta.com/adafruit-aht20-temperature-humidity-sensor-breakout-board-stemma-qt-qwiic/",
+        "price_inr_seen": 625.4,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      }
+    ],
+    "price_inr_planning": [
+      100,
+      350
+    ],
+    "evidence": [
+      "https://www.adafruit.com/product/4566",
+      "https://github.com/adafruit/Adafruit-AHT20-PCB",
+      "https://raw.githubusercontent.com/adafruit/Adafruit-AHT20-PCB/master/Adafruit%20AHT20%20Temperature%20%26%20Humidity.brd",
+      "https://evelta.com/adafruit-aht20-temperature-humidity-sensor-breakout-board-stemma-qt-qwiic/"
+    ],
+    "uncertain": [
+      "Evelta price ₹530 ex GST / ₹625.40 incl GST is above the planning range; the page showed both 'in stock' and 'Sold Out'",
+      "Mouser India ₹419.31 seen only in search results",
+      "z height and supply current are estimates (AHT20 datasheet not read)",
+      "cheaper generic AHT20/AHT21 boards (Quartz AHT21B ₹96, AHT10 ₹98, both out of stock) are unqualified",
+      "PCB thickness 1.6 assumed"
+    ]
+  },
+  {
+    "id": "BARO_BMP280_GY_3V3_I2C",
+    "catalog_row": "29",
+    "catalog_id": null,
+    "role": "sensor",
+    "name": "Barometric pressure sensor BMP280 (GY-BMP280-3.3)",
+    "reference_product": {
+      "maker": "Generic (Bosch BMP280)",
+      "mpn_or_model": "GY-BMP280-3.3",
+      "product_url": "https://robocraze.com/products/bmp280-sensor-module",
+      "datasheet_url": "https://components101.com/sites/default/files/component_datasheet/GY-BMP280-3.3%20Module%20Datasheet.pdf"
+    },
+    "dims_mm": {
+      "x": 15,
+      "y": 11.5,
+      "z": 2.5,
+      "notes": "Module size 11.5 x 15 mm, 2.54 mm pin pitch (components101 datasheet). z is an estimate, header excluded."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "holes",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Board has two holes on the edge opposite the header (Handsontec photo); positions/diameter not confirmed - use a printed cradle."
+    },
+    "pins": [
+      {
+        "name": "VCC",
+        "func": "3v3",
+        "notes": "3.3 V only; Handsontec: operating voltage 1.8-3.3 V, needs regulator + level shifter for 5 V systems"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": ""
+      },
+      {
+        "name": "SCL",
+        "func": "i2c_scl",
+        "notes": "SCK in SPI mode"
+      },
+      {
+        "name": "SDA",
+        "func": "i2c_sda",
+        "notes": "SDI in SPI mode"
+      },
+      {
+        "name": "CSB",
+        "func": "nc",
+        "notes": "10k pull-up on module selects I2C (Handsontec schematic)"
+      },
+      {
+        "name": "SDO",
+        "func": "nc",
+        "notes": "10k pull-down -> address 0x76; tie high for 0x77"
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "VCC",
+        "GND",
+        "SCL",
+        "SDA",
+        "CSB",
+        "SDO"
+      ],
+      "location": "long edge"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_4P (keyed, per blueprint row 06)",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VCC",
+          "color": "red"
+        },
+        {
+          "module_pin": "SDA",
+          "color": "blue"
+        },
+        {
+          "module_pin": "SCL",
+          "color": "yellow"
+        }
+      ],
+      "length_mm": 120
+    },
+    "aperture": {
+      "needs": "vent",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": "Needs exchange with room air (not sealed); shield from direct airflow from the fan (row 44)."
+    },
+    "electrical": {
+      "supply_v": "3.3",
+      "logic_v": "3.3",
+      "current_ma_typ": 0.01,
+      "current_ma_max": 1,
+      "bus": "i2c 0x76 (alt 0x77)"
+    },
+    "firmware": {
+      "arduino_libraries": [
+        "adafruit/Adafruit BMP280 Library"
+      ],
+      "driver_notes": "Call begin(0x76): GY boards default to 0x76 while the Adafruit library default is 0x77. Check chip ID 0x58 at boot to reject mislabeled BME280/BMP180 clones. Arduino library names given without version pins; versions were not checked in this pass."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B4B-PH-K_1x04_P2.00mm_Vertical",
+      "notes": "4-pin harness must carry 3.3 V on VCC for this module. Wire colours and 4-pin order (GND,VCC,SDA,SCL) are a proposal; the row 06/07 owner fixes the canonical pinout. Harness length is a design proposal, not a measured value."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/bmp280-sensor-module",
+        "price_inr_seen": 39,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      },
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/bmp280-pressure-sensor-module",
+        "price_inr_seen": 33,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      140,
+      350
+    ],
+    "evidence": [
+      "https://components101.com/sites/default/files/component_datasheet/GY-BMP280-3.3%20Module%20Datasheet.pdf",
+      "https://handsontec.com/dataspecs/sensor/BMP280.pdf",
+      "https://www.hotmcu.com/gybmp28033-high-precision-atmospheric-pressure-sensor-module-p-328.html?cPath=7_37"
+    ],
+    "uncertain": [
+      "prices from store search API only (no product page read)",
+      "hole positions and z height",
+      "current values are estimates (BMP280 datasheet not read)",
+      "Handsontec PDF covers a 'GY-BM E/P 280' board and also lists 21 x 18 mm in its text (likely a different board); 15 x 11.5 is from components101",
+      "clone-chip risk (BMP vs BME) not measurable from listings",
+      "observed street price (₹33-39) is far below the planning range (140-350), suggesting the planning range assumed a branded board"
+    ]
+  },
+  {
+    "id": "TOF_VL53L0X_POLOLU_2490",
+    "catalog_row": "30",
+    "catalog_id": null,
+    "role": "sensor",
+    "name": "Time-of-flight distance sensor VL53L0X (Pololu 2490 carrier)",
+    "reference_product": {
+      "maker": "Pololu",
+      "mpn_or_model": "2490",
+      "product_url": "https://www.pololu.com/product/2490",
+      "datasheet_url": "https://www.pololu.com/file/0J1194/vl53l0x-vl53l1x-vl53l3cx-vl53l4cd-carrier-dimension-diagram.pdf"
+    },
+    "dims_mm": {
+      "x": 12.7,
+      "y": 17.8,
+      "z": 2.2,
+      "notes": "Pololu drawing (30 Jul 2024): 12.7 x 17.8 mm, PCB 1.02 mm + 1.2 mm components; spec page: 0.5 x 0.7 x 0.085 in without headers. Sensor IC centre at 6.9 mm from the left edge and 8.9 mm from the bottom (top view)."
+    },
+    "pcb_thickness_mm": 1.02,
+    "mount": {
+      "type": "holes",
+      "holes": [
+        {
+          "x": 10.2,
+          "y": 2.5,
+          "d": 2.2
+        },
+        {
+          "x": 10.2,
+          "y": 15.3,
+          "d": 2.2
+        }
+      ],
+      "hole_origin": "bottom-left corner, top view, 7-pin header column along the left edge (x=1.27)",
+      "notes": "2 x 2.2 mm holes, 2.5 mm from the right edge and 2.5 mm from top/bottom edges, 'intended for #2 and M2 screws'. Drill tolerance +/-0.1, board edge +/-0.3."
+    },
+    "pins": [
+      {
+        "name": "VDD",
+        "func": "nc",
+        "notes": "2.8 V regulator output"
+      },
+      {
+        "name": "VIN",
+        "func": "3v3",
+        "notes": "2.6-5.5 V supply"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": ""
+      },
+      {
+        "name": "SDA",
+        "func": "i2c_sda",
+        "notes": "level-shifted to VIN"
+      },
+      {
+        "name": "SCL",
+        "func": "i2c_scl",
+        "notes": "level-shifted to VIN"
+      },
+      {
+        "name": "XSHUT",
+        "func": "enable",
+        "notes": "active-low shutdown, pulled up to VDD, NOT 5 V tolerant; needed to re-address several sensors"
+      },
+      {
+        "name": "GPIO1",
+        "func": "gpio",
+        "notes": "interrupt output, pulled up to VDD, NOT 5 V tolerant"
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "VDD",
+        "VIN",
+        "GND",
+        "SDA",
+        "SCL",
+        "XSHUT",
+        "GPIO1"
+      ],
+      "location": "left long edge, 7 x 1.02 mm holes, first pin 1.27 mm from the top edge"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_4P (keyed, per blueprint row 06)",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VIN",
+          "color": "red"
+        },
+        {
+          "module_pin": "SDA",
+          "color": "blue"
+        },
+        {
+          "module_pin": "SCL",
+          "color": "yellow"
+        }
+      ],
+      "length_mm": 120
+    },
+    "aperture": {
+      "needs": "led_window",
+      "size_mm": {
+        "w": 6,
+        "h": 4,
+        "d": 0
+      },
+      "notes": "Optical window over the emitter/receiver (size is an estimate). Remove the protective liner (Pololu). Do not cover with ordinary printed plastic; cover-glass rules come from ST guidance that was not read here."
+    },
+    "electrical": {
+      "supply_v": "2.6-5.5",
+      "logic_v": "3.3",
+      "current_ma_typ": 20,
+      "current_ma_max": 40,
+      "bus": "i2c 0x29"
+    },
+    "firmware": {
+      "arduino_libraries": [
+        "pololu/VL53L0X"
+      ],
+      "driver_notes": "Default 7-bit address 0b0101001 (0x29); a changed address is lost on reset/power-off, so multi-sensor designs hold XSHUT low and re-address at boot. Practical minimum ~3 cm, max ~2 m. Arduino library names given without version pins; versions were not checked in this pass."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B4B-PH-K_1x04_P2.00mm_Vertical",
+      "notes": "Add a 5th wire / port only if XSHUT is needed. Wire colours and 4-pin order (GND,VCC,SDA,SCL) are a proposal; the row 06/07 owner fixes the canonical pinout. Harness length is a design proposal, not a measured value."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/vl53l0x-laser-ranging-sensor",
+        "price_inr_seen": 129,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "DNA Technology (dnatechindia.com)",
+        "url": "https://www.dnatechindia.com/SENSORS/proximity-distance-motion-sensor-buy-india/vl-53-l-0-x-ranging-sensor-module.html",
+        "price_inr_seen": 270.81,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      160,
+      500
+    ],
+    "evidence": [
+      "https://www.pololu.com/product/2490",
+      "https://www.pololu.com/product/2490/specs",
+      "https://www.pololu.com/file/0J1194/vl53l0x-vl53l1x-vl53l3cx-vl53l4cd-carrier-dimension-diagram.pdf",
+      "https://pololu.com/product/2490/distributors",
+      "https://robocraze.com/products/vl53l0x-laser-ranging-sensor.js"
+    ],
+    "uncertain": [
+      "Indian listings (Robocraze ₹129 out of stock, DNA Tech ₹270.81) are generic VL53L0X boards, NOT the Pololu carrier; generic GY-VL53L0XV2 is reported as 25 x 10.7 mm with 19.3 mm hole pitch (Flipkart snippet) - a different footprint",
+      "Pololu 2490 in India would come via Pololu's listed India distributor (import); price not read",
+      "window size and cover material not validated (ST application note not read)",
+      "exact end of the header that is VDD should be checked against the silkscreen"
+    ]
+  },
+  {
+    "id": "PIR_AM312_MINI",
+    "catalog_row": "31",
+    "catalog_id": null,
+    "role": "sensor",
+    "name": "Mini PIR motion sensor AM312",
+    "reference_product": {
+      "maker": "Generic (Nanyang Senba AM312)",
+      "mpn_or_model": "AM312 mini PIR module",
+      "product_url": "https://probots.co.in/am312-mini-pir-motion-sensor-module.html",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 27,
+      "y": 12,
+      "z": 12,
+      "notes": "PCB 10 x 8 mm; total 12 mm x 27 mm including lens and pins (TinyTronics). Lens diameter 10 mm (Probots). x = axial length lens-to-pin-ends, y/z = lens holder envelope."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "press_fit",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Press the lens holder into a printed bore from inside the shell with the Fresnel lens flush or proud of the outer surface; bore diameter to be test-fitted to a sample."
+    },
+    "pins": [
+      {
+        "name": "VIN",
+        "func": "3v3",
+        "notes": "marked '+' or U1; 2.7-12 V"
+      },
+      {
+        "name": "OUT",
+        "func": "gpio",
+        "notes": "middle pin; high 3.3 V, low 0 V"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": "marked '-' or C1; reversing VCC/GND destroys the element (Probots)"
+      }
+    ],
+    "module_connector": {
+      "type": "wire_leads",
+      "pin_order": [
+        "VIN",
+        "OUT",
+        "GND"
+      ],
+      "location": "rear (opposite the lens)"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_3P (keyed, per blueprint row 07)",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VIN",
+          "color": "red"
+        },
+        {
+          "module_pin": "OUT",
+          "color": "white"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "led_window",
+      "size_mm": {
+        "w": 10,
+        "h": 10,
+        "d": 0
+      },
+      "notes": "Round opening for the 10 mm lens; the lens must see the room directly (IR does not pass ordinary printed plastic - engineering note, not sourced). Detection cone <=100 deg, ~3 m."
+    },
+    "electrical": {
+      "supply_v": "2.7-12",
+      "logic_v": "3.3",
+      "current_ma_typ": 0.1,
+      "current_ma_max": 0.1,
+      "bus": "gpio"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "GPIO interrupt on OUT. Fixed ~2 s delay and 2 s block time; repeatable trigger (Probots). Allow settling after power-up."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+      "notes": "Wire colours and 4-pin order (GND,VCC,SDA,SCL) are a proposal; the row 06/07 owner fixes the canonical pinout. Harness length is a design proposal, not a measured value."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Probots",
+        "url": "https://probots.co.in/am312-mini-pir-motion-sensor-module.html",
+        "price_inr_seen": 69,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/smartelex-am312-pir-motion-sensor",
+        "price_inr_seen": 199,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      }
+    ],
+    "price_inr_planning": [
+      60,
+      180
+    ],
+    "evidence": [
+      "https://www.tinytronics.nl/en/sensors/motion/ir-pyroelectric-infrared-pir-motion-sensor-detector-module-mini",
+      "https://probots.co.in/am312-mini-pir-motion-sensor-module.html",
+      "https://robocraze.com/products/smartelex-am312-pir-motion-sensor.js"
+    ],
+    "uncertain": [
+      "lens diameter 10 mm (Probots) vs '12mm diameter' in another listing title (universal-solder, not read)",
+      "pin pitch and lead form not confirmed",
+      "manufacturer datasheet (Soldered PDF host) unreachable",
+      "detection range given as 3 m and 3-5 m on the same Probots page"
+    ]
+  },
+  {
+    "id": "PIR_HCSR501_STD",
+    "catalog_row": "31",
+    "catalog_id": null,
+    "role": "sensor",
+    "name": "PIR motion sensor HC-SR501 (larger, adjustable; alternative)",
+    "reference_product": {
+      "maker": "Generic (BISS0001 + PIR600B per ProtoSupplies)",
+      "mpn_or_model": "HC-SR501",
+      "product_url": "https://probots.co.in/hc-sr501-pir-motion-detector-sensor-module.html",
+      "datasheet_url": "https://courses.ece.cornell.edu/ece5990/ECE5725_Spring2020_Projects/May_15_Demo/Smart%20Lock/W_pp445_yl656/datasheet/31227sc.pdf"
+    },
+    "dims_mm": {
+      "x": 32,
+      "y": 24,
+      "z": 25,
+      "notes": "Probots: 32 x 24 x 25 mm; ProtoSupplies measured 33 x 25 mm, ~1 in tall. z includes the white Fresnel dome; lens base 23 mm diameter (listings, search snippets)."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "holes",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Two small holes (ProtoSupplies); 2 mm diameter at 28 mm spacing per listings (28.5 mm in one) - positions not read from a drawing. Too large for small shells; use only when the dome is a design feature."
+    },
+    "pins": [
+      {
+        "name": "VCC",
+        "func": "5v",
+        "notes": "4.5-20 V; needs the 5 V rail"
+      },
+      {
+        "name": "OUT",
+        "func": "gpio",
+        "notes": "high 3.3 V / low 0 V (Probots) - safe for ESP32 input"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": ""
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "VCC",
+        "OUT",
+        "GND"
+      ],
+      "location": "underside, labels hidden under the dome"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_3P (keyed, per blueprint row 07; this port must supply 5 V)",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VCC",
+          "color": "red"
+        },
+        {
+          "module_pin": "OUT",
+          "color": "white"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "led_window",
+      "size_mm": {
+        "w": 23,
+        "h": 23,
+        "d": 0
+      },
+      "notes": "Round opening for the ~23 mm dome; dome protrudes. Trimpots (sensitivity, delay) and the H/L jumper sit on the underside."
+    },
+    "electrical": {
+      "supply_v": "4.5-20",
+      "logic_v": "3.3",
+      "current_ma_typ": 0.05,
+      "current_ma_max": 2,
+      "bus": "gpio"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "~1 min warm-up after power-on; delay pot ~1 s-3 min (ProtoSupplies) or 0.5-200 s (Probots); 2-2.5 s lockout after output drops; H = repeatable, L = single trigger."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+      "notes": "Wire colours and 4-pin order (GND,VCC,SDA,SCL) are a proposal; the row 06/07 owner fixes the canonical pinout. Harness length is a design proposal, not a measured value."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Probots",
+        "url": "https://probots.co.in/hc-sr501-pir-motion-detector-sensor-module.html",
+        "price_inr_seen": 89,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/hcsr501-pir-motion-sensor-passive-infrared-sensor",
+        "price_inr_seen": 72,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      },
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/hc-sr501-pir-sensor",
+        "price_inr_seen": 69,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      60,
+      180
+    ],
+    "evidence": [
+      "https://protosupplies.com/product/hc-sr501-pir-motion-sensing-module/",
+      "https://probots.co.in/hc-sr501-pir-motion-detector-sensor-module.html",
+      "https://courses.ece.cornell.edu/ece5990/ECE5725_Spring2020_Projects/May_15_Demo/Smart%20Lock/W_pp445_yl656/datasheet/31227sc.pdf"
+    ],
+    "uncertain": [
+      "hole spacing 28 vs 28.5 mm and 2 mm diameter only from listing snippets",
+      "dome diameter 23 mm from snippets",
+      "current: ProtoSupplies '< 2 mA' vs Probots static '< 50 uA'",
+      "physical left-to-right pin order varies; verify by silkscreen under the dome"
+    ]
+  },
+  {
+    "id": "IMU_MPU6050_GY521",
+    "catalog_row": "32",
+    "catalog_id": null,
+    "role": "sensor",
+    "name": "6-axis IMU MPU-6050 (GY-521 module)",
+    "reference_product": {
+      "maker": "Generic (TDK InvenSense MPU-6050)",
+      "mpn_or_model": "GY-521",
+      "product_url": "https://robocraze.com/products/mpu-6050-triple-axis-accelerometer-gyroscope-module",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 21,
+      "y": 16,
+      "z": 3,
+      "notes": "PCB 21 x 16 mm (ProtoSupplies measured). z is an estimate without header."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "holes",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Board has two mounting holes (common GY-521 layout) but positions/diameter not confirmed. For tap/tilt sensing the board must be rigidly coupled to the shell: screw into a printed cradle, never float on the harness."
+    },
+    "pins": [
+      {
+        "name": "VCC",
+        "func": "3v3",
+        "notes": "ProtoSupplies: 5 V nominal (board has a regulator); 3.3 V operation not confirmed"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": ""
+      },
+      {
+        "name": "SCL",
+        "func": "i2c_scl",
+        "notes": ""
+      },
+      {
+        "name": "SDA",
+        "func": "i2c_sda",
+        "notes": ""
+      },
+      {
+        "name": "XDA",
+        "func": "nc",
+        "notes": "aux I2C SDA"
+      },
+      {
+        "name": "XCL",
+        "func": "nc",
+        "notes": "aux I2C SCL"
+      },
+      {
+        "name": "AD0",
+        "func": "nc",
+        "notes": "address select: low 0x68, high 0x69"
+      },
+      {
+        "name": "INT",
+        "func": "gpio",
+        "notes": "interrupt output (optional 5th wire)"
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "VCC",
+        "GND",
+        "SCL",
+        "SDA",
+        "XDA",
+        "XCL",
+        "AD0",
+        "INT"
+      ],
+      "location": "long edge"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_4P (keyed, per blueprint row 06)",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VCC",
+          "color": "red"
+        },
+        {
+          "module_pin": "SDA",
+          "color": "blue"
+        },
+        {
+          "module_pin": "SCL",
+          "color": "yellow"
+        }
+      ],
+      "length_mm": 120
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": ""
+    },
+    "electrical": {
+      "supply_v": "3.3-5",
+      "logic_v": "3.3",
+      "current_ma_typ": 4,
+      "current_ma_max": 5,
+      "bus": "i2c 0x68 (alt 0x69)"
+    },
+    "firmware": {
+      "arduino_libraries": [
+        "adafruit/Adafruit MPU6050"
+      ],
+      "driver_notes": "Ranges +/-2..16 g, +/-250..2000 deg/s (ProtoSupplies). ADDRESS CLASH: DS3231 RTC (row 36) also uses 0x68 - if both are fitted, strap AD0 high (0x69). Calibrate offsets per unit at factory test. Arduino library names given without version pins; versions were not checked in this pass."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B4B-PH-K_1x04_P2.00mm_Vertical",
+      "notes": "Wire colours and 4-pin order (GND,VCC,SDA,SCL) are a proposal; the row 06/07 owner fixes the canonical pinout. Harness length is a design proposal, not a measured value."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/mpu-6050-triple-axis-accelerometer-gyroscope-module",
+        "price_inr_seen": 154,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      },
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/mpu6050-gyroscope-accelerometer-sensor",
+        "price_inr_seen": 127,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      90,
+      300
+    ],
+    "evidence": [
+      "https://protosupplies.com/product/mpu-6050-gy-521-3-axis-accel-gryo-sensor-module/"
+    ],
+    "uncertain": [
+      "prices from store search API only",
+      "hole positions/diameters",
+      "current figures are estimates (MPU-6050 datasheet not read)",
+      "I2C addresses 0x68/0x69 are standard MPU-6050 values not re-read from the TDK datasheet in this pass",
+      "MPU-6050 is an older part; long-term supply not checked"
+    ]
+  },
+  {
+    "id": "HALL_KY003_A3144",
+    "catalog_row": "33",
+    "catalog_id": null,
+    "role": "sensor",
+    "name": "Hall-effect magnet sensor module (KY-003, A3144)",
+    "reference_product": {
+      "maker": "Generic (A3144 / 3144EUA-S)",
+      "mpn_or_model": "KY-003",
+      "product_url": "https://quartzcomponents.com/products/ky003-hall-effect-magnetic-sensor",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 20,
+      "y": 15,
+      "z": 6,
+      "notes": "20 x 15 mm PCB from ProtoSupplies' 3-pin digital Hall module (same layout family as KY-003, not confirmed identical). z (with the TO-92 sensor) is an estimate."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "clip",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Printed cradle placing the sensor face within a few mm of where the magnet (row 47) arrives; switching distance must be tested with the chosen magnet."
+    },
+    "pins": [
+      {
+        "name": "S",
+        "func": "gpio",
+        "notes": "open-collector output, pulled up to VCC on the module; LOW when a field is detected"
+      },
+      {
+        "name": "+",
+        "func": "5v",
+        "notes": "4.5-24 V (ProtoSupplies) - A3144 is below spec at 3.3 V"
+      },
+      {
+        "name": "-",
+        "func": "gnd",
+        "notes": ""
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "S",
+        "+",
+        "-"
+      ],
+      "location": "short edge"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_3P (keyed, per blueprint row 07; this port must supply 5 V and protect the 3.3 V GPIO)",
+      "wires": [
+        {
+          "module_pin": "-",
+          "color": "black"
+        },
+        {
+          "module_pin": "+",
+          "color": "red"
+        },
+        {
+          "module_pin": "S",
+          "color": "white"
+        }
+      ],
+      "length_mm": 120
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": "Senses through plastic; no opening needed."
+    },
+    "electrical": {
+      "supply_v": "4.5-24",
+      "logic_v": "3.3 (after level protection)",
+      "current_ma_typ": 5,
+      "current_ma_max": 10,
+      "bus": "gpio"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "LEVEL RISK: the on-board pull-up goes to VCC (5 V) and ESP32-S3 GPIOs are 3.3 V. Fix on the backplane: series resistor + clamp, or remove the module pull-up and use the ESP32 internal pull-up (open-collector output). Debounce in software."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+      "notes": "3-pin ports that can carry 5 V need a GPIO protection footprint. Wire colours and 4-pin order (GND,VCC,SDA,SCL) are a proposal; the row 06/07 owner fixes the canonical pinout. Harness length is a design proposal, not a measured value."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/ky003-hall-effect-magnetic-sensor",
+        "price_inr_seen": 23,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/hall-effect-sensor-module",
+        "price_inr_seen": 36,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      25,
+      130
+    ],
+    "evidence": [
+      "https://quartzcomponents.com/products/ky003-hall-effect-magnetic-sensor.js",
+      "https://protosupplies.com/product/digital-hall-effect-sensor-module/",
+      "https://www.joy-it.net/en/products/SEN-KY003HS"
+    ],
+    "uncertain": [
+      "KY-003 board dims assumed from a similar ProtoSupplies module",
+      "pin order S/+/- is the common KY silkscreen, not confirmed for the Quartz board",
+      "supply current is an estimate (A3144 datasheet not read)",
+      "if 5 V on a 3-pin port is not allowed by the row 07 owner, switch to a 3.3 V-capable Hall IC or a reed module (Quartz KY-025 ₹46 seen via store search)"
+    ]
+  },
+  {
+    "id": "RTC_DS3231_ZS042",
+    "catalog_row": "36",
+    "catalog_id": null,
+    "role": "sensor",
+    "name": "Real-time clock DS3231 + AT24C32 (ZS-042 type)",
+    "reference_product": {
+      "maker": "Generic (Maxim/ADI DS3231)",
+      "mpn_or_model": "ZS-042 DS3231 + AT24C32",
+      "product_url": "https://quartzcomponents.com/products/ds3231-rtc-module",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 38,
+      "y": 22,
+      "z": 14,
+      "notes": "PCB 38 x 22 mm (ProtoSupplies measured); 14 mm height including the CR2032 holder (listing, search snippet)."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "clip",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Printed cradle; hole positions not confirmed. Battery holder must stay reachable or the battery must be omitted (see notes)."
+    },
+    "pins": [
+      {
+        "name": "32K",
+        "func": "nc",
+        "notes": "32 kHz output"
+      },
+      {
+        "name": "SQW",
+        "func": "gpio",
+        "notes": "square wave / alarm interrupt (optional)"
+      },
+      {
+        "name": "SCL",
+        "func": "i2c_scl",
+        "notes": ""
+      },
+      {
+        "name": "SDA",
+        "func": "i2c_sda",
+        "notes": ""
+      },
+      {
+        "name": "VCC",
+        "func": "3v3",
+        "notes": "2.3-5.5 V; if disconnected the module runs from the backup cell"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": ""
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "32K",
+        "SQW",
+        "SCL",
+        "SDA",
+        "VCC",
+        "GND"
+      ],
+      "location": "short edge (6-pin); 4-pin pass-through on the other edge"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_4P (keyed, per blueprint row 06)",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VCC",
+          "color": "red"
+        },
+        {
+          "module_pin": "SDA",
+          "color": "blue"
+        },
+        {
+          "module_pin": "SCL",
+          "color": "yellow"
+        }
+      ],
+      "length_mm": 120
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": ""
+    },
+    "electrical": {
+      "supply_v": "2.3-5.5",
+      "logic_v": "3.3",
+      "current_ma_typ": 0.3,
+      "current_ma_max": 1,
+      "bus": "i2c 0x68 (RTC) + 0x57 (EEPROM)"
+    },
+    "firmware": {
+      "arduino_libraries": [
+        "adafruit/RTClib"
+      ],
+      "driver_notes": "+/-2 ppm 0-40 C (ProtoSupplies). ADDRESS CLASH with MPU-6050 at 0x68 (row 32). Sync from NTP whenever Wi-Fi is up; RTC only bridges offline periods. Arduino library names given without version pins; versions were not checked in this pass."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B4B-PH-K_1x04_P2.00mm_Vertical",
+      "notes": "Wire colours and 4-pin order (GND,VCC,SDA,SCL) are a proposal; the row 06/07 owner fixes the canonical pinout. Harness length is a design proposal, not a measured value."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/ds3231-rtc-module",
+        "price_inr_seen": 289,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      },
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/ds3231-rtc-module-real-time-clock",
+        "price_inr_seen": 246,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/ds3231-rtc-real-time-clock-module-3-3v-5v-precise-with-battery",
+        "price_inr_seen": 208,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      90,
+      260
+    ],
+    "evidence": [
+      "https://protosupplies.com/product/ds3231-rtc-with-eeprom-module/",
+      "https://pmctechlife.com/products/ds3231-at24c32-high-precision-clock-module-iic-module-memory-module",
+      "https://forum.arduino.cc/t/zs-042-ds3231-rtc-module/268862?page=2",
+      "https://robocraze.com/products/ds3231-rtc-module-real-time-clock.js"
+    ],
+    "uncertain": [
+      "BATTERY DECISION (blueprint: avoid batteries at launch): ZS-042 has a 200 ohm + 1N4148 charge path meant for LIR2032; forum reports say remove it when fitting a non-rechargeable CR2032. A coin cell adds ingestion and shipping risk; a battery-less build relying on NTP may be preferable",
+      "EEPROM address 0x57 and RTC 0x68 are common ZS-042 values not re-read from datasheets",
+      "Robocraze ₹246 page describes a board 'designed for Raspberry Pi' - may be the mini variant, not ZS-042",
+      "14 mm height from a listing snippet",
+      "ProtoSupplies' board uses DS3231M; others ship DS3231SN"
+    ]
+  },
+  {
+    "id": "SERVO_SG90_TOWERPRO",
+    "catalog_row": "38",
+    "catalog_id": null,
+    "role": "actuator",
+    "name": "Micro servo TowerPro SG90 (9 g)",
+    "reference_product": {
+      "maker": "TowerPro",
+      "mpn_or_model": "SG90",
+      "product_url": "https://robocraze.com/products/sg90-micro-servo-motor",
+      "datasheet_url": "https://static.rapidonline.com/pdf/37-1330t.pdf"
+    },
+    "dims_mm": {
+      "x": 32.2,
+      "y": 12.2,
+      "z": 31,
+      "notes": "Rapid/TowerPro sheet: body 23 x 12.2 x 29 mm (text); drawing: body 22.2 x 11.8 mm, 32.2 mm across the mounting tabs, 31 mm from base to top of the horn, 16 mm from base to the tab line."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "holes",
+      "holes": [
+        {
+          "x": 2.35,
+          "y": 0,
+          "d": 2.0
+        },
+        {
+          "x": 29.85,
+          "y": 0,
+          "d": 2.0
+        }
+      ],
+      "hole_origin": "left end of the tab span on the servo centreline, top view",
+      "notes": "Tab hole centres (spacing ~27.5 mm) and diameter (~2 mm) are ESTIMATES derived from the 32.2 mm tab span; not on any drawing read. Use the bracket (row 45) or a printed pocket that clamps the tabs; measure a sample before freezing."
+    },
+    "pins": [
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": "brown"
+      },
+      {
+        "name": "V+",
+        "func": "5v",
+        "notes": "red; rated 4.8 V"
+      },
+      {
+        "name": "SIG",
+        "func": "pwm",
+        "notes": "orange; 50 Hz servo pulse"
+      }
+    ],
+    "module_connector": {
+      "type": "wire_leads",
+      "pin_order": [
+        "GND",
+        "V+",
+        "SIG"
+      ],
+      "location": "lead exits the case side; 3-way 2.54 mm female plug"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_3P via a keyed adapter (servo plug is not keyed); or HEADER 1x3 2.54 if the blueprint allows",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "brown"
+        },
+        {
+          "module_pin": "V+",
+          "color": "red"
+        },
+        {
+          "module_pin": "SIG",
+          "color": "orange"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": "Shell needs a clearance slot for the horn/linkage sweep (set by the motion design)."
+    },
+    "electrical": {
+      "supply_v": "4.8-5",
+      "logic_v": "3.3",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "gpio"
+    },
+    "firmware": {
+      "arduino_libraries": [
+        "madhephaestus/ESP32Servo"
+      ],
+      "driver_notes": "LEDC 50 Hz; Rapid sheet: 0.1 s/60 deg at 4.8 V, dead band 10 us, 0-55 C. Detach or limit travel at end stops to avoid stall current; add bulk capacitance on the backplane 5 V near the servo port. Arduino library names given without version pins; versions were not checked in this pass."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+      "notes": "If an unkeyed servo header is used: Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical. Wire colours and 4-pin order (GND,VCC,SDA,SCL) are a proposal; the row 06/07 owner fixes the canonical pinout. Harness length is a design proposal, not a measured value."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/sg90-micro-servo-motor",
+        "price_inr_seen": 106,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/tower-pro-sg90-servo-9-gms-mini-micro-servo-motor",
+        "price_inr_seen": 86,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      },
+      {
+        "vendor": "ThinkRobotics",
+        "url": "https://thinkrobotics.com/products/sg90-9g-micro-servo-motor",
+        "price_inr_seen": 139.99,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      100,
+      250
+    ],
+    "evidence": [
+      "https://static.rapidonline.com/pdf/37-1330t.pdf",
+      "https://robocraze.com/products/sg90-micro-servo-motor.js",
+      "https://servodatabase.com/servo/towerpro/sg90"
+    ],
+    "uncertain": [
+      "running/stall current not found from a primary source - current fields left 0; budget must be measured",
+      "stall torque 1.8 kg-cm @4.8 V (Rapid) vs 1.2 kg-cm @4.8 V (Robocraze)",
+      "tab hole spacing/diameter estimated",
+      "Robocraze description quotes ₹95 while the price field shows ₹106",
+      "SG90 clones vary in tab and spline geometry; 'TowerPro' branding on Indian listings not verified"
+    ]
+  },
+  {
+    "id": "GEARMOTOR_N20_6V_LOWRPM",
+    "catalog_row": "41",
+    "catalog_id": null,
+    "role": "actuator",
+    "name": "N20 micro metal gearmotor, 6 V, low RPM (12 x 10 mm)",
+    "reference_product": {
+      "maker": "Generic N20 (Pololu micro metal gearmotor form factor)",
+      "mpn_or_model": "12mm N20 6V geared DC motor, 6V / 56 RPM variant",
+      "product_url": "https://thinkrobotics.com/products/n20-reduction-gearmotors",
+      "datasheet_url": "https://www.pololu.com/file/0J949/micro-metal-gearmotors-dimensions.pdf"
+    },
+    "dims_mm": {
+      "x": 25.6,
+      "y": 12.0,
+      "z": 10.0,
+      "notes": "Pololu drawing (no encoder): gearbox face 12.0 x 10.0 mm, gearbox L 9 mm (all ratios except 1000:1), motor can 15 mm, overall length max 25.6 mm excluding the output shaft; output shaft dia 3.0 D-shaft (2.5 across the flat), 10 mm long. Robocraze N20 lists a 9 mm, 3 mm D shaft."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "holes",
+      "holes": [
+        {
+          "x": -4.5,
+          "y": 0,
+          "d": 1.6
+        },
+        {
+          "x": 4.5,
+          "y": 0,
+          "d": 1.6
+        }
+      ],
+      "hole_origin": "output shaft axis on the gearbox face",
+      "notes": "2 x M1.6 tapped holes in the gearbox face, 4.5 mm either side of the shaft (Pololu). Alternatively clamp the 12 x 10 gearbox in a printed saddle or use an N20 bracket (Robocraze ₹15, search API)."
+    },
+    "pins": [
+      {
+        "name": "M+",
+        "func": "pwm",
+        "notes": "motor terminal; driven by DRV8833 output (row 42), not a logic pin"
+      },
+      {
+        "name": "M-",
+        "func": "pwm",
+        "notes": "motor terminal; driven by DRV8833 output"
+      }
+    ],
+    "module_connector": {
+      "type": "solder_pads",
+      "pin_order": [
+        "M+",
+        "M-"
+      ],
+      "location": "rear tabs of the motor can"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_2P on the motor-driver output (row 42)",
+      "wires": [
+        {
+          "module_pin": "M+",
+          "color": "red"
+        },
+        {
+          "module_pin": "M-",
+          "color": "black"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": "Guard all gears/linkages inside the shell; only the driven part shows."
+    },
+    "electrical": {
+      "supply_v": "5 (6 V rated)",
+      "logic_v": "none",
+      "current_ma_typ": 170,
+      "current_ma_max": 550,
+      "bus": "pwm"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "Drive via DRV8833 with LEDC PWM; ramp speed; stall detection by timeout/end-stop (row 43). Performance table (ThinkRobotics): ratio 210 -> 56 RPM, 0.8 kg-cm at max efficiency, 4 kg-cm stall."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical",
+      "notes": "Footprint is the motor output connector next to the DRV8833. Wire colours and 4-pin order (GND,VCC,SDA,SCL) are a proposal; the row 06/07 owner fixes the canonical pinout. Harness length is a design proposal, not a measured value."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "ThinkRobotics",
+        "url": "https://thinkrobotics.com/products/n20-reduction-gearmotors",
+        "price_inr_seen": 264.99,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/6v-n20-600-rpm-miniature-gear-motor",
+        "price_inr_seen": 229,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      }
+    ],
+    "price_inr_planning": [
+      180,
+      500
+    ],
+    "evidence": [
+      "https://www.pololu.com/file/0J949/micro-metal-gearmotors-dimensions.pdf",
+      "https://thinkrobotics.com/products/n20-reduction-gearmotors.js",
+      "https://robocraze.com/products/6v-n20-600-rpm-miniature-gear-motor.js"
+    ],
+    "uncertain": [
+      "ThinkRobotics 6V/56RPM variant was OUT OF STOCK; Robocraze's in-stock N20 is 600 RPM (too fast for sculpture use)",
+      "electrical figures (stall 0.55 A, no-load < 0.06 A, load 0.17 A at 6 V) are ThinkRobotics' generic table; at 5 V they will be lower",
+      "generic N20 face-hole positions may differ from Pololu's drawing; measure a sample",
+      "shaft length 10 mm (Pololu) vs 9 mm (Robocraze)"
+    ]
+  },
+  {
+    "id": "MOTOR_DRV_DRV8833_POLOLU_2130",
+    "catalog_row": "42",
+    "catalog_id": null,
+    "role": "actuator",
+    "name": "Dual H-bridge motor driver DRV8833 (Pololu 2130 carrier form factor)",
+    "reference_product": {
+      "maker": "Pololu",
+      "mpn_or_model": "2130 DRV8833 Dual Motor Driver Carrier",
+      "product_url": "https://www.pololu.com/product/2130",
+      "datasheet_url": "https://www.pololu.com/file/0J1615/drv8833-dual-motor-driver-carrier-dimensions.pdf"
+    },
+    "dims_mm": {
+      "x": 12.7,
+      "y": 20.3,
+      "z": 3.4,
+      "notes": "Pololu drawing: 12.7 x 20.3 mm, PCB 1.57 mm, tallest part 1.8 mm above the board (z = 1.57 + 1.8, headers excluded)."
+    },
+    "pcb_thickness_mm": 1.57,
+    "mount": {
+      "type": "header",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "No mounting holes. 16 x 1.02 mm pin holes in two 1x8 rows 10.16 mm apart, 1.27 mm from the edges, 2.54 mm pitch. Best: solder onto the backplane (or socket) rather than wire it."
+    },
+    "pins": [
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": "power side"
+      },
+      {
+        "name": "VIN",
+        "func": "5v",
+        "notes": "motor supply 2.7-10.8 V, reverse-protected"
+      },
+      {
+        "name": "BOUT1",
+        "func": "pwm",
+        "notes": "H-bridge output B (to motor), not a logic pin"
+      },
+      {
+        "name": "BOUT2",
+        "func": "pwm",
+        "notes": "H-bridge output B"
+      },
+      {
+        "name": "AOUT2",
+        "func": "pwm",
+        "notes": "H-bridge output A"
+      },
+      {
+        "name": "AOUT1",
+        "func": "pwm",
+        "notes": "H-bridge output A"
+      },
+      {
+        "name": "AISEN",
+        "func": "gnd",
+        "notes": "grounded by default (current limit disabled)"
+      },
+      {
+        "name": "BISEN",
+        "func": "gnd",
+        "notes": "grounded by default"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": "logic side"
+      },
+      {
+        "name": "VMM",
+        "func": "nc",
+        "notes": "motor supply after reverse protection"
+      },
+      {
+        "name": "BIN1",
+        "func": "pwm",
+        "notes": "logic input, PWM capable"
+      },
+      {
+        "name": "BIN2",
+        "func": "pwm",
+        "notes": "logic input"
+      },
+      {
+        "name": "AIN2",
+        "func": "pwm",
+        "notes": "logic input"
+      },
+      {
+        "name": "AIN1",
+        "func": "pwm",
+        "notes": "logic input"
+      },
+      {
+        "name": "SLP",
+        "func": "enable",
+        "notes": "nSLEEP, pulled high on board"
+      },
+      {
+        "name": "FLT",
+        "func": "gpio",
+        "notes": "nFAULT open-drain, needs pull-up"
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "GND",
+        "VIN",
+        "BOUT1",
+        "BOUT2",
+        "AOUT2",
+        "AOUT1",
+        "AISEN",
+        "BISEN",
+        "GND",
+        "VMM",
+        "BIN1",
+        "BIN2",
+        "AIN2",
+        "AIN1",
+        "SLP",
+        "FLT"
+      ],
+      "location": "two 1x8 rows on the long edges (power/outputs one side, control the other)"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_6P control (GND, VIN, AIN1, AIN2, BIN1, BIN2) - not in rows 06/07; or solder module to backplane",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VIN",
+          "color": "red"
+        },
+        {
+          "module_pin": "AIN1",
+          "color": "white"
+        },
+        {
+          "module_pin": "AIN2",
+          "color": "grey"
+        },
+        {
+          "module_pin": "BIN1",
+          "color": "green"
+        },
+        {
+          "module_pin": "BIN2",
+          "color": "blue"
+        }
+      ],
+      "length_mm": 100
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": ""
+    },
+    "electrical": {
+      "supply_v": "2.7-10.8",
+      "logic_v": "3.3",
+      "current_ma_typ": 0,
+      "current_ma_max": 2000,
+      "bus": "pwm"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "Two LEDC PWM channels per motor (IN1/IN2). 1.2 A continuous / 2 A peak per channel; channels can be paralleled for 2.4 A. Pololu notes the chip overheats below 1.5 A without airflow - our N20 load is far lower. Current limiting needs sense resistors (not fitted)."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B6B-PH-K_1x06_P2.00mm_Vertical",
+      "notes": "If soldered to the backplane use two Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical rows 10.16 mm apart. Wire colours and 4-pin order (GND,VCC,SDA,SCL) are a proposal; the row 06/07 owner fixes the canonical pinout. Harness length is a design proposal, not a measured value."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/drv8833-2-channel-dc-motor-driver",
+        "price_inr_seen": 72,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "ThinkRobotics",
+        "url": "https://thinkrobotics.com/products/drv8833-2-channel-dc-motor-driver-module",
+        "price_inr_seen": 89.99,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      100,
+      300
+    ],
+    "evidence": [
+      "https://www.pololu.com/product/2130",
+      "https://www.pololu.com/product/2130/specs",
+      "https://www.pololu.com/file/0J1615/drv8833-dual-motor-driver-carrier-dimensions.pdf",
+      "https://robocraze.com/products/drv8833-2-channel-dc-motor-driver.js"
+    ],
+    "uncertain": [
+      "Robocraze ₹72 listing text matches Pololu 2130 specs but the board shape/pinout was not shown; cheap 'DRV8833' boards (e.g. purple HW-627) have a different footprint",
+      "pin order read from Pololu's isometric silkscreen render; confirm pin-1 end on a sample",
+      "Pololu 2130 Indian price/stock not found",
+      "6-pin backplane port is not in the blueprint connector set"
+    ]
+  },
+  {
+    "id": "ENDSTOP_OMRON_SS01GL",
+    "catalog_row": "43",
+    "catalog_id": null,
+    "role": "input",
+    "name": "End-stop micro switch, hinge lever, micro-load (Omron SS-01GL footprint)",
+    "reference_product": {
+      "maker": "Omron",
+      "mpn_or_model": "SS-01GL (SS-5GL family footprint)",
+      "product_url": "https://omronfs.omron.com/en_US/ecb/products/pdf/en-ss.pdf",
+      "datasheet_url": "https://omronfs.omron.com/en_US/ecb/products/pdf/en-ss.pdf"
+    },
+    "dims_mm": {
+      "x": 19.8,
+      "y": 6.4,
+      "z": 10.2,
+      "notes": "Omron SS drawing: body 19.8 long x 6.4 thick x 10.2 high, excluding lever and terminals. Hinge lever: free position FP max 13.6 mm, operating position OP 8.8 +/-0.8 mm."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "holes",
+      "holes": [
+        {
+          "x": 5.1,
+          "y": 2.9,
+          "d": 2.35
+        },
+        {
+          "x": 14.6,
+          "y": 2.9,
+          "d": 2.35
+        }
+      ],
+      "hole_origin": "bottom-left corner of the body side view (terminal edge at bottom)",
+      "notes": "Two 2.35 (+0.075/-0.05) mm holes on 9.5 +/-0.1 mm pitch (Omron). Hole x of 5.1 mm and height 2.9 mm are read from the dimension text layout and need confirmation against the drawing image. M2 screws fit."
+    },
+    "pins": [
+      {
+        "name": "COM",
+        "func": "gnd",
+        "notes": "common to GND"
+      },
+      {
+        "name": "NO",
+        "func": "gpio",
+        "notes": "to GPIO with pull-up; reads LOW when actuated"
+      },
+      {
+        "name": "NC",
+        "func": "nc",
+        "notes": "unused (or wire for fail-safe wiring check)"
+      }
+    ],
+    "module_connector": {
+      "type": "solder_pads",
+      "pin_order": [
+        "COM",
+        "NO",
+        "NC"
+      ],
+      "location": "bottom edge, 3 solder terminals (1.6 mm holes)"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_3P (keyed, per blueprint row 07)",
+      "wires": [
+        {
+          "module_pin": "COM",
+          "color": "black"
+        },
+        {
+          "module_pin": "NC",
+          "color": "red"
+        },
+        {
+          "module_pin": "NO",
+          "color": "white"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": "Internal limit switch."
+    },
+    "electrical": {
+      "supply_v": "3.3",
+      "logic_v": "3.3",
+      "current_ma_typ": 0.1,
+      "current_ma_max": 0.5,
+      "bus": "gpio"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "INPUT_PULLUP, debounce ~5-10 ms (estimate). SS-01 rating 0.1 A at 125 VAC / 30 VDC suits logic-level sensing. OF max 0.49 N, OT min 1.2 mm, MD max 0.8 mm (SS-01GL column)."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+      "notes": "Middle wire (NC) can carry a 'switch present' check; Wire colours and 4-pin order (GND,VCC,SDA,SCL) are a proposal; the row 06/07 owner fixes the canonical pinout. Harness length is a design proposal, not a measured value."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/microswitch-kw10-z1p-limit-switch-1a-125v-ac",
+        "price_inr_seen": 15,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/arm-lever-28mm-250v-5a-spdt-3-pin-momentary-plastic-micro-limit-switch",
+        "price_inr_seen": 45,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      },
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/bump-switch-spst-snap-action-with-lever",
+        "price_inr_seen": 17,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      30,
+      100
+    ],
+    "evidence": [
+      "https://omronfs.omron.com/en_US/ecb/products/pdf/en-ss.pdf",
+      "https://robocraze.com/products/microswitch-kw10-z1p-limit-switch-1a-125v-ac.js"
+    ],
+    "uncertain": [
+      "genuine Omron SS-01GL Indian price/stock not read",
+      "Robocraze KW10-Z1P (₹15, page read) is a smaller sub-miniature switch with a different footprint; the ₹45 'arm lever SPDT' switch is likely an SS-size clone but its dims were not read (title says 15 mm lever, URL slug says 28 mm)",
+      "exact hole x/height positions need confirmation from the Omron drawing image",
+      "operating characteristics column mapping in the PDF text (SS-5GL vs SS-01GL) read from layout text"
+    ]
+  },
+  {
+    "id": "FAN_3010_5V_GUARDED",
+    "catalog_row": "44",
+    "catalog_id": null,
+    "role": "actuator",
+    "name": "Mini fan 30 x 30 x 10 mm, 5 V (with printed guard)",
+    "reference_product": {
+      "maker": "Generic",
+      "mpn_or_model": "5V 0.2A 3010 cooling fan",
+      "product_url": "https://robocraze.com/products/5v-0-2a-raspberry-pi-cooling-fan",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 30,
+      "y": 30,
+      "z": 10,
+      "notes": "From the '3010' size code in the listing title. A comparable TinyTronics 5 V fan is 30 x 30 x 11 mm with 3 mm holes."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "holes",
+      "holes": [
+        {
+          "x": 3,
+          "y": 3,
+          "d": 3.0
+        },
+        {
+          "x": 27,
+          "y": 3,
+          "d": 3.0
+        },
+        {
+          "x": 3,
+          "y": 27,
+          "d": 3.0
+        },
+        {
+          "x": 27,
+          "y": 27,
+          "d": 3.0
+        }
+      ],
+      "hole_origin": "fan frame corner",
+      "notes": "24 mm square hole pattern from listings/drawings for 30 mm fans (Universal-Solder 5 V 3010; a Delta 30x30x10 drawing shows 24.0 +/-0.3 with 3.2 mm holes); 3 mm holes from TinyTronics. Some cheap 3010 fans differ - measure. Use M3 (or M2.5) screws into inserts, with soft washers to cut vibration."
+    },
+    "pins": [
+      {
+        "name": "+",
+        "func": "5v",
+        "notes": "red"
+      },
+      {
+        "name": "-",
+        "func": "gnd",
+        "notes": "black; switch low-side with a MOSFET on the backplane for on/off/PWM"
+      }
+    ],
+    "module_connector": {
+      "type": "wire_leads",
+      "pin_order": [
+        "+",
+        "-"
+      ],
+      "location": "frame corner; listing says it plugs onto Raspberry Pi GPIO (2.54 female), re-terminate to JST PH"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_2P (fan port; low-side switched)",
+      "wires": [
+        {
+          "module_pin": "+",
+          "color": "red"
+        },
+        {
+          "module_pin": "-",
+          "color": "black"
+        }
+      ],
+      "length_mm": 100
+    },
+    "aperture": {
+      "needs": "grille",
+      "size_mm": {
+        "w": 30,
+        "h": 30,
+        "d": 0
+      },
+      "notes": "Finger guard: printed grille integrated in the shell over the full swept area, plus a separate intake/exhaust path. Grille opening size that blocks fingers must be checked against the applicable standard (not read here). Optional 30 mm metal guard (Amazon.in listing seen in search)."
+    },
+    "electrical": {
+      "supply_v": "5",
+      "logic_v": "none",
+      "current_ma_typ": 100,
+      "current_ma_max": 200,
+      "bus": "pwm"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "LEDC PWM on the MOSFET gate (low frequency or >20 kHz to avoid whine - verify); soft-start."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical",
+      "notes": "Pair with a logic-level N-MOSFET + flyback diode on the backplane. Wire colours and 4-pin order (GND,VCC,SDA,SCL) are a proposal; the row 06/07 owner fixes the canonical pinout. Harness length is a design proposal, not a measured value."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/5v-0-2a-raspberry-pi-cooling-fan",
+        "price_inr_seen": 89,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "ThinkRobotics",
+        "url": "https://thinkrobotics.com/products/raspberry-pi-fan-3007-3010-online",
+        "price_inr_seen": 119.99,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      120,
+      350
+    ],
+    "evidence": [
+      "https://robocraze.com/products/5v-0-2a-raspberry-pi-cooling-fan.js",
+      "https://www.tinytronics.nl/en/mechanics-and-actuators/fans/small-fan-for-raspberry-pi-enclosure",
+      "https://www.universal-solder.ca/product/brushless-fan-5v-dc-30x30x10-mm/",
+      "https://archive.org/download/manualsonline-id-6060ded6-b437-4c0a-8a34-2ee7568b6699/6060ded6-b437-4c0a-8a34-2ee7568b6699.pdf"
+    ],
+    "uncertain": [
+      "Robocraze current: description says 20 mA, title says 0.2 A; 200 mA budgeted as max (TinyTronics comparable fan: 200 mA average, 18 dBA)",
+      "hole pattern 24 mm and hole 3-3.2 mm from snippets/other fans, not this product",
+      "noise and airflow of the Robocraze fan not stated",
+      "finger-safe grille geometry not sourced"
+    ]
+  },
+  {
+    "id": "SERVO_BRACKET_SG90_ACRYLIC",
+    "catalog_row": "45",
+    "catalog_id": null,
+    "role": "mechanical",
+    "name": "SG90/MG90 servo mounting bracket (reference) -> printed equivalent",
+    "reference_product": {
+      "maker": "ProtoSupplies (generic acrylic)",
+      "mpn_or_model": "SG90 / MG90 Servo Bracket, acrylic 3 mm",
+      "product_url": "https://protosupplies.com/product/sg90-mg90-servo-bracket/",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 37,
+      "y": 35,
+      "z": 3,
+      "notes": "Bracket 35 x 37 mm, 3 mm acrylic, servo cutout 13 x 24 mm (ProtoSupplies)."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "holes",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Production intent: print the bracket as part of the core cartridge (row 12): rectangular pocket ~13 x 24 mm for the SG90 body (from this bracket and the 22.2-23 x 11.8-12.2 mm body), tab seats at the 16 mm tab line, two M2 screws through the tabs (hole pitch to be measured, see row 38)."
+    },
+    "pins": [],
+    "module_connector": {
+      "type": "none",
+      "pin_order": [],
+      "location": "n/a"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE",
+      "wires": [],
+      "length_mm": 0
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": ""
+    },
+    "electrical": {
+      "supply_v": "none",
+      "logic_v": "none",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "none"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": ""
+    },
+    "kicad": {
+      "backplane_footprint": "NONE",
+      "notes": ""
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Zbotic",
+        "url": "https://zbotic.in/product/servo-mount-holder-bracket-for-sg90-mg90-2pcs/",
+        "price_inr_seen": null,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      30,
+      180
+    ],
+    "evidence": [
+      "https://protosupplies.com/product/sg90-mg90-servo-bracket/",
+      "https://protosupplies.com/product/2-axis-pan-and-tilt-mount-kit/"
+    ],
+    "uncertain": [
+      "bracket's own mounting-hole pattern not given",
+      "no Indian bracket page read with a price",
+      "pocket clearance for SG90 clones must be measured"
+    ]
+  },
+  {
+    "id": "SERVO_HORN_KIT_SG90_SUPPLIED",
+    "catalog_row": "46",
+    "catalog_id": null,
+    "role": "mechanical",
+    "name": "Servo horn set supplied with SG90 + printed linkage",
+    "reference_product": {
+      "maker": "TowerPro (accessory horns in the SG90 pack)",
+      "mpn_or_model": "SG90 single / double / cross horns",
+      "product_url": "https://robocraze.com/products/sg90-micro-servo-motor",
+      "datasheet_url": "https://static.rapidonline.com/pdf/37-1330t.pdf"
+    },
+    "dims_mm": {
+      "x": null,
+      "y": null,
+      "z": null,
+      "notes": "The Rapid/TowerPro drawing shows a cross horn fitted, but horn dimensions and spline count are not dimensioned."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "none",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Production intent: do not print splines. Printed linkage parts clamp onto or bolt through the supplied plastic horn's holes, so spline variation between SG90 clones does not matter. 25T horns sold for MG995/MG996R do not fit micro servos."
+    },
+    "pins": [],
+    "module_connector": {
+      "type": "none",
+      "pin_order": [],
+      "location": "n/a"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE",
+      "wires": [],
+      "length_mm": 0
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": "Shell slot sized to the linkage sweep."
+    },
+    "electrical": {
+      "supply_v": "none",
+      "logic_v": "none",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "none"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": ""
+    },
+    "kicad": {
+      "backplane_footprint": "NONE",
+      "notes": ""
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/sg90-micro-servo-motor",
+        "price_inr_seen": 106,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      }
+    ],
+    "price_inr_planning": [
+      30,
+      150
+    ],
+    "evidence": [
+      "https://static.rapidonline.com/pdf/37-1330t.pdf",
+      "https://robocraze.com/products/sg90-micro-servo-motor.js",
+      "https://robocraze.com/products/25t-servo-metal-rocker-arm-for-mg995-mg996r"
+    ],
+    "uncertain": [
+      "Robocraze page does not state package contents; horns + screws being included is assumed from common SG90 packaging",
+      "SG90 spline tooth count and horn hole spacing not found",
+      "no separate micro-servo horn kit found at the Indian shops searched"
+    ]
+  },
+  {
+    "id": "MAGNET_NDFEB_D8X5_N35",
+    "catalog_row": "47",
+    "catalog_id": null,
+    "role": "mechanical",
+    "name": "NdFeB disc magnet 8 x 5 mm, N35, Ni-Cu-Ni (captive in shell)",
+    "reference_product": {
+      "maker": "Generic (Quartz Components listing)",
+      "mpn_or_model": "Neodymium (NdFeB) 8x5 mm Disc Magnet, SKU OTH-QC4388",
+      "product_url": "https://quartzcomponents.com/products/small-magnets-8mm-diameter-5mm-thickness",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 8,
+      "y": 8,
+      "z": 5,
+      "notes": "Diameter 8, thickness 5, axially magnetised, N35, Ni-Cu-Ni plating, max ~80 C (page read)."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "press_fit",
+      "holes": [
+        {
+          "x": 0,
+          "y": 0,
+          "d": 8.0
+        }
+      ],
+      "hole_origin": "magnet axis",
+      "notes": "Fully captive: printed blind pocket closed by a printed skin (print-pause insertion) or a screwed retainer, never surface-glued alone. Pocket clearance by test print. Keep polarity marked in the assembly instruction. Do not insert with a hot tool: 80 C limit."
+    },
+    "pins": [],
+    "module_connector": {
+      "type": "none",
+      "pin_order": [],
+      "location": "n/a"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE",
+      "wires": [],
+      "length_mm": 0
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": ""
+    },
+    "electrical": {
+      "supply_v": "none",
+      "logic_v": "none",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "none"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": ""
+    },
+    "kicad": {
+      "backplane_footprint": "NONE",
+      "notes": ""
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Quartz Components",
+        "url": "https://quartzcomponents.com/products/small-magnets-8mm-diameter-5mm-thickness",
+        "price_inr_seen": 23,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      }
+    ],
+    "price_inr_planning": [
+      20,
+      100
+    ],
+    "evidence": [
+      "https://quartzcomponents.com/products/small-magnets-8mm-diameter-5mm-thickness.js"
+    ],
+    "uncertain": [
+      "CHILD INGESTION RISK: small high-strength magnets are a serious ingestion hazard; product is adult-only at launch and magnets must be fully captive and retention-tested (drop/pull). Exact regulatory test requirements not researched here",
+      "pull force not stated",
+      "price is per single magnet (pack quantity 1)",
+      "keep magnets clear of the Hall/reed sensor (row 33) unless intended, and of the ESP32 antenna keep-out"
+    ]
+  },
+  {
+    "id": "SHELL_PANEL_FASTENED_V0",
+    "catalog_row": "48",
+    "catalog_id": null,
+    "role": "mechanical",
+    "name": "Standard fastened removable shell panel (our printed part; constraints only)",
+    "reference_product": {
+      "maker": "Quarktex (own design)",
+      "mpn_or_model": "SHELL_PANEL v0 constraints",
+      "product_url": null,
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": null,
+      "y": null,
+      "z": null,
+      "notes": "Per-design; generated with the shell."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "holes",
+      "holes": [],
+      "hole_origin": "per design",
+      "notes": "Constraints: M2.5 SHCS (row 09) into M2.5 heat-set inserts (row 10: 4.0 mm hole, >= 7.2 mm boss) on the body side; panel side gets clearance holes + counterbores (head size to be measured). Screw lengths from the in-stock set (5/8/10 mm). Panel must expose the factory test footprint or come off before test (row 49) and must not sit within the antenna keep-out with metal. Label recess for row 50 on the underside. Magnet retention (row 47) only as a secondary closure, not the primary fastening."
+    },
+    "pins": [],
+    "module_connector": {
+      "type": "none",
+      "pin_order": [],
+      "location": "n/a"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE",
+      "wires": [],
+      "length_mm": 0
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": ""
+    },
+    "electrical": {
+      "supply_v": "none",
+      "logic_v": "none",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "none"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": ""
+    },
+    "kicad": {
+      "backplane_footprint": "NONE",
+      "notes": ""
+    },
+    "sourcing_in": [],
+    "price_inr_planning": [
+      30,
+      150
+    ],
+    "evidence": [
+      "https://www.3djake.com/cnc-kitchen/threaded-inserts-m25-standard?sai=15444",
+      "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric.js"
+    ],
+    "uncertain": [
+      "screw count per panel, panel wall thickness and counterbore sizes are unvalidated design choices",
+      "SHCS head dimensions not read from ISO 4762"
+    ]
+  },
+  {
+    "id": "TEST_JIG_TAGCONNECT_TC2030_NL",
+    "catalog_row": "49",
+    "catalog_id": "TEST_JIG_IF_A",
+    "role": "cable",
+    "name": "Factory test/programming interface: Tag-Connect TC2030-NL footprint (+ 2.54 mm pogo alternative)",
+    "reference_product": {
+      "maker": "Tag-Connect",
+      "mpn_or_model": "TC2030-IDC-NL (cable) + TC2030-NL footprint",
+      "product_url": "https://www.tag-connect.com/product/tc2030-idc-nl",
+      "datasheet_url": "https://www.tag-connect.com/wp-content/uploads/bsk-pdf-manager/2019/12/TC2030-IDC-NL-Datasheet-Rev-B.pdf"
+    },
+    "dims_mm": {
+      "x": 5.08,
+      "y": 2.03,
+      "z": 0,
+      "notes": "Footprint span: 5.08 mm between the single left alignment hole and the right hole pair; right holes at +/-1.016 mm. Cable plug head 9.906 x 6.096 mm; cable length 225 mm (TC2030-IDC-NL). Contact pins protrude 3.175 mm compressed."
+    },
+    "pcb_thickness_mm": 1.6,
+    "mount": {
+      "type": "none",
+      "holes": [
+        {
+          "x": -2.54,
+          "y": 0,
+          "d": 0.991
+        },
+        {
+          "x": 2.54,
+          "y": 1.016,
+          "d": 0.991
+        },
+        {
+          "x": 2.54,
+          "y": -1.016,
+          "d": 0.991
+        }
+      ],
+      "hole_origin": "centre of the 2x3 pad array (between pads 3 and 4)",
+      "notes": "3 non-plated alignment holes 0.991 +/-0.076 mm. Pads: 6 x 0.787 +/-0.076 mm, 1.27 mm pitch, rows at y = +/-0.635 mm; pad 1 (-1.27,-0.635), 2 (-1.27,+0.635), 3 (0,-0.635), 4 (0,+0.635), 5 (1.27,-0.635), 6 (1.27,+0.635). No paste on pads; no tracks/vias in the keep-out between pads; no other signal within 0.020 in (0.508 mm) of any pad. Optional TC2030-CLIP retains the cable from under the PCB."
+    },
+    "pins": [
+      {
+        "name": "1",
+        "func": "3v3",
+        "notes": "PROPOSED map: 3V3 sense/supply"
+      },
+      {
+        "name": "2",
+        "func": "rst",
+        "notes": "PROPOSED: ESP32-S3 EN"
+      },
+      {
+        "name": "3",
+        "func": "gnd",
+        "notes": "PROPOSED"
+      },
+      {
+        "name": "4",
+        "func": "data",
+        "notes": "PROPOSED: U0TXD"
+      },
+      {
+        "name": "5",
+        "func": "data",
+        "notes": "PROPOSED: U0RXD"
+      },
+      {
+        "name": "6",
+        "func": "gpio",
+        "notes": "PROPOSED: GPIO0 / BOOT strap"
+      }
+    ],
+    "module_connector": {
+      "type": "solder_pads",
+      "pin_order": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ],
+      "location": "core board or backplane, reachable from one face"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE (pads only; jig cable is fixture-side)",
+      "wires": [],
+      "length_mm": 225
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": "Test before final shell closure, or design a removable panel (row 48) over the footprint."
+    },
+    "electrical": {
+      "supply_v": "3.3",
+      "logic_v": "3.3",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "usb | uart (proposed)"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "Factory flow proposal: power + flash/test over the native USB-C where possible; TC2030 gives UART + EN/BOOT for recovery if USB is dead. Alternative low-cost jig: 2.54 mm test pads + P75-H2 pogo pins (Probots: 16.5 mm long, 1.02 mm barrel, 2 mm travel / 2.5 mm full stroke, 100 g, 3 A) in a printed fixture."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector:Tag-Connect_TC2030-IDC-NL_2x03_P1.27mm_Vertical",
+      "notes": "Footprint name believed to be in the KiCad standard Connector library - verify in KiCad 9 before use. Pogo alternative: TestPoint pads on a 2.54 mm grid."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Probots",
+        "url": "https://probots.co.in/p75-h2-pogo-pin-with-serrated-head-tip-for-pcb-testing-connector.html",
+        "price_inr_seen": 35,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      },
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/p50-e2-spring-test-probe-pogo-pin",
+        "price_inr_seen": 94,
+        "seen_on": "2026-11-01",
+        "status": "page_read"
+      }
+    ],
+    "price_inr_planning": [
+      20,
+      110
+    ],
+    "evidence": [
+      "https://www.tag-connect.com/product/tc2030-idc-nl",
+      "https://www.tag-connect.com/wp-content/uploads/bsk-pdf-manager/2019/12/TC2030-IDC-NL-Datasheet-Rev-B.pdf",
+      "https://probots.co.in/p75-h2-pogo-pin-with-serrated-head-tip-for-pcb-testing-connector.html",
+      "https://robocraze.com/products/p50-e2-spring-test-probe-pogo-pin.js"
+    ],
+    "uncertain": [
+      "pin map is our proposal; ESP32-S3 UART0 GPIO numbers (43/44) and strap behaviour not re-read from the Espressif datasheet",
+      "Tag-Connect cable price USD 33.95 (tag-connect.com) - a one-time fixture cost, not per unit; Indian distributor price not read",
+      "Robocraze P50-E2 is ₹94 per 5 pins; P50 is a finer-pitch pin than P75 (dimensions not stated on the page)",
+      "KiCad footprint id not verified in a KiCad 9 install"
+    ]
+  },
+  {
+    "id": "LABEL_QR_POLYESTER_50X25_PACK",
+    "catalog_row": "50",
+    "catalog_id": "LABEL_PACK_A",
+    "role": "label",
+    "name": "Device ID label (QR + serial, silver/white polyester, thermal transfer) + packing kit",
+    "reference_product": {
+      "maker": "3M (reference) / Indian label converters",
+      "mpn_or_model": "Silver polyester asset label 50 x 25 mm, thermal transfer",
+      "product_url": "https://neotech.ae/products/3m-silver-asset-label-50x25mm-5000-roll-uae",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 50,
+      "y": 25,
+      "z": 0.1,
+      "notes": "50 x 25 mm label (listing). Thickness is an estimate. Thermal-transfer polyester needs a resin ribbon (listing)."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "adhesive",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Applied in a shallow printed recess on the base (recess size proposal: label + small margin). QR encodes serial + Digital Product Passport URL (blueprint 10.1). Packing kit (anti-static bag, box, insert, quick-start card) not yet specified."
+    },
+    "pins": [],
+    "module_connector": {
+      "type": "none",
+      "pin_order": [],
+      "location": "n/a"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE",
+      "wires": [],
+      "length_mm": 0
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": ""
+    },
+    "electrical": {
+      "supply_v": "none",
+      "logic_v": "none",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "none"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "Serial printed on the label must equal the ID provisioned into flash at factory test (row 49)."
+    },
+    "kicad": {
+      "backplane_footprint": "NONE",
+      "notes": "Optionally add a silkscreen QR/serial area on the backplane as a second traceability mark."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "IndiaMART (Quick Barcode Solution, New Delhi)",
+        "url": "https://m.indiamart.com/quickbarcodesolution-com/label-roll.html",
+        "price_inr_seen": 280,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet"
+      }
+    ],
+    "price_inr_planning": [
+      30,
+      150
+    ],
+    "evidence": [
+      "https://neotech.ae/products/3m-silver-asset-label-50x25mm-5000-roll-uae",
+      "https://tscprinters.barcodevault.com/?p=285",
+      "https://m.indiamart.com/quickbarcodesolution-com/label-roll.html"
+    ],
+    "uncertain": [
+      "no Indian 50 x 25 mm thermal-transfer polyester listing read; IndiaMART ₹280/roll is for a silver-grey polyester plain roll of unconfirmed size",
+      "label printer, ribbon and per-label cost not chosen",
+      "packing kit contents and costs not researched",
+      "50 x 25 mm may be too large for small gadgets; a smaller size may be needed"
+    ]
+  }
+]

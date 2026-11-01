@@ -1,0 +1,3385 @@
+[
+  {
+    "id": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "catalog_row": "01",
+    "catalog_id": "CORE_ESP32S3_A",
+    "role": "controller",
+    "name": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+    "reference_product": {
+      "maker": "Espressif Systems",
+      "mpn_or_model": "ESP32-S3-DevKitC-1-N8R8 (board v1.1; module ESP32-S3-WROOM-1-N8R8). Clone 'DevKitC-1 N16R8' boards use ESP32-S3-WROOM-1-N16R8 and must be measured before approval",
+      "product_url": "https://www.espressif.com/en/dev-board/esp32-s3-devkitc-1-en",
+      "datasheet_url": "https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.1.html"
+    },
+    "dims_mm": {
+      "x": 69.15,
+      "y": 25.4,
+      "z": 13.4,
+      "notes": "x = overall length incl. the WROOM-1 PCB-antenna overhang: PCB outline is 62.865 mm (DXF BOARD_OUTLINE; drawing annotates 62.74) and the module outline runs to 69.15 mm, i.e. the antenna overhangs the PCB end by 6.285 mm. y = 25.40 (DXF + drawing). Board corners chamfered 0.5 mm. z is an ESTIMATE: 3.1 module (WROOM-1 18.0 x 25.5 x 3.1) + ~1.6 PCB + male headers below (~2.5 plastic + ~6 pin). Seated in 8.5 mm female sockets the module top sits roughly 15-16 mm above the backplane (estimate)."
+    },
+    "pcb_thickness_mm": 1.6,
+    "mount": {
+      "type": "header",
+      "holes": [],
+      "hole_origin": "No mounting holes on the DevKitC-1 (DXF DRILLHOLE layer holds only the USB connector slot drills). Coordinates below: origin = PCB corner at the USB-connector end on the J1 side, component side up; u = across width (0..25.4), v = along length (0 at USB end).",
+      "notes": "Two 1x22 rows, 2.54 mm pitch. J1 column at u = 1.27, J3 column at u = 24.13 -> row-to-row spacing 22.86 mm (0.9 in), NOT a 2x22 0.1 in block. Pin 1 of both rows at v = 61.30 (1.565 mm from the antenna-end PCB edge); pin 22 at v = 7.96 (drawing annotates 8.00 from pin to USB-end edge). Retention: header friction only; add a printed hold-down clip on the cartridge (row 12) over the module shield, never over the antenna."
+    },
+    "pins": [
+      {
+        "name": "3V3",
+        "func": "3v3",
+        "notes": "J1-1; 3.3 V rail (output of DevKitC LDO when powered from 5V/USB)"
+      },
+      {
+        "name": "3V3",
+        "func": "3v3",
+        "notes": "J1-2; 3.3 V rail"
+      },
+      {
+        "name": "RST",
+        "func": "enable",
+        "notes": "J1-3; EN / chip reset (active low)"
+      },
+      {
+        "name": "GPIO4",
+        "func": "gpio",
+        "notes": "J1-4; RTC_GPIO4, TOUCH4, ADC1_CH3"
+      },
+      {
+        "name": "GPIO5",
+        "func": "gpio",
+        "notes": "J1-5; RTC_GPIO5, TOUCH5, ADC1_CH4"
+      },
+      {
+        "name": "GPIO6",
+        "func": "gpio",
+        "notes": "J1-6; RTC_GPIO6, TOUCH6, ADC1_CH5"
+      },
+      {
+        "name": "GPIO7",
+        "func": "gpio",
+        "notes": "J1-7; RTC_GPIO7, TOUCH7, ADC1_CH6"
+      },
+      {
+        "name": "GPIO15",
+        "func": "gpio",
+        "notes": "J1-8; U0RTS, ADC2_CH4, XTAL_32K_P"
+      },
+      {
+        "name": "GPIO16",
+        "func": "gpio",
+        "notes": "J1-9; U0CTS, ADC2_CH5, XTAL_32K_N"
+      },
+      {
+        "name": "GPIO17",
+        "func": "gpio",
+        "notes": "J1-10; U1TXD, ADC2_CH6"
+      },
+      {
+        "name": "GPIO18",
+        "func": "gpio",
+        "notes": "J1-11; U1RXD, ADC2_CH7, CLK_OUT3"
+      },
+      {
+        "name": "GPIO8",
+        "func": "gpio",
+        "notes": "J1-12; TOUCH8, ADC1_CH7, SUBSPICS1"
+      },
+      {
+        "name": "GPIO3",
+        "func": "gpio",
+        "notes": "J1-13; STRAPPING (JTAG signal source); floating by default; avoid for module I/O"
+      },
+      {
+        "name": "GPIO46",
+        "func": "gpio",
+        "notes": "J1-14; STRAPPING (boot mode with GPIO0, ROM message printing); weak pull-down; avoid"
+      },
+      {
+        "name": "GPIO9",
+        "func": "gpio",
+        "notes": "J1-15; TOUCH9, ADC1_CH8, FSPIHD"
+      },
+      {
+        "name": "GPIO10",
+        "func": "gpio",
+        "notes": "J1-16; TOUCH10, ADC1_CH9, FSPICS0"
+      },
+      {
+        "name": "GPIO11",
+        "func": "gpio",
+        "notes": "J1-17; TOUCH11, ADC2_CH0, FSPID (MOSI)"
+      },
+      {
+        "name": "GPIO12",
+        "func": "gpio",
+        "notes": "J1-18; TOUCH12, ADC2_CH1, FSPICLK"
+      },
+      {
+        "name": "GPIO13",
+        "func": "gpio",
+        "notes": "J1-19; TOUCH13, ADC2_CH2, FSPIQ (MISO)"
+      },
+      {
+        "name": "GPIO14",
+        "func": "gpio",
+        "notes": "J1-20; TOUCH14, ADC2_CH3, FSPIWP"
+      },
+      {
+        "name": "5V",
+        "func": "5v",
+        "notes": "J1-21; 5 V power input from backplane (mutually exclusive with USB power per Espressif)"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": "J1-22; ground"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": "J3-1; ground"
+      },
+      {
+        "name": "TX/GPIO43",
+        "func": "data",
+        "notes": "J3-2; U0TXD; wired to on-board USB-to-UART bridge; reserve for console / factory test"
+      },
+      {
+        "name": "RX/GPIO44",
+        "func": "data",
+        "notes": "J3-3; U0RXD; wired to on-board USB-to-UART bridge; reserve for console / factory test"
+      },
+      {
+        "name": "GPIO1",
+        "func": "gpio",
+        "notes": "J3-4; TOUCH1, ADC1_CH0"
+      },
+      {
+        "name": "GPIO2",
+        "func": "gpio",
+        "notes": "J3-5; TOUCH2, ADC1_CH1"
+      },
+      {
+        "name": "GPIO42",
+        "func": "gpio",
+        "notes": "J3-6; MTMS (JTAG); free when JTAG is via USB"
+      },
+      {
+        "name": "GPIO41",
+        "func": "gpio",
+        "notes": "J3-7; MTDI (JTAG)"
+      },
+      {
+        "name": "GPIO40",
+        "func": "gpio",
+        "notes": "J3-8; MTDO (JTAG)"
+      },
+      {
+        "name": "GPIO39",
+        "func": "gpio",
+        "notes": "J3-9; MTCK (JTAG)"
+      },
+      {
+        "name": "GPIO38",
+        "func": "gpio",
+        "notes": "J3-10; drives the on-board addressable RGB LED on v1.1 boards (GPIO48 on v1.0); avoid"
+      },
+      {
+        "name": "GPIO37",
+        "func": "nc",
+        "notes": "J3-11; RESERVED: Octal PSRAM (R8 modules); do not connect"
+      },
+      {
+        "name": "GPIO36",
+        "func": "nc",
+        "notes": "J3-12; RESERVED: Octal PSRAM (R8 modules); do not connect"
+      },
+      {
+        "name": "GPIO35",
+        "func": "nc",
+        "notes": "J3-13; RESERVED: Octal PSRAM (R8 modules); do not connect"
+      },
+      {
+        "name": "GPIO0",
+        "func": "gpio",
+        "notes": "J3-14; STRAPPING (boot mode); weak pull-up; BOOT button; factory test pad only"
+      },
+      {
+        "name": "GPIO45",
+        "func": "gpio",
+        "notes": "J3-15; STRAPPING (VDD_SPI voltage); weak pull-down; must not be pulled high at power-up; avoid"
+      },
+      {
+        "name": "GPIO48",
+        "func": "gpio",
+        "notes": "J3-16; SPICLK_N; RGB LED on v1.0 boards and many clones; avoid"
+      },
+      {
+        "name": "GPIO47",
+        "func": "gpio",
+        "notes": "J3-17; SPICLK_P"
+      },
+      {
+        "name": "GPIO21",
+        "func": "gpio",
+        "notes": "J3-18; RTC_GPIO21"
+      },
+      {
+        "name": "GPIO20",
+        "func": "data",
+        "notes": "J3-19; USB_D+ (native USB OTG / Serial-JTAG); also wired to the DevKitC 'USB' port"
+      },
+      {
+        "name": "GPIO19",
+        "func": "data",
+        "notes": "J3-20; USB_D- (native USB OTG / Serial-JTAG); also wired to the DevKitC 'USB' port"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": "J3-21; ground"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": "J3-22; ground"
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "J1-1 3V3",
+        "J1-2 3V3",
+        "J1-3 RST",
+        "J1-4 GPIO4",
+        "J1-5 GPIO5",
+        "J1-6 GPIO6",
+        "J1-7 GPIO7",
+        "J1-8 GPIO15",
+        "J1-9 GPIO16",
+        "J1-10 GPIO17",
+        "J1-11 GPIO18",
+        "J1-12 GPIO8",
+        "J1-13 GPIO3",
+        "J1-14 GPIO46",
+        "J1-15 GPIO9",
+        "J1-16 GPIO10",
+        "J1-17 GPIO11",
+        "J1-18 GPIO12",
+        "J1-19 GPIO13",
+        "J1-20 GPIO14",
+        "J1-21 5V",
+        "J1-22 GND",
+        "J3-1 GND",
+        "J3-2 TX/GPIO43",
+        "J3-3 RX/GPIO44",
+        "J3-4 GPIO1",
+        "J3-5 GPIO2",
+        "J3-6 GPIO42",
+        "J3-7 GPIO41",
+        "J3-8 GPIO40",
+        "J3-9 GPIO39",
+        "J3-10 GPIO38",
+        "J3-11 GPIO37",
+        "J3-12 GPIO36",
+        "J3-13 GPIO35",
+        "J3-14 GPIO0",
+        "J3-15 GPIO45",
+        "J3-16 GPIO48",
+        "J3-17 GPIO47",
+        "J3-18 GPIO21",
+        "J3-19 GPIO20",
+        "J3-20 GPIO19",
+        "J3-21 GND",
+        "J3-22 GND"
+      ],
+      "location": "two long edges, male pins pointing down into the backplane; J1 on the left and J3 on the right viewed from the component side with USB connectors at the bottom"
+    },
+    "backplane_harness": {
+      "backplane_connector": "HEADER (2 x PinSocket 1x22 female, 22.86 mm apart)",
+      "wires": [],
+      "length_mm": 0
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": "Customer-facing USB-C is on the backplane (row 03). The DevKitC's own USB ports are factory-only. Antenna (last 6.3 mm of the module) must overhang the backplane edge and sit behind non-conductive shell wall only: no metal paint, magnets (row 47), screws or speaker within the antenna keep-out."
+    },
+    "electrical": {
+      "supply_v": "5 via 5V pin (or 3.3 via 3V3 pin); Espressif lists USB / 5V pin / 3V3 pin as mutually exclusive supply options",
+      "logic_v": "3.3",
+      "current_ma_typ": 95,
+      "current_ma_max": 355,
+      "bus": "usb (native OTG/Serial-JTAG GPIO19/20) | uart0 (GPIO43/44) | i2c | spi (FSPI IOMUX GPIO10-14) | i2s x2 | rmt | ledc"
+    },
+    "firmware": {
+      "arduino_libraries": [
+        "espressif/arduino-esp32@^3.0 (board core)"
+      ],
+      "driver_notes": "R8 = Octal PSRAM: select OPI PSRAM; GPIO35/36/37 are consumed by the PSRAM and must never be used. Strapping pins GPIO0, GPIO3, GPIO45, GPIO46 stay unconnected to modules. On-board RGB LED is GPIO38 (v1.1) or GPIO48 (v1.0 and most clones): firmware must not assume which. Typ current 95 mA = Wi-Fi RX (module datasheet table 6-4); max 355 mA = 802.11b TX peak at 20.5 dBm."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_PinSocket_2.54mm:PinSocket_1x22_P2.54mm_Vertical",
+      "notes": "Place TWO 1x22 sockets with centres 22.86 mm apart (the 2x22 footprint has 2.54 mm row spacing and does not fit). Footprint names checked against kicad-footprints tag 9.0.9."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Electropi",
+        "url": "https://www.electropi.in/espressif-esp32-s3-devkitc-1-n8r8-development-board",
+        "price_inr_seen": 1449,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "Rs 1,449 excl. 18% GST (MRP 1,709.82 incl.); genuine Espressif N8R8; page says USB Type-C while Espressif's v1.1 guide says Micro-USB"
+      },
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/7semi-esp32-s3-dev-boardc-1-n8r8-wifi-bluetooth-dual-usb-c-rgb-led",
+        "price_inr_seen": 949,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "7Semi clone, N8R8, dual USB-C, incl. GST; DevKitC-1 pin compatibility not stated"
+      },
+      {
+        "vendor": "Robo Bazar",
+        "url": "https://robobazar.in/product/esp32-s3-devkit-n16r8-development-board/",
+        "price_inr_seen": 599,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "N16R8 clone, USB-C, GST basis not stated; module and header count not stated"
+      },
+      {
+        "vendor": "Robu.in",
+        "url": "https://www.espressif.com/en/dev-board/esp32-s3-devkitc-1-en",
+        "price_inr_seen": null,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "Espressif's dev-board page lists Robu India as an N8R8 retailer; robu.in returned HTTP 403 to fetches, price not seen"
+      }
+    ],
+    "price_inr_planning": [
+      650,
+      1300
+    ],
+    "evidence": [
+      "https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.1.html",
+      "https://dl.espressif.com/dl/schematics/esp_idf/DXF_ESP32-S3-DevKitC-1_V1.1_20220429.dxf",
+      "https://dl.espressif.com/dl/schematics/esp_idf/DXF_ESP32-S3-DevKitC-1_V1.1_20220429.pdf",
+      "https://documentation.espressif.com/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf",
+      "https://www.electropi.in/espressif-esp32-s3-devkitc-1-n8r8-development-board",
+      "https://robocraze.com/products/7semi-esp32-s3-dev-boardc-1-n8r8-wifi-bluetooth-dual-usb-c-rgb-led",
+      "https://robobazar.in/product/esp32-s3-devkit-n16r8-development-board/"
+    ],
+    "uncertain": [
+      "Espressif's DevKitC-1 ordering table lists N8R8 and N32R16V (plus EOL N8/N8R2), NOT N16R8; 'ESP32-S3-DevKitC-1-N16R8' boards in Indian shops are third-party clones (the WROOM-1-N16R8 module itself is official). Clone outline, header spacing and RGB-LED GPIO must be measured before approval.",
+      "z height 13.4 mm and seated height above backplane are estimates (header and socket heights not read from a datasheet).",
+      "pcb_thickness_mm 1.6 is assumed; not stated in the Espressif drawing.",
+      "USB connector type: Espressif v1.1 user guide says Micro-USB, Electropi listing says Type-C; may differ by production lot.",
+      "Current DevKitC 3V3 LDO capacity is not stated by Espressif; module datasheet requires a supply able to deliver >= 0.5 A.",
+      "Arduino menu option names (OPI PSRAM, ESP32S3 Dev Module) and the core version floor ^3.0 were not re-checked this session.",
+      "ADC2 channels may be unusable while Wi-Fi is active (ESP-IDF behaviour, not verified this session); prefer ADC1 pins (GPIO1-10) for analog modules."
+    ]
+  },
+  {
+    "id": "BACKPLANE_S3_V0_CUSTOM",
+    "catalog_row": "02",
+    "catalog_id": "BACKPLANE_A",
+    "role": "backplane",
+    "name": "Standard backplane PCB (ours, to be designed)",
+    "reference_product": {
+      "maker": "Quarktex (custom; no off-the-shelf product)",
+      "mpn_or_model": "BP-S3-V0 (proposed)",
+      "product_url": null,
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 90,
+      "y": 55,
+      "z": 18,
+      "notes": "PROPOSED envelope, not a fact. Must fit: DevKitC-1 footprint 62.865 x 25.4 with its antenna end flush with or past a backplane edge; USB-C receptacle on one short edge; up to 8 keyed JST ports along the long edges; 4 mounting holes; test pads. z = PCB 1.6 + seated DevKitC (~15-16 mm, estimate)."
+    },
+    "pcb_thickness_mm": 1.6,
+    "mount": {
+      "type": "holes",
+      "holes": [
+        {
+          "x": 3.5,
+          "y": 3.5,
+          "d": 2.7
+        },
+        {
+          "x": 86.5,
+          "y": 3.5,
+          "d": 2.7
+        },
+        {
+          "x": 3.5,
+          "y": 51.5,
+          "d": 2.7
+        },
+        {
+          "x": 86.5,
+          "y": 51.5,
+          "d": 2.7
+        }
+      ],
+      "hole_origin": "bottom-left corner of the proposed 90 x 55 board, top view (proposal)",
+      "notes": "PROPOSAL: 4 x M2.5 (2.7 mm) holes into heat-set inserts (rows 09/10) on the core cartridge (row 12). Hard constraints from the parts: (1) two 1x22 female sockets 22.86 mm apart, pin 1 of both rows at the antenna end; (2) WROOM-1 antenna overhangs the DevKitC PCB by 6.285 mm and must not sit over backplane copper: either end the backplane at the DevKitC antenna end or cut a copper-free notch (Espressif keep-out guidance, exact clearance to confirm); (3) USB-C receptacle front face within ~0.5 mm of the board edge so the shell wall can be <= 2 mm at the port; (4) every port is a keyed shrouded JST header whose PIN COUNT encodes its type so a cable cannot reach a wrong-voltage port: PH 3P = IO 3V3 (GND, 3V3, SIG); PH 4P = I2C 3V3 (GND, 3V3, SDA, SCL); PH 5P = I2S mic 3V3 (GND, 3V3, SCK, WS, SD); PH 6P = I2S amp 5V (GND, 5V, BCLK, LRCLK, DIN, SD); PH 7P = microSD 5V (GND, 5V, MISO, MOSI, SCK, CS, NC); PH 8P = LCD 3V3 (Waveshare order VCC, GND, DIN, CLK, CS, DC, RST, BL); XH 3P (2.50 mm, physically incompatible with PH) = 5V addressable LED (GND, 5V, DATA); PH 2P = power-in only when the USB-C breakout fallback is used."
+    },
+    "pins": [
+      {
+        "name": "5V_IN",
+        "func": "vin",
+        "notes": "PROPOSED allocation; from USB-C VBUS after PTC fuse + TVS; feeds DevKitC 5V pin, 5V ports (amp, LED, microSD)"
+      },
+      {
+        "name": "3V3",
+        "func": "3v3",
+        "notes": "PROPOSED allocation; taken from DevKitC 3V3 pins; feeds 3V3 ports (I2C, IO, mic, LCD); budget <= ~150 mA total (estimate)"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": "PROPOSED allocation; solid ground pour except under antenna overhang"
+      },
+      {
+        "name": "I2C_SDA GPIO8",
+        "func": "i2c_sda",
+        "notes": "PROPOSED allocation; 4P ports; 4.7k pull-ups to 3V3 on backplane (proposal)"
+      },
+      {
+        "name": "I2C_SCL GPIO9",
+        "func": "i2c_scl",
+        "notes": "PROPOSED allocation; 4P ports"
+      },
+      {
+        "name": "SPI_SCK GPIO12",
+        "func": "spi_sck",
+        "notes": "PROPOSED allocation; FSPICLK IOMUX pin; LCD + microSD"
+      },
+      {
+        "name": "SPI_MOSI GPIO11",
+        "func": "spi_mosi",
+        "notes": "PROPOSED allocation; FSPID IOMUX pin"
+      },
+      {
+        "name": "SPI_MISO GPIO13",
+        "func": "spi_miso",
+        "notes": "PROPOSED allocation; FSPIQ IOMUX pin; microSD only"
+      },
+      {
+        "name": "LCD_CS GPIO10",
+        "func": "spi_cs",
+        "notes": "PROPOSED allocation; FSPICS0"
+      },
+      {
+        "name": "LCD_DC GPIO14",
+        "func": "dc",
+        "notes": "PROPOSED allocation; 8P LCD port"
+      },
+      {
+        "name": "LCD_RST GPIO21",
+        "func": "rst",
+        "notes": "PROPOSED allocation; 8P LCD port"
+      },
+      {
+        "name": "LCD_BL GPIO47",
+        "func": "bl",
+        "notes": "PROPOSED allocation; LEDC PWM backlight"
+      },
+      {
+        "name": "SD_CS GPIO18",
+        "func": "spi_cs",
+        "notes": "PROPOSED allocation; 7P microSD port"
+      },
+      {
+        "name": "I2S0_BCLK GPIO4",
+        "func": "i2s_bclk",
+        "notes": "PROPOSED allocation; 6P amp port"
+      },
+      {
+        "name": "I2S0_LRCLK GPIO5",
+        "func": "i2s_lrclk",
+        "notes": "PROPOSED allocation; 6P amp port"
+      },
+      {
+        "name": "I2S0_DOUT GPIO6",
+        "func": "i2s_dout",
+        "notes": "PROPOSED allocation; 6P amp port (to amp DIN)"
+      },
+      {
+        "name": "AMP_SD GPIO39",
+        "func": "enable",
+        "notes": "PROPOSED allocation; 6P amp port; drive low to mute/shutdown and kill pops"
+      },
+      {
+        "name": "I2S1_SCK GPIO15",
+        "func": "i2s_bclk",
+        "notes": "PROPOSED allocation; 5P mic port; GPIO15/16 are XTAL_32K pins, free only if no 32 kHz crystal is fitted"
+      },
+      {
+        "name": "I2S1_WS GPIO16",
+        "func": "i2s_lrclk",
+        "notes": "PROPOSED allocation; 5P mic port"
+      },
+      {
+        "name": "I2S1_DIN GPIO17",
+        "func": "i2s_din",
+        "notes": "PROPOSED allocation; 5P mic port (mic SD output)"
+      },
+      {
+        "name": "LED_DATA GPIO7",
+        "func": "data",
+        "notes": "PROPOSED allocation; RMT; buffered to 5 V by a 74AHCT1G125-class level shifter before the LED ports"
+      },
+      {
+        "name": "IO_A GPIO1",
+        "func": "gpio",
+        "notes": "PROPOSED allocation; 3P IO port (button / arcade button); ADC1_CH0 + TOUCH1"
+      },
+      {
+        "name": "IO_B GPIO2",
+        "func": "gpio",
+        "notes": "PROPOSED allocation; 3P IO port; ADC1_CH1 + TOUCH2"
+      },
+      {
+        "name": "IO_C GPIO42",
+        "func": "gpio",
+        "notes": "PROPOSED allocation; 3P IO port"
+      },
+      {
+        "name": "IO_D GPIO41",
+        "func": "gpio",
+        "notes": "PROPOSED allocation; 3P IO port"
+      },
+      {
+        "name": "BUZZER GPIO40",
+        "func": "pwm",
+        "notes": "PROPOSED allocation; 3P IO port with LEDC PWM"
+      },
+      {
+        "name": "USB_DP GPIO20",
+        "func": "data",
+        "notes": "PROPOSED allocation; optional: USB-C D+ routed to DevKitC header for native USB flashing"
+      },
+      {
+        "name": "USB_DM GPIO19",
+        "func": "data",
+        "notes": "PROPOSED allocation; optional: USB-C D- routed to DevKitC header"
+      },
+      {
+        "name": "TEST_TX GPIO43 / TEST_RX GPIO44 / EN / GPIO0",
+        "func": "data",
+        "notes": "PROPOSED allocation; row 49 factory test pads, not brought to module ports"
+      }
+    ],
+    "module_connector": {
+      "type": "none",
+      "pin_order": [],
+      "location": "n/a: this is the board the modules plug into"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE",
+      "wires": [],
+      "length_mm": 0
+    },
+    "aperture": {
+      "needs": "usb_port",
+      "size_mm": {
+        "w": 13.0,
+        "h": 7.0,
+        "d": 2.0
+      },
+      "notes": "Shell opening for the backplane USB-C must clear common plug overmolds (estimate 13 x 7 mm; confirm with the shipped adapter plug and the row 05 cable). Wall at the port <= 2 mm so the plug fully seats."
+    },
+    "electrical": {
+      "supply_v": "5 (USB-C VBUS)",
+      "logic_v": "3.3",
+      "current_ma_typ": 300,
+      "current_ma_max": 3000,
+      "bus": "i2c (GPIO8/9) | spi (GPIO10-14, 18) | i2s0 tx (GPIO4/5/6) | i2s1 rx (GPIO15/16/17) | rmt (GPIO7) | gpio/pwm (GPIO1/2/40/41/42) | usb (GPIO19/20 optional)"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "Ship a board-support header (pins.h) generated from this allocation; the configurator only enables a port when its module is in the manifest. Power budget: worst case (Wi-Fi TX 355 mA + amp peaks + 12-LED ring at full white ~650 mA + LCD 46 mA) can exceed 1.5 A, so firmware caps LED brightness and amp volume unless the 3 A adapter (row 04) is detected via the CC voltage."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal",
+      "notes": "Footprints on this board (all present in kicad-footprints 9.0.9): Connector_PinSocket_2.54mm:PinSocket_1x22_P2.54mm_Vertical (x2); Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical, ..._B4B-PH-K_1x04, ..._B5B-PH-K_1x05, ..._B6B-PH-K_1x06, ..._B7B-PH-K_1x07, ..._B8B-PH-K_1x08; Connector_JST:JST_XH_B3B-XH-A_1x03_P2.50mm_Vertical (LED port); MountingHole:MountingHole_2.7mm_M2.5; TestPoint:TestPoint_Pad_D1.5mm; Fuse:Fuse_1206_3216Metric (PTC); Diode_SMD:D_SMA (TVS). CC1 and CC2 each need their own 5.1k resistor to GND (one shared resistor breaks flipped-plug detection)."
+    },
+    "sourcing_in": [],
+    "price_inr_planning": [
+      120,
+      450
+    ],
+    "evidence": [
+      "https://dl.espressif.com/dl/schematics/esp_idf/DXF_ESP32-S3-DevKitC-1_V1.1_20220429.dxf",
+      "https://dl.espressif.com/dl/schematics/esp_idf/DXF_ESP32-S3-DevKitC-1_V1.1_20220429.pdf",
+      "https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.1.html",
+      "https://documentation.espressif.com/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf",
+      "https://gitlab.com/kicad/libraries/kicad-footprints/-/tree/9.0.9",
+      "https://cdn-shop.adafruit.com/datasheets/WS2812B.pdf"
+    ],
+    "uncertain": [
+      "Everything in this object is a design proposal: board size, hole positions, port allocation, colour code and port-to-pin-count mapping need Prasanna's sign-off.",
+      "Antenna keep-out distance: Espressif hardware design guidelines not read this session; the 'no copper under the 6.3 mm overhang' rule is the minimum.",
+      "PTC/TVS values (e.g. 1206 PTC ~2 A hold, SMAJ5.0A-class TVS) are proposals, not verified part choices.",
+      "Routing USB D+/D- from the backplane USB-C to GPIO19/20 puts a stub on the DevKitC's own USB port lines; full-speed USB should tolerate it but this is untested.",
+      "GPIO15/16 for the mic assume no 32 kHz crystal on the DevKitC-1; confirm on the schematic.",
+      "Whether the DevKitC's own USB VBUS can back-feed the backplane 5V rail when both are plugged is not checked; add a Schottky or ideal-diode on the backplane 5V feed until the schematic is reviewed.",
+      "Port family proposal (pin count encodes voltage) goes beyond blueprint rows 06/07, which only list 4-pin and 3-pin cables: rows for 5P/6P/7P/8P harnesses are missing from the 50-row catalog."
+    ]
+  },
+  {
+    "id": "USBC_RECEPTACLE_GCT_USB4105",
+    "catalog_row": "03",
+    "catalog_id": "USBC_POWER_A",
+    "role": "power",
+    "name": "USB-C 2.0 receptacle on backplane (5V sink, CC 5.1k Rd)",
+    "reference_product": {
+      "maker": "GCT (Global Connector Technology)",
+      "mpn_or_model": "USB4105-GF-A (16 signal + 8 dummy positions, top-mount horizontal SMT). Alternate: HRO TYPE-C-31-M-12",
+      "product_url": "https://www.digikey.com/en/products/detail/gct/USB4105-GF-A/11198441",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 8.94,
+      "y": 7.35,
+      "z": 3.2,
+      "notes": "ESTIMATES (GCT drawing not read; gct.co returned 403): x = receptacle width, y = depth onto PCB, z = height above PCB. Use the KiCad footprint courtyard and the GCT drawing before freezing the shell port."
+    },
+    "pcb_thickness_mm": 1.6,
+    "mount": {
+      "type": "none",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "SMT signal pads plus through-hole shell tabs per the KiCad footprint; mechanically anchor with the shell tabs, and let the shell wall (not the solder joints) take plug insertion force."
+    },
+    "pins": [
+      {
+        "name": "VBUS",
+        "func": "vin",
+        "notes": "A4/A9/B4/B9; to PTC fuse + TVS + bulk cap, then 5V rail"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": "A1/A12/B1/B12 + shell"
+      },
+      {
+        "name": "CC1",
+        "func": "analog",
+        "notes": "5.1k (1%) to GND = Rd, sink role; optionally to an ADC1 pin to read the source current advertisement"
+      },
+      {
+        "name": "CC2",
+        "func": "analog",
+        "notes": "separate 5.1k (1%) to GND"
+      },
+      {
+        "name": "D+",
+        "func": "data",
+        "notes": "A6/B6 tied; optional to ESP32-S3 GPIO20 (USB_D+) for native USB flashing"
+      },
+      {
+        "name": "D-",
+        "func": "data",
+        "notes": "A7/B7 tied; optional to ESP32-S3 GPIO19 (USB_D-)"
+      },
+      {
+        "name": "SBU1",
+        "func": "nc",
+        "notes": "leave unconnected"
+      },
+      {
+        "name": "SBU2",
+        "func": "nc",
+        "notes": "leave unconnected"
+      }
+    ],
+    "module_connector": {
+      "type": "solder_pads",
+      "pin_order": [
+        "VBUS",
+        "GND",
+        "CC1",
+        "CC2",
+        "D+",
+        "D-"
+      ],
+      "location": "backplane short edge, receptacle mouth facing outward"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE (soldered on backplane)",
+      "wires": [],
+      "length_mm": 0
+    },
+    "aperture": {
+      "needs": "usb_port",
+      "size_mm": {
+        "w": 13.0,
+        "h": 7.0,
+        "d": 2.0
+      },
+      "notes": "Opening sized for cable plug overmold, not the receptacle (estimate 13 x 7 mm). Receptacle mouth set back <= 0.5 mm from the shell outer face plus wall thickness."
+    },
+    "electrical": {
+      "supply_v": "5",
+      "logic_v": "n/a",
+      "current_ma_typ": 500,
+      "current_ma_max": 3000,
+      "bus": "usb (power; optional USB 2.0 full-speed data)"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "With 5.1k Rd on each CC the source supplies default USB power or advertises 1.5 A / 3.0 A via Rp; reading CC voltage on an ADC lets firmware pick an LED/amp power budget."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal",
+      "notes": "Alternate footprint Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12 (JLC/LCSC-friendly). Both present in kicad-footprints 9.0.9."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "DigiKey India",
+        "url": "https://www.digikey.com/en/products/detail/gct/USB4105-GF-A/11198441",
+        "price_inr_seen": null,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "DigiKey listings: 24 positions (16+8 dummy), 5 A rating, 20,000 mating cycles, -40 to 85 C; INR price not seen"
+      }
+    ],
+    "price_inr_planning": [
+      80,
+      250
+    ],
+    "evidence": [
+      "https://www.digikey.com/en/products/detail/gct/USB4105-GF-A/11198441",
+      "https://www.adafruit.com/product/4090",
+      "https://gitlab.com/kicad/libraries/kicad-footprints/-/tree/9.0.9"
+    ],
+    "uncertain": [
+      "Receptacle dimensions are estimates; GCT drawing not read (site 403).",
+      "Current rating 5 A and 20,000 cycles come from DigiKey search snippets, not the GCT datasheet.",
+      "INR price for USB4105 / TYPE-C-31-M-12 not seen; planning range copied from blueprint row 03 (it also has to cover PTC, TVS and resistors).",
+      "Aperture 13 x 7 mm for plug overmold is an estimate."
+    ]
+  },
+  {
+    "id": "USBC_BREAKOUT_ADAFRUIT_4090",
+    "catalog_row": "03",
+    "catalog_id": null,
+    "role": "power",
+    "name": "USB-C downstream breakout with 5.1k CC resistors (fallback for USBC_POWER_A)",
+    "reference_product": {
+      "maker": "Adafruit",
+      "mpn_or_model": "4090 USB Type C Breakout Board - Downstream Connection (rev B)",
+      "product_url": "https://www.adafruit.com/product/4090",
+      "datasheet_url": "https://github.com/adafruit/Adafruit-USB-C-Downstream-Breakout"
+    },
+    "dims_mm": {
+      "x": 20.32,
+      "y": 13.97,
+      "z": 5.0,
+      "notes": "x, y = PCB outline from Adafruit's Eagle board file (rev B); product page lists 20.4 x 14.2 x 5.0 mm incl. receptacle. USB-C receptacle mouth on the far long edge (y = 13.97)."
+    },
+    "pcb_thickness_mm": 1.6,
+    "mount": {
+      "type": "holes",
+      "holes": [
+        {
+          "x": 2.54,
+          "y": 11.43,
+          "d": 2.5
+        },
+        {
+          "x": 17.78,
+          "y": 11.43,
+          "d": 2.5
+        }
+      ],
+      "hole_origin": "bottom-left PCB corner, component side up, header edge along y = 0, receptacle edge at y = 13.97",
+      "notes": "Two plated 2.5 mm holes (M2 screws). 8-pin 0.1 in header row at y = 2.54, pins 1..8 at x = 19.05 ... 1.27."
+    },
+    "pins": [
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": "JP1-1, x 19.05"
+      },
+      {
+        "name": "VBUS",
+        "func": "vin",
+        "notes": "JP1-2, x 16.51"
+      },
+      {
+        "name": "SBU2",
+        "func": "nc",
+        "notes": "JP1-3"
+      },
+      {
+        "name": "CC1",
+        "func": "analog",
+        "notes": "JP1-4; 5.1k to GND on board (R2)"
+      },
+      {
+        "name": "D-",
+        "func": "data",
+        "notes": "JP1-5"
+      },
+      {
+        "name": "D+",
+        "func": "data",
+        "notes": "JP1-6"
+      },
+      {
+        "name": "SBU1",
+        "func": "nc",
+        "notes": "JP1-7"
+      },
+      {
+        "name": "CC2",
+        "func": "analog",
+        "notes": "JP1-8, x 1.27; 5.1k to GND on board (R1)"
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "GND",
+        "VBUS",
+        "SBU2",
+        "CC1",
+        "D-",
+        "D+",
+        "SBU1",
+        "CC2"
+      ],
+      "location": "long edge opposite the receptacle"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_2P (B2B-PH-K) power-in only; deliberately not 3P/4P so it cannot mate with a logic port",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VBUS",
+          "color": "red"
+        }
+      ],
+      "length_mm": 100
+    },
+    "aperture": {
+      "needs": "usb_port",
+      "size_mm": {
+        "w": 13.0,
+        "h": 7.0,
+        "d": 2.0
+      },
+      "notes": "Breakout screwed to a shell boss so the receptacle mouth sits at the shell wall; opening sized for plug overmold (estimate)."
+    },
+    "electrical": {
+      "supply_v": "5",
+      "logic_v": "n/a",
+      "current_ma_typ": 500,
+      "current_ma_max": 1500,
+      "bus": "usb (power only in this role)"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "Adafruit: the two 5.1K resistors tell the upstream port to provide 5 V and up to 1.5 A."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical",
+      "notes": "Only for builds where the on-board receptacle is not fitted."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Robu.in",
+        "url": "https://robu.in/?p=2054800",
+        "price_inr_seen": 99,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "Robu SKU R122667 'USB Type C Breakout Board - Downstream Connection'; likely a clone of the Adafruit design; robu.in blocks fetches"
+      },
+      {
+        "vendor": "Hubtronics (Deccan Robots)",
+        "url": "https://hubtronics.in/usb-c-female-breakout-board",
+        "price_inr_seen": 49,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "DIFFERENT board: 16-pin USB-C breakout with 5.1k CC1/CC2 resistors (marked 512), 2 mounting holes, dimensions not stated; incl. GST"
+      }
+    ],
+    "price_inr_planning": [
+      80,
+      250
+    ],
+    "evidence": [
+      "https://www.adafruit.com/product/4090",
+      "https://github.com/adafruit/Adafruit-USB-C-Downstream-Breakout",
+      "https://hubtronics.in/usb-c-female-breakout-board"
+    ],
+    "uncertain": [
+      "pcb_thickness 1.6 assumed.",
+      "Robu R122667 price (Rs 99) and its equivalence to Adafruit 4090 come from a search snippet; Robu pages could not be read.",
+      "Whether Indian stock is genuine Adafruit 4090 or a clone with a different hole pattern: measure first article."
+    ]
+  },
+  {
+    "id": "ADAPTER_RPI_15W_USBC_IN",
+    "catalog_row": "04",
+    "catalog_id": "ADAPTER_USBC_A",
+    "role": "power",
+    "name": "Raspberry Pi 15W USB-C power supply (5.1 V 3 A, India plug)",
+    "reference_product": {
+      "maker": "Raspberry Pi Ltd",
+      "mpn_or_model": "Raspberry Pi 15W USB-C Power Supply (India version, sold as 'BIS certified' by Indian resellers)",
+      "product_url": "https://www.raspberrypi.com/products/type-c-power-supply/",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": null,
+      "y": null,
+      "z": null,
+      "notes": "External accessory, not inside the shell. Captive cable 1.5 m, 18 AWG, USB-C plug (Raspberry Pi product page). Body dimensions not read."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "none",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "External wall adapter."
+    },
+    "pins": [
+      {
+        "name": "VBUS",
+        "func": "5v",
+        "notes": "5.1 V DC, 3.0 A"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": ""
+      }
+    ],
+    "module_connector": {
+      "type": "none",
+      "pin_order": [
+        "VBUS",
+        "GND"
+      ],
+      "location": "captive cable ending in a USB-C plug"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE (plugs into the backplane USB-C receptacle, row 03)",
+      "wires": [],
+      "length_mm": 1500
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": "Its USB-C plug overmold sets the minimum shell USB opening (row 02/03 aperture); measure it."
+    },
+    "electrical": {
+      "supply_v": "100-240 VAC in; 5.1 V DC out",
+      "logic_v": "n/a",
+      "current_ma_typ": 3000,
+      "current_ma_max": 3000,
+      "bus": "none"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "A 3 A-capable Type-C source should advertise 3.0 A on CC; firmware can read it to unlock the full LED/amp budget."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal",
+      "notes": "mating receptacle lives on the backplane"
+    },
+    "sourcing_in": [
+      {
+        "vendor": "ThinkRobotics",
+        "url": "https://thinkrobotics.com/products/raspberry-pi-15-3w-usb-c-power-supply",
+        "price_inr_seen": 739.99,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "'BIS Certified' with no R-number shown; 5.1V/3.0A; 1.5 m 18 AWG captive cable; SKU SBC2233"
+      },
+      {
+        "vendor": "Robu.in",
+        "url": "https://robu.in/?p=1122344",
+        "price_inr_seen": 689,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "Official USB-C 15.3W PSU, incl. GST; separate UK-plug listing exists, check plug type"
+      },
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/raspberry-pi-15w-black-power-supply-eu",
+        "price_inr_seen": 660,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "'Raspberry Pi 15W Official Black Power Supply (IN)'"
+      },
+      {
+        "vendor": "Fabtolab",
+        "url": "https://fabtolab.com/power-supply-raspberry-pi-4-model-b-ac-100-240v-50-60hz-input-dc-5-1v-3a-output-18-awg-captive-cable-15-3-w",
+        "price_inr_seen": 632,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "listed as 'BIS Certified INDIA Version'"
+      }
+    ],
+    "price_inr_planning": [
+      250,
+      600
+    ],
+    "evidence": [
+      "https://www.raspberrypi.com/products/type-c-power-supply/",
+      "https://thinkrobotics.com/products/raspberry-pi-15-3w-usb-c-power-supply"
+    ],
+    "uncertain": [
+      "BIS registration rests on reseller claims; no BIS R-number was seen and the BIS CRS database was not searched. Regulatory review must confirm the R-number on the physical unit.",
+      "Raspberry Pi's product page lists US/UK/EU/AU/'rest of world' variants, not an India variant; the India model number was not confirmed.",
+      "All seen prices (Rs 632-740) are above the blueprint planning ceiling of Rs 600.",
+      "Raspberry Pi says it stays in production until at least January 2028 (product page); adapter body dimensions were not read."
+    ]
+  },
+  {
+    "id": "CABLE_USBC_C2C_1M",
+    "catalog_row": "05",
+    "catalog_id": "CABLE_USBC_A",
+    "role": "cable",
+    "name": "USB-C to USB-C cable, 1 m, USB 2.0",
+    "reference_product": {
+      "maker": "Probots (generic)",
+      "mpn_or_model": "PRO3795 USB C to C Cable 1 Meter",
+      "product_url": "https://probots.co.in/usb-c-to-c-cable-1-meter-high-quality.html",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 1000,
+      "y": null,
+      "z": null,
+      "notes": "x = cable length. Plug overmold size not stated; measure for the shell opening."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "none",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Loose accessory in the box."
+    },
+    "pins": [
+      {
+        "name": "VBUS",
+        "func": "vin",
+        "notes": ""
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": ""
+      },
+      {
+        "name": "D+/D-",
+        "func": "data",
+        "notes": "USB 2.0 data (lets the customer reflash via native USB if D+/D- are routed)"
+      },
+      {
+        "name": "CC",
+        "func": "data",
+        "notes": "passes CC so the 5.1k Rd on the device is seen"
+      }
+    ],
+    "module_connector": {
+      "type": "none",
+      "pin_order": [],
+      "location": "USB-C plug both ends"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE (customer cable to backplane USB-C)",
+      "wires": [],
+      "length_mm": 1000
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": "Covered by the row 02/03 usb_port aperture."
+    },
+    "electrical": {
+      "supply_v": "5",
+      "logic_v": "n/a",
+      "current_ma_typ": 500,
+      "current_ma_max": 3000,
+      "bus": "usb 2.0"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "Only needed when the kit ships without the captive-cable adapter (row 04) or for data/reflash."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal",
+      "notes": "mating receptacle on backplane"
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Probots",
+        "url": "https://probots.co.in/usb-c-to-c-cable-1-meter-high-quality.html",
+        "price_inr_seen": 199,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "Rs 199 incl. GST (168.64 excl.); in stock; spec list says 3A but description says 2A / 2.4A"
+      },
+      {
+        "vendor": "Robu.in",
+        "url": "https://robu.in/product/baseus-cafule-type-c-pd2-0-60w-flash-charging-data-line-20v-3a-1m-gray-black/",
+        "price_inr_seen": null,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "Baseus Cafule C-to-C 60 W 20V/3A 1 m; price not seen"
+      }
+    ],
+    "price_inr_planning": [
+      70,
+      180
+    ],
+    "evidence": [
+      "https://probots.co.in/usb-c-to-c-cable-1-meter-high-quality.html"
+    ],
+    "uncertain": [
+      "Current rating is inconsistent on the Probots page (3 A vs 2.4 A); wire gauge not stated.",
+      "Seen price Rs 199 is above the planning ceiling Rs 180.",
+      "Plug overmold dimensions not read."
+    ]
+  },
+  {
+    "id": "CABLE_JSTPH_4P_300MM",
+    "catalog_row": "06",
+    "catalog_id": "CABLE_4PIN_A",
+    "role": "cable",
+    "name": "Keyed 4-pin JST-PH 2.0 mm cable, pre-crimped, 300 mm",
+    "reference_product": {
+      "maker": "Evelta (generic JST-PH-compatible)",
+      "mpn_or_model": "083-4P-2mm-F-Wire family ('2, 3 and 4 Pin 2mm Pitch Female Connector Wire 30 cm', 4-pin option)",
+      "product_url": "https://evelta.com/2-3-and-4-pin-pin-2mm-pitch-female-connector-wire-30-cm/",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 300,
+      "y": 9.9,
+      "z": 4.5,
+      "notes": "x = wire length (300 mm, page). y/z = PHR-4 housing width/height ESTIMATES (JST PH drawing not read)."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "none",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Route along cartridge cable channels; retain with row 08 tie/strain relief within 30 mm of each connector."
+    },
+    "pins": [
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": "proposed fixed pinout"
+      },
+      {
+        "name": "3V3",
+        "func": "3v3",
+        "notes": "proposed fixed pinout"
+      },
+      {
+        "name": "SDA",
+        "func": "i2c_sda",
+        "notes": "proposed fixed pinout"
+      },
+      {
+        "name": "SCL",
+        "func": "i2c_scl",
+        "notes": "proposed fixed pinout"
+      }
+    ],
+    "module_connector": {
+      "type": "jst_ph_2.0",
+      "pin_order": [
+        "GND",
+        "3V3",
+        "SDA",
+        "SCL"
+      ],
+      "location": "female PH housing on one end, open tinned leads on the other (crimp a 2.54 mm Dupont housing or solder at the module end)"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_4P (keyed, B4B-PH-K)",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "3V3",
+          "color": "red"
+        },
+        {
+          "module_pin": "SDA",
+          "color": "blue"
+        },
+        {
+          "module_pin": "SCL",
+          "color": "yellow"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": ""
+    },
+    "electrical": {
+      "supply_v": "3.3 (I2C port)",
+      "logic_v": "3.3",
+      "current_ma_typ": 50,
+      "current_ma_max": 1000,
+      "bus": "n/a (harness)"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": ""
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B4B-PH-K_1x04_P2.00mm_Vertical",
+      "notes": "Horizontal alternative Connector_JST:JST_PH_S4B-PH-K_1x04_P2.00mm_Horizontal. Both in kicad-footprints 9.0.9."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Evelta",
+        "url": "https://evelta.com/2-3-and-4-pin-pin-2mm-pitch-female-connector-wire-30-cm/",
+        "price_inr_seen": 9.0,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "Rs 9.00 excl. GST (10.62 incl.), one price for 2/3/4-pin options; 30 cm; open other end; in stock (Mumbai)"
+      },
+      {
+        "vendor": "Robu.in",
+        "url": "https://robu.in/product-category/electronic-components/connectors/plug-socket-connectors/female-housing-connector-with-cable/",
+        "price_inr_seen": 18,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "Robu 'PA-04Y-2.00mm-4 pin Female Housing Connector with 300mm Wire (28 AWG)' style listing; PA vs PH series compatibility must be checked"
+      }
+    ],
+    "price_inr_planning": [
+      30,
+      100
+    ],
+    "evidence": [
+      "https://evelta.com/2-3-and-4-pin-pin-2mm-pitch-female-connector-wire-30-cm/",
+      "https://gitlab.com/kicad/libraries/kicad-footprints/-/tree/9.0.9"
+    ],
+    "uncertain": [
+      "Evelta page calls it JST PH 2.0 but is internally inconsistent; genuine JST vs compatible housing, wire gauge and wire colours are not stated: specify colours to the supplier or re-wire.",
+      "Housing dimensions are estimates.",
+      "Pin order and colour code are OUR proposal (4P follows the SparkFun Qwiic order GND, 3V3, SDA, SCL from memory, not re-verified this session).",
+      "Pre-crimped cables are single-ended; the module end still needs a Dupont 2.54 housing crimp or solder joint, which is a manual assembly step to cost and test."
+    ]
+  },
+  {
+    "id": "CABLE_JSTPH_3P_300MM",
+    "catalog_row": "07",
+    "catalog_id": "CABLE_3PIN_A",
+    "role": "cable",
+    "name": "Keyed 3-pin JST-PH 2.0 mm cable, pre-crimped, 300 mm",
+    "reference_product": {
+      "maker": "Evelta (generic JST-PH-compatible)",
+      "mpn_or_model": "083-3P-2mm-F-Wire family ('2, 3 and 4 Pin 2mm Pitch Female Connector Wire 30 cm', 3-pin option)",
+      "product_url": "https://evelta.com/2-3-and-4-pin-pin-2mm-pitch-female-connector-wire-30-cm/",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 300,
+      "y": 7.9,
+      "z": 4.5,
+      "notes": "x = wire length (300 mm, page). y/z = PHR-3 housing width/height ESTIMATES (JST PH drawing not read)."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "none",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "Route along cartridge cable channels; retain with row 08 tie/strain relief within 30 mm of each connector."
+    },
+    "pins": [
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": "proposed fixed pinout"
+      },
+      {
+        "name": "3V3",
+        "func": "3v3",
+        "notes": "proposed fixed pinout"
+      },
+      {
+        "name": "SIG",
+        "func": "gpio",
+        "notes": "proposed fixed pinout"
+      }
+    ],
+    "module_connector": {
+      "type": "jst_ph_2.0",
+      "pin_order": [
+        "GND",
+        "3V3",
+        "SIG"
+      ],
+      "location": "female PH housing on one end, open tinned leads on the other (crimp a 2.54 mm Dupont housing or solder at the module end)"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_3P (keyed, B3B-PH-K)",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "3V3",
+          "color": "red"
+        },
+        {
+          "module_pin": "SIG",
+          "color": "white"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": ""
+    },
+    "electrical": {
+      "supply_v": "3.3 (IO port; never 5 V because input modules pull SIG to VCC)",
+      "logic_v": "3.3",
+      "current_ma_typ": 50,
+      "current_ma_max": 1000,
+      "bus": "n/a (harness)"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": ""
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+      "notes": "Horizontal alternative Connector_JST:JST_PH_S3B-PH-K_1x03_P2.00mm_Horizontal. Both in kicad-footprints 9.0.9."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Evelta",
+        "url": "https://evelta.com/2-3-and-4-pin-pin-2mm-pitch-female-connector-wire-30-cm/",
+        "price_inr_seen": 9.0,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "Rs 9.00 excl. GST (10.62 incl.), one price for 2/3/4-pin options; 30 cm; open other end; in stock (Mumbai)"
+      },
+      {
+        "vendor": "Robu.in",
+        "url": "https://robu.in/product-category/electronic-components/connectors/plug-socket-connectors/female-housing-connector-with-cable/",
+        "price_inr_seen": 18,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "Robu 'PA-03Y-2.00mm-3 pin Female Housing Connector with 300mm Wire (28 AWG)' style listing; PA vs PH series compatibility must be checked"
+      }
+    ],
+    "price_inr_planning": [
+      30,
+      100
+    ],
+    "evidence": [
+      "https://evelta.com/2-3-and-4-pin-pin-2mm-pitch-female-connector-wire-30-cm/",
+      "https://gitlab.com/kicad/libraries/kicad-footprints/-/tree/9.0.9"
+    ],
+    "uncertain": [
+      "Evelta page calls it JST PH 2.0 but is internally inconsistent; genuine JST vs compatible housing, wire gauge and wire colours are not stated: specify colours to the supplier or re-wire.",
+      "Housing dimensions are estimates.",
+      "Pin order and colour code are OUR proposal (4P follows the SparkFun Qwiic order GND, 3V3, SDA, SCL from memory, not re-verified this session).",
+      "Pre-crimped cables are single-ended; the module end still needs a Dupont 2.54 housing crimp or solder joint, which is a manual assembly step to cost and test."
+    ]
+  },
+  {
+    "id": "OLED_096_SSD1306_I2C",
+    "catalog_row": "14",
+    "catalog_id": "DISPLAY_OLED_096_A",
+    "role": "display",
+    "name": "0.96 in 128x64 mono OLED, SSD1306, I2C 4-pin",
+    "reference_product": {
+      "maker": "Generic 4-pin module (mechanics per Raystar REA012864D-03, same 27.3 mm format)",
+      "mpn_or_model": "Probots PRO1064 0.96in 128x64 I2C 4-pin SSD1306 (blue); mechanical reference Raystar REA012864D-03",
+      "product_url": "https://probots.co.in/0-96-inch-128-x-64-spi-i2c-4pin-oled-blue-display-module-ssd1306-controller.html",
+      "datasheet_url": "https://www.raystar-optronics.com/upload_files/oled-display/128x64-oled-graphic-display/REA012864D-03-datasheet.pdf"
+    },
+    "dims_mm": {
+      "x": 27.3,
+      "y": 27.3,
+      "z": 9.87,
+      "notes": "Raystar contour drawing: PCB 27.3 +/-0.5 square; glass panel 26.7 x 19.26; module thickness 2.37 (glass + PCB); header pins protrude 7.5 +/-0.5 behind the PCB, so z = 2.37 + 7.5. Rear component area <= 1.5 mm. Many hobby modules measure 27.3 x 27.8."
+    },
+    "pcb_thickness_mm": 1.0,
+    "mount": {
+      "type": "holes",
+      "holes": [
+        {
+          "x": 3.3,
+          "y": 2.05,
+          "d": 2.5
+        },
+        {
+          "x": 24.0,
+          "y": 2.05,
+          "d": 2.5
+        },
+        {
+          "x": 3.3,
+          "y": 25.25,
+          "d": 2.5
+        },
+        {
+          "x": 24.0,
+          "y": 25.25,
+          "d": 2.5
+        }
+      ],
+      "hole_origin": "top-left PCB corner, FRONT (glass) view, header edge at top",
+      "notes": "4 x 2.5 mm PTH (3.5 mm pads), spacing 20.7 x 23.2 (Raystar). Use M2 screws into printed bosses or a clamp frame; glass edge must not be clamped."
+    },
+    "pins": [
+      {
+        "name": "VCC",
+        "func": "3v3",
+        "notes": "pin 1; 2.8-5.2 V (Raystar); feed 3V3; x = 9.84 from left edge, y = 1.65 from top (front view)"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": "pin 2; x = 12.38"
+      },
+      {
+        "name": "SCL",
+        "func": "i2c_scl",
+        "notes": "pin 3; x = 14.92"
+      },
+      {
+        "name": "SDA",
+        "func": "i2c_sda",
+        "notes": "pin 4; x = 17.46"
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "VCC",
+        "GND",
+        "SCL",
+        "SDA"
+      ],
+      "location": "top edge, 4 pins centred, pins exit the back"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_4P (keyed, per blueprint rows 06/07)",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VCC",
+          "color": "red"
+        },
+        {
+          "module_pin": "SDA",
+          "color": "blue"
+        },
+        {
+          "module_pin": "SCL",
+          "color": "yellow"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "display_window",
+      "size_mm": {
+        "w": 23.94,
+        "h": 12.06,
+        "d": 2.37
+      },
+      "notes": "Window = viewing area 23.94 x 12.06 (active 21.74 x 10.86). VA origin at (1.68, 5.86) and AA at (2.78, 6.46) from the PCB top-left in front view. Add ~0.3 mm per side clearance in print."
+    },
+    "electrical": {
+      "supply_v": "2.8-5.2",
+      "logic_v": "3.3",
+      "current_ma_typ": 12,
+      "current_ma_max": 20,
+      "bus": "i2c 0x3C"
+    },
+    "firmware": {
+      "arduino_libraries": [
+        "olikraus/U8g2@^2.35",
+        "adafruit/Adafruit SSD1306@^2.5",
+        "adafruit/Adafruit GFX Library@^1.11"
+      ],
+      "driver_notes": "Address 0x3C (0x78 8-bit); some units ship as 0x3D via a solder jumper. Some '0.96' modules are actually SH1106: run an I2C scan and a test pattern at incoming QC."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B4B-PH-K_1x04_P2.00mm_Vertical",
+      "notes": "module end: Dupont 1x4 2.54 female housing"
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Probots",
+        "url": "https://probots.co.in/0-96-inch-128-x-64-spi-i2c-4pin-oled-blue-display-module-ssd1306-controller.html",
+        "price_inr_seen": 209,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "PRO1064; incl. GST (177.12 excl.); in stock; physical pin order and dimensions not stated"
+      },
+      {
+        "vendor": "Thingbits",
+        "url": "https://www.thingbits.in/products/0-96-inch-oled-128x64-display-board-with-i2c",
+        "price_inr_seen": 155.76,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "TH0004, qty 1-3"
+      },
+      {
+        "vendor": "Robu.in",
+        "url": "https://robu.in/?p=617725",
+        "price_inr_seen": null,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "GoldenMorning 0.96in I2C 4-pin white, in stock; price not visible"
+      }
+    ],
+    "price_inr_planning": [
+      130,
+      350
+    ],
+    "evidence": [
+      "https://www.raystar-optronics.com/oled-graphic-display-module/i2c-oled.html",
+      "https://www.raystar-optronics.com/upload_files/oled-display/128x64-oled-graphic-display/REA012864D-03-datasheet.pdf",
+      "https://probots.co.in/0-96-inch-128-x-64-spi-i2c-4pin-oled-blue-display-module-ssd1306-controller.html"
+    ],
+    "uncertain": [
+      "Mechanics are from the Raystar REA012864D-03 drawing; generic hobby modules (Probots/Robu) are the same format but commonly 27.3 x 27.8 with 2.0-2.5 mm holes: measure first article.",
+      "Pin order differs between vendors (VCC-GND-SCL-SDA vs GND-VCC-SCL-SDA); wire by silkscreen label, never by position.",
+      "pcb_thickness 1.0 mm is inferred from the Raystar side view (1 mm callout), not stated explicitly.",
+      "Typ/max current (12/20 mA at 3.3 V, 50% checkerboard) is Raystar's figure; generic modules quoted ~20 mA full screen by Probots.",
+      "Library version floors not re-checked this session."
+    ]
+  },
+  {
+    "id": "OLED_130_SH1106_I2C",
+    "catalog_row": "15",
+    "catalog_id": null,
+    "role": "display",
+    "name": "1.3 in 128x64 mono OLED, SH1106, I2C 4-pin",
+    "reference_product": {
+      "maker": "Generic 4-pin module (mechanics per DisplayModule DM-OLED13-637)",
+      "mpn_or_model": "Probots PRO1243 1.3in 128x64 SH1106 4-pin I2C (blue); mechanical reference DisplayModule DM-OLED13-637",
+      "product_url": "https://probots.co.in/1-3-inch-128x64-oled-blue-display-sh1106-i2c.html",
+      "datasheet_url": "https://cdn.shopify.com/s/files/1/0264/7629/files/DM-OLED13-637_Datasheet.pdf"
+    },
+    "dims_mm": {
+      "x": 35.4,
+      "y": 33.5,
+      "z": 11.3,
+      "notes": "DM-OLED13-637 module drawing: 35.40 x 33.50, module thickness 2.70 (datasheet table 35.4 x 33.5 x 2.7), 11.30 including the header; PCB callout 1.20."
+    },
+    "pcb_thickness_mm": 1.2,
+    "mount": {
+      "type": "holes",
+      "holes": [
+        {
+          "x": 2.5,
+          "y": 2.0,
+          "d": 3.0
+        },
+        {
+          "x": 32.9,
+          "y": 2.0,
+          "d": 3.0
+        },
+        {
+          "x": 2.5,
+          "y": 30.5,
+          "d": 3.0
+        },
+        {
+          "x": 32.9,
+          "y": 30.5,
+          "d": 3.0
+        }
+      ],
+      "hole_origin": "top-left PCB corner, front (glass) view, header edge at top",
+      "notes": "Hole spacing 30.40 x 28.50 per drawing; drawing labels 'r3' and 'r4.5' (read as 3.0 mm hole / 4.5 mm pad). M2.5 or M2 screws."
+    },
+    "pins": [
+      {
+        "name": "VCC",
+        "func": "3v3",
+        "notes": "Probots order pin 1 = VCC (DisplayModule part has GND first); VCC_IN 2.8-5.5 V"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": ""
+      },
+      {
+        "name": "SCL",
+        "func": "i2c_scl",
+        "notes": ""
+      },
+      {
+        "name": "SDA",
+        "func": "i2c_sda",
+        "notes": "pin 1 at x = 13.89 from left edge, y = 2.0; pitch 2.54 (DM drawing)"
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "VCC",
+        "GND",
+        "SCL",
+        "SDA"
+      ],
+      "location": "top edge, centred, between the two upper holes"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_4P (keyed, per blueprint rows 06/07)",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VCC",
+          "color": "red"
+        },
+        {
+          "module_pin": "SDA",
+          "color": "blue"
+        },
+        {
+          "module_pin": "SCL",
+          "color": "yellow"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "display_window",
+      "size_mm": {
+        "w": 29.42,
+        "h": 14.7,
+        "d": 2.7
+      },
+      "notes": "Active area 29.42 x 14.70 at x 2.99..32.41, y 7.35..22.05 from the PCB top-left (front view, DM drawing). Window = AA + ~1 mm per side; viewing-area size not given."
+    },
+    "electrical": {
+      "supply_v": "2.8-5.5",
+      "logic_v": "3.3",
+      "current_ma_typ": 20,
+      "current_ma_max": 50,
+      "bus": "i2c 0x3C"
+    },
+    "firmware": {
+      "arduino_libraries": [
+        "olikraus/U8g2@^2.35",
+        "adafruit/Adafruit SH110X@^2.1"
+      ],
+      "driver_notes": "SH1106 is NOT SSD1306: 132-column RAM with a 2-column offset and page addressing only. Use U8G2_SH1106_128X64_NONAME_F_HW_I2C or Adafruit_SH1106G. Address 0x3C (DM datasheet: 0x78 8-bit)."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B4B-PH-K_1x04_P2.00mm_Vertical",
+      "notes": "module end: Dupont 1x4 2.54 female housing"
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Probots",
+        "url": "https://probots.co.in/1-3-inch-128x64-oled-blue-display-sh1106-i2c.html",
+        "price_inr_seen": 329,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "PRO1243; incl. GST (278.81 excl.); in stock; pin order VCC, GND, SCK/SCL, SDA; 0x3C, 0x3D via resistor move"
+      }
+    ],
+    "price_inr_planning": [
+      220,
+      550
+    ],
+    "evidence": [
+      "https://cdn.shopify.com/s/files/1/0264/7629/files/DM-OLED13-637_Datasheet.pdf",
+      "https://probots.co.in/1-3-inch-128x64-oled-blue-display-sh1106-i2c.html"
+    ],
+    "uncertain": [
+      "Mechanics come from DisplayModule's own module; the Probots generic is the same nominal 35.4 x 33.5 format but hole size/positions must be measured.",
+      "Hole diameter 3.0 is read from an ambiguous 'r3' label; bottom hole row y = 30.5 is from 2.00 + 28.50 (leaves 3.0 bottom margin vs 2.0 top).",
+      "Pin order conflicts: DisplayModule GND-VCC-SCL-SDA vs Probots VCC-GND-SCL-SDA.",
+      "current_ma_typ 20 is an estimate; 45 typ / 50 max is DisplayModule's figure for 100% pixels on.",
+      "Library version floors not re-checked this session."
+    ]
+  },
+  {
+    "id": "LCD_200_ST7789_240X320_WAVESHARE",
+    "catalog_row": "16",
+    "catalog_id": "DISPLAY_COLOR_15_A",
+    "role": "display",
+    "name": "2.0 in IPS colour LCD 240x320, ST7789V, SPI, PH2.0 8-pin",
+    "reference_product": {
+      "maker": "Waveshare",
+      "mpn_or_model": "2inch LCD Module (Waveshare 17344)",
+      "product_url": "https://www.waveshare.com/2inch-lcd-module.htm",
+      "datasheet_url": "https://files.waveshare.com/upload/6/6d/2inch_LCD_Module_2D_Drawing.pdf"
+    },
+    "dims_mm": {
+      "x": 58.0,
+      "y": 35.0,
+      "z": 10.0,
+      "notes": "Waveshare 2D drawing: outline 58.00 x 35.00; side view 4.00 (LCD + PCB) and 10.00 overall including the M2x6 standoffs the module ships with; PH2.0 8-pin socket on the back."
+    },
+    "pcb_thickness_mm": 1.6,
+    "mount": {
+      "type": "holes",
+      "holes": [
+        {
+          "x": 2.5,
+          "y": 2.5,
+          "d": 2.2
+        },
+        {
+          "x": 55.5,
+          "y": 2.5,
+          "d": 2.2
+        },
+        {
+          "x": 2.5,
+          "y": 32.5,
+          "d": 2.2
+        },
+        {
+          "x": 55.5,
+          "y": 32.5,
+          "d": 2.2
+        }
+      ],
+      "hole_origin": "bottom-left PCB corner, front (LCD) view",
+      "notes": "Hole centres 2.50 from both edges, spacing 53.00 x 30.00 (drawing). Waveshare FAQ: mounts on M2 x 6 hex standoffs. Mount from the back with M2 screws into bosses; do not load the glass."
+    },
+    "pins": [
+      {
+        "name": "VCC",
+        "func": "3v3",
+        "notes": "PH2.0 pin 1; supply must equal logic level (Waveshare): use 3.3 V"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": "pin 2"
+      },
+      {
+        "name": "DIN",
+        "func": "spi_mosi",
+        "notes": "pin 3"
+      },
+      {
+        "name": "CLK",
+        "func": "spi_sck",
+        "notes": "pin 4"
+      },
+      {
+        "name": "CS",
+        "func": "spi_cs",
+        "notes": "pin 5"
+      },
+      {
+        "name": "DC",
+        "func": "dc",
+        "notes": "pin 6"
+      },
+      {
+        "name": "RST",
+        "func": "rst",
+        "notes": "pin 7"
+      },
+      {
+        "name": "BL",
+        "func": "bl",
+        "notes": "pin 8; PWM-dimmable backlight"
+      }
+    ],
+    "module_connector": {
+      "type": "jst_ph_2.0",
+      "pin_order": [
+        "VCC",
+        "GND",
+        "DIN",
+        "CLK",
+        "CS",
+        "DC",
+        "RST",
+        "BL"
+      ],
+      "location": "PH2.0 8-pin socket on the back; also an 8-pad 2.54 mm column 2.40 mm from the left edge (front view), pins 2.54 pitch over 17.78 mm"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_8P (B8B-PH-K, same order both ends; not part of rows 06/07)",
+      "wires": [
+        {
+          "module_pin": "VCC",
+          "color": "red"
+        },
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "DIN",
+          "color": "blue"
+        },
+        {
+          "module_pin": "CLK",
+          "color": "yellow"
+        },
+        {
+          "module_pin": "CS",
+          "color": "orange"
+        },
+        {
+          "module_pin": "DC",
+          "color": "green"
+        },
+        {
+          "module_pin": "RST",
+          "color": "white"
+        },
+        {
+          "module_pin": "BL",
+          "color": "purple"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "display_window",
+      "size_mm": {
+        "w": 40.8,
+        "h": 30.6,
+        "d": 4.0
+      },
+      "notes": "LCD active area 40.80 x 30.60 (backlight 47.83 x 34.60). Scaled from the drawing, AA spans x ~10.4..51.0 from the left edge and y ~2.0..32.6 from the top: AA is offset ~1.7 mm toward the side away from the header."
+    },
+    "electrical": {
+      "supply_v": "3.3 or 5 (must match logic)",
+      "logic_v": "3.3",
+      "current_ma_typ": 40,
+      "current_ma_max": 46,
+      "bus": "spi (up to 4-wire, ST7789V)"
+    },
+    "firmware": {
+      "arduino_libraries": [
+        "lovyan03/LovyanGFX@^1.1",
+        "moononournation/GFX Library for Arduino@^1.4",
+        "adafruit/Adafruit ST7735 and ST7789 Library@^1.10"
+      ],
+      "driver_notes": "ST7789V 240x320; IPS panels usually need colour inversion ON; set rotation for landscape. Put CS/DC/SCK/MOSI on FSPI IOMUX pins (GPIO10-14) for 40-80 MHz SPI. Waveshare names the driver ST7789 or ST7789VW on different pages."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B8B-PH-K_1x08_P2.00mm_Vertical",
+      "notes": "Waveshare ships a PH2.0-to-Dupont cable; a PH-PH 8P same-order cable must be sourced or made."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Robu.in",
+        "url": "https://robu.in/?p=938880",
+        "price_inr_seen": 849,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "Waveshare 2 inch LCD 240x320, SKU 938880, incl. GST; one mirror showed out of stock"
+      },
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/waveshare-2inch-240-320-ips-lcd-display-module-spi-interface",
+        "price_inr_seen": 1425,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "incl. GST; sold out (a search snippet showed Rs 978)"
+      },
+      {
+        "vendor": "Electropi",
+        "url": "https://www.electropi.in/waveshare-2-inch-lcd-display-module-240x320",
+        "price_inr_seen": 799,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "excl. GST; out of stock"
+      }
+    ],
+    "price_inr_planning": [
+      350,
+      950
+    ],
+    "evidence": [
+      "https://www.waveshare.com/wiki/2inch_LCD_Module",
+      "https://files.waveshare.com/upload/6/6d/2inch_LCD_Module_2D_Drawing.pdf",
+      "https://robocraze.com/products/waveshare-2inch-240-320-ips-lcd-display-module-spi-interface"
+    ],
+    "uncertain": [
+      "Mounting-hole diameter 2.2 mm is an estimate (drawing shows no diameter; FAQ says M2 standoffs).",
+      "AA position inside the outline is scaled from the drawing image, not dimensioned.",
+      "pcb_thickness 1.6 assumed; z without standoffs (~4 mm + PH socket) not dimensioned.",
+      "current_ma_typ 40 is an estimate; 46 mA max at 3.3 V is from the Waveshare FAQ.",
+      "In-stock Indian source not confirmed (Robocraze sold out; Robu price from a snippet).",
+      "Library version floors not re-checked this session."
+    ]
+  },
+  {
+    "id": "LED_WS2812B_1PX_MODULE",
+    "catalog_row": "17",
+    "catalog_id": "LED_RGB_A",
+    "role": "light",
+    "name": "Addressable RGB LED, single WS2812B 5050 on a mini board",
+    "reference_product": {
+      "maker": "Generic (Probots)",
+      "mpn_or_model": "PRO4080 RGB LED Module WS2812B 1 Bit",
+      "product_url": "https://probots.co.in/rgb-led-module-ws2812b-1-bit.html",
+      "datasheet_url": "https://cdn-shop.adafruit.com/datasheets/WS2812B.pdf"
+    },
+    "dims_mm": {
+      "x": 10.0,
+      "y": 10.0,
+      "z": 3.2,
+      "notes": "ESTIMATES: vendor pages give no dimensions. z ~ 1.6 PCB + LED package height."
+    },
+    "pcb_thickness_mm": 1.6,
+    "mount": {
+      "type": "adhesive",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "No mounting holes listed. Seat in a printed pocket behind the diffuser (row 19) with a clip or adhesive. For production prefer our own LED puck PCB (WS2812B/SK6812 + XH 3P) so dimensions are under our control."
+    },
+    "pins": [
+      {
+        "name": "5V",
+        "func": "5v",
+        "notes": "WS2812B VDD 3.5-5.3 V (datasheet)"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": ""
+      },
+      {
+        "name": "DIN",
+        "func": "data",
+        "notes": "VIH = 0.7 x VDD (3.5 V at 5 V): 3.3 V GPIO is out of spec; buffer with a 5 V-powered 74AHCT1G125-class gate on the backplane"
+      },
+      {
+        "name": "DOUT",
+        "func": "data",
+        "notes": "chain output; leave open on single LED"
+      }
+    ],
+    "module_connector": {
+      "type": "solder_pads",
+      "pin_order": [
+        "5V",
+        "GND",
+        "DIN",
+        "DOUT"
+      ],
+      "location": "board edge pads (labels and order to be confirmed on first article)"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_XH_2.5_3P (B3B-XH-A) 5V LED port; XH so it cannot mate with a 3V3 PH port",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "5V",
+          "color": "red"
+        },
+        {
+          "module_pin": "DIN",
+          "color": "green"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "led_window",
+      "size_mm": {
+        "w": 8.0,
+        "h": 8.0,
+        "d": 1.0
+      },
+      "notes": "Window or light pipe over the 5 x 5 mm LED; pair with diffuser (row 19). Size is a design proposal."
+    },
+    "electrical": {
+      "supply_v": "3.5-5.3 (use 5)",
+      "logic_v": "5 (needs level shift from 3.3)",
+      "current_ma_typ": 20,
+      "current_ma_max": 60,
+      "bus": "rmt/ws2812"
+    },
+    "firmware": {
+      "arduino_libraries": [
+        "adafruit/Adafruit NeoPixel@^1.12",
+        "fastled/FastLED@^3.7"
+      ],
+      "driver_notes": "GRB colour order, 800 kHz; ESP32-S3 RMT. Cap global brightness in the power budget."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_XH_B3B-XH-A_1x03_P2.50mm_Vertical",
+      "notes": "If the team rejects a second connector family, use Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical and label the port."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Probots",
+        "url": "https://probots.co.in/rgb-led-module-ws2812b-1-bit.html",
+        "price_inr_seen": 99,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "PRO4080; incl. GST (83.90 excl.); in stock; 4-7 V; no dimensions or pin labels on page"
+      },
+      {
+        "vendor": "Hubtronics",
+        "url": "https://hubtronics.in/ws2812-rgb-led-breakout-module",
+        "price_inr_seen": 31,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "SKU 05508, incl. GST (26.27 excl.); 11 in stock; no dimensions or pin labels on page; different PCB"
+      }
+    ],
+    "price_inr_planning": [
+      25,
+      100
+    ],
+    "evidence": [
+      "https://probots.co.in/rgb-led-module-ws2812b-1-bit.html",
+      "https://hubtronics.in/ws2812-rgb-led-breakout-module",
+      "https://cdn-shop.adafruit.com/datasheets/WS2812B.pdf",
+      "https://www.adafruit.com/product/1312"
+    ],
+    "uncertain": [
+      "All dimensions are estimates; no Indian listing gives board size, pad order or holes.",
+      "Documented alternative: Adafruit 1312 breadboard-friendly NeoPixel (10.2 x 12.7 x 2.5 mm, 0.1 in pins, now SK6812) has a datasheet-grade size but no Indian reseller was found.",
+      "current_ma_typ 20 is an estimate; max ~60 mA at full white (Adafruit figure for a single pixel).",
+      "Using XH for LED ports is a proposal (second connector family).",
+      "Library version floors not re-checked this session."
+    ]
+  },
+  {
+    "id": "LED_RING_12_WS2812_50MM",
+    "catalog_row": "18",
+    "catalog_id": null,
+    "role": "light",
+    "name": "Addressable RGB LED ring, 12 x WS2812 5050, 50 mm OD",
+    "reference_product": {
+      "maker": "Generic (Probots)",
+      "mpn_or_model": "PRO4077 RGB LED 12 Bit WS2812 Circular Development Board",
+      "product_url": "https://probots.co.in/rgb-led-12-bit-ws2812-circular-development-board.html",
+      "datasheet_url": "https://cdn-shop.adafruit.com/datasheets/WS2812B.pdf"
+    },
+    "dims_mm": {
+      "x": 50.0,
+      "y": 50.0,
+      "z": 3.2,
+      "notes": "OD 50 mm (Probots page). ID ~35 mm (Robocraze, search snippet). z ESTIMATE ~1.6 PCB + LED height."
+    },
+    "pcb_thickness_mm": 1.6,
+    "mount": {
+      "type": "clip",
+      "holes": [],
+      "hole_origin": "ring centre",
+      "notes": "No holes listed. Capture between a printed ring seat and the diffuser using the ID and OD edges (snap ring or 3 printed hooks)."
+    },
+    "pins": [
+      {
+        "name": "5V",
+        "func": "5v",
+        "notes": "DC 4-7 V per Probots; use 5 V"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": ""
+      },
+      {
+        "name": "DI",
+        "func": "data",
+        "notes": "needs 5 V-level data (see LED_WS2812B_1PX_MODULE)"
+      },
+      {
+        "name": "DO",
+        "func": "data",
+        "notes": "chain out"
+      }
+    ],
+    "module_connector": {
+      "type": "solder_pads",
+      "pin_order": [
+        "5V",
+        "GND",
+        "DI",
+        "DO"
+      ],
+      "location": "back side pads (positions not documented)"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_XH_2.5_3P (B3B-XH-A) 5V LED port",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "5V",
+          "color": "red"
+        },
+        {
+          "module_pin": "DI",
+          "color": "green"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "led_window",
+      "size_mm": {
+        "w": 50.0,
+        "h": 50.0,
+        "d": 1.5
+      },
+      "notes": "Annular diffuser window, OD ~50 / ID ~35, behind a printed or premade diffuser (row 19)."
+    },
+    "electrical": {
+      "supply_v": "5",
+      "logic_v": "5 (needs level shift from 3.3)",
+      "current_ma_typ": 150,
+      "current_ma_max": 650,
+      "bus": "rmt/ws2812"
+    },
+    "firmware": {
+      "arduino_libraries": [
+        "adafruit/Adafruit NeoPixel@^1.12",
+        "fastled/FastLED@^3.7"
+      ],
+      "driver_notes": "12 pixels, GRB. Max current = 12 x 3 channels x ~18 mA constant-current drive = ~650 mA at full white: firmware brightness cap required on 1.5 A sources."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_XH_B3B-XH-A_1x03_P2.50mm_Vertical",
+      "notes": "same LED port as row 17"
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Probots",
+        "url": "https://probots.co.in/rgb-led-12-bit-ws2812-circular-development-board.html",
+        "price_inr_seen": 149,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "PRO4077; incl. GST (126.27 excl.); in stock; 50 mm OD; ID/thickness/pads not listed"
+      },
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/ws2812-12-bit-rgb-led-round",
+        "price_inr_seen": 74,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "TIFEC0043, incl. GST; sold out; spec table (50 mm OD / 35 mm ID) only in a search snippet"
+      }
+    ],
+    "price_inr_planning": [
+      100,
+      300
+    ],
+    "evidence": [
+      "https://probots.co.in/rgb-led-12-bit-ws2812-circular-development-board.html",
+      "https://robocraze.com/products/ws2812-12-bit-rgb-led-round",
+      "https://cdn-shop.adafruit.com/datasheets/WS2812B.pdf",
+      "https://www.adafruit.com/product/1643"
+    ],
+    "uncertain": [
+      "Inner diameter 35 mm from a Robocraze search snippet; thickness and pad locations not documented.",
+      "Documented alternative: Adafruit NeoPixel Ring 12 (1643) is a different size: 36.8 OD / 23.3 ID / 6.7 mm thick (Adafruit page).",
+      "current_ma_typ 150 is an estimate for typical animations.",
+      "Library version floors not re-checked this session."
+    ]
+  },
+  {
+    "id": "MIC_INMP441_I2S",
+    "catalog_row": "20",
+    "catalog_id": "MIC_I2S_A",
+    "role": "audio_in",
+    "name": "INMP441 I2S MEMS microphone module",
+    "reference_product": {
+      "maker": "Generic module with TDK InvenSense INMP441",
+      "mpn_or_model": "INMP441 MEMS omnidirectional microphone module (6-pin)",
+      "product_url": "https://robocraze.com/products/inmp441-mems-high-precision-omnidirectional-microphone-module-i2s",
+      "datasheet_url": "https://invensense.tdk.com/wp-content/uploads/2015/02/INMP441.pdf"
+    },
+    "dims_mm": {
+      "x": 14.0,
+      "y": 14.0,
+      "z": 3.0,
+      "notes": "ESTIMATES: listings quote 14 x 12 x 2 or 14 x 14 mm; z without header. Mic package itself 4.72 x 3.76 x 1 mm (TDK)."
+    },
+    "pcb_thickness_mm": 1.0,
+    "mount": {
+      "type": "adhesive",
+      "holes": [],
+      "hole_origin": "n/a",
+      "notes": "No mounting holes listed. INMP441 is BOTTOM-ported: the sound hole goes through the module PCB. Press the PCB against the shell wall with a closed-cell foam gasket ring around the port so the mic hears outside air, not the inside of the box."
+    },
+    "pins": [
+      {
+        "name": "VDD",
+        "func": "3v3",
+        "notes": "1.62-3.63 V (TDK); 5 V destroys it"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": ""
+      },
+      {
+        "name": "L/R",
+        "func": "gnd",
+        "notes": "channel select: low = left; tie to GND in the harness"
+      },
+      {
+        "name": "WS",
+        "func": "i2s_lrclk",
+        "notes": "word select"
+      },
+      {
+        "name": "SCK",
+        "func": "i2s_bclk",
+        "notes": "0.5-3.2 MHz (TDK)"
+      },
+      {
+        "name": "SD",
+        "func": "i2s_din",
+        "notes": "serial data out of the mic into the ESP32"
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "VDD",
+        "GND",
+        "L/R",
+        "WS",
+        "SCK",
+        "SD"
+      ],
+      "location": "two rows of three pins on opposite edges (Components101); physical positions to confirm"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_5P (B5B-PH-K) mic port, 3V3; L/R strapped to GND at the module end",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VDD",
+          "color": "red"
+        },
+        {
+          "module_pin": "SCK",
+          "color": "yellow"
+        },
+        {
+          "module_pin": "WS",
+          "color": "green"
+        },
+        {
+          "module_pin": "SD",
+          "color": "blue"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "mic_port",
+      "size_mm": {
+        "w": 1.5,
+        "h": 1.5,
+        "d": 2.0
+      },
+      "notes": "Round port ~1.5 mm through the shell wall, aligned with the module sound hole, sealed by a gasket. Keep away from the speaker grille (acoustic echo) and from vents."
+    },
+    "electrical": {
+      "supply_v": "1.62-3.63",
+      "logic_v": "3.3",
+      "current_ma_typ": 1.4,
+      "current_ma_max": 1.4,
+      "bus": "i2s"
+    },
+    "firmware": {
+      "arduino_libraries": [
+        "ESP_I2S (built into espressif/arduino-esp32 3.x)"
+      ],
+      "driver_notes": "24-bit two's-complement in a 32-bit slot, MSB first; L/R low = left slot. SNR 61 dBA, sensitivity -26 dBFS (TDK). Discard ~the first samples after start-up; use a separate I2S peripheral (I2S1) from the amp or share BCLK/WS in full-duplex at one sample rate."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B5B-PH-K_1x05_P2.00mm_Vertical",
+      "notes": "5P chosen so this 3V3-only part cannot be plugged into the 5 V amp port (6P)."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/inmp441-mems-high-precision-omnidirectional-microphone-module-i2s",
+        "price_inr_seen": 179,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "incl. GST; 272 in stock"
+      },
+      {
+        "vendor": "Probots",
+        "url": "https://probots.co.in/inmp441-mems-high-precision-omnidirectional-microphone-module-i2s.html",
+        "price_inr_seen": 429,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "PRO3034; incl. GST; out of stock online (store pickup Koramangala)"
+      }
+    ],
+    "price_inr_planning": [
+      110,
+      350
+    ],
+    "evidence": [
+      "https://microcontroller-course.web.cern.ch/Project_Material/resources/INMP441.pdf",
+      "https://robocraze.com/products/inmp441-mems-high-precision-omnidirectional-microphone-module-i2s",
+      "https://probots.co.in/inmp441-mems-high-precision-omnidirectional-microphone-module-i2s.html",
+      "https://components101.com/modules/inmp441-mems-omnidirectional-microphone"
+    ],
+    "uncertain": [
+      "Module outline, pin positions and sound-hole location are not documented by any seller read: measure first article.",
+      "INMP441 datasheet text was read from a CERN-hosted copy of the TDK PDF (TDK URL returned a web page).",
+      "Mic port and gasket sizes are design estimates; validate with a recorded-sound test in the printed shell.",
+      "Privacy: blueprint flags this row; a hardware mute or visible recording LED is not specified here."
+    ]
+  },
+  {
+    "id": "AMP_MAX98357A_I2S",
+    "catalog_row": "21",
+    "catalog_id": "AMP_I2S_A",
+    "role": "amp",
+    "name": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+    "reference_product": {
+      "maker": "Adafruit",
+      "mpn_or_model": "3006 I2S 3W Class D Amplifier Breakout - MAX98357A",
+      "product_url": "https://www.adafruit.com/product/3006",
+      "datasheet_url": "https://github.com/adafruit/Adafruit-MAX98357-I2S-Amp-Breakout"
+    },
+    "dims_mm": {
+      "x": 17.78,
+      "y": 19.05,
+      "z": 3.0,
+      "notes": "x, y = PCB outline from Adafruit's Eagle board (mono). Product page: 19.4 x 17.8 x 3.0 mm. z excludes the 3.5 mm screw terminal (fitted on top, adds height) and the header."
+    },
+    "pcb_thickness_mm": 1.6,
+    "mount": {
+      "type": "holes",
+      "holes": [
+        {
+          "x": 2.54,
+          "y": 16.51,
+          "d": 2.5
+        },
+        {
+          "x": 15.24,
+          "y": 16.51,
+          "d": 2.5
+        }
+      ],
+      "hole_origin": "bottom-left PCB corner, component side up, header edge along y = 0",
+      "notes": "Two plated 2.5 mm holes (M2). 7-pin header at y = 2.54; 3.5 mm-pitch speaker terminal pads at y = 15.49 (x 7.09 = VO-, x 10.59 = VO+)."
+    },
+    "pins": [
+      {
+        "name": "LRC",
+        "func": "i2s_lrclk",
+        "notes": "header pin 7, x = 1.27"
+      },
+      {
+        "name": "BCLK",
+        "func": "i2s_bclk",
+        "notes": "pin 6, x = 3.81"
+      },
+      {
+        "name": "DIN",
+        "func": "i2s_din",
+        "notes": "pin 5, x = 6.35; from ESP32 I2S DOUT"
+      },
+      {
+        "name": "GAIN",
+        "func": "nc",
+        "notes": "pin 4, x = 8.89; open = 9 dB; strap to set 3/6/12/15 dB"
+      },
+      {
+        "name": "SD",
+        "func": "enable",
+        "notes": "pin 3, x = 11.43; shutdown/mode: default (L+R)/2; drive low to mute"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": "pin 2, x = 13.97"
+      },
+      {
+        "name": "VIN",
+        "func": "5v",
+        "notes": "pin 1, x = 16.51; 2.7-5.5 V (page) / silkscreen 2.5-5.5 V"
+      },
+      {
+        "name": "SPK+",
+        "func": "speaker_p",
+        "notes": "screw terminal (VO+)"
+      },
+      {
+        "name": "SPK-",
+        "func": "speaker_n",
+        "notes": "screw terminal (VO-); BTL output, never ground either speaker lead"
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "LRC",
+        "BCLK",
+        "DIN",
+        "GAIN",
+        "SD",
+        "GND",
+        "VIN"
+      ],
+      "location": "one long edge; speaker screw terminal on the opposite edge"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_6P (B6B-PH-K) amp port, 5V",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VIN",
+          "color": "red"
+        },
+        {
+          "module_pin": "BCLK",
+          "color": "yellow"
+        },
+        {
+          "module_pin": "LRC",
+          "color": "green"
+        },
+        {
+          "module_pin": "DIN",
+          "color": "blue"
+        },
+        {
+          "module_pin": "SD",
+          "color": "white"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": "Internal; keep >= 10 mm from the mic and its I2S wires away from the antenna."
+    },
+    "electrical": {
+      "supply_v": "2.7-5.5 (use 5)",
+      "logic_v": "3.3",
+      "current_ma_typ": 50,
+      "current_ma_max": 800,
+      "bus": "i2s"
+    },
+    "firmware": {
+      "arduino_libraries": [
+        "ESP_I2S (built into espressif/arduino-esp32 3.x)",
+        "earlephilhower/ESP8266Audio@^1.9"
+      ],
+      "driver_notes": "8-96 kHz, no MCLK needed (Adafruit). Output 3.2 W into 4 ohm / 1.8 W into 8 ohm at 5 V, 10% THD. Hold SD low during boot and while silent to avoid pops; GAIN default 9 dB."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B6B-PH-K_1x06_P2.00mm_Vertical",
+      "notes": "6P port carries 5 V; must stay a different pin count from the 3V3 mic port (5P)."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/smartelex-max98357a-i2s-audio-breakout-amplifier-for-raspberry-pi-and-microcontrollers",
+        "price_inr_seen": 195,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "SmartElex MAX98357A breakout (third-party), incl. GST, 179 in stock; dims/pinout not shown, equivalence to Adafruit 3006 not confirmed"
+      },
+      {
+        "vendor": "ibots",
+        "url": "https://ibots.in/?p=11907",
+        "price_inr_seen": 838.98,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "'Adafruit MAX98357A' listing, incl. GST, backorder; 19.4 x 17.8 x 3.0 mm; genuineness not confirmed"
+      }
+    ],
+    "price_inr_planning": [
+      110,
+      300
+    ],
+    "evidence": [
+      "https://www.adafruit.com/product/3006",
+      "https://github.com/adafruit/Adafruit-MAX98357-I2S-Amp-Breakout",
+      "https://robocraze.com/products/smartelex-max98357a-i2s-audio-breakout-amplifier-for-raspberry-pi-and-microcontrollers",
+      "https://ibots.in/?p=11907"
+    ],
+    "uncertain": [
+      "Hole/pin coordinates are from the Eagle file in Adafruit's GitHub repo (may be an older revision than current stock).",
+      "SmartElex/generic clones in India may differ in outline and pin order: measure first article.",
+      "current_ma_typ 50 and max 800 are estimates (max from 3.2 W into 4 ohm at 5 V with typical class-D efficiency); the Maxim/ADI datasheet was not read.",
+      "Genuine Adafruit stock in India (ibots) is ~Rs 839, far above the planning ceiling Rs 300.",
+      "Library version floors not re-checked this session."
+    ]
+  },
+  {
+    "id": "SPK_40MM_4R_3W",
+    "catalog_row": "22",
+    "catalog_id": "SPK_A",
+    "role": "audio_out",
+    "name": "Speaker 40 mm round, 4 ohm, 3 W",
+    "reference_product": {
+      "maker": "PUI Audio",
+      "mpn_or_model": "AS04004PR-WR-R",
+      "product_url": "https://www.digikey.in/en/products/detail/pui-audio-inc/AS04004PR-WR-R/13165952",
+      "datasheet_url": "https://puiaudio.com/file/specs-AS04004PR-WR-R.pdf"
+    },
+    "dims_mm": {
+      "x": 40.0,
+      "y": 40.0,
+      "z": 17.5,
+      "notes": "PUI drawing: frame/flange OD 40 +/-0.3, flange thickness 1.7, 11.3 to the back of the basket, 17.5 overall incl. magnet; magnet OD 23; solder-eyelet terminals on the basket side."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "clip",
+      "holes": [],
+      "hole_origin": "speaker axis",
+      "notes": "No flange holes. Front-mount the 40 mm flange against the inside of the baffle on a gasket (row 13) and clamp with a printed ring or 3 hooks; baffle opening 35.6 mm; keep >= 0.8 mm free in front of the diaphragm (PUI)."
+    },
+    "pins": [
+      {
+        "name": "+",
+        "func": "speaker_p",
+        "notes": "solder eyelet; cone moves forward with positive DC on '+'"
+      },
+      {
+        "name": "-",
+        "func": "speaker_n",
+        "notes": "solder eyelet"
+      }
+    ],
+    "module_connector": {
+      "type": "wire_leads",
+      "pin_order": [
+        "+",
+        "-"
+      ],
+      "location": "solder eyelets on the basket; solder 2 leads to the amp screw terminal"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE (to AMP_MAX98357A_I2S screw terminal)",
+      "wires": [
+        {
+          "module_pin": "+",
+          "color": "red"
+        },
+        {
+          "module_pin": "-",
+          "color": "black"
+        }
+      ],
+      "length_mm": 120
+    },
+    "aperture": {
+      "needs": "grille",
+      "size_mm": {
+        "w": 35.6,
+        "h": 35.6,
+        "d": 2.0
+      },
+      "notes": "Grille over the 35.6 mm baffle opening, >= 40% open area (proposal); sealed back volume for bass (Fo 180 Hz)."
+    },
+    "electrical": {
+      "supply_v": "n/a (driven by amp)",
+      "logic_v": "n/a",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "none"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "4 ohm +/-15%, rated 3 W / max 4 W, 100 Hz-20 kHz, 86 dB @1 W/0.5 m. With MAX98357A at 5 V this is the 3.2 W load."
+    },
+    "kicad": {
+      "backplane_footprint": "NONE",
+      "notes": "Speaker wires land on the amp terminal, not the backplane."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "DigiKey India",
+        "url": "https://www.digikey.in/en/products/detail/pui-audio-inc/AS04004PR-WR-R/13165952",
+        "price_inr_seen": 787.51,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "qty 1; 25 in stock"
+      },
+      {
+        "vendor": "Robocomp",
+        "url": "https://robocomp.in/?p=12264",
+        "price_inr_seen": 89,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "DIFFERENT generic 40 mm 4 ohm 3 W speaker, 40 x 23 mm, Rs 89 excl. GST, out of stock; needs measurement"
+      }
+    ],
+    "price_inr_planning": [
+      80,
+      250
+    ],
+    "evidence": [
+      "https://puiaudio.com/file/specs-AS04004PR-WR-R.pdf",
+      "https://www.digikey.in/en/products/detail/pui-audio-inc/AS04004PR-WR-R/13165952"
+    ],
+    "uncertain": [
+      "The datasheet-backed part costs ~Rs 788, three times the planning ceiling; a generic 40 mm 4 ohm 3 W speaker (~Rs 90-150) fits the budget but has no drawing (Robocomp lists 23 mm height vs PUI 17.5).",
+      "Adafruit 3968 (40 mm, 4 ohm, now 5 W, 20 mm deep) is another documented option; not sold in India per searches."
+    ]
+  },
+  {
+    "id": "SPK_28MM_8R_2W",
+    "catalog_row": "22",
+    "catalog_id": null,
+    "role": "audio_out",
+    "name": "Speaker 28 mm round with mounting ears, 8 ohm, 2 W",
+    "reference_product": {
+      "maker": "Same Sky (formerly CUI Devices)",
+      "mpn_or_model": "CMS-28528N-L152B (JST SH 2-pin lead; base CMS-28528N-L152 = bare leads)",
+      "product_url": "https://www.digikey.in/en/products/detail/same-sky-formerly-cui-devices/CMS-28528N-L152B/13563560",
+      "datasheet_url": "https://www.sameskydevices.com/product/resource/digikeypdf/cms-28528n-l152.pdf"
+    },
+    "dims_mm": {
+      "x": 37.6,
+      "y": 28.0,
+      "z": 5.2,
+      "notes": "Same Sky drawing: body OD 28 +/-0.2 with two ears, 37.6 +/-0.2 across the ears; height 5.2 +/-0.3 (2.5 at the rim); magnet OD 16; front OD 26.8, inner front ring 25.2."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "holes",
+      "holes": [
+        {
+          "x": -16.0,
+          "y": 0.0,
+          "d": 3.0
+        },
+        {
+          "x": 16.0,
+          "y": 0.0,
+          "d": 3.0
+        }
+      ],
+      "hole_origin": "speaker centre, front view, ears along x",
+      "notes": "2 x 3.0 mm holes, 32 mm apart, in the ears. M2.5 screws into heat-set inserts or printed pegs; gasket front face against the grille."
+    },
+    "pins": [
+      {
+        "name": "Red +",
+        "func": "speaker_p",
+        "notes": "152 +/-5 mm lead, UL1571 28 AWG"
+      },
+      {
+        "name": "Black -",
+        "func": "speaker_n",
+        "notes": ""
+      }
+    ],
+    "module_connector": {
+      "type": "wire_leads",
+      "pin_order": [
+        "+",
+        "-"
+      ],
+      "location": "leads exit the rim; -B variant ends in JST SHR-02V-S-B (mates BM02B-SRSS-TB)"
+    },
+    "backplane_harness": {
+      "backplane_connector": "NONE (to amp screw terminal; cut the SH plug or order the bare-lead variant)",
+      "wires": [
+        {
+          "module_pin": "+",
+          "color": "red"
+        },
+        {
+          "module_pin": "-",
+          "color": "black"
+        }
+      ],
+      "length_mm": 152
+    },
+    "aperture": {
+      "needs": "grille",
+      "size_mm": {
+        "w": 25.2,
+        "h": 25.2,
+        "d": 1.5
+      },
+      "notes": "Grille over the ~25 mm front opening."
+    },
+    "electrical": {
+      "supply_v": "n/a (driven by amp)",
+      "logic_v": "n/a",
+      "current_ma_typ": 0,
+      "current_ma_max": 0,
+      "bus": "none"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "8 ohm, 2 W rated / 3 W max, Fo 750 Hz (thin bass: suits alerts and speech, not music), 99 dB @1 W/0.1 m."
+    },
+    "kicad": {
+      "backplane_footprint": "NONE",
+      "notes": ""
+    },
+    "sourcing_in": [
+      {
+        "vendor": "DigiKey India",
+        "url": "https://www.digikey.in/en/products/detail/same-sky-formerly-cui-devices/CMS-28528N-L152B/13563560",
+        "price_inr_seen": 487.91,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "qty 1, tray; 681 in stock"
+      },
+      {
+        "vendor": "Rytronics",
+        "url": "https://www.rytronics.in/?p=28669",
+        "price_inr_seen": 149,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "DIFFERENT generic 28 mm 8 ohm 2 W, incl. GST; needs measurement"
+      },
+      {
+        "vendor": "Kitsguru",
+        "url": "https://kitsguru.com/products/small-horn-speaker-1",
+        "price_inr_seen": 99,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "DIFFERENT generic 'Small Horn Speaker 2W 8R 28mm'"
+      }
+    ],
+    "price_inr_planning": [
+      80,
+      250
+    ],
+    "evidence": [
+      "https://www.sameskydevices.com/product/resource/digikeypdf/cms-28528n-l152.pdf",
+      "https://www.digikey.in/en/products/detail/same-sky-formerly-cui-devices/CMS-28528N-L152B/13563560"
+    ],
+    "uncertain": [
+      "Datasheet-backed part ~Rs 488 is above the planning ceiling Rs 250; generic 28 mm parts fit the budget but their ear/hole geometry differs and must be measured."
+    ]
+  },
+  {
+    "id": "BUZZER_PASSIVE_TRANSISTOR_MODULE",
+    "catalog_row": "23",
+    "catalog_id": null,
+    "role": "audio_out",
+    "name": "Passive buzzer module with transistor driver (low-level trigger)",
+    "reference_product": {
+      "maker": "Generic (Probots)",
+      "mpn_or_model": "PRO2418 Passive Buzzer Module 3.3V-5V Low-Level Trigger",
+      "product_url": "https://probots.co.in/passive-buzzer-module-low-level-trigger-arduino.html",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 32.0,
+      "y": 13.0,
+      "z": 11.0,
+      "notes": "32 x 13 mm from Probots page; z ESTIMATE (buzzer can + PCB, header excluded)."
+    },
+    "pcb_thickness_mm": 1.6,
+    "mount": {
+      "type": "holes",
+      "holes": [
+        {
+          "x": 3.0,
+          "y": 6.5,
+          "d": 3.0
+        }
+      ],
+      "hole_origin": "bottom-left corner, component side up (position ESTIMATED)",
+      "notes": "One hole for M2/M3 per Probots; its position and diameter are not given."
+    },
+    "pins": [
+      {
+        "name": "VCC",
+        "func": "3v3",
+        "notes": "3.3-5 V; use 3V3 so a 3.3 V GPIO high fully turns the driver off"
+      },
+      {
+        "name": "I/O",
+        "func": "pwm",
+        "notes": "low-level trigger: LOW = on; idle HIGH"
+      },
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": ""
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "VCC",
+        "I/O",
+        "GND"
+      ],
+      "location": "short edge; physical order to confirm on first article"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_3P (keyed, per blueprint rows 06/07)",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VCC",
+          "color": "red"
+        },
+        {
+          "module_pin": "I/O",
+          "color": "white"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "grille",
+      "size_mm": {
+        "w": 6.0,
+        "h": 6.0,
+        "d": 1.5
+      },
+      "notes": "Small vent (e.g. 3-5 holes of 1.5 mm) over the buzzer opening; design estimate."
+    },
+    "electrical": {
+      "supply_v": "3.3-5",
+      "logic_v": "3.3",
+      "current_ma_typ": 20,
+      "current_ma_max": 40,
+      "bus": "gpio/ledc pwm"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "Use LEDC (ledcAttach + ledcWriteTone in arduino-esp32 3.x). Because it is low-level triggered, invert the duty or idle the pin HIGH; never leave it LOW (continuous current)."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+      "notes": ""
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Probots",
+        "url": "https://probots.co.in/passive-buzzer-module-low-level-trigger-arduino.html",
+        "price_inr_seen": 49,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "PRO2418; incl. GST (41.53 excl.); in stock; J3Y transistor; 32 x 13 mm; piezo per page"
+      }
+    ],
+    "price_inr_planning": [
+      20,
+      80
+    ],
+    "evidence": [
+      "https://probots.co.in/passive-buzzer-module-low-level-trigger-arduino.html",
+      "https://sensorkit.joy-it.net/en/sensors/ky-006"
+    ],
+    "uncertain": [
+      "Hole position/diameter, z height and pin physical order are estimates or unconfirmed.",
+      "Current figures are estimates (not on the page).",
+      "Alternative KY-006 (Joy-IT: 18.5 x 15 mm, 3.3-5 V, 1.5-2.5 kHz) is driven directly by the GPIO with no transistor; pin labelling varies between vendors.",
+      "Whether a PNP or NPN stage is used (affects 5 V vs 3V3 supply safety) is not documented: supply at 3V3 until checked."
+    ]
+  },
+  {
+    "id": "BUTTON_TACTILE_KY004",
+    "catalog_row": "24",
+    "catalog_id": "BUTTON_A",
+    "role": "input",
+    "name": "Tactile push-button module (KY-004 type)",
+    "reference_product": {
+      "maker": "Generic KY-004 (Joy-IT spec)",
+      "mpn_or_model": "KY-004 Button module",
+      "product_url": "https://sensorkit.joy-it.net/en/sensors/ky-004",
+      "datasheet_url": "https://sensorkit.joy-it.net/en/sensors/ky-004"
+    },
+    "dims_mm": {
+      "x": 18.0,
+      "y": 15.0,
+      "z": 6.0,
+      "notes": "Joy-IT: 18 x 15 x 6 mm (header excluded)."
+    },
+    "pcb_thickness_mm": 1.6,
+    "mount": {
+      "type": "holes",
+      "holes": [
+        {
+          "x": 9.0,
+          "y": 11.5,
+          "d": 3.0
+        }
+      ],
+      "hole_origin": "bottom-left corner, header edge at y = 0 (ESTIMATED)",
+      "notes": "KY boards normally have one ~3 mm hole; position and size not documented. A printed plunger cap transfers the press from the shell to the 6 x 6 mm switch."
+    },
+    "pins": [
+      {
+        "name": "S",
+        "func": "gpio",
+        "notes": "signal; reads LOW when pressed in Joy-IT examples"
+      },
+      {
+        "name": "+",
+        "func": "3v3",
+        "notes": "3.3-5 V per Joy-IT; MUST be 3V3 on our port so S never sees 5 V"
+      },
+      {
+        "name": "-",
+        "func": "gnd",
+        "notes": ""
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "S",
+        "+",
+        "-"
+      ],
+      "location": "short edge, 3 pins"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_3P (keyed, per blueprint rows 06/07)",
+      "wires": [
+        {
+          "module_pin": "-",
+          "color": "black"
+        },
+        {
+          "module_pin": "+",
+          "color": "red"
+        },
+        {
+          "module_pin": "S",
+          "color": "white"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "button_hole",
+      "size_mm": {
+        "w": 6.0,
+        "h": 6.0,
+        "d": 2.0
+      },
+      "notes": "Hole for a printed plunger; travel of the tactile switch not documented (typ. ~0.25 mm, estimate). Design estimate."
+    },
+    "electrical": {
+      "supply_v": "3.3-5 (use 3.3)",
+      "logic_v": "3.3",
+      "current_ma_typ": 0.3,
+      "current_ma_max": 1,
+      "bus": "gpio"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "Enable the internal pull-up as Joy-IT does, treat LOW as pressed, debounce 20-50 ms in software."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+      "notes": ""
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Robodo",
+        "url": "https://robodo.in/products/key-switch-keyboard-button-module-board-ky-004-for-arduino-uno-mega-pic-avr-raspberry-pi",
+        "price_inr_seen": 33,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "incl. GST; stock state unclear; says pull-down on signal pin"
+      },
+      {
+        "vendor": "Rees52",
+        "url": "https://rees52.com/products/ky-004-push-button-module-momentary-tactile-push-button-module-dc-5v-switch-rs4823",
+        "price_inr_seen": 19,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "33 in stock"
+      }
+    ],
+    "price_inr_planning": [
+      15,
+      70
+    ],
+    "evidence": [
+      "https://sensorkit.joy-it.net/en/sensors/ky-004",
+      "https://robodo.in/products/key-switch-keyboard-button-module-board-ky-004-for-arduino-uno-mega-pic-avr-raspberry-pi"
+    ],
+    "uncertain": [
+      "On-board resistor value and topology differ by vendor (Robodo: pull-down on S; Joy-IT examples: active-low with MCU pull-up). Confirm on first article; firmware must match.",
+      "Hole position/diameter and current figures are estimates."
+    ]
+  },
+  {
+    "id": "BUTTON_ARCADE_30MM_SNAPIN",
+    "catalog_row": "24",
+    "catalog_id": null,
+    "role": "input",
+    "name": "Big 30 mm snap-in arcade push button (microswitch)",
+    "reference_product": {
+      "maker": "Generic 30 mm snap-in (Sanwa OBSF-30 format)",
+      "mpn_or_model": "Thingbits TH1801 30mm Round Translucent Arcade Push Button",
+      "product_url": "https://thingbits.in/products/30mm-round-translucent-arcade-push-button",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 33.0,
+      "y": 33.0,
+      "z": 38.0,
+      "notes": "Thingbits: 30 mm mounting hole, 33 mm body (bezel) diameter, 38 mm overall height. Adafruit 30 mm snap-in: 38 mm behind the panel, 32 mm with contacts bent."
+    },
+    "pcb_thickness_mm": null,
+    "mount": {
+      "type": "panel_snap",
+      "holes": [
+        {
+          "x": 0.0,
+          "y": 0.0,
+          "d": 30.0
+        }
+      ],
+      "hole_origin": "button axis",
+      "notes": "Snap-in through a 30 mm round hole. Snap latches are specified for panels about 2-3.9 mm thick (OBSF-30 listings); for a 3D-printed shell thicken the local wall to ~3 mm around the hole (proposal). Leave >= 38 mm free depth behind the panel."
+    },
+    "pins": [
+      {
+        "name": "COM",
+        "func": "gnd",
+        "notes": "microswitch common, 2.8 mm (.110 in) spade on Sanwa-type switches"
+      },
+      {
+        "name": "NO",
+        "func": "gpio",
+        "notes": "normally-open contact to the IO port SIG (internal pull-up)"
+      }
+    ],
+    "module_connector": {
+      "type": "wire_leads",
+      "pin_order": [
+        "COM",
+        "NO"
+      ],
+      "location": "microswitch spade terminals at the back"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_3P (IO port; 3V3 pin unused)",
+      "wires": [
+        {
+          "module_pin": "COM",
+          "color": "black"
+        },
+        {
+          "module_pin": "NO",
+          "color": "white"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "button_hole",
+      "size_mm": {
+        "w": 30.0,
+        "h": 30.0,
+        "d": 3.0
+      },
+      "notes": "30 mm round hole; bezel covers to 33 mm; wall 2-3.9 mm at the hole."
+    },
+    "electrical": {
+      "supply_v": "n/a (dry contact)",
+      "logic_v": "3.3",
+      "current_ma_typ": 0.3,
+      "current_ma_max": 1,
+      "bus": "gpio"
+    },
+    "firmware": {
+      "arduino_libraries": [],
+      "driver_notes": "INPUT_PULLUP, LOW = pressed, 20-50 ms debounce. Thingbits rates the microswitch at 500,000 presses."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+      "notes": "harness: PH 3P housing one end, two 2.8 mm female insulated spade crimps the other"
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Thingbits",
+        "url": "https://thingbits.in/products/30mm-round-translucent-arcade-push-button",
+        "price_inr_seen": 93.22,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "TH1801; incl. GST (79.00 excl.); red sold out; red/yellow/blue/green/clear; 10.4 g"
+      }
+    ],
+    "price_inr_planning": [
+      15,
+      70
+    ],
+    "evidence": [
+      "https://thingbits.in/products/30mm-round-translucent-arcade-push-button",
+      "https://littlebirdelectronics.com.au/products/arcade-button-30mm-translucent-red",
+      "https://www.arcaderenovations.com/sanwa-snap-in-button-red-OBSF-30-R.html"
+    ],
+    "uncertain": [
+      "Panel thickness range 2-3.9 mm comes from OBSF-30 reseller listings (no Sanwa datasheet read) and may not hold for the generic Thingbits part or for PLA/PETG walls.",
+      "Terminal type/size for the generic switch not stated by Thingbits.",
+      "Price Rs 93 is above the row-24 planning ceiling Rs 70 (row priced for small tactile modules).",
+      "Blueprint launches for adults and excludes child-directed toys; 'kid-friendly' sizing is fine but marketing to children is out of scope.",
+      "24 mm variant (Adafruit 'mini arcade', 24 mm hole) not researched in depth."
+    ]
+  },
+  {
+    "id": "MICROSD_SPI_MODULE_5V",
+    "catalog_row": "37",
+    "catalog_id": "MICROSD_A",
+    "role": "storage",
+    "name": "microSD SPI module with LDO and level shifter (Catalex-type)",
+    "reference_product": {
+      "maker": "Generic (Probots)",
+      "mpn_or_model": "PRO1129 Micro SD Card Adapter Module with SPI interface",
+      "product_url": "https://probots.co.in/micro-sd-card-adapter-module-with-spi-interface-for-arduino.html",
+      "datasheet_url": null
+    },
+    "dims_mm": {
+      "x": 42.0,
+      "y": 24.0,
+      "z": 12.0,
+      "notes": "Probots: ~42 x 24 x 12 mm (z likely includes the right-angle or straight header)."
+    },
+    "pcb_thickness_mm": 1.6,
+    "mount": {
+      "type": "holes",
+      "holes": [
+        {
+          "x": 2.5,
+          "y": 2.5,
+          "d": 2.2
+        },
+        {
+          "x": 39.5,
+          "y": 2.5,
+          "d": 2.2
+        },
+        {
+          "x": 2.5,
+          "y": 21.5,
+          "d": 2.2
+        },
+        {
+          "x": 39.5,
+          "y": 21.5,
+          "d": 2.2
+        }
+      ],
+      "hole_origin": "bottom-left corner, component side up (positions ESTIMATED)",
+      "notes": "4 x M2 holes per Probots; positions/diameter not documented."
+    },
+    "pins": [
+      {
+        "name": "GND",
+        "func": "gnd",
+        "notes": ""
+      },
+      {
+        "name": "VCC",
+        "func": "5v",
+        "notes": "4.5-5.5 V into on-board 3.3 V LDO"
+      },
+      {
+        "name": "MISO",
+        "func": "spi_miso",
+        "notes": "3.3 V level out; Catalex-type boards are reported to keep driving MISO when CS is high"
+      },
+      {
+        "name": "MOSI",
+        "func": "spi_mosi",
+        "notes": "via level shifter"
+      },
+      {
+        "name": "SCK",
+        "func": "spi_sck",
+        "notes": "via level shifter"
+      },
+      {
+        "name": "CS",
+        "func": "spi_cs",
+        "notes": "via level shifter"
+      }
+    ],
+    "module_connector": {
+      "type": "header_2.54",
+      "pin_order": [
+        "GND",
+        "VCC",
+        "MISO",
+        "MOSI",
+        "SCK",
+        "CS"
+      ],
+      "location": "one short edge; Probots lists VCC first in its spec order, confirm physical order"
+    },
+    "backplane_harness": {
+      "backplane_connector": "JST_PH_2.0_7P (B7B-PH-K) microSD port, 5V (pin 7 NC)",
+      "wires": [
+        {
+          "module_pin": "GND",
+          "color": "black"
+        },
+        {
+          "module_pin": "VCC",
+          "color": "red"
+        },
+        {
+          "module_pin": "MISO",
+          "color": "green"
+        },
+        {
+          "module_pin": "MOSI",
+          "color": "blue"
+        },
+        {
+          "module_pin": "SCK",
+          "color": "yellow"
+        },
+        {
+          "module_pin": "CS",
+          "color": "white"
+        }
+      ],
+      "length_mm": 150
+    },
+    "aperture": {
+      "needs": "none",
+      "size_mm": {
+        "w": 0,
+        "h": 0,
+        "d": 0
+      },
+      "notes": "Card is internal; service through the removable panel (row 48). Add a card slot opening only if customers must swap cards."
+    },
+    "electrical": {
+      "supply_v": "4.5-5.5",
+      "logic_v": "3.3",
+      "current_ma_typ": 30,
+      "current_ma_max": 100,
+      "bus": "spi"
+    },
+    "firmware": {
+      "arduino_libraries": [
+        "SD + SPI (built into espressif/arduino-esp32 3.x)"
+      ],
+      "driver_notes": "Shares the FSPI bus with the LCD; the LCD does not use MISO so the MISO tri-state flaw is tolerable, but no other MISO-reading device may join the bus. Start at 4-10 MHz SPI for init, then raise. FAT32, SDHC up to 32 GB per Probots."
+    },
+    "kicad": {
+      "backplane_footprint": "Connector_JST:JST_PH_B7B-PH-K_1x07_P2.00mm_Vertical",
+      "notes": "7P keeps this 5 V port distinct from the 6P amp port."
+    },
+    "sourcing_in": [
+      {
+        "vendor": "Probots",
+        "url": "https://probots.co.in/micro-sd-card-adapter-module-with-spi-interface-for-arduino.html",
+        "price_inr_seen": 49,
+        "seen_on": "2026-11-01",
+        "status": "page_read",
+        "notes": "PRO1129; incl. GST (41.53 excl.); in stock; 4x M2 holes; level shifter 'like 74LVC125A'"
+      },
+      {
+        "vendor": "Robocraze",
+        "url": "https://robocraze.com/products/sd-card-module",
+        "price_inr_seen": 41,
+        "seen_on": "2026-11-01",
+        "status": "search_snippet",
+        "notes": "SPI SD card module, 4.5-5.5 V; sold out"
+      }
+    ],
+    "price_inr_planning": [
+      120,
+      380
+    ],
+    "evidence": [
+      "https://probots.co.in/micro-sd-card-adapter-module-with-spi-interface-for-arduino.html",
+      "https://forum.arduino.cc/t/catalex-microsd-card-adapter-do-i-need-to-level-shift/197732",
+      "https://www.adafruit.com/product/4682",
+      "https://github.com/adafruit/Adafruit-MicroSD-SPI-or-SDIO-card-breakout-PCB"
+    ],
+    "uncertain": [
+      "Hole positions and diameter are estimates; no drawing exists for the Catalex-type module.",
+      "MISO-not-released behaviour comes from Arduino forum reports, not a datasheet.",
+      "Current figures are estimates; card current depends on the card.",
+      "Planning range Rs 120-380 includes the 'qualified storage' card; the module alone is ~Rs 41-49.",
+      "Documented 3.3 V-native alternative: Adafruit 4682 (25.4 x 22.86 mm Eagle outline, 2 x 2.5 mm holes at (2.54, 20.32) and (22.86, 20.32), 9-pin header 3V, GND, CLK, SO, SI, CS, D1, D2, DET); no Indian reseller confirmed."
+    ]
+  }
+]
