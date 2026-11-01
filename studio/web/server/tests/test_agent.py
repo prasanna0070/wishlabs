@@ -69,7 +69,7 @@ def test_system_prompt_has_rules(tmp_path):
 
 
 def test_history_rendering():
-    p = {"chat": [], "concepts": [{"id": "c_1", "title": "Moon Hug", "blurb": "b", "state": "ready"}]}
+    p = {"chat": [], "concepts": [{"id": "c_1", "title": "Lullaby Pod", "blurb": "b", "state": "ready"}]}
     assert render_message({"role": "user", "kind": "text", "text": "hi"}, p) == ("user", "hi")
     r = render_message({"role": "assistant", "kind": "choices", "text": "t",
                         "payload": {"questions": [{"id": "age", "question": "Age?", "options": ["3", "5"],
@@ -77,7 +77,7 @@ def test_history_rendering():
     assert r[0] == "model" and "Age?" in r[1]
     r = render_message({"role": "assistant", "kind": "concepts", "text": "Pick",
                         "payload": {"concept_ids": ["c_1"]}}, p)
-    assert "Moon Hug" in r[1]
+    assert "Lullaby Pod" in r[1]
 
 
 class RepairBrain:
@@ -95,15 +95,18 @@ class RepairBrain:
         bad["body"]["family"] = "pyramid"
         bad["sparkles"] = True
         r1 = await turn.call_tool("propose_concepts", {"message": "Pick one", "concepts": [
-            {"title": "A", "blurb": "a", "spec": bad}, {"title": "B", "tier": "expected", "blurb": "b",
-                                                         "spec": base}]})
+            {"title": "A", "blurb": "a robot", "spec": bad}, {"title": "B", "tier": "expected",
+                                                               "blurb": "b robot", "spec": base}]})
         self.calls.append(r1.response)
         assert not r1.terminal and r1.response["errors"]
         assert r1.response["kept"] == ["B"] and list(r1.response["errors_by_concept"]) == ["A"]
         good = copy.deepcopy(base)
         good["name"] = "A"
+        for f in good["features"]:          # its own layout (MAJ-28: no two concepts share one)
+            if f.get("at") and abs(f["at"][0]) > 10:
+                f["at"] = [-f["at"][0], f["at"][1]]
         r2 = await turn.call_tool("propose_concepts", {"concepts": [  # resend only the failed one
-            {"title": "A", "tier": "wildcard", "blurb": "a", "spec": good}]})
+            {"title": "A", "tier": "wildcard", "blurb": "a robot", "spec": good}]})
         self.calls.append(r2.response)
 
 
@@ -177,7 +180,9 @@ def test_out_of_scope_diff():
     assert out_of_scope(a, b, "features[1]") == []
     assert out_of_scope(a, b, "features[0]") == ["features[1].at"]
     b["body"]["depth"] = 120
-    assert out_of_scope(a, b, "body") == []           # body edits may move features and decor
+    # MAJ-34: a body selection no longer lets features or decor change unless the request names them
+    assert out_of_scope(a, b, "body") == ["features[1].at"]
+    assert out_of_scope(a, b, "body", ["features[1]"]) == []
     assert out_of_scope(a, b, "decor[0]") == ["body.depth", "features[1].at"]
 
 

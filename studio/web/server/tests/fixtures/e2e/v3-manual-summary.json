@@ -1,0 +1,80 @@
+{
+  "schema": "gadget-manual-summary/1",
+  "images_rendered": 21,
+  "images": [
+    "manual/assembled.png",
+    "manual/backplane-pcb.png",
+    "manual/exploded.png",
+    "manual/open-back.png",
+    "manual/ports.png",
+    "manual/print-bed.png",
+    "manual/step-01-parts.png",
+    "manual/step-04-inserts.png",
+    "manual/step-05-cartridge.png",
+    "manual/step-06-mount-cartridge.png",
+    "manual/step-07-speaker.png",
+    "manual/step-08-speaker.png",
+    "manual/step-09-eyes.png",
+    "manual/step-10-story-button.png",
+    "manual/step-11-status-light.png",
+    "manual/step-12-mic.png",
+    "manual/step-13-mic.png",
+    "manual/step-15-routing.png",
+    "manual/step-17-close.png",
+    "manual/wiring.png",
+    "manual/wiring.svg"
+  ],
+  "images_referenced": 21,
+  "orphans": [],
+  "missing_references": [],
+  "build_visuals_not_in_guide": [],
+  "labels_placed": 106,
+  "label_overlaps": 0,
+  "label_violations": [],
+  "labels_dropped": [
+    "manual/step-12-mic.png: Cable connector toward +Y",
+    "manual/assembled.png: Story speaker"
+  ],
+  "figures_failed": [],
+  "steps": 18,
+  "steps_with_empty_parts": [],
+  "steps_missing_use_or_tools": [],
+  "wiring_steps": 10,
+  "wiring_connections": 32,
+  "tests": 10,
+  "final_checks_match_tests": true,
+  "seconds": 20.9,
+  "ok": true,
+  "limits": [
+    "Counts are computed from the files written by this stage; they say nothing about physical assembly."
+  ],
+  "qty_mismatches": [
+    {
+      "module": "SCREW_SET_M2_M2_5_SHCS_A2",
+      "cad": 17,
+      "hardware_list": 19
+    }
+  ],
+  "mesh_errors": {},
+  "figure_seconds": {
+    "manual/step-01-parts.png": 2.95,
+    "manual/exploded.png": 2.53,
+    "manual/print-bed.png": 3.08,
+    "manual/step-04-inserts.png": 7.86,
+    "manual/step-05-cartridge.png": 3.33,
+    "manual/step-06-mount-cartridge.png": 7.66,
+    "manual/step-07-speaker.png": 9.62,
+    "manual/step-08-speaker.png": 9.97,
+    "manual/step-09-eyes.png": 10.1,
+    "manual/step-10-story-button.png": 9.92,
+    "manual/step-11-status-light.png": 10.7,
+    "manual/step-12-mic.png": 8.11,
+    "manual/step-13-mic.png": 8.71,
+    "manual/step-15-routing.png": 2.62,
+    "manual/open-back.png": 2.82,
+    "manual/step-17-close.png": 3.56,
+    "manual/assembled.png": 2.13,
+    "manual/ports.png": 1.13
+  },
+  "unrendered_figures": []
+}

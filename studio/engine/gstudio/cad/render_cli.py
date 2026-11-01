@@ -25,6 +25,7 @@ def main(argv=None) -> int:
     ap.add_argument("--split", default="rear_cover")
     ap.add_argument("--size", type=int, default=1200)
     ap.add_argument("--name", default=None, help="file name for a single view")
+    ap.add_argument("--points", default=None, help="JSON [[x, y, z, mm], ...] for the thin-wall view")
     a = ap.parse_args(argv)
     from . import render as R
 
@@ -32,18 +33,19 @@ def main(argv=None) -> int:
     screens = json.loads(Path(a.screens).read_text()) if a.screens and Path(a.screens).exists() else None
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    fns = {"hero": R.hero, "rear_open": R.rear_open, "xray": R.xray}
+    points = json.loads(Path(a.points).read_text()) if a.points and Path(a.points).exists() else None
+    fns = {"hero": R.hero, "rear_open": R.rear_open, "xray": R.xray, "thin": R.thin}
     res = {}
     for v in a.views.split(","):
         fn = out / (a.name if a.name and "," not in a.views else f"{v}.png")
-        fns[v](items, fn, (a.size, a.size), 2, split=a.split, screens=screens)
+        fns[v](items, fn, (a.size, a.size), 2, split=a.split, screens=screens, points=points)
         res[v] = str(fn)
     print(json.dumps(res))
     return 0
 
 
 def render_subprocess(glb: Path, out_dir: Path, views=("hero",), screens=None, split="rear_cover", size=1200,
-                      timeout: float = 150.0, name: str = None) -> dict:
+                      timeout: float = 150.0, name: str = None, points=None) -> dict:
     """Run the renderer in a fresh interpreter with a hard timeout. Returns {view: path} or {"error": msg}."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -57,6 +59,11 @@ def render_subprocess(glb: Path, out_dir: Path, views=("hero",), screens=None, s
         cmd += ["--screens", str(sfile)]
     if name:
         cmd += ["--name", name]
+    pfile = None
+    if points:
+        pfile = out_dir / ".points.json"
+        pfile.write_text(json.dumps(points))
+        cmd += ["--points", str(pfile)]
     env = dict(os.environ)
     env["PYTHONPATH"] = str(ENGINE) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
     try:
@@ -66,6 +73,8 @@ def render_subprocess(glb: Path, out_dir: Path, views=("hero",), screens=None, s
     finally:
         if sfile and sfile.exists():
             sfile.unlink()
+        if pfile and pfile.exists():
+            pfile.unlink()
     if r.returncode != 0:
         return {"error": (r.stderr or r.stdout)[-600:]}
     try:

@@ -15,6 +15,7 @@ from . import refs_provisional as P
 from .modules import describe, fasteners
 
 PARAMS_SCHEMA = "gadget-cad-params/1"
+MATERIAL_DENSITY = {"PLA": 1.24, "PETG": 1.27, "ABS": 1.04, "ASA": 1.07}  # g/cm3, typical datasheet values (estimates)
 STUDIO = Path(__file__).resolve().parents[3]
 
 
@@ -146,6 +147,14 @@ def build_params(spec: Any, lib: Any = None, electrical: Optional[dict] = None, 
         if slot:
             used_slots.add(slot)
         h = next((x for x in harness if x.get("ref") == ref), None)
+        eh = inst.get("harness") if isinstance(inst.get("harness"), dict) else None
+        if eh and eh.get("length_mm"):  # one source for harness lengths: electrical.json (REVIEW-1 MIN-6, pipeline request)
+            base = dict(h or {"id": f"H_{ref}", "ref": ref, "slot": inst.get("slot")})
+            ln = int(eh["length_mm"])
+            base.update({"length_mm": ln, "pins": int(base.get("pins") or len(eh.get("wires") or []) or 0),
+                         "cable": eh.get("cable_name") or (f"{eh['cable']} {ln} mm" if eh.get("cable") else base.get("cable")),
+                         "source": "electrical.json harness"})
+            h = base
         cab = (entry.get("backplane_v1") or {}).get("cable") or {}
         if h is None:
             pins = cab.get("pins") or 0
@@ -187,6 +196,13 @@ def build_params(spec: Any, lib: Any = None, electrical: Optional[dict] = None, 
         extra.append({"module": e["id"], "ref": inst.get("ref") or f"{e.get('ref_prefix') or 'MOD'}{k + 1}", "slot": inst.get("slot"),
                       "desc": describe(e), "spec_path": f"electronics.extra_modules[{k}]"})
     hw = derived.get("hardware") or []
+    mat = "PLA"
+    try:  # one material for slicing, pricing and the CAD notes: the slicer profile's (pipeline, print/slice.ini)
+        from ..order.slicer import profile_material
+
+        mat = str(profile_material() or "PLA")
+    except Exception:
+        pass
     params = {
         "schema": PARAMS_SCHEMA,
         "name": sd.get("name", "Gadget"), "slug": sd.get("slug", "gadget"),
@@ -196,14 +212,16 @@ def build_params(spec: Any, lib: Any = None, electrical: Optional[dict] = None, 
                  "desc": describe(core_entry)},
         "internal": internal, "extra": extra,
         "backplane": bp, "backplane_ref": next((i["ref"] for i in instances if i.get("role") == "backplane"), "BP1"),
-        "fasteners": fasteners(L.get),
+        "fasteners": fasteners(L.get, {h.get("id"): h.get("module") for h in hw if isinstance(h, dict)}),
         "harness": harness,
         "hardware_modules": {h.get("id"): h.get("module") for h in hw if isinstance(h, dict)},
         "cartridge_hint": derived.get("cartridge"),
         "template": tmpl,
+        "print_material": {"name": mat, "density_g_cm3": MATERIAL_DENSITY.get(mat.upper(), 1.24),
+                           "density_source": "typical datasheet value for the material (estimate)"},
         "options": {"detail_fill": True, **(options or {})},
         "provenance": {"provisional_modules": provisional_modules, "backplane": "library/backplane-v1.json" if bp_raw else "provisional",
-                       "fastener_sources": fasteners(L.get).get("sources", {})},
+                       "fastener_sources": fasteners(L.get, {h.get("id"): h.get("module") for h in hw if isinstance(h, dict)}).get("sources", {})},
         "warnings": warnings,
     }
     return params

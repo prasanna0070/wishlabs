@@ -6,7 +6,8 @@ from typing import Any
 from .util import Bundle, inr, table
 
 TIER_TEXT = {
-    "seen": "seen: a dated retail price at a named vendor (an unsigned snapshot, not reserved stock)",
+    "seen": ("seen: a retail price re-read from the vendor's listing at build time; the raw listing is saved in "
+             "`references/listings/` and the row carries a signed receipt (not reserved stock)"),
     "estimate": "estimate: a planning range only; confirm before ordering",
     "not_confirmed": "not confirmed: no price recorded",
 }
@@ -44,6 +45,12 @@ def _uncertain_text(m: dict) -> str:
     return str(u)
 
 
+def solder_word(r: dict) -> str:
+    if r.get("requiresSoldering") is None:
+        return "unknown: factory checks on receipt"
+    return "yes" if r.get("requiresSoldering") else "no"
+
+
 def render(b: Bundle, lib: Any = None) -> str:
     sp = b.spec
     rows = b.build.get("purchased") or []
@@ -55,18 +62,39 @@ def render(b: Bundle, lib: Any = None) -> str:
     seen = [r for r in rows if r.get("evidence_tier") == "seen"]
     est = [r for r in rows if r.get("evidence_tier") == "estimate"]
     nc = [r for r in rows if r.get("evidence_tier") == "not_confirmed"]
-    seen_total = sum((r.get("price_inr_seen") or 0) * (r.get("packsToBuy") or 1) for r in seen)
+    # MAJ-23: GST-inclusive figures only; one parts total, the quote's
+    seen_total = sum((r.get("price_inr_incl_gst") or r.get("price_inr_seen") or 0) * (r.get("packsToBuy") or 1) for r in seen)
     est_lo = sum((r["price_inr_planning"][0] if r.get("price_inr_planning") else 0) * (r.get("packsToBuy") or 1) for r in est)
     est_hi = sum((r["price_inr_planning"][1] if r.get("price_inr_planning") else 0) * (r.get("packsToBuy") or 1) for r in est)
+    unknown_gst = [r["name"] for r in seen if r.get("gst_basis") == "unknown"]
+    q = b.quote or {}
+    pt = q.get("parts_total_inr") or {}
     L += ["", "## Costs at a glance", ""]
-    L.append(f"- {len(seen)} item(s) have a dated retail price: {inr(seen_total)} for the packs this build buys.")
+    if pt.get("one_off") is not None:
+        L.append(f"- **Parts total for one unit: {inr(pt['one_off'])}** (GST-inclusive; the figure the quote and the Parts tab use). "
+                 f"{pt.get('basis', '')}.")
+    L.append(f"- {len(seen)} item(s) have a re-read retail price: {inr(seen_total)} incl. GST for the packs this build buys"
+             + (f" ({len(unknown_gst)} of them state no GST basis and are taken as ex-GST plus 18%: {', '.join(unknown_gst)})" if unknown_gst else "")
+             + ".")
     L.append(f"- {len(est)} item(s) are estimates: {inr(est_lo)} to {inr(est_hi)} from planning ranges.")
     if nc:
         L.append(f"- {len(nc)} item(s) have no price: {', '.join(r['name'] for r in nc)}.")
-    L.append("- These are parts only. The delivered price (printing, assembly, test, courier, reserves, fees and GST) is in "
-             "`order/quote.json`" + (f": {inr(b.quote['delivered_price_inr']['pilot_one_off'])} one-off, "
-                                     f"{inr(b.quote['delivered_price_inr']['steady_state'])} at steady state ({b.quote['status_label'].lower()})."
-                                     if b.quote else " (not quoted in this version)."))
+    pdl = q.get("price_deltas") or {}
+    if pdl.get("rows"):
+        below = [x["name"] for x in pdl["rows"] if x.get("position") == "below"]
+        above = [x["name"] for x in pdl["rows"] if x.get("position") == "above"]
+        L.append(f"- Against the planning ranges, the seen prices come to {inr(abs(pdl.get('total_one_off_inr') or 0))} "
+                 f"{'more' if (pdl.get('total_one_off_inr') or 0) >= 0 else 'less'} for a one-off"
+                 + (f"; seen above the range: {', '.join(above)}" if above else "") + (f"; seen below it: {', '.join(below)}" if below else "") + ".")
+    inb = q.get("inbound_shipping") or {}
+    if inb.get("vendor_count"):
+        cons = (inb.get("consolidation") or {}).get("summary")
+        L.append(f"- Parts come from {inb['vendor_count']} vendor(s); inbound shipping to the factory is about {inr(inb.get('one_off_inr'))} for a "
+                 "one-off (assumed fees, not checked per vendor)" + (f". Vendor consolidation: {cons}" if cons else "") + ".")
+    dp = q.get("delivered_price_inr")
+    L.append("- The delivered price (printing, assembly, test, courier, reserves, fees and GST) is in `order/quote.json`"
+             + (f": {inr(dp['pilot_one_off'])} one-off, {inr(dp['steady_state'])} at steady state ({q['status_label'].lower()})."
+                if isinstance(dp, dict) else (f": {q.get('status_label', 'not quoted')}." if q else " (not quoted in this version).")))
 
     L += ["", "## Price evidence tiers", ""] + [f"- **{k}**: {v.split(': ', 1)[1]}" for k, v in TIER_TEXT.items()]
 
@@ -74,10 +102,10 @@ def render(b: Bundle, lib: Any = None) -> str:
     L.append(table(["Item", "Qty", "Pack", "Chosen source", "Price evidence", "Soldering", "CAD part"],
                    [[r["name"], r.get("quantity"), r.get("packSize") if r.get("packSize") is not None else "set (size not recorded)",
                      f"{r.get('vendor') or 'none'}" + (f" {r['sku']}" if r.get("sku") else ""),
-                     (f"{inr(r['price_inr_seen'])} seen {r.get('seen_on')}" if r.get("evidence_tier") == "seen" else
+                     (f"{inr(r.get('price_inr_incl_gst') or r['price_inr_seen'])} incl. GST, read {str(r.get('seen_on'))[:10]}" if r.get("evidence_tier") == "seen" else
                       (f"estimate {inr(r['price_inr_planning'][0])}-{inr(r['price_inr_planning'][1])}" if r.get("price_inr_planning") else
                        "not confirmed")),
-                     "yes" if r.get("requiresSoldering") else "no", r.get("modelPart") or ""] for r in rows]))
+                     solder_word(r), r.get("modelPart") or ""] for r in rows]))
 
     L += ["", "## Per-part evidence", ""]
     for r in rows:
@@ -104,8 +132,11 @@ def render(b: Bundle, lib: Any = None) -> str:
                 + (f" ({r['price_basis']})" if r.get("price_basis") and not str(r["price_basis"]).startswith("library") else "")
                 if r.get("price_inr_planning") else "no planning range")
         if tier == "seen":
-            L.append(f"- Price: **seen** {inr(r['price_inr_seen'])} at {r.get('vendor')} on {r['seen_on']} (a retail snapshot, not reserved "
-                     f"stock); {plan}.")
+            lst = r.get("listing") or {}
+            L.append(f"- Price: **seen** {inr(r['price_inr_seen'])} at {r.get('vendor')} ({r.get('gst_basis')} GST as listed; "
+                     f"{inr(r.get('price_inr_incl_gst'))} incl. GST), re-read {r['seen_on']} by {lst.get('read_method') or 'the listing'}; "
+                     f"raw listing `{lst.get('snapshot')}` (sha256 {str(lst.get('snapshot_sha256'))[:12]}...), signed receipt in build.json. "
+                     f"A retail snapshot, not reserved stock; {plan}.")
         elif tier == "estimate":
             L.append(f"- Price: **estimate**, {plan}. Confirm before ordering.")
         else:
@@ -127,7 +158,7 @@ def render(b: Bundle, lib: Any = None) -> str:
         if un:
             L.append(f"- Not verified: {un}")
         who = {"factory": "done at the factory", "pcb_fab": "done at PCB assembly", "maker": "by the maker"}.get(r.get("solderedBy"))
-        L.append(f"- Soldering: {'required' if r.get('requiresSoldering') or r.get('solderedBy') else 'none'}"
+        L.append(f"- Soldering: {'not stated by the library' if r.get('requiresSoldering') is None else ('required' if r.get('requiresSoldering') or r.get('solderedBy') else 'none')}"
                  + (f", {who}" if who else "") + f" ({r.get('requiresSoldering_basis', 'library')}).")
         if r.get("modelPart"):
             L.append(f"- CAD: `{r['modelPart']}`" + (f" and {', '.join('`' + x + '`' for x in r.get('modelParts', [])[1:])}" if len(r.get("modelParts", [])) > 1 else "")
@@ -139,7 +170,8 @@ def render(b: Bundle, lib: Any = None) -> str:
     if fw:
         L.append("We deliver built devices. These joints are made at PCB assembly or at the factory, not by the maker:")
         L.append("")
-        L.append(table(["Part", "Refs", "Done by", "What"], [[w.get("name"), ", ".join(w.get("refs") or []), w.get("by"), w.get("what")] for w in fw]))
+        L.append(table(["Part", "Refs", "Kind", "Done by", "What"], [[w.get("name"), ", ".join(w.get("refs") or []), (w.get("kind") or "").replace("_", " "),
+                                                                    w.get("by"), w.get("what")] for w in fw]))
     else:
         L.append("No part needs soldering or pre-wiring.")
     maker = [r["name"] for r in rows if r.get("solderedBy") == "maker"]

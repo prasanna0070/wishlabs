@@ -151,6 +151,7 @@ def check_gpio():
 
 # ---------------------------------------------------------------------------------------------- slot builder
 PH = "Connector_JST:JST_PH_B{n}B-PH-K_1x0{n}_P2.00mm_Vertical"
+XH3 = "Connector_JST:JST_XH_B3B-XH-A_1x03_P2.50mm_Vertical"
 ALIAS_3V3 = ["3V3", "3.3V", "VCC", "VDD", "VIN", "V+", "+", "VCC_3V3"]
 ALIAS_5V = ["5V", "VCC", "VIN", "V+", "+", "VDD", "+5V"]
 ALIAS_GND = ["GND", "G", "-", "VSS", "COM"]
@@ -186,7 +187,12 @@ def add_part(ref, fp, X, Y, rot, side="top", role="", value="", slot=None, note=
     return p
 
 
-def add_port(sid, fp, X, Y, rot, pins, accepts, title, facing, envelope_top, voltage, cable, note="", pin_count=None):
+def title_silk(sid: str) -> str:
+    """Silkscreen text for a port: its designator (REVIEW-1 MAJ-16 asks for the J_ names on the board)."""
+    return sid
+
+
+def add_port(sid, fp, X, Y, rot, pins, accepts, title, facing, envelope_top, voltage, cable, note="", pin_count=None, silk=None):
     part = add_part(sid, fp, X, Y, rot, role="port", slot=sid)
     for p in pins:
         p["at"] = list(pin_xy(fp, p["pin"], X, Y, rot))
@@ -197,6 +203,7 @@ def add_port(sid, fp, X, Y, rot, pins, accepts, title, facing, envelope_top, vol
         "cable": cable, "accepts_roles": accepts, "pins": pins,
         "height_envelope_mm": {"above_board_top": envelope_top, "why": "header + mated plug + wire bend zone (estimate)"},
         "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+        "silk": silk or {"label": title_silk(sid), "pin_labels": [p["name"] for p in pins]},
         **({"note": note} if note else {}),
     })
 
@@ -298,7 +305,8 @@ def build():
              [P(1, "GND", "GND", ALIAS_GND, "power"), P(2, "3V3", "+3V3", ALIAS_3V3, "power"), P(3, "SCK", "I2S_MIC_SCK", ["SCK", "BCLK", "CLK"]),
               P(4, "WS", "I2S_MIC_WS", ["WS", "LRCL", "LRC"]), P(5, "SD", "I2S_MIC_SD", ["SD", "DOUT", "DATA"]), P(6, "LR", "GND", ["L/R", "LR", "SEL"], "strap")],
              ["mic"], "I2S microphone", "up", 20.0, "+3V3 only (INMP441 max 3.63 V)",
-             {"family": "JST-PH 2.0", "pins": 6, "type": "PHR-6 to Dupont 1x6 female, by label"},
+             {"family": "JST-PH 2.0", "pins": 6, "type": "PHR-6 to 2 x Dupont 1x3 female (INMP441 rows L/R-WS-SCK and SD-VDD-GND), made to drawing",
+              "module_end_family": "dupont_2.54", "cable_rows": "CABLE_JSTPH_6P_DUPONT2X1X3_<len>"},
              note="LR (pin 6) is tied to GND on the board: the mic sends on the left channel.")
     add_port("J_DISP", PH.format(n=8), 18.85, yb, 0,
              [P(1, "VCC", "+3V3", ALIAS_3V3, "power"), P(2, "GND", "GND", ALIAS_GND, "power"), P(3, "DIN", "SPI_MOSI", ["DIN", "MOSI", "SDA", "SDI"]),
@@ -311,26 +319,31 @@ def build():
     i2c_pins = lambda: [P(1, "GND", "GND", ALIAS_GND, "power"), P(2, "3V3", "+3V3", ALIAS_3V3, "power"),
                         P(3, "SDA", "I2C_SDA", ["SDA", "SDI", "DATA"]), P(4, "SCL", "I2C_SCL", ["SCL", "SCK", "CLK"])]
     i2c_roles = ["display", "light_sensor", "temp_humidity", "pressure", "distance", "imu", "rtc"]
-    i2c_cable = {"family": "JST-PH 2.0", "pins": 4, "type": "PHR-4 to Dupont 1x4 female (by label) or PH-SH for STEMMA QT"}
+    i2c_cable = {"family": "JST-PH 2.0", "pins": 4, "type": "PHR-4 to Dupont 1x4 female; made to drawing when the module's pin order "
+                 "differs from GND, 3V3, SDA, SCL (CABLE_JSTPH_4P_DUPONT1X4_<len>[_X<order>])", "module_end_family": "dupont_2.54"}
     add_port("J_I2C1", PH.format(n=4), 38.75, yb, 0, i2c_pins(), i2c_roles, "I2C port 1", "up", 20.0, "+3V3", i2c_cable,
              note="Shared I2C bus (SDA GPIO8, SCL GPIO9) with 4.7 k pull-ups R4/R5 on the board.")
     add_port("J_I2C2", PH.format(n=4), 50.65, yb, 0, i2c_pins(), i2c_roles, "I2C port 2", "up", 20.0, "+3V3", i2c_cable)
-    # ---- Row A (front edge): IO1..3 and LED, all JST-PH 3p (coordinator 2026-11-01: PH only, no XH)
+    # ---- Row A (front edge): IO1..3 JST-PH 3p (3V3) and J_LED JST-XH 3p (5V)
     io_pins = lambda n: [P(1, "GND", "GND", ALIAS_GND, "power"), P(2, "3V3", "+3V3", ALIAS_3V3, "power"),
                          P(3, "SIG", f"IO{n}_SIG", ["SIG", "S", "OUT", "I/O", "IO", "DO", "D0", "A0", "AO", "NO", "SW"])]
     io_roles = ["button", "touch", "buzzer", "motion", "light_sensor", "endstop", "hall"]
-    io_cable = {"family": "JST-PH 2.0", "pins": 3, "type": "PHR-3 to Dupont/spade by label"}
+    io_cable = {"family": "JST-PH 2.0", "pins": 3, "type": "PHR-3 to Dupont 1x3 female (CABLE_JSTPH_3P_DUPONT1X3_<len>[_X<order>]) "
+                "or to 2.8 mm female spades (CABLE_JSTPH_3P_SPADE28_<len>)"}
     for n, x in ((1, 9.5), (2, 20.0), (3, 30.5)):
         add_port(f"J_IO{n}", PH.format(n=3), x, 3.8, 0, io_pins(n), io_roles, f"Digital/analog IO {n}", "up", 20.0, "+3V3", io_cable,
                  note=f"GPIO{GPIO[f'IO{n}_SIG']} (ADC1 + touch capable). 3.3 V logic and 3.3 V supply only.")
-    add_port("J_LED", PH.format(n=3), 41.0, 3.8, 0,
+    # J_LED is JST-XH 2.5 (REVIEW-1 MAJ-3): a different connector family from the 3V3 PH IO ports, so a 3-pin IO lead cannot
+    # mate the 5 V LED port and the LED lead cannot mate a 3V3 IO port (rule: same family + pin count => same supply).
+    add_port("J_LED", XH3, 41.0, 4.0, 0,
              [P(1, "GND", "GND", ALIAS_GND, "power"), P(2, "5V", "+5V", ALIAS_5V, "power"), {**P(3, "DIN", "LED_DIN_5V", ["DIN", "DI", "IN", "D", "SIG", "PWM", "S"]),
               "source_gpio": GPIO["LED_DIN"], "via": "U3 74AHCT1G125 (3.3 V -> 5 V) + R3 330 ohm"}],
              ["led", "servo"], "Addressable LED or servo (5 V supply, 5 V data via level shifter)", "up", 20.0, "+5V",
-             {"family": "JST-PH 2.0", "pins": 3, "type": "PHR-3; port and cable labelled LED 5V"},
-             note="DIN is driven by U3 (74AHCT1G125 at 5 V) through R3 330 ohm from GPIO2. Same 3-pin PH family as J_IO: "
-                  "a mis-plugged 3-pin IO module from this library sees 5 V (all of them accept 3.3-5 V) and its output meets "
-                  "the buffer, never a GPIO; an LED plugged into J_IO just gets 3.3 V. Silkscreen 'LED 5V' and a red housing mark.")
+             {"family": "JST-XH 2.5", "pins": 3, "type": "XHP-3; port and lead labelled LED 5V"},
+             note="DIN is driven by U3 (74AHCT1G125 at 5 V) through R3 330 ohm from GPIO2. JST-XH 2.5 mm (B3B-XH-A), not PH: the "
+                  "3V3 PH IO leads (J_IO1..3) cannot mate it and the LED's XHP-3 lead cannot mate a PH port. Silkscreen "
+                  "'LED 5V' with pin labels G / 5V / DIN.",
+             silk={"label": "LED 5V", "pin_labels": ["G", "5V", "DIN"]})
     # ---- rear: USB-C power + I2C3
     # rot 180 maps local (xk, yk) -> board (X - xk, Y + yk): put the footprint's PCB Edge line exactly on the rear edge
     usb_x, usb_y = round(W / 2, 3), round(H - USB_EDGE_LINE_LOCAL_Y, 3)
@@ -374,7 +387,7 @@ def build():
         ("C4", "Capacitor_SMD:C_1206_3216Metric", 48.0, 55.0, 0, "22 uF 10 V X5R (J_LED 5 V bulk)", "led", {1: "+5V", 2: "GND"}),
         ("R4", "Resistor_SMD:R_0603_1608Metric", 26.0, 55.0, 0, "4.7 k (I2C SDA pull-up to +3V3)", "i2c", {1: "I2C_SDA", 2: "+3V3"}),
         ("R5", "Resistor_SMD:R_0603_1608Metric", 26.0, 52.5, 0, "4.7 k (I2C SCL pull-up to +3V3)", "i2c", {1: "I2C_SCL", 2: "+3V3"}),
-        ("R7", "Resistor_SMD:R_0603_1608Metric", 36.0, 55.0, 0, "100 k (AMP_SD pull-down: amp stays off until firmware enables it)", "audio",
+        ("R7", "Resistor_SMD:R_0603_1608Metric", 36.0, 55.0, 0, "10 k (AMP_SD pull-down: amp stays shut down until firmware drives GPIO39 high; REVIEW-1 MIN-1, see gstudio.pcb.rules.amp_sd_voltage)", "audio",
          {1: "AMP_SD", 2: "GND"}),
         ("C3", "Capacitor_SMD:C_1206_3216Metric", 42.0, 55.0, 0, "22 uF 10 V X5R (A1 VIN bulk)", "audio", {1: "+5V", 2: "GND"}),
     ]
@@ -447,8 +460,25 @@ def checks() -> list[str]:
                 continue
             if overlaps(elevated[names[i]], elevated[names[j]]):
                 issues.append(f"elevated {names[i]} overlaps {names[j]}")
+    issues += supply_rule(SLOTS)
     # support parts under elevated items must be low (all SMD here)
     return issues
+
+
+def supply_rule(slots: list[dict]) -> list[str]:
+    """REVIEW-1 MAJ-3 rule: two ports with the same connector family and pin count must carry the same supply, or a lead
+    that fits one port also fits the other at the wrong voltage."""
+    seen: dict[tuple, dict] = {}
+    out = []
+    for s in slots:
+        if s.get("kind") != "port":
+            continue
+        rails = tuple(sorted({p["net"] for p in s["pins"] if p.get("kind") == "power" and p.get("net") != "GND"}))
+        key = (s["connector"], s["pins_count"])
+        if key in seen and seen[key]["rails"] != rails:
+            out.append(f"ports {seen[key]['id']} and {s['id']} are both {key[0]} {key[1]}-pin but carry {list(seen[key]['rails'])} vs {list(rails)}")
+        seen.setdefault(key, {"id": s["id"], "rails": rails})
+    return out
 
 
 def cartridge() -> dict:
@@ -589,7 +619,8 @@ def main() -> int:
         "net_classes": {"power": ["VBUS", "+5V", "GND"], "power_track_mm": 0.8, "signal_track_mm": 0.25, "clearance_mm": 0.2},
         "checks": {"layout_issues": issues, "checked_by": "library/tools/gen_backplane_v1.py",
                    "rules": ["courtyards inside the board", "no top courtyard overlaps", "screw heads clear parts",
-                             "ports not under elevated modules or the devkit", "elevated modules do not collide"]},
+                             "ports not under elevated modules or the devkit", "elevated modules do not collide",
+                             "ports with the same connector family and pin count carry the same supply"]},
         "drc_waivers": DRC_WAIVERS,
         "evidence": [
             "Espressif ESP32-S3-DevKitC-1 v1.1 user guide (esp-dev-kits latest, read 2026-11-01): J1/J3 header tables; RGB LED GPIO38 (v1.1) vs GPIO48 (v1.0); GPIO35/36/37 used by Octal flash/PSRAM; power options USB / 5V pin / 3V3 pin",
@@ -607,6 +638,7 @@ def main() -> int:
             "USB D+/D- stub shared with the DevKitC's own USB connector: works at full speed in principle; physical check still needed",
             "antenna keep-out distance 15 mm comes from secondary sources",
             "PTC/TVS/ESD/level-shifter parts are classes, not chosen MPNs; values follow ARCHITECTURE §6",
+            "J_LED moved to JST-XH B3B-XH-A (REVIEW-1 MAJ-3); the XH courtyard was taken from the KiCad 9.0.9 footprint read on the VM",
         ],
     }
     OUT.write_text(json.dumps(doc, indent=1) + "\n", encoding="utf-8")

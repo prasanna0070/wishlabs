@@ -35,6 +35,7 @@ class BodyGeom:
     r_bottom: float = 0.0
     info: dict = field(default_factory=dict)
     warnings: list = field(default_factory=list)
+    roof_region: object = None  # shapely (x, z): cavity section above the 45 deg roof line (filled by ceiling fins)
 
     @property
     def bb(self):
@@ -106,8 +107,158 @@ def fix_shape(shape: cq.Shape) -> cq.Shape:
     return out if out.isValid() else shape
 
 
-def inner_outline_face(face: cq.Face, wall: float) -> cq.Face:
-    """Inward offset of an outline face (XZ plane) as spline + straight bottom, via shapely."""
+BOTTOM_ROUND = 4.0  # silhouette bottom corner round (REVIEW-1 MIN-39: >= 3 mm)
+ROOF_ANGLE = 45.0  # self-supporting cavity roof: no inner ceiling flatter than this from horizontal (REVIEW-1 MAJ-9)
+
+
+def _multi_fillet(solid: cq.Shape, groups: list) -> "cq.Shape | None":
+    """One BRepFilletAPI_MakeFillet with a radius per edge group [(edges, r)]; None if OCC cannot build it."""
+    from OCP.BRepFilletAPI import BRepFilletAPI_MakeFillet
+
+    try:
+        mk = BRepFilletAPI_MakeFillet(solid.wrapped)
+        for edges, r in groups:
+            if r <= 0.05:
+                continue
+            for e in edges:
+                mk.Add(float(r), e.wrapped)
+        mk.Build()
+        if not mk.IsDone():
+            return None
+        out = cq.Shape.cast(mk.Shape())
+        if not out.isValid():
+            return None
+        sols = out.Solids()
+        return sols[0] if len(sols) == 1 else None
+    except Exception:
+        return None
+
+
+def face_polygon(face: cq.Face) -> Polygon:
+    from shapely.geometry.polygon import orient
+
+    pts = wire_points_2d(face.outerWire(), "xz", 240)
+    return orient(Polygon(pts).buffer(0), 1.0)
+
+
+def roof_clip(I: Polygon, angle: float = ROOF_ANGLE, x_peak=None, step: float = 0.5) -> Polygon:
+    """The largest part of the cavity section I (x, z) whose ceiling is never flatter than `angle` from horizontal:
+    h(x) = min over x' between x and the peak of top(x') - |x' - x| * tan(angle). Prints without support inside."""
+    minx, minz, maxx, maxz = I.bounds
+    xs = np.arange(minx, maxx + step, step)
+    from shapely.geometry import LineString
+
+    top = np.full(len(xs), np.nan)
+    for i, x in enumerate(xs):
+        g = I.intersection(LineString([(x, minz - 1), (x, maxz + 1)]))
+        if not g.is_empty:
+            top[i] = g.bounds[3]
+    ok = np.isfinite(top)
+    if ok.sum() < 3:
+        return I
+    xs, top = xs[ok], top[ok]
+    k = math.tan(math.radians(angle))
+    ip = int(np.argmax(top)) if x_peak is None else int(np.argmin(np.abs(xs - x_peak)))
+    h = np.empty_like(top)
+    m = np.inf
+    for i in range(ip, -1, -1):  # left of the peak: h rises at >= angle toward the peak
+        m = min(m, top[i] - k * xs[i])
+        h[i] = m + k * xs[i]
+    m = np.inf
+    for i in range(ip, len(xs)):  # right of the peak: h falls at >= angle away from it
+        m = min(m, top[i] + k * xs[i])
+        h[i] = min(h[i], m - k * xs[i]) if i == ip else m - k * xs[i]
+    ring = [(float(xs[0]), minz - 5.0)] + [(float(x), float(z)) for x, z in zip(xs, h)] + [(float(xs[-1]), minz - 5.0)]
+    R = Polygon(ring).buffer(0)
+    from .probe import largest
+
+    out = largest(I.intersection(R))
+    return out if not out.is_empty else I
+
+
+def polygon_outline_face(P: Polygon) -> cq.Face:
+    """A shapely outline (x, z) with a straight bottom run -> spline + straight bottom face in the XZ plane."""
+    from shapely.geometry.polygon import orient
+
+    I = orient(P, 1.0)
+    ring = np.asarray(I.exterior.coords)[:-1]
+    zb = ring[:, 1].min()
+    on = np.abs(ring[:, 1] - zb) < 1e-3
+    xs = ring[on, 0]
+    xl, xr = float(xs.min()), float(xs.max())
+    n = len(ring)
+    ir = int(np.where(on)[0][np.argmax(ring[on, 0])])
+    il = int(np.where(on)[0][np.argmin(ring[on, 0])])
+    seq = []
+    k = ir
+    while True:
+        seq.append(ring[k])
+        if k == il:
+            break
+        k = (k + 1) % n
+    seq = _resample_open(np.asarray(seq), 1.2)
+    seq[0] = (xr, zb)
+    seq[-1] = (xl, zb)
+    sp = cq.Edge.makeSpline([V(x, 0, z) for x, z in seq])
+    line = cq.Edge.makeLine(V(xl, 0, zb), V(xr, 0, zb))
+    return cq.Face.makeFromWires(cq.Wire.assembleEdges([sp, line]))
+
+
+def _corner_arc(P, d_in, d_out, r):
+    """Fillet of radius r at corner P between a line arriving along d_in and one leaving along d_out (2D).
+    Returns (tangent point on the incoming line, arc midpoint, tangent point on the outgoing line) or None."""
+    P, a, b = np.asarray(P, float), np.asarray(d_in, float), np.asarray(d_out, float)
+    a, b = a / np.linalg.norm(a), b / np.linalg.norm(b)
+    cos_t = float(np.clip(np.dot(-a, b), -1.0, 1.0))
+    th = math.acos(cos_t)  # interior angle
+    if th < math.radians(20) or th > math.radians(175):
+        return None
+    L = r / math.tan(th / 2)
+    bis = (-a + b)
+    bis /= np.linalg.norm(bis)
+    C = P + bis * (r / math.sin(th / 2))
+    return P - a * L, C - bis * r, P + b * L, L
+
+
+def rounded_bottom_face(face: cq.Face, r: float, outline=None) -> tuple[cq.Face, float]:
+    """Outline face with its two bottom corners rounded by exact tangent arcs of radius r (REVIEW-1 MIN-39): bottom
+    line + arc + spline (through the spec outline, tangent to the arcs) + arc, so the front/rear perimeter rounds still
+    run along one smooth chain. Returns (face, r used); falls back to the original outline."""
+    if r <= 0.05 or outline is None:
+        return face, 0.0
+    seq, left, right = _outline_sequence(outline)
+    for rr in (r, 0.75 * r, 0.5 * r):
+        try:
+            R = np.array(right, float)
+            Lp = np.array(left, float)
+            nxt = np.array(seq[1], float)
+            prv = np.array(seq[-2], float)
+            ar = _corner_arc(R, (1.0, 0.0), nxt - R, rr)
+            al = _corner_arc(Lp, Lp - prv, (1.0, 0.0), rr)
+            if ar is None or al is None or ar[3] > 0.45 * np.linalg.norm(nxt - R) or al[3] > 0.45 * np.linalg.norm(prv - Lp):
+                continue
+            r_t1, r_m, r_t2, _ = ar  # bottom tangent point, mid, side tangent point (right)
+            l_t1, l_m, l_t2, _ = al  # side tangent point (left), mid, bottom tangent point
+            d2 = (nxt - R) / np.linalg.norm(nxt - R)
+            d3 = (Lp - prv) / np.linalg.norm(Lp - prv)
+            pts = [V(r_t2[0], 0, r_t2[1])] + [V(x, 0, z) for x, z in seq[1:-1]] + [V(l_t1[0], 0, l_t1[1])]
+            sp = cq.Edge.makeSpline(pts, tangents=[V(d2[0], 0, d2[1]), V(d3[0], 0, d3[1])], scale=True)
+            arc_r = cq.Edge.makeThreePointArc(V(r_t1[0], 0, 0), V(r_m[0], 0, r_m[1]), V(r_t2[0], 0, r_t2[1]))
+            arc_l = cq.Edge.makeThreePointArc(V(l_t1[0], 0, l_t1[1]), V(l_m[0], 0, l_m[1]), V(l_t2[0], 0, 0))
+            line = cq.Edge.makeLine(V(l_t2[0], 0, 0), V(r_t1[0], 0, 0))
+            w = cq.Wire.assembleEdges([line, arc_r, sp, arc_l])
+            f = cq.Face.makeFromWires(w)
+            fb = f.BoundingBox()
+            if f.isValid() and fb.zmin > -0.05 and abs(f.Area() - face.Area()) < 0.02 * face.Area():
+                return f, rr
+        except Exception:
+            continue
+    return face, 0.0
+
+
+def inner_outline_face(face: cq.Face, wall: float, roof: bool = False) -> cq.Face:
+    """Inward offset of an outline face (XZ plane) as spline + straight bottom, via shapely.
+    roof=True also clips the top to a self-supporting 45 deg pitched roof (roof_clip)."""
     from shapely.geometry.polygon import orient
 
     from .probe import largest
@@ -115,6 +266,8 @@ def inner_outline_face(face: cq.Face, wall: float) -> cq.Face:
     pts = wire_points_2d(face.outerWire(), "xz", 240)
     P = orient(Polygon(pts).buffer(0), 1.0)
     I = orient(largest(P.buffer(-wall)), 1.0)
+    if roof:
+        I = orient(roof_clip(I), 1.0)
     ring = np.asarray(I.exterior.coords)[:-1]
     zb = ring[:, 1].min()
     on = np.abs(ring[:, 1] - zb) < 1e-3
@@ -144,19 +297,63 @@ def silhouette(body: dict, skin_front: float) -> BodyGeom:
     er = float(body.get("edge_round", 8.0))
     warns = []
     face = outline_face(body["outline"])
-    solid = cq.Solid.extrudeLinear(face.translate(V(0, -D / 2, 0)), V(0, D, 0))
+    solid0 = cq.Solid.extrudeLinear(face.translate(V(0, -D / 2, 0)), V(0, D, 0))
     r_front_req = min(er, D / 2 - 2)
     r_rear_req = min(er, 6.0, D / 2 - 2)
+    r_bot_req = float(body.get("bottom_round", BOTTOM_ROUND))
 
     def fedges(s, y):
         return [e for e in s.Edges() if abs(e.Center().y - y) < 1e-3]
 
-    solid, r_rear = try_fillet(solid, fedges(solid, D / 2), r_rear_req)
-    solid, r_front = try_fillet(solid, fedges(solid, -D / 2), r_front_req)
+    # one fillet operation with per-edge radii (front perimeter, rear perimeter, the two side-bottom edges) so OCC
+    # builds proper vertex blends at the bottom corners (REVIEW-1 MIN-39); sequential fillets cannot roll a 16 mm
+    # front round around a 4 mm corner
+    side_bottom = [e for e in solid0.Edges() if e.geomType() == "LINE" and abs(e.Center().z) < 1e-3
+                   and abs(abs((e.endPoint() - e.startPoint()).normalized().y) - 1.0) < 1e-6]
+    solid, r_front, r_rear, r_bot = None, 0.0, 0.0, 0.0
+    if r_bot_req > 0.05 and len(side_bottom) == 2:
+        for kb in (1.0, 0.75):
+            for kf in (1.0, 0.85, 0.7, 0.55):
+                rf, rr_, rb = r_front_req * kf, r_rear_req, r_bot_req * kb
+                out = _multi_fillet(solid0, [(fedges(solid0, -D / 2), rf), (fedges(solid0, D / 2), rr_), (side_bottom, rb)])
+                if out is not None:
+                    solid, r_front, r_rear, r_bot = out, rf, rr_, rb
+                    break
+            if solid is not None:
+                break
+    if solid is None:
+        solid, r_rear = try_fillet(solid0, fedges(solid0, D / 2), r_rear_req)
+        solid, r_front = try_fillet(solid, fedges(solid, -D / 2), r_front_req)
+        warns.append("bottom side edges could not be rounded (OpenCascade fillet limit); they stay sharp")
+    elif r_bot + 1e-6 < r_bot_req:
+        warns.append(f"bottom side round reduced to {r_bot:.1f} mm")
     if r_front + 1e-6 < r_front_req:
         warns.append(f"edge_round {er:g} reduced to {r_front:.1f} mm on the front (OpenCascade fillet limit)")
     # cavity: inner offset of the outline, rebuilt as a clean B-spline (OCC offset curves extrude invalid)
+    roof = bool(body.get("self_supporting_roof", True))
     inner = inner_outline_face(face, wall)
+    roof_region = None
+    info_roof_area = 0.0
+    if roof:  # the cavity stays full; build.ceiling_fins fills the part above the 45 deg roof line with thin fins
+        try:
+            from shapely.geometry.polygon import orient
+
+            from .probe import largest as _lg
+
+            Pp = orient(Polygon(wire_points_2d(face.outerWire(), "xz", 240)).buffer(0), 1.0)
+            I = _lg(Pp.buffer(-wall))
+            R = I.difference(roof_clip(I)).buffer(-0.05).buffer(0.05)
+            roof_region = None
+            if not R.is_empty and R.area > 20.0:
+                # reach 1.2 mm into the wall so no fin face coincides with the cavity's spline surface (fast, robust
+                # booleans); only the part inside the cavity becomes material
+                # only the roof region itself grows into the wall: a band along the steep side walls would sit almost on
+                # the cavity surface and crack the tessellation
+                roof_region = R.buffer(1.2).difference(roof_clip(I)).intersection(Pp.buffer(-0.6)).buffer(-0.05).buffer(0.05)
+                info_roof_area = R.area
+        except Exception:
+            roof = False
+            warns.append("self-supporting ceiling fins could not be laid out; the head ceiling needs support")
     y0 = -D / 2 + skin_front
     y1 = D / 2 - wall
     cav = cq.Solid.extrudeLinear(inner.translate(V(0, y0, 0)), V(0, y1 - y0, 0))
@@ -168,8 +365,10 @@ def silhouette(body: dict, skin_front: float) -> BodyGeom:
         cav, _ = try_fillet(cav, fedges(cav, y0), rif)
     cav = fix_shape(cav)
     info = {"edge_round_requested": er, "edge_round_front": round(r_front, 2), "edge_round_rear": round(r_rear, 2),
-            "depth": D}
-    return BodyGeom("silhouette", solid, cav, wall, wall, skin_front, r_front, r_rear, 0.0, info, warns)
+            "depth": D, "bottom_round": round(r_bot, 2), "bottom_round_front_rear": [round(r_front, 2), round(r_rear, 2)],
+            "roof": {"self_supporting": roof, "angle_deg": ROOF_ANGLE if roof else None}}
+    info["roof"]["region_mm2"] = round(info_roof_area, 1) if roof_region is not None else 0.0
+    return BodyGeom("silhouette", solid, cav, wall, wall, skin_front, r_front, r_rear, 0.0, info, warns, roof_region)
 
 
 # ================================================================================================ revolve
@@ -371,7 +570,7 @@ def primitive(p: dict, shrink: float = 0.0):
     return s.translate(V(c))
 
 
-def _fuse_blend(a: cq.Shape, b: cq.Shape, r: float):
+def _fuse_blend(a: cq.Shape, b: cq.Shape, r: float, factors=(1.0, 0.7, 0.5, 0.35)):
     op = BRepAlgoAPI_Fuse(a.wrapped, b.wrapped)
     op.SetRunParallel(True)
     op.Build()
@@ -382,7 +581,7 @@ def _fuse_blend(a: cq.Shape, b: cq.Shape, r: float):
         # section edges may have been merged by clean(); match by midpoint
         mids = [e.Center() for e in sec]
         cand = [e for e in res.Edges() if any((e.Center() - m).Length < 0.5 for m in mids)]
-        out, used = try_fillet(res, cand, r, factors=(1.0, 0.7, 0.5, 0.35), min_r=0.5)
+        out, used = try_fillet(res, cand, r, factors=factors, min_r=0.5)
         return out, used
     return res, 0.0
 

@@ -10,8 +10,19 @@ import { BuildProgressCard } from "../chat/Messages";
 import { TweakDrawer } from "./TweakDrawer";
 import type { TabProps } from "./RightPanel";
 
+/** The decor entry (components.json PRINT_Shell.decor[]) a decor selection such as "PRINT_Shell#decor[1]" names. */
+export function decorInfo(components: Components | null, name: string) {
+  if (!name.includes("#decor")) return null;
+  const base = name.split("#decor")[0];
+  return components?.[base]?.decor?.find((d) => d.name === name) || null;
+}
+
 export function partLabeler(components: Components | null) {
   return (name: string) => {
+    const d = decorInfo(components, name);
+    if (d) {
+      return { title: (d.label || "decor").toUpperCase(), sub: `Part of the main shell${d.spec_path ? ` (${d.spec_path})` : ""}.` };
+    }
     const c = components?.[name];
     const kind = partKind(name, c?.kind);
     return { title: (c?.label || humanPart(name)).toUpperCase(), sub: kindLine(kind) };

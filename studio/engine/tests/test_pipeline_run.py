@@ -85,6 +85,55 @@ FAKES = {
             subprocess.Popen(["sleep", "61.4321"])  # unique marker: tests assert no such grandchild survives
             time.sleep(60)
     """,
+    "cad_collide": """
+        import json
+        from gsfake.cad import box
+        def run(ctx):
+            (ctx.out / "print").mkdir(exist_ok=True)
+            (ctx.out / "cad").mkdir(exist_ok=True)
+            box(ctx.out / "print" / "PRINT_Shell.stl", 60, 50, 40)
+            comps = {"PRINT_Shell": {"kind": "PRINT", "bbox": [-30, 30, -25, 25, 0, 40], "volume_mm3": 120000.0},
+                     "PURCHASE_CoreBoard": {"kind": "PURCHASE", "module_id": "core_mod", "ref": "U1", "bbox": [-10, 10, -5, 5, 2, 8]}}
+            (ctx.out / "cad" / "components.json").write_text(json.dumps(comps))
+            dc = {"checks": [{"id": "collisions", "title": "no unintended intersection", "status": "failed", "detail": "1 unintended",
+                              "data": {"intersections": [{"parts": ["PRINT_Shell", "PURCHASE_CoreBoard"], "intersection_mm3": 12.5}]}}]}
+            (ctx.out / "cad" / "digital-checks.json").write_text(json.dumps(dc))
+            return {"message": "collides", "checks": dc["checks"]}
+    """,
+    "cad_fixable": """
+        import json
+        from gsfake.cad import box
+        def run(ctx):
+            sp = ctx.spec.to_json_dict(True)
+            v = next(f for f in sp["features"] if f["id"] == "light")["at"][1]
+            (ctx.out / "print").mkdir(exist_ok=True)
+            (ctx.out / "cad").mkdir(exist_ok=True)
+            box(ctx.out / "print" / "PRINT_Shell.stl", 60, 50, 40)
+            comps = {"PRINT_Shell": {"kind": "PRINT", "bbox": [-30, 30, -25, 25, 0, 40], "volume_mm3": 120000.0},
+                     "PURCHASE_CoreBoard": {"kind": "PURCHASE", "module_id": "core_mod", "ref": "U1", "bbox": [-10, 10, -5, 5, 2, 8]},
+                     "PRINT_SpeakerRing": {"kind": "PRINT", "feature_id": "speaker", "bbox": [-25, 25, -50, -42, 36.4, 86.1]},
+                     "PURCHASE_Led": {"kind": "PURCHASE", "feature_id": "light", "bbox": [-5, 5, -48, -42, v - 3.4, v + 6.6]}}
+            (ctx.out / "cad" / "components.json").write_text(json.dumps(comps))
+            hit = v - 3.4 < 86.1
+            dc = {"checks": [{"id": "collisions", "title": "no unintended intersection", "status": "failed" if hit else "passed",
+                              "detail": "x", "data": {"intersections": [{"parts": ["PRINT_SpeakerRing", "PURCHASE_Led"], "intersection_mm3": 31.5}]
+                                                      if hit else []}}]}
+            (ctx.out / "cad" / "digital-checks.json").write_text(json.dumps(dc))
+            ctx.say("cad", f"cad run with light at {v}")
+            return {"message": f"light at {v}", "checks": dc["checks"]}
+    """,
+    "manual_final": """
+        import json
+        def run(ctx):
+            (ctx.out / "BUILD_GUIDE.md").write_text("# Guide\\n\\n## Final checks to record\\n\\n(placeholder)\\n")
+            return {"message": "guide", "steps": 1, "images": ["manual/a.png", "manual/w.svg"]}
+        def finalize(ctx):
+            dc = json.loads((ctx.out / "checks" / "digital-checks.json").read_text())
+            b = json.loads((ctx.out / "build.json").read_text())
+            lines = "\\n".join(f"- **{t['title']}:** {t.get('status')}" for t in b.get("tests") or [])
+            (ctx.out / "BUILD_GUIDE.md").write_text("# Guide\\n\\n## Final checks to record\\n\\n" + lines + "\\n\\n## End\\n")
+            return {"message": "finalized", "tests": len(b.get("tests") or []), "checks_seen": len(dc["checks"])}
+    """,
     "cad_fail": """
         def run(ctx):
             raise RuntimeError("boolean union failed")
@@ -147,7 +196,7 @@ def opts(fakes, **kw):
     mods = {"electrical": f"{fakes}.electrical", "cad": f"{fakes}.cad", "pcb": f"{fakes}.pcb_fail",
             "firmware": f"{fakes}.firmware_print", "manual": f"{fakes}.manual_norun"}
     mods.update(kw.pop("mods", {}))
-    return {"_context": fake_context, "stage_modules": mods, "fast": True, **kw}
+    return {"_context": fake_context, "stage_modules": mods, "fast": True, "price_check": "off", **kw}
 
 
 def states(summary):
@@ -168,7 +217,7 @@ def test_full_run_with_failures_is_robust(fakes, tmp_path):
     s = build({}, tmp_path, opts(fakes), lambda st: seen.append(st))
     st = states(s)
     assert st == {"normalize": "done", "electrical": "done", "cad": "done", "pcb": "failed", "firmware": "done",
-                  "order": "done", "manual": "skipped", "checks": "done", "docs": "done", "package": "done"}, s["stages"]["order"]
+                  "order": "done", "manual": "skipped", "checks": "done", "finalize": "skipped", "docs": "done", "package": "done"}, s["stages"]["order"]
     assert s["state"] == "error" and "pcb" in s["error"] and "unrouted" in s["error"]
     assert s["stages"]["pcb"]["details"] == {"unrouted": 3}
     assert "no run(ctx)" in s["stages"]["manual"]["message"]
@@ -227,6 +276,8 @@ def test_full_run_with_failures_is_robust(fakes, tmp_path):
     assert s["stages"]["package"]["summary"]["build_json_reproducible"] is True
     pk = {c["id"]: c["status"] for c in s["stages"]["package"]["summary"]["checks"]}
     assert pk == {"manifest-verifies": "passed", "zip-verifies": "passed", "build-json-reproducible": "passed",
+                  "guide-reproducible": "not_run", "story-audio-in-export": "not_run",
+                  "component-sources-in-export": "not_run", "speech-roundtrip-in-export": "not_run", "no-home-paths": "passed",
                   "verify-delivery": "passed"}, s["stages"]["package"]["summary"]["verify_delivery"]
     assert "verify_delivery.py" in {f["path"] for f in m["files"]}
 
@@ -353,3 +404,81 @@ def test_partial_files_of_a_failed_cad_are_never_priced(fakes, tmp_path):
     b = json.loads((tmp_path / "build.json").read_text())
     assert b["purchased"] and b["order"]["status"] == "NOT_QUOTED"
     assert "partial files" in (tmp_path / "PROJECT.md").read_text()
+
+
+# ---------------------------------------------------------------- REVIEW-1: MAJ-6 gate, MAJ-19 finalize, MIN-21
+
+
+def test_maj6_forced_collision_is_not_buildable_and_the_quote_is_held(fakes, tmp_path):
+    s = build({}, tmp_path, opts(fakes, mods={"cad": f"{fakes}.cad_collide", "pcb": f"{fakes}.firmware_print"}))
+    assert states(s)["cad"] == "done" and states(s)["order"] == "done"
+    assert s["buildable"] is False and s["verdict"] == "not_buildable"
+    assert "PRINT_Shell / PURCHASE_CoreBoard (12.5 mm3)" in s["verdict_message"] and "No automatic repair" in s["verdict_message"]
+    q = json.loads((tmp_path / "order" / "quote.json").read_text())
+    assert q["status"] == "HELD" and q["delivered_price_inr"] is None and q["held_because"][0]["parts"] == ["PRINT_Shell", "PURCHASE_CoreBoard"]
+    b = json.loads((tmp_path / "build.json").read_text())
+    assert b["order"]["status"] == "HELD" and b["order"]["list_price_inr"] is None
+    st = json.loads((tmp_path / "status.json").read_text())
+    assert st["buildable"] is False and "Not buildable" in st["verdict_message"]
+    assert any("Quote held" in m["text"] for m in st["messages"])
+    assert "Not buildable yet" in (tmp_path / "PROJECT.md").read_text()
+    assert json.loads((tmp_path / ".gstudio" / "gate.json").read_text())["buildable"] is False
+
+
+def _spec_ctx(spec, out, options, on_progress):
+    d = spec if isinstance(spec, dict) and spec.get("features") else dict(SPEC, features=[
+        {"id": "speaker", "module": "core_mod", "face": "front", "at": [0, 56]}, {"id": "light", "module": "core_mod", "face": "front", "at": [0, 85]}])
+    return _FallbackContext(FakeSpec(d), FakeLib(), out, pipeline._public_options(options), on_progress)
+
+
+def test_maj6_one_repair_round_moves_the_feature_and_rebuilds_the_cad(fakes, tmp_path):
+    o = opts(fakes, mods={"cad": f"{fakes}.cad_fixable", "pcb": f"{fakes}.firmware_print"})
+    o["_context"] = _spec_ctx
+    s = build({}, tmp_path, o)
+    assert states(s)["cad"] == "done", s["stages"]["cad"]
+    rep = s["auto_repair"]
+    assert rep["feature"] == "light" and rep["away_from"] == "speaker" and rep["direction"] == "up"
+    assert rep["moved_mm"] == pytest.approx((86.1 - 81.6) + 2.0, abs=0.05) and rep["to_at"] == [0, pytest.approx(91.5, abs=0.05)]
+    assert s["buildable"] is True and "after one automatic repair" in s["verdict_message"]
+    sp = json.loads((tmp_path / "spec.json").read_text())
+    assert next(f for f in sp["features"] if f["id"] == "light")["at"][1] == pytest.approx(91.5, abs=0.05)
+    assert json.loads((tmp_path / "project.json").read_text())["auto_repair"]["feature"] == "light"
+    texts = [m["text"] for m in json.loads((tmp_path / "status.json").read_text())["messages"]]
+    assert any(t.startswith("Repair round:") for t in texts) and any("light at 91.5" in t for t in texts)
+    assert json.loads((tmp_path / "order" / "quote.json").read_text())["status"] != "HELD"
+
+
+def test_maj6_no_repair_when_switched_off(fakes, tmp_path):
+    o = opts(fakes, mods={"cad": f"{fakes}.cad_fixable", "pcb": f"{fakes}.firmware_print"}, auto_repair=False)
+    o["_context"] = _spec_ctx
+    s = build({}, tmp_path, o)
+    assert s["buildable"] is False and s["auto_repair"] is None and "switched off" in s["verdict_message"]
+
+
+def test_maj19_finalize_runs_after_checks_and_before_docs_and_package(fakes, tmp_path):
+    s = build({}, tmp_path, opts(fakes, mods={"manual": f"{fakes}.manual_final", "finalize": f"{fakes}.manual_final",
+                                              "pcb": f"{fakes}.firmware_print"}))
+    st = states(s)
+    assert st["finalize"] == "done" and st["checks"] == "done" and st["docs"] == "done", s["stages"]["finalize"]
+    recs = pipeline.stage_records(tmp_path)
+    assert recs["checks"]["ended"] <= recs["finalize"]["started"] and recs["finalize"]["ended"] <= recs["docs"]["started"]
+    b = json.loads((tmp_path / "build.json").read_text())
+    guide = (tmp_path / "BUILD_GUIDE.md").read_text()
+    assert all(f"- **{t['title']}:**" in guide for t in b["tests"])          # final checks match tests[] (incl. checks' rows)
+    pk = {c["id"]: c for c in s["stages"]["package"]["summary"]["checks"]}
+    assert pk["guide-reproducible"]["status"] == "passed", pk["guide-reproducible"]
+    assert pk["verify-delivery"]["status"] == "passed", s["stages"]["package"]["summary"]["verify_delivery"]
+    texts = [m["text"] for m in json.loads((tmp_path / "status.json").read_text())["messages"]]
+    assert any("1 PNG illustrations rendered from the CAD and 1 SVG diagram" in t for t in texts)
+
+
+def test_min21_a_changed_tests_status_makes_build_json_not_reproducible(fakes, tmp_path):
+    s = build({}, tmp_path, opts(fakes, mods={"pcb": f"{fakes}.firmware_print"}))
+    assert s["stages"]["package"]["summary"]["build_json_reproducible"] is True
+    b = json.loads((tmp_path / "build.json").read_text())
+    t = next(t for t in b["tests"] if t.get("source") == "checks")
+    t["status"] = "passed" if t["status"] != "passed" else "failed"
+    (tmp_path / "build.json").write_text(json.dumps(b))
+    s2 = build({}, tmp_path, opts(fakes, only="package", mods={"pcb": f"{fakes}.firmware_print"}))
+    ps = s2["stages"]["package"]["summary"]
+    assert ps["build_json_reproducible"] is False and any("tests" in p for p in ps["problems"])

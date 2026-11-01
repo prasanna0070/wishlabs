@@ -7,8 +7,11 @@ design populates and their nets), it writes into <out>/pcb/:
 
   backplane.kicad_pro/.kicad_sch/.kicad_pcb (+ gstudio.kicad_sym, gstudio.pretty/, fp-lib-table, sym-lib-table)
   erc.json, drc.json, netlist.json, pcb-summary.json
-  gerbers/ + backplane-gerbers.zip, bom.csv, cpl.csv
+  gerbers/ + backplane-gerbers.zip, bom.csv (pinned maker, MPN and LCSC id per line), cpl.csv, pcba.json (PCBA estimate)
   schematic.svg/.pdf/.png, board-top.png, board-bottom.png, board-iso.png, board-top.svg, board-bottom.svg, board.glb
+
+The stage is keyed by a hash of its board inputs (see reuse.py): when they did not change since a previous build it
+copies that build's files instead of routing again, and reports `reused`.
 
 Importing this package is cheap: pcbnew is imported only inside the board/route steps.
 """
@@ -59,6 +62,32 @@ def module_footprints(ctx: Any = None) -> dict:
     return out
 
 
+def library_modules(ctx: Any = None, ids: tuple[str, ...] = ("AMP_MAX98357A_I2S",)) -> dict:
+    """{module_id: module row} for the few library rows the PCB rules read (the amp's SD network for MIN-1)."""
+    lib = getattr(ctx, "lib", None) if ctx is not None else None
+    out: dict = {}
+    for mid in ids:
+        m = None
+        if lib is not None and hasattr(lib, "get"):
+            try:
+                m = lib.get(mid)
+            except Exception:  # noqa: BLE001 - the library object may raise for unknown ids
+                m = None
+        if m is not None and not isinstance(m, dict):
+            m = m.model_dump() if hasattr(m, "model_dump") else getattr(m, "__dict__", None)
+        if m:
+            out[mid] = m
+    path = backplane_path(ctx).parent / "modules.json"
+    if len(out) < len(ids) and path.exists():
+        try:
+            for m in json.loads(path.read_text()):
+                if m.get("id") in ids and m["id"] not in out:
+                    out[m["id"]] = m
+        except (ValueError, KeyError, TypeError):
+            pass
+    return out
+
+
 def _meta(ctx: Any) -> dict:
     from ..version import ENGINE_VERSION
 
@@ -97,7 +126,7 @@ def run(ctx: Any) -> dict:
         ctx.progress(STAGE, msg, pct)
 
     summary = build_pcb(bpp, electrical, Path(ctx.out) / "pcb", _meta(ctx), getattr(ctx, "options", None) or {},
-                        progress, module_footprints(ctx))
+                        progress, module_footprints(ctx), library_modules(ctx))
     arts = getattr(ctx, "artifacts", None)
     if isinstance(arts, dict):
         for k in ("board_glb", "board_top_png", "board_bottom_png", "schematic_svg"):
@@ -106,4 +135,4 @@ def run(ctx: Any) -> dict:
     return summary
 
 
-__all__ = ["run", "backplane_path", "module_footprints"]
+__all__ = ["run", "backplane_path", "module_footprints", "library_modules"]

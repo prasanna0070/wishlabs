@@ -34,8 +34,8 @@ GOOD = {
     ],
     "electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8", "extra_modules": [], "power": {"input": "usb_c_5v", "adapter_in_box": False}},
     "behaviour": {"template": "story_player", "summary": "Tap: a story. Hold: say a new favourite.",
-                  "settings": {"capture_mode": "child_voice_clip"}},
-    "safety": {"flags": ["CHILD_DIRECTED"], "notes": "voice clips stay on the microSD"},
+                  "settings": {"capture_mode": "child_voice_clip", "voice_clip_consent": True}},
+    "safety": {"flags": ["CHILD_DIRECTED", "CHILD_VOICE_STORED"], "notes": "voice clips stay on the microSD"},
 }
 
 

@@ -121,3 +121,97 @@ export function endLists(md: string): string {
 export function softBreaks(md: string): string {
   return (md || "").replace(/([^\n])\n(?!\n|\s*(?:[-*+]|\d+[.)])\s|\s*```)/g, "$1  \n");
 }
+
+// ---------------------------------------------------------------- status words (no raw enum reaches the UI)
+
+const STATUS_WORDS: Record<string, string> = {
+  ESTIMATE_REVIEW_REQUIRED: "estimate, review needed",
+  ESTIMATE_INCOMPLETE: "incomplete estimate",
+  UNSUPPORTED_AT_LAUNCH: "not offered at launch",
+  NOT_QUOTED: "not quoted",
+  REVIEW_REQUIRED: "review needed",
+  ESTIMATE: "estimate",
+  BINDING: "binding price",
+};
+const STATUS_RE = new RegExp(`\\b(${Object.keys(STATUS_WORDS).join("|")})\\b`, "g");
+
+/** ESTIMATE_REVIEW_REQUIRED -> "estimate, review needed". Unknown SNAKE_CASE values become plain lower-case words. */
+export function statusWords(s?: string | null): string {
+  if (!s) return "";
+  if (STATUS_WORDS[s]) return STATUS_WORDS[s];
+  return /^[A-Z][A-Z0-9_]+$/.test(s) ? s.toLowerCase().replace(/_/g, " ") : s;
+}
+
+/** Replace raw status enums and internal field names inside a free text line (stage messages, narration). */
+export function plainText(t?: string | null): string {
+  return (t || "").replace(STATUS_RE, (m) => STATUS_WORDS[m]).replace(/\bmissing_prices\b/g, "parts without a price");
+}
+
+/** The quote's "Not included" lines, without internal field names; names the unpriced parts when there are any. */
+export function excludesText(excludes: string[] | null | undefined, missing: string[] | null | undefined): string[] {
+  const out = (excludes || []).filter((x) => !/missing_prices/.test(x)).map(plainText);
+  if (missing?.length) out.push(`Parts without a price yet: ${missing.join(", ")}`);
+  return out;
+}
+
+// ---------------------------------------------------------------- checks tally (chat chip, build card)
+
+export interface CheckTally {
+  passed: number;
+  total: number;
+  failed: number;
+  failedTitles: string[];
+  warned: number;
+}
+
+/** BuildSummary.checks (summary.py) in either shape: digital_failed as titles or a count; optional digital_warned. */
+export function checkTally(c: any): CheckTally | null {
+  if (!c || c.digital_total == null) return null;
+  const listOrCount = (x: any): [number, string[]] => (Array.isArray(x) ? [x.length, x.map(String)] : [Number(x) || 0, []]);
+  const [failed, failedTitles] = listOrCount(c.digital_failed);
+  const [warned] = listOrCount(c.digital_warned ?? c.digital_warnings);
+  return { passed: Number(c.digital_passed) || 0, total: Number(c.digital_total) || 0, failed, failedTitles, warned };
+}
+
+/** A finished stage whose own result has failures (the checks stage: "85 passed, 2 failed, ..."). */
+export function stageHasFailures(s: { message?: string | null; failed?: any; flag?: string | null } | null | undefined): boolean {
+  if (!s) return false;
+  if (s.flag === "failed" || s.flag === "warn" || s.flag === "warning") return true;
+  if (typeof s.failed === "number") return s.failed > 0;
+  if (Array.isArray(s.failed)) return s.failed.length > 0;
+  const m = /\b(\d+)\s+failed\b/.exec(s.message || "");
+  return !!m && Number(m[1]) > 0;
+}
+
+// ---------------------------------------------------------------- one parts total (MAJ-23 / MIN-27)
+
+export interface PartsTotal {
+  inr: number;
+  basis: string;
+  source: "quote" | "build" | "quote-breakdown";
+}
+
+function numOf(x: any): number | null {
+  if (x == null) return null;
+  if (typeof x === "number") return Number.isFinite(x) ? x : null;
+  if (typeof x === "object") return numOf(x.one_off ?? x.inr ?? x.value ?? x.incl_gst ?? x.total_inr ?? x.price_inr_incl_gst);
+  const n = Number(x);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** The single parts figure every view shows. Prefers the pipeline's parts total (MAJ-23: quote.json
+ * `parts_total_inr {one_off, batch_unit, steady_state_unit, basis}`), then build.json order.parts_total_inr (= one_off),
+ * then the parts line of the one-off quote scenario for older versions. Null when none exists. */
+export function partsTotal(quote: any, build: any): PartsTotal | null {
+  const q = quote || {};
+  const pt = q.parts_total_inr ?? q.parts_total;
+  const v = numOf(pt);
+  if (v != null)
+    return { inr: v, basis: (pt && typeof pt === "object" && (pt.basis || pt.label)) || "one-off parts total from the quote", source: "quote" };
+  const b = numOf(build?.order?.parts_total_inr ?? build?.order?.parts_total);
+  if (b != null) return { inr: b, basis: build?.order?.parts_total_basis || "parts total from the quote", source: "build" };
+  const sc = (q.scenarios || [])[0];
+  const p = numOf(sc?.breakdown_mean?.parts);
+  if (p != null) return { inr: p, basis: `parts line of the quote (${sc?.name || "one-off"}; average before margin and GST)`, source: "quote-breakdown" };
+  return null;
+}

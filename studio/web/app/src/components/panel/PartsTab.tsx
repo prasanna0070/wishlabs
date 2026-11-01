@@ -3,8 +3,8 @@ import { Box, Cable, Cpu, Download, ExternalLink, FileCode2, Info, Package, Prin
 import { useProject } from "../../store/project";
 import { useFileIndex, useVersionFile } from "../../lib/hooks";
 import { exportUrl, fileUrl } from "../../lib/urls";
-import { dims, humanPart, inr, inrRange } from "../../lib/format";
-import type { Build, Components, Purchased, Printed } from "../../lib/types";
+import { dims, humanPart, inr, inrRange, partsTotal } from "../../lib/format";
+import type { Build, Components, Purchased, Printed, Quote } from "../../lib/types";
 import { Dropdown, Spinner } from "../ui";
 import { ChecksCard } from "./Checks";
 import type { TabProps } from "./RightPanel";
@@ -12,6 +12,7 @@ import type { TabProps } from "./RightPanel";
 export default function PartsTab({ version, onTab }: TabProps) {
   const ctx = useProject((s) => s.ctx)!;
   const build = useVersionFile<Build>(ctx, version.n, "build.json");
+  const quote = useVersionFile<Quote>(ctx, version.n, "order/quote.json");
   const comps = useVersionFile<Components>(ctx, version.n, "cad/components.json");
   const idx = useFileIndex(ctx, version.n);
   const has = (p: string) => (idx instanceof Set ? idx.has(p) : true);
@@ -32,16 +33,9 @@ export default function PartsTab({ version, onTab }: TabProps) {
     );
   if (!build.data) return <div className="empty">This version has no parts list (build.json is missing).</div>;
 
-  const tot = (rows: Purchased[]) =>
-    rows.reduce(
-      (a, r) => {
-        const q = r.quantity || 1;
-        if (r.price_inr_planning?.length === 2) return [a[0] + r.price_inr_planning[0] * q, a[1] + r.price_inr_planning[1] * q, a[2]];
-        return [a[0], a[1], a[2] + 1];
-      },
-      [0, 0, 0],
-    );
-  const all = tot(purchased);
+  // one parts figure everywhere (MIN-27): the quote's parts total, never a separate planning sum
+  const total = partsTotal(quote.data, build.data);
+  const missing = quote.data?.missing_prices || [];
   const unconfirmed = purchased.filter((p) => p.evidence_tier === "not_confirmed" || (!p.price_inr_planning && p.price_inr_seen == null));
   const grams = printed.reduce((a, p) => a + (p.grams || 0), 0);
   const hours = printed.reduce((a, p) => a + (p.hours || 0), 0);
@@ -101,7 +95,7 @@ export default function PartsTab({ version, onTab }: TabProps) {
 
         {unconfirmed.length ? (
           <div className="callout" style={{ marginBottom: 16 }}>
-            {unconfirmed.length} item{unconfirmed.length > 1 ? "s have" : " has"} no confirmed price. The parts total is a planning estimate; this buy list is not a quote.
+            {unconfirmed.length} item{unconfirmed.length > 1 ? "s have" : " has"} no confirmed price, so the parts total includes estimates. This buy list is not a supplier quote.
           </div>
         ) : null}
 
@@ -131,9 +125,10 @@ export default function PartsTab({ version, onTab }: TabProps) {
 
         <div className="card totals">
           <div>
-            <div className="muted small">Purchased parts, planning range</div>
-            <div className="big">{inrRange(all[0], all[1])}</div>
-            {all[2] ? <div className="muted small">{all[2]} item(s) without a price are not included</div> : null}
+            <div className="muted small">Purchased parts</div>
+            <div className="big" data-testid="parts-total">{total ? inr(total.inr) : quote.loading ? "…" : "—"}</div>
+            <div className="muted small">{total ? `${total.basis[0].toUpperCase()}${total.basis.slice(1)}; the Order tab uses the same figure.` : "No quote in this version."}</div>
+            {missing.length ? <div className="muted small">Not in the total (no price yet): {missing.join(", ")}</div> : null}
           </div>
           <div>
             <div className="muted small">Printed parts</div>
@@ -162,17 +157,11 @@ function tierBadge(p: Purchased) {
 }
 
 function PurchasedGroup({ title, icon, rows }: { title: string; icon: React.ReactNode; rows: Purchased[] }) {
-  const lo = rows.reduce((a, r) => a + (r.price_inr_planning?.[0] || 0) * (r.quantity || 1), 0);
-  const hi = rows.reduce((a, r) => a + (r.price_inr_planning?.[1] || 0) * (r.quantity || 1), 0);
   return (
     <div className="group">
       <div className="group-head">
         {icon} <strong>{title}</strong>
         <span className="muted small">{rows.length} items</span>
-        <div className="grow" />
-        <span className="small">
-          <strong>{inrRange(lo, hi)}</strong> <span className="muted">planning total</span>
-        </span>
       </div>
       <table className="table parts-table">
         <thead>

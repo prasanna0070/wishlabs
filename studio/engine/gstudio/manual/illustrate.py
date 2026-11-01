@@ -14,10 +14,10 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from . import labels as L
-from .data import ManualData
 from .figs import FigureSpec, LabelSpec, PanelSpec
-from .model import Assembly, anchor_owner, bbox_offset, bbox_union, comp_qty
-from .render3d import BG, ItemSpec, MeshStore, Renderer, ray_hit, visible_anchor
+from .geom import bbox_offset, bbox_union
+from .render3d import BG, ItemSpec, MeshStore, Renderer, ray_hit, screen_quad, visible_anchor
+from .scene import Scene
 
 BG_RGB = tuple(int(round(v * 255)) for v in BG)
 
@@ -58,6 +58,19 @@ def font(weight: str, size: int):
     return _FONT_CACHE[key]
 
 
+def wrap_px(s: str, width: float, f) -> list[str]:
+    """Word-wrap to a pixel width (no truncation)."""
+    lines, cur = [], ""
+    for w in str(s).split():
+        t = f"{cur} {w}".strip()
+        if cur and text_w(t, f) > width:
+            lines.append(cur)
+            cur = w
+        else:
+            cur = t
+    return lines + ([cur] if cur else [])
+
+
 def text_w(s: str, f) -> float:
     try:
         return float(f.getlength(s))
@@ -77,6 +90,8 @@ class FigureResult:
     warnings: list[str] = field(default_factory=list)
     cameras: list[dict] = field(default_factory=list)
     error: Optional[str] = None
+    placed: list[str] = field(default_factory=list)  # label texts actually drawn (alt text is built from these)
+    dropped_priority: list[str] = field(default_factory=list)  # dropped labels of priority >= 2 (fail the summary)
 
 
 LABEL_FONT = 19
@@ -112,13 +127,13 @@ def draw_labels(img: Image.Image, layout: L.Layout, texts: list[list[str]], offs
 
 # --------------------------------------------------------------------------------------------- figure composer
 class Illustrator:
-    def __init__(self, data: ManualData, A: Assembly, meshes: MeshStore, renderer: Renderer):
-        self.d, self.A, self.meshes, self.r = data, A, meshes, renderer
+    def __init__(self, scene: Scene, meshes: MeshStore, renderer: Renderer):
+        self.s, self.meshes, self.r = scene, meshes, renderer
 
     def _items(self, panel: PanelSpec) -> list[ItemSpec]:
         items = []
         for name, mode in panel.show.items():
-            c = self.d.comp(name)
+            c = self.s.comp(name)
             if c is None:
                 continue
             if "#" in name:
@@ -127,7 +142,7 @@ class Illustrator:
                     items.append(ItemSpec(key=name, pd=pd, color=c.color, mode=mode,
                                           offset=panel.offsets.get(name, (0.0, 0.0, 0.0)), edges=self.meshes.edges(name, pd)))
                 continue
-            if panel.layout == "grid" and comp_qty(self.d, c)[0] > 1 and self.meshes.n_solids(name) > 1:
+            if panel.layout == "grid" and self.s.qty(name) > 1 and self.meshes.n_solids(name) > 1:
                 pd = self.meshes.solid(name, 0)  # one of a group of identical items (one screw out of four)
                 key = f"{name}#0"
             else:
@@ -136,6 +151,17 @@ class Illustrator:
                 continue
             items.append(ItemSpec(key=name, pd=pd, color=c.color, mode=mode, offset=panel.offsets.get(name, (0.0, 0.0, 0.0)),
                                   edges=self.meshes.edges(key, pd)))
+        for scr in getattr(self.s, "screens", None) or []:  # MAJ-32: the display shows the firmware's idle face, not black
+            comp = scr.get("component")
+            mode = panel.show.get(comp)
+            if mode is None or mode == "ghost" or panel.layout == "grid":
+                continue
+            root = Path(self.meshes.brep_dir).parent.parent
+            tex = root / str(scr.get("texture") or "")
+            if not tex.is_file():
+                continue
+            items.append(ItemSpec(key=f"{comp}#screen", pd=screen_quad(scr), color=(1.0, 1.0, 1.0), mode=mode,
+                                  offset=panel.offsets.get(comp, (0.0, 0.0, 0.0)), texture=str(tex)))
         for ms in panel.meshes:
             pd = self.meshes.stl(ms.path)
             items.append(ItemSpec(key=ms.name or ms.path, pd=pd, color=ms.color, mode="solid", offset=ms.offset,
@@ -178,7 +204,8 @@ class Illustrator:
                 it.offset = (it.offset[0] - tot / 2, it.offset[1], it.offset[2])
 
     def _auto_arrows(self, panel: PanelSpec, min_gap: float = 6.0) -> list:
-        """One arrow per displaced solid, in the gap between where it is drawn and where it goes."""
+        """One motion arrow per displaced solid, on its insertion axis: from the centroid where the part is drawn
+        toward where it goes (MIN-31). Drawn as a 2D overlay, so the part never hides its own arrow."""
         out = []
         for name in panel.arrow_comps:
             o = panel.offsets.get(name)
@@ -188,19 +215,8 @@ class Illustrator:
             if L < 1e-6:
                 continue
             ax = (o[0] / L, o[1] / L, o[2] / L)
-            vd = np.array(panel.view_dir, float)
-            vd /= np.linalg.norm(vd) or 1.0
-            axv = np.array(ax)
-            side = None
-            if abs(float(axv @ vd)) > 0.45:
-                # the motion points at the camera: the part would hide its own arrow, so move it beside the part
-                up = np.array([0.0, 0.0, 1.0]) if abs(vd[2]) < 0.95 else np.array([0.0, 1.0, 0.0])
-                right = np.cross(-vd, up)
-                right -= axv * float(right @ axv)
-                if np.linalg.norm(right) > 1e-6:
-                    side = right / np.linalg.norm(right)
-            comp = self.d.comp(name)
-            many = bool(comp and comp_qty(self.d, comp)[0] > 1) or bool(comp and any(w in name.lower() for w in ("screw", "insert", "nut", "feet", "foot")))
+            comp = self.s.comp(name)
+            many = bool(comp and self.s.qty(name) > 1) or bool(comp and any(w in name.lower() for w in ("screw", "insert", "nut", "feet", "foot")))
             base = name.split("#", 1)[0]
             ks = list((comp.raw.get("solid_index") if comp and "#" in name else None) or range(min(self.meshes.n_solids(base), 8)))
             for k in (ks[:8] if many else [None]):
@@ -210,21 +226,37 @@ class Illustrator:
                 b = pd.GetBounds()
                 if b[0] > b[1]:
                     continue
-                c = ((b[0] + b[1]) / 2, (b[2] + b[3]) / 2, (b[4] + b[5]) / 2)
+                c = ((b[0] + b[1]) / 2, (b[2] + b[3]) / 2, (b[4] + b[5]) / 2)  # home centroid
                 half = 0.5 * abs((b[1] - b[0]) * ax[0] + (b[3] - b[2]) * ax[1] + (b[5] - b[4]) * ax[2])
-                gap = L - 2 * half
-                if gap < min_gap and side is None:
+                if L - half < min_gap:
                     continue
-                if side is not None:
-                    ext = 0.5 * abs((b[1] - b[0]) * side[0]) + 0.5 * abs((b[3] - b[2]) * side[1]) + 0.5 * abs((b[5] - b[4]) * side[2])
-                    c = tuple(c[i] + side[i] * (ext + 9.0) for i in range(3))
-                    start = tuple(c[i] + ax[i] * (L * 0.85) for i in range(3))
-                    end = tuple(c[i] + ax[i] * (L * 0.15) for i in range(3))
-                else:
-                    start = tuple(c[i] + ax[i] * (L - half - 0.15 * gap) for i in range(3))
-                    end = tuple(c[i] + ax[i] * (half + 0.12 * gap) for i in range(3))
+                start = tuple(c[i] + o[i] for i in range(3))  # where the part is drawn
+                end = tuple(c[i] + ax[i] * min(half + 2.0, L * 0.5) for i in range(3))  # just short of its seat
                 out.append((start, end))
         return out
+
+    @staticmethod
+    def _draw_arrows_2d(img: Image.Image, pr, arrows: list, w: int, h: int) -> int:
+        d = ImageDraw.Draw(img)
+        n = 0
+        for a, b in arrows:
+            pa, pb = pr.project(a), pr.project(b)
+            dx, dy = pb[0] - pa[0], pb[1] - pa[1]
+            Ls = math.hypot(dx, dy)
+            if Ls < 14:
+                continue
+            ux, uy = dx / Ls, dy / Ls
+            head = min(22.0, 0.45 * Ls)
+            hb = (pb[0] - ux * head, pb[1] - uy * head)
+            px, py = -uy, ux
+            tri = [pb, (hb[0] + px * head * 0.55, hb[1] + py * head * 0.55), (hb[0] - px * head * 0.55, hb[1] - py * head * 0.55)]
+            d.line([pa, hb], fill=(255, 255, 255), width=9)
+            d.polygon([(x + ux * 1.5, y + uy * 1.5) for x, y in tri], fill=(255, 255, 255))
+            d.line([pa, hb], fill=COBALT, width=5)
+            d.polygon(tri, fill=COBALT)
+            d.ellipse([pa[0] - 4, pa[1] - 4, pa[0] + 4, pa[1] + 4], fill=COBALT)
+            n += 1
+        return n
 
     def panel_bbox(self, panel: PanelSpec, items: list[ItemSpec]) -> Optional[tuple]:
         scene = bbox_union(self._pd_bbox(it) for it in items)
@@ -234,8 +266,8 @@ class Illustrator:
             names = panel.focus or [k for k, m in panel.show.items() if m == "focus"] or list(panel.show)
             bb = bbox_union(self._pd_bbox(it) for it in items if it.key in names)
             if bb is None:
-                bb = bbox_union(bbox_offset(self.d.comp(n).bbox, panel.offsets.get(n, (0, 0, 0)))
-                                for n in names if self.d.comp(n) and self.d.comp(n).bbox)
+                bb = bbox_union(bbox_offset(self.s.comp(n).bbox, panel.offsets.get(n, (0, 0, 0)))
+                                for n in names if self.s.comp(n) and self.s.comp(n).bbox)
         if bb and panel.min_extent > 0:
             c = [(bb[0] + bb[1]) / 2, (bb[2] + bb[3]) / 2, (bb[4] + bb[5]) / 2]
             sz = [max(bb[1] - bb[0], panel.min_extent), max(bb[3] - bb[2], panel.min_extent), max(bb[5] - bb[4], panel.min_extent)]
@@ -271,10 +303,10 @@ class Illustrator:
                 return pr.project(min(hits, key=lambda h: float(np.linalg.norm(np.array(h) - o))))
             if fallback:
                 lab = LabelSpec(text=lab.text, comp=fallback)
-        if lab.anchor and lab.anchor in self.d.anchors:
-            p = self.d.anchors[lab.anchor]
-            owner = anchor_owner(self.A, lab.anchor)
-            off = panel.offsets.get(owner.name, (0.0, 0.0, 0.0)) if owner else (0.0, 0.0, 0.0)
+        if lab.anchor and lab.anchor in self.s.anchors:
+            p = self.s.anchors[lab.anchor]
+            owner = self.s.owner(lab.anchor)
+            off = panel.offsets.get(owner, (0.0, 0.0, 0.0)) if owner else (0.0, 0.0, 0.0)
             q = (p[0] + off[0], p[1] + off[1], p[2] + off[2])
             return pr.project(q) if pr.visible(q) else None
         if lab.point:
@@ -304,15 +336,24 @@ class Illustrator:
         if panel.floor:
             floor = min((self._pd_bbox(it) or (0, 0, 0, 0, 0, 0))[4] for it in items)
         pr = self.r.render(items, w, h, panel.view_dir, bb, pad=panel.pad, label_room=panel.label_room, floor=floor,
-                           arrows=list(panel.arrows) + self._auto_arrows(panel))
+                           arrows=list(panel.arrows))
         img = Image.fromarray(pr.rgb)
+        self._draw_arrows_2d(img, pr, self._auto_arrows(panel), w, h)
+        rgb = np.asarray(img)
         dropped = []
+        dropped_prio = []
         labs: list[L.LabelIn] = []
         texts: list[list[str]] = []
-        for k, lab in enumerate(panel.labels):
+        seen_txt: set[str] = set()
+        for k, lab in sorted(enumerate(panel.labels), key=lambda t: -t[1].priority):
+            if lab.text in seen_txt:
+                continue  # one label per text in a panel (MIN-31)
+            seen_txt.add(lab.text)
             a = self._anchor(lab, pr, panel, items)
             if a is None or not (6 <= a[0] <= w - 6 and 6 <= a[1] <= h - 6):
                 dropped.append(lab.text.replace("\n", " "))
+                if lab.priority >= 2:
+                    dropped_prio.append(lab.text.replace("\n", " "))
                 continue
             lw, lh, lines = measure_label(lab.text)
             labs.append(L.LabelIn(anchor=a, w=lw, h=lh, priority=lab.priority, key=lab.text))
@@ -320,29 +361,39 @@ class Illustrator:
         from scipy import ndimage
 
         bg = np.array(BG_RGB, dtype=np.int16)
-        busy = np.abs(pr.rgb.astype(np.int16) - bg).sum(axis=2) > 24
+        busy = np.abs(rgb.astype(np.int16) - bg).sum(axis=2) > 24
         focus = ndimage.binary_dilation(pr.focus_mask, iterations=4) if pr.focus_mask.any() else pr.focus_mask
         layout = L.place(labs, L.Box(0, 0, w, h), mask=focus, soft_mask=busy | pr.model_mask)
         draw_labels(img, layout, texts)
-        return img, layout, texts, pr.camera, dropped
+        lost = {labs[i].key for i in range(len(labs))} - {labs[p.idx].key for p in layout.placed}
+        for k in lost:  # placed by nobody: the layout could not fit it
+            dropped.append(k.replace("\n", " "))
+            if any(l.text == k and l.priority >= 2 for l in panel.labels):
+                dropped_prio.append(k.replace("\n", " "))
+        placed = [labs[p.idx].key.replace("\n", " ") for p in layout.placed]
+        return img, layout, texts, pr.camera, dropped, dropped_prio, placed
 
     def render_figure(self, fig: FigureSpec, out_root: Path) -> FigureResult:
         t0 = time.time()
         W, H = fig.wh
         top, sub, foot = 70, 40, 46
+        n = len(fig.panels)
+        pw = W // n
+        fsub = font("regular", 21)
+        wrapped = [wrap_px(panel.subtitle, pw - 56, fsub) for panel in fig.panels]  # never run into the next panel
+        sub = 40 + 26 * (max([len(w) for w in wrapped] + [1]) - 1)
         canvas = Image.new("RGB", (W, H), PAPER)
         d = ImageDraw.Draw(canvas)
         d.rectangle([0, 0, W, top + sub], fill=PANEL)
         d.text((28, 18), fig.title, font=font("medium", 31), fill=INK)
-        n = len(fig.panels)
-        pw = W // n
         ph = H - top - sub - foot
         res = FigureResult(file=fig.file, ok=True, seconds=0.0)
         for i, panel in enumerate(fig.panels):
             x0 = i * pw
-            d.text((x0 + 28, top + 6), panel.subtitle, font=font("regular", 21), fill=MUTED)
+            for k, ln in enumerate(wrapped[i]):
+                d.text((x0 + 28, top + 6 + 26 * k), ln, font=fsub, fill=MUTED)
             try:
-                img, layout, texts, cam, dropped = self.render_panel(panel, pw, ph)
+                img, layout, texts, cam, dropped, dropped_prio, placed = self.render_panel(panel, pw, ph)
             except Exception as exc:
                 res.ok = False
                 res.error = f"{type(exc).__name__}: {exc}"
@@ -352,6 +403,8 @@ class Illustrator:
             res.labels += len(layout.placed)
             res.violations += [f"panel {i}: {v}" for v in layout.violations]
             res.dropped += dropped
+            res.dropped_priority += dropped_prio
+            res.placed += placed
             res.cameras.append(cam)
         if n > 1:
             for i in range(1, n):
@@ -365,11 +418,26 @@ class Illustrator:
         return res
 
 
-def render_figures_worker(args) -> list[FigureResult]:
-    """Process-pool entry: render a batch of figures with one renderer (one GL context per process)."""
-    data, A, figs, out_root, cache_dir = args
-    meshes = MeshStore(data.brep_dir, cache_dir=cache_dir, workers=1)
-    names = sorted({n for f in figs for p in f.panels for n in p.show})
-    meshes.preload(names)
-    ill = Illustrator(data, A, meshes, Renderer())
-    return [ill.render_figure(f, Path(out_root)) for f in figs]
+def frame_pcb(src: Path, dst: Path, product: str) -> bool:
+    """Frame pcb/board-top.png like the other manual images (title band + footer)."""
+    try:
+        im = Image.open(src).convert("RGB")
+        W = 1400
+        scale = min((W - 80) / im.width, 1500 / im.height)
+        im = im.resize((int(im.width * scale), int(im.height * scale)), Image.LANCZOS)
+        H = im.height + 70 + 40 + 46 + 30
+        cv = Image.new("RGB", (W, H), PAPER)
+        d = ImageDraw.Draw(cv)
+        d.rectangle([0, 0, W, 110], fill=PANEL)
+        d.text((28, 18), f"Your backplane: the routed board for the {product}", font=font("medium", 31), fill=INK)
+        d.text((28, 76), "Top side, USB-C at the rear edge (top of the picture); +X (the gadget's left) is on your right",
+               font=font("regular", 21), fill=MUTED)
+        cv.paste(im, ((W - im.width) // 2, 125))
+        d.rectangle([0, H - 46, W, H], fill=PANEL)
+        d.text((28, H - 33), "KiCad 3D render of pcb/backplane.kicad_pcb from the PCB stage | not a photo | not an electrical test",
+               font=font("regular", 16), fill=MUTED)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        cv.save(dst, "PNG", compress_level=6)
+        return True
+    except Exception:
+        return False

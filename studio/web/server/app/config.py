@@ -49,6 +49,7 @@ class Settings:
     stale_build_minutes: float = 30.0
     max_repair_rounds: int = 3
     thinking_level: str | None = None          # low | high | None (model default)
+    public_url: str | None = None              # e.g. https://studio.example.com; builds then carry name_audio_url
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -83,6 +84,7 @@ class Settings:
             fake_build_seconds=float(os.environ.get("FAKE_BUILD_SECONDS", "4")),
             fake_use_examples=_flag("FAKE_EXAMPLES", True),
             thinking_level=os.environ.get("AGENT_THINKING") or None,
+            public_url=(os.environ.get("PUBLIC_URL") or "").rstrip("/") or None,
         )
 
     @property

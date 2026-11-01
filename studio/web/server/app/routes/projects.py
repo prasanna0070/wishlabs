@@ -7,12 +7,17 @@ import re
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
+from fastapi.responses import Response
+
 from ..agent.turn import Turn, TurnError
 from ..auth import require_session
 from ..brief import assemble_brief
 from ..builds import BuildBusy, enrich_status
+from ..changes import changes_text, describe
+from ..plan import base_nudges, from_engine, reuse_plan
 from ..projects import NotFound, find_version, make_message, vkey
 from ..sse import EventChannel, sse_response
+from ..tts import TtsError
 from ..tweak import TweakError, apply_tweak, describe_tweak
 from ..util import new_id, now_iso, spec_hash
 from .common import (err, load_project, serve_concept_file, serve_export, serve_store_file, serve_version_file,
@@ -137,6 +142,8 @@ async def put_brief(request: Request, pid: str):
     def mut(pp):
         nb = assemble_brief({**pp["brief"], **b}, spec, pp["brief"].get("concept_id"),
                             len(pp.get("brief_history") or []) + 1, names)
+        if isinstance(pp["brief"].get("size"), dict):
+            nb["size"] = pp["brief"]["size"]          # computed from the geometry, not editable text
         nb["edited_by_user"] = True
         pp["brief"] = nb
         pp["brief_history"] = (pp.get("brief_history") or []) + [nb]
@@ -366,6 +373,40 @@ async def _tweaked_spec(request: Request, p: dict, b: dict) -> tuple[dict, int, 
     return new, int(base), patch, scale
 
 
+async def _tweak_plan(svc, pid: str, base: int, base_spec: dict, spec: dict) -> dict:
+    """MIN-37: which stages this edit needs, with the expected time from the base version's stage times."""
+    p = await svc.repo.aget(pid)
+    chain, n = [], base
+    while n is not None and len(chain) < 6 and n not in chain:     # base, then the versions it came from
+        chain.append(n)
+        v = find_version(p, n) or {}
+        n = v.get("base_version") or v.get("restored_from")
+    base_el = await asyncio.to_thread(svc.store.read_json, vkey(pid, base, "electrical.json"))
+    base_status = [await asyncio.to_thread(svc.store.read_json, vkey(pid, k, "status.json")) for k in chain]
+    new_el = await asyncio.to_thread(svc.bridge.electrical_for, spec)
+    stage_ids = await asyncio.to_thread(svc.bridge.stage_ids)
+    plan = reuse_plan(stage_ids, base_spec, spec, base_el, new_el, base_status, base)
+    if plan["mode"] == "partial" and not getattr(svc.builder, "supports_seed", False):
+        plan.update(mode="full", only=None, skip=[], seed_from=None,
+                    reason="this builder runs every stage for each version", expected_seconds=plan["full_seconds"])
+    return plan
+
+
+async def _nudges(svc, pid: str, base: int, base_spec: dict, spec: dict, r: dict) -> list:
+    """MAJ-8: the validator's own layout nudges plus the base version's failed CAD pairs with a computed move."""
+    cad_checks, comps = await asyncio.gather(
+        asyncio.to_thread(svc.store.read_json, vkey(pid, base, "cad/digital-checks.json")),
+        asyncio.to_thread(svc.store.read_json, vkey(pid, base, "cad/components.json")))
+    out = [{"source": "validator", **(x if isinstance(x, dict) else {"message": str(x)})}
+           for x in r.get("nudges") or []]
+    if isinstance(comps, dict) and isinstance(comps.get("components"), dict):
+        comps = comps["components"]
+    eng = await asyncio.to_thread(svc.bridge.nudges_from_cad, base_spec, comps, cad_checks)
+    if eng is not None:                       # foundation's computation when the engine has it
+        return out + from_engine(eng, base_spec, spec, base)
+    return out + base_nudges(cad_checks, comps, base_spec, spec, base)
+
+
 @router.post("/api/projects/{pid}/tweak")
 async def tweak(request: Request, pid: str):
     svc = svc_of(request)
@@ -373,16 +414,29 @@ async def tweak(request: Request, pid: str):
     p = await load_project(request, pid)
     spec, base, patch, scale = await _tweaked_spec(request, p, b)
     r = await svc.builder.validate(spec)
+    base_spec = await _input_spec(svc, pid, base) or {}
     if not r.get("ok"):
-        raise err(422, "invalid", "The tweak does not fit the design rules.", errors=r.get("errors") or [])
+        raise err(422, "invalid", "The tweak does not fit the design rules.", errors=r.get("errors") or [],
+                  nudges=await _nudges(svc, pid, base, base_spec, spec, r))
+    plan = await _tweak_plan(svc, pid, base, base_spec, spec)
     if b.get("validate_only"):
-        return {"ok": True, "normalized": r.get("normalized"), "warnings": r.get("warnings") or []}
+        return {"ok": True, "normalized": r.get("normalized"), "warnings": r.get("warnings") or [],
+                "nudges": await _nudges(svc, pid, base, base_spec, spec, r), "plan": plan,
+                "check_note": "Check runs the layout rules; the full collision check runs when you apply."}
+    items = describe(await asyncio.to_thread(svc.bridge.with_defaults, base_spec),
+                     await asyncio.to_thread(svc.bridge.with_defaults, spec), None)
     label = str(b.get("label") or describe_tweak(patch, scale))[:80]
     msg = make_message("user", "tweak", describe_tweak(patch, scale),
                        {"version": None, "patch": patch, "scale": scale, "base_version": base})
+    partial = plan["mode"] == "partial"
+    opts = {"only": plan["only"]} if partial else {}
+    if partial and plan.get("colour_only"):
+        opts["recolor_only"] = True
     try:
         v, _ = await svc.builds.start(pid, spec, source="tweak", label=label, brief=p.get("brief"),
-                                      base_version=base, extra_messages=[msg])
+                                      base_version=base, extra_messages=[msg],
+                                      seed_from=base if partial else None, options=opts, changes=items,
+                                      change_text=changes_text(items), plan=plan)
     except BuildBusy as e:
         raise err(409, "conflict", f"Version {e.n} is still building.") from None
 
@@ -391,7 +445,103 @@ async def tweak(request: Request, pid: str):
             if m["id"] == msg["id"]:
                 m["payload"]["version"] = v["n"]
     await _update(request, pid, fix)
-    return JSONResponse({"ok": True, "version": v}, status_code=202)
+    return JSONResponse({"ok": True, "version": v, "plan": plan}, status_code=202)
+
+
+# ------------------------------------------------------------------ story audio (BLK-4)
+STORY_STAGES = ("firmware", "checks", "finalize", "docs", "package")
+
+
+@router.post("/api/projects/{pid}/versions/{n}/story-audio")
+async def story_audio(request: Request, pid: str, n: int):
+    """Make a new version whose story card has spoken audio: v<n+1> starts as a copy of v<n> and reruns only the
+    firmware stage with stories_audio=true, then the checks, documents and export. Builders that cannot reuse
+    files run a full build with stories_audio=true instead."""
+    svc = svc_of(request)
+    p = await load_project(request, pid)
+    v = find_version(p, n)
+    if not v:
+        raise err(404, "not_found", "Version not found.")
+    if v.get("state") != "done":
+        raise err(409, "conflict", "Story audio can be made for a finished version only.")
+    spec = await _input_spec(svc, pid, n)
+    if not spec:
+        raise err(409, "conflict", "That version has no saved design.")
+    if ((spec.get("behaviour") or {}).get("template")) != "story_player":
+        raise err(409, "conflict", "This design has no story card.")
+    stories = await asyncio.to_thread(svc.store.read_json, vkey(pid, n, "firmware/sdcard/stories.json"))
+    if isinstance(stories, dict) and stories.get("audio"):
+        return JSONResponse({"ok": True, "already": True, "version": v,
+                             "message": f"Version {n} already has story audio."}, status_code=200)
+    seed = n if getattr(svc.builder, "supports_seed", False) else None
+    stage_ids = await asyncio.to_thread(svc.bridge.stage_ids)
+    only = [s for s in stage_ids if s in STORY_STAGES] if seed is not None else None
+    plan = {"mode": "partial" if only else "full", "only": only, "seed_from": seed,
+            "reason": (f"reuses v{n} and reruns only the firmware stage with story audio, then the checks and export"
+                       if only else "this builder runs every stage, with story audio on")}
+    brief = next((b for b in p.get("brief_history") or [] if b.get("version") == v.get("brief_version")),
+                 None) or p.get("brief")
+    um = make_message("user", "text", f"Generate story audio for version {n}", {"action": "story_audio", "version": n})
+    try:
+        nv, _ = await svc.builds.start(pid, spec, source="story_audio", label=f"Story audio for v{n}", brief=brief,
+                                       base_version=n, extra_messages=[um], seed_from=seed,
+                                       options={"stories_audio": True, "only": only}, plan=plan)
+    except BuildBusy as e:
+        raise err(409, "conflict", f"Version {e.n} is still building.") from None
+    return JSONResponse({"ok": True, "version": nv, "plan": plan}, status_code=202)
+
+
+# ------------------------------------------------------------------ name clips (MAJ-33)
+async def _pack_voice(svc, p: dict) -> str | None:
+    n = p.get("current_version")
+    spec = await _input_spec(svc, p["id"], n) if n is not None else None
+    return (((spec or {}).get("behaviour") or {}).get("settings") or {}).get("voice")
+
+
+def wav_response(data: bytes, info: dict) -> Response:
+    return Response(content=data, media_type="audio/wav", headers={
+        "Cache-Control": "no-store", "X-GS-Name": info["name"], "X-GS-Slug": info["slug"],
+        "X-GS-Voice": info["voice"], "X-GS-Language": info["language"], "X-GS-Model": str(info.get("model")),
+        "X-GS-Sample-Rate": str(info["sample_rate"]), "X-GS-Bytes": str(info["bytes"]),
+        "Content-Disposition": f'attachment; filename="{info["slug"] or "name"}.wav"'})
+
+
+@router.post("/api/projects/{pid}/name-audio")
+async def name_audio(request: Request, pid: str):
+    """A typed favourite name spoken in the story pack's voice: 16-bit mono WAV, at most 64 KB, ready for the
+    gadget's POST /api/name_clip. Nothing is stored on the server."""
+    svc = svc_of(request)
+    b = await _body(request)
+    p = await load_project(request, pid, reconcile=False)
+    try:
+        data, info = await svc.names.clip(str(b.get("name") or ""), b.get("voice") or await _pack_voice(svc, p))
+    except TtsError as e:
+        raise err(e.status, "invalid" if e.status == 422 else "unavailable", str(e)) from None
+    return wav_response(data, info)
+
+
+@router.post("/api/projects/{pid}/device-token")
+async def device_token(request: Request, pid: str):
+    """A per-project token the gadget's parent page can use to fetch name clips (no sign-in on the device)."""
+    svc = svc_of(request)
+    p = await load_project(request, pid, reconcile=False)
+    tok = (p.get("device") or {}).get("token")
+    if not tok:
+        tok = new_id("d", 24)
+        await asyncio.to_thread(svc.store.write_json, f"devices/{tok}.json", {"pid": pid, "created": now_iso()})
+        await _update(request, pid, lambda pp: pp.update(device={"token": tok, "created": now_iso()}))
+    return {"token": tok, "name_audio_url": f"/api/device/{tok}/name-audio"}
+
+
+@router.delete("/api/projects/{pid}/device-token")
+async def device_token_delete(request: Request, pid: str):
+    svc = svc_of(request)
+    p = await load_project(request, pid, reconcile=False)
+    tok = (p.get("device") or {}).get("token")
+    if tok:
+        await asyncio.to_thread(svc.store.delete, f"devices/{tok}.json")
+    await _update(request, pid, lambda pp: pp.update(device=None))
+    return {"ok": True}
 
 
 @router.post("/api/projects/{pid}/preview")

@@ -51,8 +51,16 @@ def exists(out: Path, rel: str) -> bool:
     return (out / rel).exists()
 
 
+# written by the package stage, after the documents: never "(not produced)" (MAJ-21)
+PACKAGE_OUTPUTS = ("checks/delivery-checks.json", "manifest.json", "export.zip", "verify_delivery.py")
+
+
 def link(rel: str, out: Path) -> str:
-    return f"`{rel}`" if (out / rel).exists() else f"`{rel}` (not produced)"
+    if (out / rel).exists():
+        return f"`{rel}`"
+    if rel in PACKAGE_OUTPUTS:
+        return f"`{rel}` (written at packaging)"
+    return f"`{rel}` (not produced)"
 
 
 def slug_words(s: str) -> str:

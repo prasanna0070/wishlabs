@@ -9,19 +9,23 @@ import re
 from collections import defaultdict
 from typing import Any, Awaitable, Callable
 
-from ..brief import assemble_brief, parts_from_spec, size_from_spec
+from .. import changes as ch
+from .. import concept_rules
+from ..brief import assemble_brief, glb_bbox_mm, parts_from_spec, same_geometry, size_from_spec, user_texts
 from ..builds import BuildBusy
 from ..concepts import render_concepts
 from ..projects import find_concept, find_version, last_message, make_message, vkey
 from ..usage import apply_turn, sum_records
 from ..util import new_id, now_iso, parse_iso
 from .tools import LABELS, TIERS, allowed_tools
+from .voice import lint
 
 log = logging.getLogger("gstudio.turn")
 
 Emit = Callable[[str, dict], Awaitable[None]]
 TURN_STALE_S = 15 * 60
 MAX_CONCEPTS = 6
+CONCEPT_RULE_ROUNDS = 2
 
 
 class TurnError(Exception):
@@ -48,8 +52,8 @@ def _as_spec(x: Any) -> Any:
 
 def _plain(x: Any) -> Any:
     """Proto-ish values from function-call args -> plain JSON (ints stay ints when whole)."""
-    if isinstance(x, dict):
-        return {str(k): _plain(v) for k, v in x.items()}
+    if isinstance(x, dict):   # keys trimmed of stray quotes/spaces: the model sometimes emits 'center"'
+        return {str(k).strip().strip('"\'').strip(): _plain(v) for k, v in x.items()}
     if isinstance(x, (list, tuple)):
         return [_plain(v) for v in x]
     if isinstance(x, float) and x.is_integer() and abs(x) < 1e12:
@@ -74,6 +78,8 @@ class Turn:
         self.follow_build = True
         self.scope: dict | None = None          # edit_part: {component, label, spec_path}
         self.scope_warned = False
+        self.request_text: str = ""             # the user's words for this turn (named paths, MAJ-34)
+        self.unsupported: list[dict] = []       # asked-for properties with no parameter (MAJ-34)
         self.usage: list[dict] = []
         self.concept_pool: dict[str, dict] = {}  # title.lower() -> {item, result}
         self.concept_message = ""
@@ -111,7 +117,7 @@ class Turn:
         await self.emit("error", {"code": code, "message": text, "retryable": retryable})
 
     async def say_text(self, text: str) -> dict:
-        msg = make_message("assistant", "text", text.strip())
+        msg = make_message("assistant", "text", lint(text))
         await self.add_message(msg)
         await self.emit("message.done", {"message": msg})
         return msg
@@ -119,7 +125,7 @@ class Turn:
     async def maybe_name(self, name: Any) -> None:
         """The agent names the project once (unless the user renamed it)."""
         name = re.sub(r"\s+", " ", str(name or "")).strip().strip('"')[:60]
-        if not name:
+        if not name or concept_rules.borrowed(name):     # never another product's name (no third-party branding)
             return
         renamed = {}
 
@@ -144,9 +150,10 @@ class Turn:
             return {"ok": False, "errors": [f"validator unavailable: {exc}"[:300]], "warnings": [],
                     "normalized": None, "infra": True}
 
-    def _repair_or_fail(self, tool: str, errors: list[str], instruction: str | None = None) -> ToolResult | None:
+    def _repair_or_fail(self, tool: str, errors: list[str], instruction: str | None = None,
+                        limit: int | None = None) -> ToolResult | None:
         """None when out of repair rounds (caller reports failure to the user)."""
-        if self.repairs[tool] >= self.svc.settings.max_repair_rounds:
+        if self.repairs[tool] >= (self.svc.settings.max_repair_rounds if limit is None else limit):
             return None
         self.repairs[tool] += 1
         return ToolResult({"ok": False, "round": self.repairs[tool], "errors": errors[:30],
@@ -178,16 +185,17 @@ class Turn:
             if len(text) > 4000:
                 raise TurnError(422, "invalid", "That message is too long (4000 characters at most).")
             msg_text = text
-            ch = last_message(p, "choices")
-            if ch and not (ch.get("payload") or {}).get("answered"):
-                side.append(lambda pp, mid=ch["id"]: _mark_answered(pp, mid, {"free_text": text}))
+            self.request_text = text
+            chm = last_message(p, "choices")
+            if chm and not (chm.get("payload") or {}).get("answered"):
+                side.append(lambda pp, mid=chm["id"]: _mark_answered(pp, mid, {"free_text": text}))
             if p["stage"] == "building":
                 self.instruction = "A build is running. Answer briefly; do not start another build."
         elif action == "answers":
-            ch = last_message(p, "choices")
-            if not ch:
+            chm = last_message(p, "choices")
+            if not chm:
                 raise TurnError(422, "invalid", "There is no question to answer.")
-            qs = {q["id"]: q for q in (ch.get("payload") or {}).get("questions") or []}
+            qs = {q["id"]: q for q in (chm.get("payload") or {}).get("questions") or []}
             answers = body.get("answers") or []
             skipped = bool(body.get("skipped"))
             if not isinstance(answers, list) or (not answers and not skipped):
@@ -208,11 +216,11 @@ class Turn:
                 self.instruction = "The user answered: " + "; ".join(mapping) + "." + (
                     " Use defaults for anything unanswered." if skipped else "")
             payload = {"answers": answers, "skipped": skipped}
-            side.append(lambda pp, mid=ch["id"], ans=answers, sk=skipped:
+            side.append(lambda pp, mid=chm["id"], ans=answers, sk=skipped:
                         _mark_answered(pp, mid, {"answers": ans, "skipped": sk}))
         elif action in ("select_concept", "skip_concepts"):
-            if p["stage"] not in ("concepts", "brief", "clarify"):
-                raise TurnError(409, "conflict", "Concepts can be picked before the first build only.")
+            if p["stage"] not in ("concepts", "brief", "clarify", "ready", "error"):
+                raise TurnError(409, "conflict", "Concepts cannot be picked while a version is building.")
             if action == "skip_concepts" or body.get("concept_id") is None:
                 c = _default_concept(p)
                 if not c:
@@ -241,11 +249,16 @@ class Turn:
                 raise TurnError(409, "conflict", "The brief is not waiting for approval.")
             msg_text = "My choices:\nBuild this"
             self.direct = "approve_brief"
-        elif action == "regenerate_concepts":
-            if p["stage"] not in ("clarify", "concepts", "brief"):
+        elif action in ("regenerate_concepts", "more_concepts"):
+            if p["stage"] == "building":
+                raise TurnError(409, "conflict", "New concepts can be shown once the build finishes.")
+            if action == "regenerate_concepts" and p["stage"] not in ("clarify", "concepts", "brief") and \
+                    not p.get("versions"):
                 raise TurnError(409, "conflict", "New concepts are only offered before the first build.")
-            msg_text = "Show me different concepts"
-            self.instruction = "Propose new concepts that are clearly different from the earlier ones."
+            msg_text = "Show me different concepts" if action == "regenerate_concepts" else "Show new concepts"
+            self.instruction = ("Propose new concepts that are clearly different from the earlier ones."
+                                + (" The current design is already built; a concept the user picks becomes a new "
+                                   "brief and a new version." if p.get("versions") else ""))
             self.forced = "propose_concepts"
         elif action == "retry_build":
             v = find_version(p, p.get("current_version"))
@@ -296,18 +309,38 @@ class Turn:
         if isinstance(comps, list):
             comps = {c.get("name"): c for c in comps if isinstance(c, dict)}
         info = comps.get(comp) if isinstance(comps, dict) else None
+        if info is None and "#decor" in comp and isinstance(comps, dict):
+            # REVIEW-1 MAJ-35: a decor region picked in the viewer (PRINT_Shell#decor[i]) is scoped to its own spec path
+            base = comp.split("#decor", 1)[0]
+            info = next((d for d in ((comps.get(base) or {}).get("decor") or [])
+                         if isinstance(d, dict) and d.get("name") == comp), None)
         spec = await asyncio.to_thread(self._input_spec, n) or {}
         if info is None and not comp.startswith(("PRINT_", "PURCHASE_")):
             raise TurnError(404, "not_found", f"No part named {comp} in version {n}.")
         info = info or {}
         spec_path = info.get("spec_path") or _guess_spec_path(comp, info, spec)
         label = info.get("label") or comp.split("_", 1)[-1]
-        self.scope = {"component": comp, "label": label, "spec_path": spec_path}
+        named_all = ch.named_paths(instr, spec) if spec else set()
+        named = sorted(named_all - {spec_path, "colors"})
+        allowed = scope_allowed(spec_path, named_all)
+        self.scope = {"component": comp, "label": label, "spec_path": spec_path, "named": named,
+                      "allowed": sorted(allowed)}
+        self.request_text = instr
         self.forced = "update_design"
+        targets = set(named) | ({spec_path} if spec_path else set())
+        self.unsupported = ch.unsupported(instr, spec, targets, await asyncio.to_thread(self.svc.bridge.decor_fields))
         where = f"`{spec_path}`" if spec_path else "no single spec path (decide the smallest change)"
+        also = (f" The request names {', '.join(f'`{x}`' for x in named)}, so only "
+                f"{', '.join(f'`{x}`' for x in sorted(allowed))} may change." if named else "")
+        note = (" " + ch.unsupported_note(self.unsupported) + " Say this in your message and do not claim it."
+                if self.unsupported else "")
+        hints = ch.shape_hints(instr, spec, targets, await asyncio.to_thread(self.svc.bridge.decor_fields)) if spec else []
+        if hints:
+            note += " " + " ".join(hints)
         self.instruction = (f"The user selected the part {comp} ({label}), which maps to {where} in the current "
                             f"spec, and asked: \"{instr}\". Call update_design changing only that part of the spec "
-                            "(colors may change if they ask for a colour). Keep everything else identical.")
+                            f"(colors may change if they ask for a colour).{also} Keep everything else identical, "
+                            f"including the body.{note}")
         return f"Edit {label}: {instr}"
 
     def _input_spec(self, n: int) -> dict | None:
@@ -380,7 +413,8 @@ class Turn:
         await self._build(inp["spec"], inp.get("brief"), label=f"Retry of v{n}", source="build", base=n)
 
     async def _build(self, spec: dict, brief: dict | None, *, label: str, source: str, base: int | None = None,
-                     approve: bool = False, pre_message: str | None = None) -> bool:
+                     approve: bool = False, pre_message: str | None = None, changes: list[dict] | None = None,
+                     change_text: str | None = None) -> bool:
         if approve and brief:
             brief = {**brief, "approved": True, "approved_at": now_iso(), "spec": spec}
 
@@ -390,10 +424,11 @@ class Turn:
                     if h.get("version") == b["version"]:
                         pp["brief_history"][i] = b
             await self.update(mut)
-        extra = [make_message("assistant", "text", pre_message.strip())] if pre_message and pre_message.strip() else []
+        extra = [make_message("assistant", "text", lint(pre_message))] if pre_message and pre_message.strip() else []
         try:
             v, msg = await self.svc.builds.start(self.pid, spec, source=source, label=label, brief=brief,
-                                                 base_version=base, extra_messages=extra)
+                                                 base_version=base, extra_messages=extra, changes=changes,
+                                                 change_text=change_text)
         except BuildBusy as exc:
             await self.fail(f"Version {exc.n} is still building. I will be able to make changes once it finishes.",
                             code="busy")
@@ -441,8 +476,8 @@ class Turn:
             if not isinstance(q, dict) or not str(q.get("question") or "").strip():
                 continue
             opts = [str(o).strip()[:60] for o in q.get("options") or [] if str(o).strip()][:4]
-            qs.append({"id": str(q.get("id") or f"q{i + 1}")[:40], "question": str(q["question"]).strip()[:240],
-                       "consequence": str(q.get("consequence") or "").strip()[:240], "options": opts,
+            qs.append({"id": str(q.get("id") or f"q{i + 1}")[:40], "question": lint(str(q["question"]))[:240],
+                       "consequence": lint(str(q.get("consequence") or ""))[:240], "options": opts,
                        "allow_free_text": True if not opts else bool(q.get("allow_free_text", True))})
         if not qs:
             return ToolResult({"ok": False, "error": "no valid questions"}, terminal=False)
@@ -452,10 +487,8 @@ class Turn:
         qs = qs[:left]
         await self.maybe_name(args.get("project_name"))
         defaults = [str(d).strip()[:80] for d in args.get("defaults") or [] if str(d).strip()][:5]
-        lead = str(args.get("message") or "").strip()
-        text = " ".join(q["consequence"] for q in qs)
-        if lead:
-            text = lead + "\n\n" + text
+        lead = lint(str(args.get("message") or ""))
+        text = clarify_text(lead, qs)
         msg = make_message("assistant", "choices", text, {"questions": qs, "answered": False, "defaults": defaults})
 
         def mut(pp):
@@ -468,7 +501,11 @@ class Turn:
     async def tool_propose_concepts(self, args: dict) -> ToolResult:
         items = [c for c in args.get("concepts") or [] if isinstance(c, dict)]
         if args.get("message") and not self.concept_message:
-            self.concept_message = str(args["message"]).strip()
+            self.concept_message = lint(str(args["message"]))
+        for c in items:
+            old = str(c.get("replaces") or "").strip().lower()
+            if old and old != str(c.get("title") or "").strip().lower():
+                self.concept_pool.pop(old, None)
         if args.get("defaults") and not self.concept_defaults:
             self.concept_defaults = [str(d).strip()[:80] for d in args["defaults"] if str(d).strip()][:5]
         await self.maybe_name(args.get("project_name"))
@@ -480,7 +517,9 @@ class Turn:
             tier = c.get("tier") if c.get("tier") in TIERS else (self.concept_pool.get(key, {}).get("tier")
                                                                   or TIERS[min(len(self.concept_pool) // 2, 2)])
             self.concept_pool[key] = {"title": title, "tier": tier, "blurb": str(c.get("blurb") or "")[:300],
-                                      "spec": _plain(_as_spec(c.get("spec"))), "result": r}
+                                      "spec": _plain(_as_spec(c.get("spec"))), "result": r,
+                                      "seq": len(self.concept_pool) + k + 100 * (
+                                          self.repairs["propose_concepts"] + self.repairs["concept_rules"] + 1)}
         bad = {e["title"]: e["result"].get("errors") or ["invalid"] for e in self.concept_pool.values()
                if not e["result"].get("ok")}
         good = [e for e in self.concept_pool.values() if e["result"].get("ok")]
@@ -506,7 +545,28 @@ class Turn:
             await self.fail("I could not turn these ideas into shapes we can build yet. Could you tell me a bit more "
                             "about the look you want?", code="concepts_invalid")
             return ToolResult({"ok": False, "summary": "no valid concepts", "errors": list(bad)}, terminal=True)
-        good = sorted(good, key=lambda e: TIERS.index(e["tier"]))[:MAX_CONCEPTS]
+        good = pick_set(good)
+        # MAJ-28: the set keeps the user's subject, every concept has a face, and no two share a layout
+        p = await self.project()
+        subject = concept_rules.subject_from_text(first_request(p))
+        names = await asyncio.to_thread(self.svc.bridge.module_names)
+        set_fails = concept_rules.check_set(good, subject, names)
+        if set_fails and not infra:
+            lines = concept_rules.failure_lines(set_fails)
+            fix = concept_rules.titles_to_fix(set_fails)
+            # the concept rules have their own repair budget, so fit-rule repairs cannot use it up (MAJ-28)
+            await self.emit("repair", {"round": self.repairs["concept_rules"] + 1, "errors": lines[:20],
+                                       "kind": "concept_rules"})
+            r = self._repair_or_fail(
+                "concept_rules", lines,
+                "The concepts are valid specs but break the concept rules. Call propose_concepts again with ONLY "
+                f"these concepts redesigned ({', '.join(fix)}), same tiers, complete specs; keep the title or name the "
+                "old title in `replaces`. The other concepts are kept.", limit=CONCEPT_RULE_ROUNDS)
+            if r:
+                r.response["set_failures"] = set_fails
+                r.response["kept"] = [e["title"] for e in good if e["title"] not in fix]
+                return r
+            log.warning("concept set still breaks rules after repairs: %s", lines)
         await self.status(f"Rendering {len(good)} concepts")
 
         async def progress(d: dict) -> None:
@@ -522,7 +582,10 @@ class Turn:
         tiers = {t: [c["id"] for c in rendered if c.get("tier") == t] for t in TIERS}
         msg = make_message("assistant", "concepts", message,
                            {"concept_ids": [c["id"] for c in rendered], "tiers": tiers, "selected": None,
-                            "defaults": self.concept_defaults})
+                            "defaults": self.concept_defaults, "subject": (subject or {}).get("noun"),
+                            "set_check": {"ok": not set_fails, "failures": set_fails,
+                                          "rule_rounds": self.repairs["concept_rules"],
+                                          "repair_rounds": self.repairs["propose_concepts"]}})
 
         def mut(pp):
             pp["concepts"] = (pp.get("concepts") or []) + rendered
@@ -562,8 +625,16 @@ class Turn:
         names = await asyncio.to_thread(self.svc.bridge.module_names)
         spec = _plain(spec)
         version = len(p.get("brief_history") or []) + 1
-        b = assemble_brief(args.get("brief") or {}, spec, sel["id"] if sel else (prev or {}).get("concept_id"),
-                           version, names)
+        measured = None
+        cid = sel["id"] if sel else (prev or {}).get("concept_id")
+        csel = find_concept(p, cid)
+        if csel and same_geometry(csel.get("spec"), spec):
+            glb = await asyncio.to_thread(self.svc.store.read_bytes, f"projects/{self.pid}/concepts/{cid}/preview.glb")
+            measured = glb_bbox_mm(glb)
+        src = "the CAD preview of this concept" if measured else None
+        b = assemble_brief(args.get("brief") or {}, spec, cid, version, names, texts=user_texts(p),
+                           subject=concept_rules.subject_from_text(first_request(p)), measured=measured,
+                           measured_from=src)
         if r.get("normalized"):
             parts = parts_from_spec(r["normalized"], names)
             if len(parts) >= len(b["parts"]):
@@ -572,15 +643,15 @@ class Turn:
                     x.setdefault("evidence", "Added automatically for the design" if x.get("implied")
                                  else "From the parts catalog")
                 b["parts"] = parts
-            b["size"] = size_from_spec(r["normalized"])
-        text = str(args.get("message") or "").strip() or \
+            b["size"] = size_from_spec(r["normalized"], measured, src)
+        text = lint(str(args.get("message") or "")) or \
             f"{b['title']}'s brief is ready for review. Choose **Build this** to proceed."
         msg = make_message("assistant", "brief", text, {"brief_version": version})
 
         def mut(pp):
             pp["brief"] = b
             pp["brief_history"] = (pp.get("brief_history") or []) + [b]
-            if not pp.get("versions") or pp["stage"] in ("concepts", "clarify", "brief"):
+            if not pp.get("versions") or pp["stage"] in ("concepts", "clarify", "brief") or self.forced == "write_brief":
                 pp["stage"] = "brief"
         await self.add_message(msg, mut)
         await self.emit("brief", {"message": msg, "brief": b})
@@ -620,20 +691,51 @@ class Turn:
             return ToolResult({"ok": False, "summary": "invalid spec"}, terminal=True)
         spec = _plain(spec)
         summary = str(args.get("change_summary") or "Edit").strip()[:80]
+        raw_base = await asyncio.to_thread(self._input_spec, p.get("current_version")) or {}
+        base = await asyncio.to_thread(self.svc.bridge.with_defaults, raw_base)
+        full = await asyncio.to_thread(self.svc.bridge.with_defaults, spec)
+        allowed: set[str] | None = None
         if self.scope and self.scope.get("spec_path"):
-            base = await asyncio.to_thread(self._input_spec, p.get("current_version")) or {}
-            outside = out_of_scope(base, spec, self.scope["spec_path"])
+            allowed = set(self.scope.get("allowed") or {self.scope["spec_path"], "colors"})
+            outside = [x for x in ch.changed_paths(base, full) if not ch.in_scope(x, allowed)]
             if outside and not self.scope_warned:
                 self.scope_warned = True
                 return ToolResult({"ok": False, "errors": [f"changed outside the selected part: {', '.join(outside[:8])}"],
-                                   "instruction": f"Only {self.scope['spec_path']} (and colors) may change for this "
-                                                  "part edit. Call update_design again with every other value "
-                                                  "exactly as in the current spec, unless a change elsewhere is "
-                                                  "truly required for the part to fit."}, terminal=False)
-        label = f"Edit {self.scope['label']}: {summary}" if self.scope else f"Edit: {summary}"
+                                   "instruction": f"Only {', '.join(sorted(allowed))} may change for this part edit. "
+                                                  "Call update_design again with every other value exactly as in "
+                                                  "the current spec."}, terminal=False)
+            if outside:
+                # second scope violation: stop and ask instead of building something nobody asked for
+                items = [i for i in ch.describe(base, full, allowed) if not i["requested"]]
+                await self.say_text(
+                    f"To change the {self.scope['label']} that way I would also change "
+                    f"{', '.join(i['text'] for i in items[:4]) or ', '.join(outside[:4])}, which you did not ask "
+                    "for. Should I change that too? Say yes to include it, or tell me what to keep as it is.")
+                return ToolResult({"ok": False, "summary": "asked before changing parts outside the selection"},
+                                  terminal=True)
+        elif self.request_text:
+            allowed = ch.named_paths(self.request_text, base) or None
+            if allowed and not self.unsupported:
+                self.unsupported = ch.unsupported(self.request_text, base, allowed,
+                                                  await asyncio.to_thread(self.svc.bridge.decor_fields))
+        items = ch.describe(base, full, allowed)
+        if not items:
+            await self.say_text("That request would not change the design, so I did not make a new version. "
+                                + (ch.unsupported_note(self.unsupported) if self.unsupported else ""))
+            return ToolResult({"ok": False, "summary": "no change"}, terminal=True)
+        what = ch.changes_text(items)
+        message = lint(str(args.get("message") or ""))
+        if self.unsupported and (not message or ch.claims(message, self.unsupported)):
+            message = f"{ch.unsupported_note(self.unsupported)} I changed: {what}."
+        elif message:
+            message = f"{message}\n\nChanged: {what}."
+        name = self.scope["label"] if self.scope else None
+        label = f"Edit {name}: {what}" if name else f"Edit: {what}"
         ok = await self._build(spec, p.get("brief"), label=label, source="update",
-                               base=p.get("current_version"), pre_message=args.get("message"))
-        return ToolResult({"ok": ok, "summary": f"version {self.build_n}" if ok else "busy"}, terminal=True)
+                               base=p.get("current_version"), pre_message=message, changes=items,
+                               change_text=f"{summary} ({what})" if summary and summary != "Edit" else what)
+        return ToolResult({"ok": ok, "summary": f"version {self.build_n}" if ok else "busy",
+                           "changes": [i["text"] for i in items]}, terminal=True)
 
 
 # ---------------------------------------------------------------------- small pure helpers
@@ -653,12 +755,12 @@ def _mark_answered(p: dict, mid: str, extra: dict) -> None:
 
 
 def _select(p: dict, cid: str) -> None:
+    """Picking a concept (also after a build, MIN-43) leads to a new brief and, once approved, a new version."""
     p["selected_concept"] = cid
     for m in p["chat"]:
         if m["kind"] == "concepts" and cid in (m.get("payload") or {}).get("concept_ids", []):
             m["payload"]["selected"] = cid
-    if not p.get("versions"):
-        p["stage"] = "brief"
+    p["stage"] = "brief"
 
 
 def _default_concept(p: dict) -> dict | None:
@@ -689,32 +791,52 @@ def _guess_spec_path(comp: str, info: dict, spec: dict) -> str | None:
 
 
 def changed_paths(a: Any, b: Any, path: str = "") -> list[str]:
-    if isinstance(a, dict) and isinstance(b, dict):
-        out = []
-        for k in sorted(set(a) | set(b)):
-            if k == "derived":
-                continue
-            p = f"{path}.{k}" if path else k
-            if k not in a or k not in b:
-                out.append(p)
-            else:
-                out += changed_paths(a[k], b[k], p)
-        return out
-    if isinstance(a, list) and isinstance(b, list) and len(a) == len(b) and all(isinstance(x, dict) for x in a + b):
-        out = []
-        for i, (x, y) in enumerate(zip(a, b)):
-            out += changed_paths(x, y, f"{path}[{i}]")
-        return out
-    return [] if a == b else [path]
+    return ch.changed_paths(a, b, path)
 
 
-def out_of_scope(base: dict, new: dict, spec_path: str) -> list[str]:
-    allowed = [spec_path, "colors"]
-    extra_re = re.compile(r"^(decor(\[\d+\])?(\..*)?|features\[\d+\]\.at)$") if spec_path == "body" else None
+def out_of_scope(base: dict, new: dict, spec_path: str, named: list[str] | None = None) -> list[str]:
+    """Changed paths outside the selected part, colours and whatever else the user named in the request. A body
+    selection no longer lets decor or feature positions change unless the request names them (MAJ-34)."""
+    allowed = {spec_path, "colors", *(named or [])}
+    return [p for p in ch.changed_paths(base, new) if not ch.in_scope(p, allowed)]
 
-    def ok(p: str) -> bool:
-        if any(p == a or p.startswith(a + ".") or p.startswith(a + "[") for a in allowed):
-            return True
-        return bool(extra_re and extra_re.match(p))
 
-    return [p for p in changed_paths(base, new) if not ok(p)]
+def pick_set(good: list[dict], per_tier: int = 2) -> list[dict]:
+    """Up to 2 concepts per tier, the newest first (a repaired or renamed concept replaces an older one), then any
+    remaining newest to fill 6, in tier order."""
+    newest = sorted(good, key=lambda e: -int(e.get("seq") or 0))
+    chosen: list[dict] = []
+    for t in TIERS:
+        chosen += [e for e in newest if e["tier"] == t][:per_tier]
+    for e in newest:
+        if len(chosen) >= MAX_CONCEPTS:
+            break
+        if e not in chosen:
+            chosen.append(e)
+    chosen = chosen[:MAX_CONCEPTS]
+    return sorted(chosen, key=lambda e: (TIERS.index(e["tier"]), int(e.get("seq") or 0)))
+
+
+def scope_allowed(spec_path: str | None, named: set[str]) -> set[str]:
+    """What a part edit may change: the selected path, colours and the parts the request names. A shell click whose
+    request names other parts ('make the ears rounder') does not license body changes unless the body is named."""
+    allowed = {"colors", *named}
+    if spec_path and not (spec_path == "body" and (named - {"colors"}) and "body" not in named):
+        allowed.add(spec_path)
+    return allowed
+
+
+def clarify_text(lead: str, qs: list[dict]) -> str:
+    """MIN-42: each consequence sits directly under its own question, never joined into one paragraph."""
+    blocks = [lead] if lead else []
+    for q in qs:
+        blocks.append(f"**{q['question']}**\n{q['consequence']}" if q.get("consequence") else f"**{q['question']}**")
+    return "\n\n".join(blocks)
+
+
+def first_request(p: dict) -> str:
+    """The user's first typed message: the request the subject comes from."""
+    for m in p.get("chat") or []:
+        if m.get("role") == "user" and m.get("kind") == "text" and not (m.get("payload") or {}).get("action"):
+            return str(m.get("text") or "")
+    return ""

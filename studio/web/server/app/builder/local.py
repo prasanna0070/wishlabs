@@ -25,6 +25,8 @@ log = logging.getLogger("gstudio.builder.local")
 class LocalBuilder(BridgeValidateMixin):
     kind = "local"
 
+    supports_seed = True          # runs in the version folder (or a temp copy of it), so `only` builds work
+
     def __init__(self, settings: Settings, bridge: EngineBridge, store):
         self.settings = settings
         self.bridge = bridge
@@ -92,6 +94,8 @@ class LocalBuilder(BridgeValidateMixin):
             tmp = tempfile.TemporaryDirectory(prefix=f"gs-build-{pid}-v{n}-")
             out = Path(tmp.name)
         out.mkdir(parents=True, exist_ok=True)
+        if direct is None and options.get("only"):
+            await asyncio.to_thread(self._download, f"projects/{pid}/v{n}", out)
         spec_path = out.parent / f".input-spec-v{n}.json" if direct is not None else out / ".input-spec.json"
         spec_path.write_text(json.dumps(spec, indent=1))
         if brief is not None:
@@ -100,6 +104,11 @@ class LocalBuilder(BridgeValidateMixin):
             (["--fast"] if options.get("fast") else [])
         if brief is not None:
             args += ["--brief-file", str(spec_path.parent / f".brief-v{n}.json")]
+        extra = engine_options(options, brief)
+        if extra:
+            opt_path = spec_path.parent / (f".options-v{n}.json" if direct is not None else ".options.json")
+            opt_path.write_text(json.dumps(extra, indent=1))
+            args += ["--options-file", str(opt_path)]
         status_path = out / "status.json"
         if not status_path.exists():
             status_path.write_text(json.dumps(status_doc("running", percent=0)))
@@ -129,6 +138,22 @@ class LocalBuilder(BridgeValidateMixin):
         return {"ok": code == 0 and st.get("state") == "done", "seconds": round(time.time() - t0, 1),
                 "state": st.get("state"), "error": st.get("error")}
 
+    def _download(self, prefix: str, out: Path) -> int:
+        """GCS store: bring a seeded version folder into the temp dir so an `only` run finds the earlier outputs."""
+        n = 0
+        for key in self.store.list_keys(prefix):
+            rel = key[len(prefix.rstrip("/")) + 1:]
+            if not rel or rel == "status.json":
+                continue
+            b = self.store.read_bytes(key)
+            if b is None:
+                continue
+            t = out / rel
+            t.parent.mkdir(parents=True, exist_ok=True)
+            t.write_bytes(b)
+            n += 1
+        return n
+
     async def _mirror_status(self, path: Path, key: str) -> None:
         last = None
         while True:
@@ -140,6 +165,18 @@ class LocalBuilder(BridgeValidateMixin):
             if b != last:
                 await asyncio.to_thread(self.store.write_bytes, key, b, "application/json")
                 last = b
+
+
+def engine_options(options: dict, brief: dict | None) -> dict:
+    """What goes into --options-file: everything except the flags the CLI already carries, plus the brief's version
+    and concept id (MAJ-36: project.json records them)."""
+    extra = {k: v for k, v in (options or {}).items() if k not in ("fast",) and v is not None}
+    if brief:
+        if brief.get("version") is not None:
+            extra.setdefault("brief_version", brief.get("version"))
+        if brief.get("concept_id"):
+            extra.setdefault("concept_id", brief.get("concept_id"))
+    return extra
 
 
 def _read_json(p: Path) -> dict | None:

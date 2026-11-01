@@ -5,6 +5,10 @@
 #include "config.h"
 #include "gs_audio_math.h"
 #include "gs_board.h"
+#include "gs_clips.h"
+#include "gs_fsfile.h"
+#include "gs_listen.h"
+#include "gs_micgate.h"
 #include "hardware.h"
 
 #if GS_HAS_SD
@@ -112,19 +116,30 @@ static void synth_chime(gs::Chime c) {
   }
 }
 
+// Plays a story segment (plain WAV) or a voice clip (encrypted, see gs_clip.h) from the card.
 static bool play_wav(const char* path) {
 #if GS_HAS_SD
   if (!gsboard::sd_mounted()) return false;
   File f = SD.open(path, FILE_READ);
   if (!f) return false;
-  uint8_t head[512];
-  const size_t got = f.read(head, sizeof(head));
-  gs::WavInfo wi;
-  if (!gs::wav_parse(head, got, uint32_t(f.size()), &wi) || !set_rate(wi.sample_rate)) {
+  GsFsFile ff(f);
+  gs::ClipReader rd;
+  uint8_t key[gs::kClipKeyBytes];
+  const bool have_key = gsclips::key(key, false);
+  const bool opened = rd.open(&ff, have_key ? key : nullptr);
+  memset(key, 0, sizeof(key));
+  if (!opened) {
     f.close();
     return false;
   }
-  f.seek(wi.data_offset);
+  uint8_t head[512];
+  const size_t got = rd.read(head, sizeof(head));
+  gs::WavInfo wi;
+  if (!gs::wav_parse(head, got, rd.plain_size(), &wi) || !set_rate(wi.sample_rate)) {
+    f.close();
+    return false;
+  }
+  rd.seek(wi.data_offset);
   uint32_t left = wi.data_bytes;
   static int16_t pcm[512];
   bool first = true;
@@ -133,7 +148,7 @@ static bool play_wav(const char* path) {
     size_t want = sizeof(pcm);
     if (want > left) want = left;
     want -= want % frame;
-    const size_t n = f.read(reinterpret_cast<uint8_t*>(pcm), want);
+    const size_t n = rd.read(reinterpret_cast<uint8_t*>(pcm), want);
     if (n < frame) break;
     size_t samples = n / 2;
     if (wi.channels == 2) {
@@ -337,17 +352,20 @@ static volatile bool s_rx_enabled = false;
 #if GS_HAS_SD
 static char s_rec_path[gs::kPathMax];
 static uint32_t s_rec_max_bytes = 0;
+static uint8_t s_rec_key[gs::kClipKeyBytes];
 #endif
 static SemaphoreHandle_t s_rx_lock = nullptr;
+static gs::MicGate s_gate;
 
+static bool rx_driver(bool on, void*) { return (on ? i2s_channel_enable(s_rx) : i2s_channel_disable(s_rx)) == ESP_OK; }
+static void rx_indicator(bool on, void*) { gs_listening_indicator(on); }
+
+// The only place the microphone channel is switched: through the gate, which shows the listening
+// light and face first and clears them last (MIN-16).
 static void rx_enable(bool on) {
   if (on == s_rx_enabled) return;
-  if (on) {
-    i2s_channel_enable(s_rx);
-  } else {
-    i2s_channel_disable(s_rx);
-  }
-  s_rx_enabled = on;
+  s_gate.set(on);
+  s_rx_enabled = s_gate.is_on();
 }
 
 // Reads up to n samples, converted to 16-bit. Returns samples read.
@@ -376,6 +394,8 @@ static void mic_task(void*) {
   int16_t pcm[160];  // 10 ms at 16 kHz
 #if GS_HAS_SD
   File f;
+  GsFsFile ff(f);
+  gs::ClipWriter w;
   uint32_t bytes = 0;
 #endif
   for (;;) {
@@ -393,13 +413,15 @@ static void mic_task(void*) {
     }
 #if GS_HAS_SD
     if (s_rec_active && !f) {
+      // Encrypted from the first byte: the card never holds a clear copy (MAJ-1).
       bytes = 0;
       f = SD.open(s_rec_path, FILE_WRITE);
-      if (f) {
-        uint8_t hdr[gs::kWavHeaderBytes];
-        gs::wav_header(hdr, kMicRate, 16, 1, 0);
-        f.write(hdr, sizeof(hdr));
-      } else {
+      uint8_t nonce[gs::kClipNonceBytes];
+      gsclips::new_nonce(nonce);
+      const bool ok = f && w.begin(&ff, s_rec_key, nonce, gsclips::hours(), kMicRate);
+      if (!ok) {
+        if (f) f.close();
+        gsboard::sd_wipe(s_rec_path);
         s_rec_ok = false;
         s_rec_ms = 0;
         s_rec_active = false;
@@ -415,19 +437,13 @@ static void mic_task(void*) {
     }
 #if GS_HAS_SD
     if (s_rec_active && f) {
-      if (n) {
-        f.write(reinterpret_cast<const uint8_t*>(pcm), n * 2);
-        bytes += uint32_t(n * 2);
-      }
+      if (n) w.write_pcm(pcm, n);
+      bytes = w.data_bytes();
       if (s_rec_stop || bytes >= s_rec_max_bytes || !n) {
-        uint8_t hdr[gs::kWavHeaderBytes];
-        gs::wav_header(hdr, kMicRate, 16, 1, bytes);
-        f.seek(0);
-        f.write(hdr, sizeof(hdr));
-        f.flush();
+        const bool done = w.finish();
         f.close();
         s_rec_ms = bytes / 2 * 1000 / kMicRate;
-        s_rec_ok = n > 0 || bytes > 0;
+        s_rec_ok = done && bytes > 0;
         s_rec_active = false;
         s_rec_stop = false;
         s_rec_done = true;
@@ -459,6 +475,8 @@ bool mic_begin() {
     return false;
   }
   s_rx_lock = xSemaphoreCreateMutex();
+  s_gate.attach_driver(rx_driver, nullptr);
+  s_gate.attach_indicator(rx_indicator, nullptr);
   xTaskCreatePinnedToCore(mic_task, "gs_mic", 4096, nullptr, 2, &s_mic_task, 1);
   return s_mic_task != nullptr;
 }
@@ -473,6 +491,7 @@ bool record_start(const char* path, uint32_t max_ms) {
   return false;
 #else
   if (!gsboard::sd_mounted()) return false;
+  if (!gsclips::key(s_rec_key, true)) return false;  // no key, no recording: never store a clear clip
   gs::copy_str(s_rec_path, sizeof(s_rec_path), path);
   s_rec_max_bytes = kMicRate * 2 * max_ms / 1000;
   s_rec_done = false;

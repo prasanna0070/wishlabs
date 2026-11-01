@@ -4,12 +4,19 @@
 
 Unknown keys are rejected and every number has bounds. Errors are short and actionable, prefixed
 with the spec path, because the design agent reads them and retries. The defaults are child-safe:
-a software volume cap of 60 of 100 and a dim, warm night light.
+a software volume cap of 60 of 100, a dim, warm night light capped at 30 % of its scale, no voice
+recording (story_player capture_mode parent_web), and no Wi-Fi at all for a child-directed design
+(network off).
+
+Storing a child's voice (capture_mode child_voice_clip) is opt-in: it needs voice_clip_consent true,
+which the design agent sets only when the brief records the parent's explicit consent, AND the
+CHILD_VOICE_STORED safety flag. Callers that know the spec's safety flags pass them (the firmware stage
+always does), and then both are enforced.
 """
 from __future__ import annotations
 
 import re
-from typing import Any, Literal, Optional
+from typing import Any, Iterable, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
@@ -43,6 +50,9 @@ class Common(_S):
     volume_max: int = Field(60, ge=10, le=100, description="hard cap the parent page cannot exceed; child-safe default 60")
     long_press_ms: int = Field(600, ge=400, le=2000, description="hold time that counts as a long press")
     led_max_percent: int = Field(45, ge=5, le=100, description="global LED brightness cap (keeps the 5 V budget)")
+    network: Optional[Literal["off", "parent_page"]] = Field(
+        None, description="off: no Wi-Fi radio at all; parent_page: local parent web page and JSON API (setup hotspot "
+                          "only after a 5 s button hold at power-up). Default: off for a child-directed design")
     setup_hotspot_minutes: int = Field(15, ge=3, le=60, description="how long the Wi-Fi setup hotspot stays open")
     mic_gain_shift: int = Field(13, ge=10, le=16, description="INMP441 24-bit to 16-bit window; lower = louder")
 
@@ -55,16 +65,25 @@ class Common(_S):
 
 class StoryPlayer(Common):
     capture_mode: Literal["child_voice_clip", "parent_web", "none"] = Field(
-        "child_voice_clip", description="how favourites are captured: the child's own 2 s voice clip, names typed on the parent page, or none")
-    clip_seconds: float = Field(2.0, ge=1.0, le=4.0, description="voice clip length")
+        "parent_web", description="how favourites are captured: names typed by a parent (default; no recording), the "
+                                  "child's own voice clip (opt-in: needs voice_clip_consent and CHILD_VOICE_STORED), or none")
+    voice_clip_consent: bool = Field(
+        False, description="true only when the brief records the parent's explicit consent to storing the child's voice "
+                           "clips on the card (encrypted, deleted on request or after clip_retention_days)")
+    clip_seconds: float = Field(3.0, ge=1.0, le=4.0, description="voice clip length")
     keep_window_seconds: int = Field(10, ge=5, le=30, description="tap within this window after the playback to keep a clip")
+    clip_retention_days: int = Field(90, ge=1, le=365,
+                                     description="kept voice clips are deleted after this many days of the gadget being switched on")
     night_light: bool = True
     night_light_minutes: int = Field(20, ge=0, le=120)
     night_light_brightness: int = Field(12, ge=1, le=60, description="percent of LED full scale")
+    night_light_max_percent: int = Field(30, ge=5, le=60,
+                                         description="firmware cap on the night glow (percent of scale, before the global LED cap)")
     night_light_color: str = "#FFB36B"
     max_favourites: int = Field(12, ge=1, le=12)
     story_order: Literal["shuffle", "sequential"] = "shuffle"
     default_hero: str = Field("little star", description="who stars when no favourite is saved")
+    default_friend: str = Field("little bunny", description="the friend in the story when only one favourite is saved")
     names_for_audio: list[str] = Field(default_factory=list, max_length=12,
                                        description="names to pre-record as story-pack name clips (parent_web)")
     voice: str = Field("Achernar", pattern=r"^[A-Za-z]{3,20}$", description="Gemini TTS voice for the story pack")
@@ -75,10 +94,17 @@ class StoryPlayer(Common):
     def check_night_color(cls, v):
         return _hex(v)
 
-    @field_validator("default_hero")
+    @field_validator("default_hero", "default_friend")
     @classmethod
-    def check_default_hero(cls, v):
+    def check_default_names(cls, v):
         return _clean_name(v)
+
+    @model_validator(mode="after")
+    def check_night_cap(self):
+        if self.night_light_brightness > self.night_light_max_percent:
+            raise ValueError(f"night_light_brightness ({self.night_light_brightness}) must not exceed "
+                             f"night_light_max_percent ({self.night_light_max_percent})")
+        return self
 
     @field_validator("names_for_audio")
     @classmethod
@@ -217,9 +243,20 @@ def _fmt(err: dict) -> str:
     return f"{path}: {msg}{got}"
 
 
-def validate_settings(template: str, settings: Optional[dict], *, child_directed: Optional[bool] = None
-                      ) -> tuple[Optional[dict], list[str]]:
-    """Validate and normalize behaviour settings. Returns (normalized, []) or (None, errors)."""
+CHILD_VOICE_FLAG = "CHILD_VOICE_STORED"
+
+
+def default_network(template: str, child_directed: Optional[bool]) -> str:
+    """off for a child-directed design (MAJ-2), except the notifier clock, which sets its time over Wi-Fi."""
+    return "off" if child_directed and template != "notifier_clock" else "parent_page"
+
+
+def validate_settings(template: str, settings: Optional[dict], *, child_directed: Optional[bool] = None,
+                      safety_flags: Optional[Iterable[str]] = None) -> tuple[Optional[dict], list[str]]:
+    """Validate and normalize behaviour settings. Returns (normalized, []) or (None, errors).
+
+    safety_flags: the spec's safety.flags. When given, storing a child's voice (child_voice_clip) also needs
+    the CHILD_VOICE_STORED flag and voice_clip_consent true."""
     if template not in MODELS:
         return None, [f"behaviour.template: unknown template {template!r}; use one of {', '.join(TEMPLATES)}"]
     if settings is None:
@@ -231,7 +268,18 @@ def validate_settings(template: str, settings: Optional[dict], *, child_directed
     except ValidationError as e:
         return None, [_fmt(x) for x in e.errors(include_url=False)]
     data = model.model_dump(mode="json")
+    if data.get("network") is None:
+        data["network"] = default_network(template, child_directed)
     errors: list[str] = []
+    if template == "notifier_clock" and data["network"] == "off":
+        errors.append("behaviour.settings.network: notifier_clock sets its clock over Wi-Fi; use parent_page")
+    if template == "story_player" and data.get("capture_mode") == "child_voice_clip" and safety_flags is not None:
+        flags = {str(f) for f in safety_flags}
+        if not data.get("voice_clip_consent"):
+            errors.append("behaviour.settings.capture_mode: child_voice_clip stores the child's voice; it needs "
+                          "voice_clip_consent true (the parent's explicit consent in the brief), else use parent_web")
+        if CHILD_VOICE_FLAG not in flags:
+            errors.append(f"safety.flags: child_voice_clip needs the {CHILD_VOICE_FLAG} flag, else use capture_mode parent_web")
     if child_directed and data.get("volume_max", 0) > 70:
         errors.append("behaviour.settings.volume_max: a child-directed gadget is capped at 70 (use 70 or less)")
     if child_directed and data.get("led_max_percent", 0) > 60:
@@ -246,4 +294,4 @@ def settings_schema(template: str) -> dict:
     return MODELS[template].model_json_schema()
 
 
-__all__ = ["validate_settings", "settings_schema", "MODELS", "TEMPLATES"]
+__all__ = ["validate_settings", "settings_schema", "default_network", "MODELS", "TEMPLATES", "CHILD_VOICE_FLAG"]

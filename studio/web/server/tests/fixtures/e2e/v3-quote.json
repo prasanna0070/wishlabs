@@ -1,0 +1,699 @@
+{
+ "schema": "gadget-quote/1",
+ "currency": "INR",
+ "status": "ESTIMATE_REVIEW_REQUIRED",
+ "status_label": "Estimated total, manufacturing and safety review needed",
+ "binding": false,
+ "reasons": [
+  "child-directed product: needs safety, toy-category and child-data review before any binding price (blueprint §11)",
+  "no supplier rate card or contract: every cost is a planning range or assumption (blueprint §7.1, §1.3)",
+  "delivery pincode unknown: courier cost is an estimate (blueprint §8.5)",
+  "local voice capture in a child's room: privacy review of capture, indicator and storage before any sale (blueprint §11)",
+  "5 part(s) were seen at retail above their planning range (largest: Speaker 40 mm round, 4 ohm, 3 W at ₹788 vs ₹80-250); this quote uses the planning ranges, so at today's seen one-off prices the parts would cost about ₹749 more",
+  "no USB-C power adapter in the box: the buyer supplies a 5 V USB-C supply"
+ ],
+ "complete": true,
+ "missing_prices": [],
+ "delivered_price_inr": {
+  "pilot_one_off": 18999,
+  "steady_state": 11499,
+  "includes_gst": true,
+  "status": "ESTIMATE_REVIEW_REQUIRED",
+  "label": "Estimated total, manufacturing and safety review needed",
+  "includes": [
+   "purchased parts (planning ranges)",
+   "printed parts from the sliced grams and hours",
+   "assembly, flashing and functional test",
+   "one-time setup share (one-off and batch only)",
+   "courier within India (estimate, pincode unknown)",
+   "warranty and returns reserve",
+   "payment gateway fee",
+   "GST at an assumed 18%"
+  ],
+  "excludes": [
+   "import duties (all parts assumed bought in India)",
+   "anything in missing_prices",
+   "USB-C power adapter"
+  ]
+ },
+ "lead_time_days": {
+  "low": 10,
+  "high": 24,
+  "applies_to": "pilot one-off today",
+  "status": "ESTIMATE",
+  "reason": "Parts (2-5 days) and the backplane PCB fabrication (5-12 days) in parallel, then 2 printing day(s) for 26.3 h of sliced print time, 1-2 day(s) assembly, flashing and test, a 0-2 day remake buffer, and 2-6 courier days. Every duration is an assumption, not a supplier commitment; the courier window needs the delivery pincode.",
+  "steady_state": {
+   "low": 5,
+   "high": 12,
+   "applies_to": "steady state, 100+/month",
+   "reason": "stocked parts and backplanes: printing, assembly and test, buffer and courier only"
+  },
+  "breakdown": {
+   "print_days": 2,
+   "parts_procurement_days": {
+    "low": 2,
+    "high": 5,
+    "basis": "ASSUMPTION: Indian distributor stock (Robu / Robocraze class), metro delivery; not checked against live stock"
+   },
+   "pcb_fabrication_days": {
+    "low": 5,
+    "high": 12,
+    "basis": "ASSUMPTION: 2-layer prototype backplane from a PCB fab including shipping; zero once populated backplanes are stocked"
+   },
+   "assembly_flash_test_days": {
+    "low": 1,
+    "high": 2,
+    "basis": "ASSUMPTION: assembly, flashing and the functional test on one working day; first article may take two"
+   },
+   "remake_buffer_days": {
+    "low": 0,
+    "high": 2,
+    "basis": "ASSUMPTION: one failed print or QC rework"
+   },
+   "courier_days": {
+    "low": 2,
+    "high": 6,
+    "basis": "ASSUMPTION: Indian courier metro to non-metro; a real window needs the delivery pincode and a courier serviceability API (blueprint §8.5)"
+   }
+  },
+  "basis": {
+   "parts_procurement_days": "ASSUMPTION: Indian distributor stock (Robu / Robocraze class), metro delivery; not checked against live stock",
+   "pcb_fabrication_days": "ASSUMPTION: 2-layer prototype backplane from a PCB fab including shipping; zero once populated backplanes are stocked",
+   "print_hours_per_day": "ASSUMPTION: one FDM printer, overnight runs, plate changes during the day",
+   "assembly_flash_test_days": "ASSUMPTION: assembly, flashing and the functional test on one working day; first article may take two",
+   "remake_buffer_days": "ASSUMPTION: one failed print or QC rework",
+   "courier_days": "ASSUMPTION: Indian courier metro to non-metro; a real window needs the delivery pincode and a courier serviceability API (blueprint §8.5)"
+  }
+ },
+ "scenarios": [
+  {
+   "breakdown_mean": {
+    "parts": 3831,
+    "print": 1753,
+    "assembly_test": 973,
+    "setup_nre": 3000,
+    "courier": 306,
+    "warranty_reserve": 336,
+    "returns": 627,
+    "total_excl_fee": 10825,
+    "filament_g": 292.6,
+    "print_h": 26.3,
+    "assembly_min": 163.6,
+    "billable_kg": 2.5
+   },
+   "p5": 10121,
+   "p50": 10808,
+   "p95": 11596,
+   "price_p50_pretax": 16080,
+   "price_p95_floor_pretax": 13296,
+   "list_price_incl_gst": 18999,
+   "margin_at_list_p50": 0.301,
+   "margin_at_list_p95": 0.252,
+   "status": "ESTIMATE_REVIEW_REQUIRED",
+   "reasons": [
+    "child-directed product: needs safety, toy-category and child-data review before any binding price (blueprint §11)",
+    "no supplier rate card or contract: every cost is a planning range or assumption (blueprint §7.1, §1.3)",
+    "delivery pincode unknown: courier cost is an estimate (blueprint §8.5)",
+    "local voice capture in a child's room: privacy review of capture, indicator and storage before any sale (blueprint §11)",
+    "5 part(s) were seen at retail above their planning range (largest: Speaker 40 mm round, 4 ohm, 3 W at ₹788 vs ₹80-250); this quote uses the planning ranges, so at today's seen one-off prices the parts would cost about ₹749 more",
+    "no USB-C power adapter in the box: the buyer supplies a 5 V USB-C supply"
+   ],
+   "cloud_month": {},
+   "name": "pilot one-off today",
+   "note": "first unit of a never-built design: retail-ish parts, first-article labour, full 3,000 setup",
+   "parts_basis": "whole packs"
+  },
+  {
+   "breakdown_mean": {
+    "parts": 3604,
+    "print": 1753,
+    "assembly_test": 497,
+    "setup_nre": 300,
+    "courier": 306,
+    "warranty_reserve": 302,
+    "returns": 466,
+    "total_excl_fee": 7228,
+    "filament_g": 292.6,
+    "print_h": 26.3,
+    "assembly_min": 83.5,
+    "billable_kg": 2.5
+   },
+   "p5": 6653,
+   "p50": 7219,
+   "p95": 7837,
+   "price_p50_pretax": 10740,
+   "price_p95_floor_pretax": 8986,
+   "list_price_incl_gst": 12699,
+   "margin_at_list_p50": 0.301,
+   "margin_at_list_p95": 0.244,
+   "status": "ESTIMATE_REVIEW_REQUIRED",
+   "reasons": [
+    "child-directed product: needs safety, toy-category and child-data review before any binding price (blueprint §11)",
+    "no supplier rate card or contract: every cost is a planning range or assumption (blueprint §7.1, §1.3)",
+    "delivery pincode unknown: courier cost is an estimate (blueprint §8.5)",
+    "local voice capture in a child's room: privacy review of capture, indicator and storage before any sale (blueprint §11)",
+    "5 part(s) were seen at retail above their planning range (largest: Speaker 40 mm round, 4 ohm, 3 W at ₹788 vs ₹80-250); this quote uses the planning ranges, so at today's seen one-off prices the parts would cost about ₹749 more",
+    "no USB-C power adapter in the box: the buyer supplies a 5 V USB-C supply"
+   ],
+   "cloud_month": {},
+   "name": "pilot batch of 10 variants",
+   "note": "10 different shells on the same core: setup spread over 10",
+   "parts_basis": "whole packs"
+  },
+  {
+   "breakdown_mean": {
+    "parts": 3280,
+    "print": 1753,
+    "assembly_test": 497,
+    "setup_nre": 0,
+    "courier": 306,
+    "warranty_reserve": 287,
+    "returns": 431,
+    "total_excl_fee": 6554,
+    "filament_g": 292.6,
+    "print_h": 26.3,
+    "assembly_min": 83.5,
+    "billable_kg": 2.5
+   },
+   "p5": 5979,
+   "p50": 6542,
+   "p95": 7168,
+   "price_p50_pretax": 9732,
+   "price_p95_floor_pretax": 8219,
+   "list_price_incl_gst": 11499,
+   "margin_at_list_p50": 0.301,
+   "margin_at_list_p95": 0.237,
+   "status": "ESTIMATE_REVIEW_REQUIRED",
+   "reasons": [
+    "child-directed product: needs safety, toy-category and child-data review before any binding price (blueprint §11)",
+    "no supplier rate card or contract: every cost is a planning range or assumption (blueprint §7.1, §1.3)",
+    "delivery pincode unknown: courier cost is an estimate (blueprint §8.5)",
+    "local voice capture in a child's room: privacy review of capture, indicator and storage before any sale (blueprint §11)",
+    "5 part(s) were seen at retail above their planning range (largest: Speaker 40 mm round, 4 ohm, 3 W at ₹788 vs ₹80-250); this quote uses the planning ranges, so at today's seen one-off prices the parts would cost about ₹749 more",
+    "no USB-C power adapter in the box: the buyer supplies a 5 V USB-C supply"
+   ],
+   "cloud_month": {},
+   "name": "steady state, 100+/month",
+   "note": "qualified shell family, volume parts, no per-design setup",
+   "parts_basis": "per-unit share of packs"
+  },
+  {
+   "breakdown_mean": {
+    "parts": 3280,
+    "print": 1753,
+    "assembly_test": 497,
+    "setup_nre": 0,
+    "courier": 306,
+    "warranty_reserve": 287,
+    "returns": 3172,
+    "total_excl_fee": 9295,
+    "filament_g": 292.6,
+    "print_h": 26.3,
+    "assembly_min": 83.5,
+    "billable_kg": 2.5
+   },
+   "p5": 8342,
+   "p50": 9273,
+   "p95": 10325,
+   "price_p50_pretax": 13796,
+   "price_p95_floor_pretax": 11839,
+   "list_price_incl_gst": 16299,
+   "margin_at_list_p50": 0.301,
+   "margin_at_list_p95": 0.225,
+   "status": "ESTIMATE_REVIEW_REQUIRED",
+   "reasons": [
+    "child-directed product: needs safety, toy-category and child-data review before any binding price (blueprint §11)",
+    "no supplier rate card or contract: every cost is a planning range or assumption (blueprint §7.1, §1.3)",
+    "delivery pincode unknown: courier cost is an estimate (blueprint §8.5)",
+    "local voice capture in a child's room: privacy review of capture, indicator and storage before any sale (blueprint §11)",
+    "5 part(s) were seen at retail above their planning range (largest: Speaker 40 mm round, 4 ohm, 3 W at ₹788 vs ₹80-250); this quote uses the planning ranges, so at today's seen one-off prices the parts would cost about ₹749 more",
+    "no USB-C power adapter in the box: the buyer supplies a 5 V USB-C supply"
+   ],
+   "cloud_month": {},
+   "name": "steady state, toy-style returns",
+   "note": "as above but with BubblePal-like 20-30% novelty returns",
+   "parts_basis": "per-unit share of packs"
+  }
+ ],
+ "inputs": {
+  "parts": [
+   {
+    "name": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+    "module_id": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     650.0,
+     1300.0
+    ],
+    "basis": "library CORE_ESP32S3_DEVKITC1_N8R8 price_inr_planning",
+    "evidence_tier": "seen",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "Standard backplane PCB backplane-v1 (ours)",
+    "module_id": "BACKPLANE_V1",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     120.0,
+     450.0
+    ],
+    "basis": "library BACKPLANE_V1 price_inr_planning",
+    "evidence_tier": "estimate",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "USB-C 2.0 receptacle on backplane (5V sink, CC 5.1k Rd)",
+    "module_id": "USBC_RECEPTACLE_GCT_USB4105",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     80.0,
+     250.0
+    ],
+    "basis": "library USBC_RECEPTACLE_GCT_USB4105 price_inr_planning",
+    "evidence_tier": "estimate",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "Speaker 40 mm round, 4 ohm, 3 W",
+    "module_id": "SPK_40MM_4R_3W",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     80.0,
+     250.0
+    ],
+    "basis": "library SPK_40MM_4R_3W price_inr_planning",
+    "evidence_tier": "seen",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "Big 30 mm snap-in arcade push button (microswitch)",
+    "module_id": "BUTTON_ARCADE_30MM_SNAPIN",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     15.0,
+     70.0
+    ],
+    "basis": "library BUTTON_ARCADE_30MM_SNAPIN price_inr_planning",
+    "evidence_tier": "seen",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "1.3 in 128x64 mono OLED, SH1106, I2C 4-pin",
+    "module_id": "OLED_130_SH1106_I2C",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     220.0,
+     550.0
+    ],
+    "basis": "library OLED_130_SH1106_I2C price_inr_planning",
+    "evidence_tier": "seen",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "Addressable RGB LED, single WS2812B 5050 on a mini board",
+    "module_id": "LED_WS2812B_1PX_MODULE",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     25.0,
+     100.0
+    ],
+    "basis": "library LED_WS2812B_1PX_MODULE price_inr_planning",
+    "evidence_tier": "seen",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "INMP441 I2S MEMS microphone module",
+    "module_id": "MIC_INMP441_I2S",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     110.0,
+     350.0
+    ],
+    "basis": "library MIC_INMP441_I2S price_inr_planning",
+    "evidence_tier": "seen",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+    "module_id": "AMP_MAX98357A_I2S",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     110.0,
+     300.0
+    ],
+    "basis": "library AMP_MAX98357A_I2S price_inr_planning",
+    "evidence_tier": "seen",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "microSD SPI module with LDO and level shifter (Catalex-type)",
+    "module_id": "MICROSD_SPI_MODULE_5V",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     120.0,
+     380.0
+    ],
+    "basis": "library MICROSD_SPI_MODULE_5V price_inr_planning",
+    "evidence_tier": "seen",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "USB-C to USB-C cable, 1 m, USB 2.0",
+    "module_id": "CABLE_USBC_C2C_1M",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     70.0,
+     180.0
+    ],
+    "basis": "library CABLE_USBC_C2C_1M price_inr_planning",
+    "evidence_tier": "seen",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "JST-PH 2.0 2-pin harness, 200 mm, pre-crimped both ends",
+    "module_id": "CABLE_JSTPH_2P_200",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     30.0,
+     100.0
+    ],
+    "basis": "library CABLE_JSTPH_2P_200 price_inr_planning",
+    "evidence_tier": "estimate",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "JST-PH 2.0 3-pin harness, 300 mm, pre-crimped both ends",
+    "module_id": "CABLE_JSTPH_3P_300",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     30.0,
+     100.0
+    ],
+    "basis": "library CABLE_JSTPH_3P_300 price_inr_planning",
+    "evidence_tier": "estimate",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "JST-PH 2.0 4-pin harness, 300 mm, pre-crimped both ends",
+    "module_id": "CABLE_JSTPH_4P_300",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     30.0,
+     100.0
+    ],
+    "basis": "library CABLE_JSTPH_4P_300 price_inr_planning",
+    "evidence_tier": "estimate",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "JST-PH 2.0 3-pin harness, 200 mm, pre-crimped both ends",
+    "module_id": "CABLE_JSTPH_3P_200",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     30.0,
+     100.0
+    ],
+    "basis": "library CABLE_JSTPH_3P_200 price_inr_planning",
+    "evidence_tier": "estimate",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "JST-PH 2.0 6-pin harness, 300 mm, pre-crimped both ends",
+    "module_id": "CABLE_JSTPH_6P_300",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     30.0,
+     100.0
+    ],
+    "basis": "library CABLE_JSTPH_6P_300 price_inr_planning",
+    "evidence_tier": "estimate",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "M2 / M2.5 socket head cap screws (SS304) + ISO 4032 hex nuts",
+    "module_id": "SCREW_SET_M2_M2_5_SHCS_A2",
+    "quantity": 17,
+    "packSize": 10,
+    "price_range_inr": [
+     15.0,
+     70.0
+    ],
+    "basis": "library SCREW_SET_M2_M2_5_SHCS_A2 price_inr_planning",
+    "evidence_tier": "seen",
+    "qty_one_off": 2,
+    "qty_volume": 1.7
+   },
+   {
+    "name": "Heat-set insert M2.5 x 4.0 (standard)",
+    "module_id": "INSERT_HEATSET_M2_5X4_STD",
+    "quantity": 17,
+    "packSize": null,
+    "price_range_inr": [
+     20.0,
+     100.0
+    ],
+    "basis": "library INSERT_HEATSET_M2_5X4_STD price_inr_planning",
+    "evidence_tier": "seen",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "Adhesive bumper feet, hemispherical ~7.9 mm",
+    "module_id": "FEET_BUMPON_SJ5302_CLEAR",
+    "quantity": 4,
+    "packSize": null,
+    "price_range_inr": [
+     20.0,
+     70.0
+    ],
+    "basis": "library FEET_BUMPON_SJ5302_CLEAR price_inr_planning",
+    "evidence_tier": "estimate",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "Cable tie 100 x 2.5 mm (nylon 6/6) + printed tie anchors",
+    "module_id": "STRAIN_TIE_NYLON66_100X2_5",
+    "quantity": 6,
+    "packSize": 100,
+    "price_range_inr": [
+     15.0,
+     50.0
+    ],
+    "basis": "library STRAIN_TIE_NYLON66_100X2_5 price_inr_planning",
+    "evidence_tier": "seen",
+    "qty_one_off": 1,
+    "qty_volume": 0.06
+   },
+   {
+    "name": "Speaker gasket: single-sided adhesive foam strip 25 x 3 mm (+ printed clamp ring)",
+    "module_id": "SPK_GASKET_FOAM_25X3_ADH",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     30.0,
+     120.0
+    ],
+    "basis": "library SPK_GASKET_FOAM_25X3_ADH price_inr_planning",
+    "evidence_tier": "seen",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   },
+   {
+    "name": "Device ID label (QR + serial, silver/white polyester, thermal transfer) + packing kit",
+    "module_id": "LABEL_QR_POLYESTER_50X25_PACK",
+    "quantity": 1,
+    "packSize": 1,
+    "price_range_inr": [
+     30.0,
+     150.0
+    ],
+    "basis": "library LABEL_QR_POLYESTER_50X25_PACK price_inr_planning",
+    "evidence_tier": "estimate",
+    "qty_one_off": 1,
+    "qty_volume": 1
+   }
+  ],
+  "seen_above_planning": [
+   {
+    "name": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+    "seen_inr": 1449.0,
+    "planning_inr": [
+     650.0,
+     1300.0
+    ],
+    "extra_per_unit_inr": 149.0
+   },
+   {
+    "name": "Speaker 40 mm round, 4 ohm, 3 W",
+    "seen_inr": 787.51,
+    "planning_inr": [
+     80.0,
+     250.0
+    ],
+    "extra_per_unit_inr": 537.51
+   },
+   {
+    "name": "Big 30 mm snap-in arcade push button (microswitch)",
+    "seen_inr": 93.22,
+    "planning_inr": [
+     15.0,
+     70.0
+    ],
+    "extra_per_unit_inr": 23.22
+   },
+   {
+    "name": "USB-C to USB-C cable, 1 m, USB 2.0",
+    "seen_inr": 199.0,
+    "planning_inr": [
+     70.0,
+     180.0
+    ],
+    "extra_per_unit_inr": 19.0
+   },
+   {
+    "name": "M2 / M2.5 socket head cap screws (SS304) + ISO 4032 hex nuts",
+    "seen_inr": 79.99,
+    "planning_inr": [
+     15.0,
+     70.0
+    ],
+    "extra_per_unit_inr": 19.98
+   }
+  ],
+  "print": {
+   "grams": 292.61,
+   "hours": 26.338,
+   "parts": {
+    "PRINT_DisplayClip": {
+     "filament_g": 1.14,
+     "print_h": 0.156,
+     "supports": false,
+     "support_g": 0.0
+    },
+    "PRINT_LedClip": {
+     "filament_g": 0.54,
+     "print_h": 0.079,
+     "supports": false,
+     "support_g": 0.0
+    },
+    "PRINT_LedDiffuser": {
+     "filament_g": 0.5,
+     "print_h": 0.066,
+     "supports": true,
+     "support_g": 0.2
+    },
+    "PRINT_MicClip": {
+     "filament_g": 0.68,
+     "print_h": 0.105,
+     "supports": false,
+     "support_g": 0.0
+    },
+    "PRINT_RearCover": {
+     "filament_g": 60.03,
+     "print_h": 6.718,
+     "supports": true,
+     "support_g": 2.53
+    },
+    "PRINT_Shell": {
+     "filament_g": 226.66,
+     "print_h": 18.913,
+     "supports": true,
+     "support_g": 1.88
+    },
+    "PRINT_SpeakerRing": {
+     "filament_g": 3.06,
+     "print_h": 0.301,
+     "supports": false,
+     "support_g": 0.0
+    }
+   },
+   "source": "print/slice-stats.json (PrusaSlicer run on these STLs)"
+  },
+  "assembly_ops": {
+   "core_prep": 1,
+   "module_install": 9,
+   "cable_route": 2,
+   "insert_heatset": 17,
+   "shell_close": 1,
+   "flash_provision": 1,
+   "functional_test": 1,
+   "qc_photo": 1,
+   "pack": 1
+  },
+  "assembly_ops_basis": "ASSUMPTION: same operation set as the sim (sim-assumptions.json assembly.minutes_per_op); counts come from this design: one module_install per mounted module, one cable_route per 3 harness cables (minimum 1), one insert_heatset per heat-set insert in the hardware list",
+  "logistics": {
+   "box_cm": {
+    "value": [
+     23,
+     20,
+     27
+    ],
+    "basis": "assembly bounding box [142, 110, 188] mm + 40 mm padding per side (ASSUMPTION: outer box = assembly bounding box + 40 mm padding per side (the sim used a fixed 22 x 18 x 20 cm box for a 108 x 78 x 124 mm robot))"
+   },
+   "packed_weight_kg": {
+    "low": 0.553,
+    "mode": 0.663,
+    "high": 0.843,
+    "basis": "sliced plastic 293 g + electronics and box allowances (ASSUMPTION, see gstudio-assumptions.json)"
+   }
+  },
+  "assumptions_files": [
+   "gstudio/order/data/sim-assumptions.json",
+   "gstudio/order/data/gstudio-assumptions.json"
+  ],
+  "draws": 20000,
+  "seed": 7
+ },
+ "cross_checks": {
+  "bureau_fdm_inr": {
+   "low": 781,
+   "high": 1301,
+   "model_volume_cm3": 260.2,
+   "basis": "RESEARCH: IamRapid published FDM PLA 3-5 per cm3 (india_landscape.md line 75) - used only as a cross-check"
+  }
+ },
+ "engine": {
+  "module": "gstudio.order.price_engine",
+  "vendored_from": "sim/price_engine.py",
+  "seconds": 1.75
+ },
+ "limits": [
+  "Every rupee is a planning range or a labelled assumption, not a supplier quote; no contract or rate card exists yet (blueprint §7.1).",
+  "Courier cost and delivery window assume an Indian destination; the pincode is unknown.",
+  "GST is applied at 18% as an assumption; the product's HSN classification needs a tax adviser (blueprint §8.7).",
+  "Print cost uses the sliced grams and hours of a generic 0.4 mm FDM profile; a print bureau's own slicer will differ."
+ ]
+}

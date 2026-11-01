@@ -1,0 +1,3137 @@
+{
+ "schema": "gstudio-web-project/1",
+ "id": "p_d565a53hmmrp",
+ "name": "Bedtime Story Robot",
+ "name_source": "agent",
+ "created": "2026-11-01T11:53:49Z",
+ "updated": "2026-11-01T12:10:14Z",
+ "deleted": false,
+ "stage": "ready",
+ "mode": "pro",
+ "turn": null,
+ "questions_asked": 2,
+ "chat": [
+  {
+   "id": "m_k6vmv7yrgu",
+   "role": "user",
+   "kind": "text",
+   "text": "I want a cute robot that tells my daughter bedtime stories and remembers her favorite characters.",
+   "payload": null,
+   "ts": "2026-11-01T11:53:49Z"
+  },
+  {
+   "id": "m_wbysxvp84q",
+   "role": "assistant",
+   "kind": "choices",
+   "text": "I would love to design this bedtime storyteller for her! I'll plan a small USB-powered robot and use India for parts sourcing; both choices can be changed.\n\nHer age will guide the story length, vocabulary, and the physical shape of the robot. This determines whether the robot needs a microphone for her to speak to it, or if it will be controlled by a parent.",
+   "payload": {
+    "questions": [
+     {
+      "id": "age",
+      "question": "How old is your daughter?",
+      "consequence": "Her age will guide the story length, vocabulary, and the physical shape of the robot.",
+      "options": [
+       "3-4 years",
+       "5-6 years",
+       "7-8 years"
+      ],
+      "allow_free_text": true
+     },
+     {
+      "id": "character_input",
+      "question": "How should new favorite characters be added?",
+      "consequence": "This determines whether the robot needs a microphone for her to speak to it, or if it will be controlled by a parent.",
+      "options": [
+       "She tells the robot",
+       "I type them in for her"
+      ],
+      "allow_free_text": true
+     }
+    ],
+    "answered": true,
+    "defaults": [
+     "Power: USB-C adapter",
+     "Country: India",
+     "Stories: Saved directly to the device"
+    ],
+    "answers": [
+     {
+      "question_id": "age",
+      "value": "5 years old"
+     },
+     {
+      "question_id": "character_input",
+      "value": "She tells the robot herself (a microphone is OK)"
+     }
+    ],
+    "skipped": false
+   },
+   "ts": "2026-11-01T11:54:01Z"
+  },
+  {
+   "id": "m_epi2htgn75",
+   "role": "user",
+   "kind": "text",
+   "text": "My choices:\n5 years old, She tells the robot herself (a microphone is OK)",
+   "payload": {
+    "action": "answers",
+    "answers": [
+     {
+      "question_id": "age",
+      "value": "5 years old"
+     },
+     {
+      "question_id": "character_input",
+      "value": "She tells the robot herself (a microphone is OK)"
+     }
+    ],
+    "skipped": false
+   },
+   "ts": "2026-11-01T11:54:12Z"
+  },
+  {
+   "id": "m_r9m5fnb9xh",
+   "role": "assistant",
+   "kind": "concepts",
+   "text": "Choose the robot shape you prefer from the concepts. The proposed design uses short offline stories with saved character names; its face and limbs stay still. These defaults can be changed.",
+   "payload": {
+    "concept_ids": [
+     "c_izebmb583d",
+     "c_7zu9uh5dck",
+     "c_wkng39fyfp",
+     "c_vh95znmtqx",
+     "c_a4p4ty9mqy",
+     "c_szpt3n94aq"
+    ],
+    "tiers": {
+     "expected": [
+      "c_izebmb583d",
+      "c_7zu9uh5dck"
+     ],
+     "different": [
+      "c_wkng39fyfp",
+      "c_vh95znmtqx"
+     ],
+     "wildcard": [
+      "c_a4p4ty9mqy",
+      "c_szpt3n94aq"
+     ]
+    },
+    "selected": "c_izebmb583d",
+    "defaults": [
+     "Country: India (default)",
+     "Power: USB-C adapter",
+     "Microphone: Push-to-talk"
+    ]
+   },
+   "ts": "2026-11-01T11:59:29Z"
+  },
+  {
+   "id": "m_wkd8i6uzkr",
+   "role": "user",
+   "kind": "text",
+   "text": "My choices:\nSleepy Bear",
+   "payload": {
+    "action": "select_concept",
+    "concept_id": "c_izebmb583d",
+    "image_url": "/api/projects/p_d565a53hmmrp/concepts/c_izebmb583d/photo.png"
+   },
+   "ts": "2026-11-01T12:00:07Z"
+  },
+  {
+   "id": "m_pwxav6i7th",
+   "role": "assistant",
+   "kind": "brief",
+   "text": "The brief for your Sleepy Bear is ready. It details how the stories, voice recording, and safety features work. Choose **Build this** to proceed.",
+   "payload": {
+    "brief_version": 1
+   },
+   "ts": "2026-11-01T12:00:26Z"
+  },
+  {
+   "id": "m_npeef76xpn",
+   "role": "user",
+   "kind": "text",
+   "text": "My choices:\nBuild this",
+   "payload": {
+    "action": "approve_brief"
+   },
+   "ts": "2026-11-01T12:00:37Z"
+  },
+  {
+   "id": "m_zx83wg6pvd",
+   "role": "assistant",
+   "kind": "progress",
+   "text": "Version 1 built.",
+   "payload": {
+    "version": 1,
+    "status": {
+     "state": "done",
+     "percent": 100.0,
+     "stages": [
+      {
+       "id": "normalize",
+       "label": "Check the design",
+       "state": "done",
+       "started": "2026-11-01T12:00:37Z",
+       "ended": "2026-11-01T12:00:37Z",
+       "message": "spec valid; 11 module instances",
+       "percent": 100.0,
+       "seconds": 0.19
+      },
+      {
+       "id": "electrical",
+       "label": "Wiring and pin map",
+       "state": "done",
+       "started": "2026-11-01T12:00:37Z",
+       "ended": "2026-11-01T12:00:37Z",
+       "message": "done",
+       "percent": 100.0,
+       "seconds": 0.0
+      },
+      {
+       "id": "cad",
+       "label": "Shell and CAD",
+       "state": "done",
+       "started": "2026-11-01T12:00:37Z",
+       "ended": "2026-11-01T12:02:05Z",
+       "message": "done",
+       "percent": 100.0,
+       "seconds": 87.84
+      },
+      {
+       "id": "pcb",
+       "label": "Backplane PCB",
+       "state": "done",
+       "started": "2026-11-01T12:00:37Z",
+       "ended": "2026-11-01T12:01:37Z",
+       "message": "done",
+       "percent": 100.0,
+       "seconds": 59.74
+      },
+      {
+       "id": "firmware",
+       "label": "Firmware",
+       "state": "done",
+       "started": "2026-11-01T12:00:37Z",
+       "ended": "2026-11-01T12:00:56Z",
+       "message": "done",
+       "percent": 100.0,
+       "seconds": 19.38
+      },
+      {
+       "id": "order",
+       "label": "Print slicing and price",
+       "state": "done",
+       "started": "2026-11-01T12:02:05Z",
+       "ended": "2026-11-01T12:02:13Z",
+       "message": "22 purchased rows, 7 print part(s) 290 g / 26.1 h, one-off ₹18,999 (ESTIMATE_REVIEW_REQUIRED)",
+       "percent": 100.0,
+       "seconds": 8.56
+      },
+      {
+       "id": "manual",
+       "label": "Build manual",
+       "state": "done",
+       "started": "2026-11-01T12:02:13Z",
+       "ended": "2026-11-01T12:02:34Z",
+       "message": "done",
+       "percent": 100.0,
+       "seconds": 20.41
+      },
+      {
+       "id": "checks",
+       "label": "Digital checks",
+       "state": "done",
+       "started": "2026-11-01T12:02:34Z",
+       "ended": "2026-11-01T12:02:35Z",
+       "message": "83 passed, 4 failed, 3 warnings, 0 not run",
+       "percent": 100.0,
+       "seconds": 1.5
+      },
+      {
+       "id": "docs",
+       "label": "Project documents",
+       "state": "done",
+       "started": "2026-11-01T12:02:35Z",
+       "ended": "2026-11-01T12:02:35Z",
+       "message": "PROJECT.md 10,369 B, PARTS_EVIDENCE.md 35,581 B, SOFTWARE_SETUP.md 8,421 B",
+       "percent": 100.0,
+       "seconds": 0.01
+      },
+      {
+       "id": "package",
+       "label": "Package and export",
+       "state": "done",
+       "started": "2026-11-01T12:02:35Z",
+       "ended": "2026-11-01T12:02:38Z",
+       "message": "226 files, 89.6 MB, export.zip 34.5 MB",
+       "percent": 100.0,
+       "seconds": 3.13
+      }
+     ],
+     "error": null,
+     "failed": [],
+     "messages": [
+      {
+       "text": "Checked the design against the module library.",
+       "ts": "2026-11-01T12:00:37Z",
+       "stage": "normalize"
+      },
+      {
+       "text": "Planned the wiring: 11 modules on 9 backplane slots, 31 nets.",
+       "ts": "2026-11-01T12:00:37Z",
+       "stage": "electrical"
+      },
+      {
+       "text": "Firmware compiled, 58/58 unit tests passed.",
+       "ts": "2026-11-01T12:00:56Z",
+       "stage": "firmware"
+      },
+      {
+       "text": "Routed the 62.8 x 78.6 mm backplane: 0 DRC errors, 0 ERC errors, 0 unrouted, 77 vias, 1609 mm of track.",
+       "ts": "2026-11-01T12:01:37Z",
+       "stage": "pcb"
+      },
+      {
+       "text": "Built the enclosure: 28 named parts, 7 printed parts plus 3 fit coupons; 15 of 18 CAD checks passed.",
+       "ts": "2026-11-01T12:02:05Z",
+       "stage": "cad"
+      },
+      {
+       "text": "Sliced the print parts (290 g, 26.1 h) and priced the build: about ₹18,999 for a one-off, ₹11,499 at volume (an estimate, incl. GST).",
+       "ts": "2026-11-01T12:02:13Z",
+       "stage": "order"
+      },
+      {
+       "text": "Wrote the build manual: 18 steps with 21 illustrations rendered from the CAD.",
+       "ts": "2026-11-01T12:02:34Z",
+       "stage": "manual"
+      },
+      {
+       "text": "Digital checks: 83 passed, 4 failed, 3 warnings.",
+       "ts": "2026-11-01T12:02:35Z",
+       "stage": "checks"
+      },
+      {
+       "text": "Packaged 226 files into export.zip (34.5 MB) with a checksum manifest.",
+       "ts": "2026-11-01T12:02:38Z",
+       "stage": "package"
+      }
+     ],
+     "draft": "cad/draft.glb",
+     "draft_rev": 1,
+     "started": "2026-11-01T12:00:37Z",
+     "updated": "2026-11-01T12:02:38Z",
+     "draft_url": null
+    }
+   },
+   "ts": "2026-11-01T12:00:37Z"
+  },
+  {
+   "id": "m_ydquuestnn",
+   "role": "assistant",
+   "kind": "result",
+   "text": "- Sleepy Bear's printed shell: 10 print parts with STEP and STL files.\n- A routed 2-layer backplane PCB with Gerbers.\n- Compiled ESP32-S3 firmware.\n- An illustrated build manual: 18 steps, 20 images.\n- A parts list of 22 purchased items with sources.\n- 86 of 90 digital checks passed; not passed: Print STLs are watertight with one connected component; Full pair matrix of rigid components: no unintended intersection; Feature modules clear each other and the cartridge (>= 0.5 mm) and 1 more; firmware unit tests 58/58; PCB DRC errors: 0.\n- ₹18,999 delivered (estimate, not a binding price).\n\nSome digital checks failed; see Design progress before building this.\nPhysical checks still needed:\n- Power-on and self-test\n- Story, stop and volume\n- Listening light and confirmation\nPlus 4 further physical checks under Design progress below.",
+   "payload": {
+    "version": 1,
+    "summary": {
+     "state": "done",
+     "made": [
+      "Sleepy Bear's printed shell: 10 print parts with STEP and STL files",
+      "A routed 2-layer backplane PCB with Gerbers",
+      "Compiled ESP32-S3 firmware",
+      "An illustrated build manual: 18 steps, 20 images",
+      "A parts list of 22 purchased items with sources"
+     ],
+     "checks": {
+      "digital_passed": 86,
+      "digital_total": 90,
+      "digital_failed": [
+       "Print STLs are watertight with one connected component",
+       "Full pair matrix of rigid components: no unintended intersection",
+       "Feature modules clear each other and the cartridge (>= 0.5 mm)",
+       "PRINT_Shell: closed mesh, one body"
+      ],
+      "firmware_compiled": true,
+      "firmware_tests": "58/58",
+      "pcb_drc_errors": 0,
+      "pcb_erc_errors": 0
+     },
+     "price": {
+      "inr": 18999.0,
+      "status": "ESTIMATE_REVIEW_REQUIRED",
+      "label": "₹18,999 delivered (estimate, not a binding price)"
+     },
+     "physical_checks": [
+      {
+       "title": "Power-on and self-test",
+       "expected": "On USB-C power the gadget starts, and every module passes its self-test as described in SOFTWARE_SETUP.md: button, display, light, microphone, speaker."
+      },
+      {
+       "title": "Story, stop and volume",
+       "expected": "A tap plays a story through the speaker; a tap during a story stops it; the volume is comfortable at the listening position."
+      },
+      {
+       "title": "Listening light and confirmation",
+       "expected": "The microphone opens only while the button is held, the light shows it is listening, and a new favourite is kept only after an explicit confirming tap."
+      },
+      {
+       "title": "Memory after restart",
+       "expected": "A confirmed favourite is still there after unplugging and re-plugging power, and appears in a later story."
+      },
+      {
+       "title": "Local API",
+       "expected": "From a phone or computer on the same network, GET /api/state returns the gadget's state and POST /api/action performs an action."
+      },
+      {
+       "title": "Closed-case heat, power and retention",
+       "expected": "During a 30-minute session with the gadget closed there are no resets, no part becomes uncomfortably warm to touch, nothing rattles and no cable is pinched."
+      },
+      {
+       "title": "Stability",
+       "expected": "The gadget stands level on its feet and does not tip or slide during normal use by a child under adult supervision."
+      }
+     ],
+     "notes": []
+    }
+   },
+   "ts": "2026-11-01T12:02:38Z"
+  },
+  {
+   "id": "m_3j5b4d5bah",
+   "role": "user",
+   "kind": "text",
+   "text": "Edit main shell: make the ears rounder and the face a bit bigger",
+   "payload": {
+    "action": "edit_part",
+    "component": "PRINT_Shell",
+    "label": "main shell",
+    "spec_path": "body"
+   },
+   "ts": "2026-11-01T12:03:03Z"
+  },
+  {
+   "id": "m_29fjqbsrff",
+   "role": "assistant",
+   "kind": "text",
+   "text": "I've made the bear's ears bigger and rounder, and expanded the face area to make it stand out a bit more.",
+   "payload": null,
+   "ts": "2026-11-01T12:03:38Z"
+  },
+  {
+   "id": "m_sb9q83rt2c",
+   "role": "assistant",
+   "kind": "progress",
+   "text": "Version 2 built.",
+   "payload": {
+    "version": 2,
+    "status": {
+     "state": "done",
+     "percent": 100.0,
+     "stages": [
+      {
+       "id": "normalize",
+       "label": "Check the design",
+       "state": "done",
+       "started": "2026-11-01T12:03:38Z",
+       "ended": "2026-11-01T12:03:38Z",
+       "message": "spec valid; 11 module instances",
+       "percent": 100.0,
+       "seconds": 0.19
+      },
+      {
+       "id": "electrical",
+       "label": "Wiring and pin map",
+       "state": "done",
+       "started": "2026-11-01T12:03:38Z",
+       "ended": "2026-11-01T12:03:38Z",
+       "message": "done",
+       "percent": 100.0,
+       "seconds": 0.0
+      },
+      {
+       "id": "cad",
+       "label": "Shell and CAD",
+       "state": "done",
+       "started": "2026-11-01T12:03:38Z",
+       "ended": "2026-11-01T12:05:16Z",
+       "message": "done",
+       "percent": 100.0,
+       "seconds": 97.4
+      },
+      {
+       "id": "pcb",
+       "label": "Backplane PCB",
+       "state": "done",
+       "started": "2026-11-01T12:03:38Z",
+       "ended": "2026-11-01T12:04:36Z",
+       "message": "done",
+       "percent": 100.0,
+       "seconds": 57.6
+      },
+      {
+       "id": "firmware",
+       "label": "Firmware",
+       "state": "done",
+       "started": "2026-11-01T12:03:38Z",
+       "ended": "2026-11-01T12:03:42Z",
+       "message": "done",
+       "percent": 100.0,
+       "seconds": 4.25
+      },
+      {
+       "id": "order",
+       "label": "Print slicing and price",
+       "state": "done",
+       "started": "2026-11-01T12:05:16Z",
+       "ended": "2026-11-01T12:05:24Z",
+       "message": "22 purchased rows, 7 print part(s) 293 g / 26.3 h, one-off ₹18,999 (ESTIMATE_REVIEW_REQUIRED)",
+       "percent": 100.0,
+       "seconds": 8.92
+      },
+      {
+       "id": "manual",
+       "label": "Build manual",
+       "state": "done",
+       "started": "2026-11-01T12:05:24Z",
+       "ended": "2026-11-01T12:05:45Z",
+       "message": "done",
+       "percent": 100.0,
+       "seconds": 20.59
+      },
+      {
+       "id": "checks",
+       "label": "Digital checks",
+       "state": "done",
+       "started": "2026-11-01T12:05:45Z",
+       "ended": "2026-11-01T12:05:47Z",
+       "message": "85 passed, 2 failed, 3 warnings, 0 not run",
+       "percent": 100.0,
+       "seconds": 1.55
+      },
+      {
+       "id": "docs",
+       "label": "Project documents",
+       "state": "done",
+       "started": "2026-11-01T12:05:47Z",
+       "ended": "2026-11-01T12:05:47Z",
+       "message": "PROJECT.md 10,187 B, PARTS_EVIDENCE.md 35,582 B, SOFTWARE_SETUP.md 8,421 B",
+       "percent": 100.0,
+       "seconds": 0.01
+      },
+      {
+       "id": "package",
+       "label": "Package and export",
+       "state": "done",
+       "started": "2026-11-01T12:05:47Z",
+       "ended": "2026-11-01T12:05:50Z",
+       "message": "226 files, 97.3 MB, export.zip 38.2 MB",
+       "percent": 100.0,
+       "seconds": 3.75
+      }
+     ],
+     "error": null,
+     "failed": [],
+     "messages": [
+      {
+       "text": "Checked the design against the module library.",
+       "ts": "2026-11-01T12:03:38Z",
+       "stage": "normalize"
+      },
+      {
+       "text": "Planned the wiring: 11 modules on 9 backplane slots, 31 nets.",
+       "ts": "2026-11-01T12:03:38Z",
+       "stage": "electrical"
+      },
+      {
+       "text": "Firmware compiled, 58/58 unit tests passed.",
+       "ts": "2026-11-01T12:03:42Z",
+       "stage": "firmware"
+      },
+      {
+       "text": "Routed the 62.8 x 78.6 mm backplane: 0 DRC errors, 0 ERC errors, 0 unrouted, 77 vias, 1609 mm of track.",
+       "ts": "2026-11-01T12:04:36Z",
+       "stage": "pcb"
+      },
+      {
+       "text": "Built the enclosure: 28 named parts, 7 printed parts plus 3 fit coupons; 16 of 18 CAD checks passed.",
+       "ts": "2026-11-01T12:05:15Z",
+       "stage": "cad"
+      },
+      {
+       "text": "Sliced the print parts (293 g, 26.3 h) and priced the build: about ₹18,999 for a one-off, ₹11,499 at volume (an estimate, incl. GST).",
+       "ts": "2026-11-01T12:05:24Z",
+       "stage": "order"
+      },
+      {
+       "text": "Wrote the build manual: 18 steps with 21 illustrations rendered from the CAD.",
+       "ts": "2026-11-01T12:05:45Z",
+       "stage": "manual"
+      },
+      {
+       "text": "Digital checks: 85 passed, 2 failed, 3 warnings.",
+       "ts": "2026-11-01T12:05:47Z",
+       "stage": "checks"
+      },
+      {
+       "text": "Packaged 226 files into export.zip (38.2 MB) with a checksum manifest.",
+       "ts": "2026-11-01T12:05:50Z",
+       "stage": "package"
+      }
+     ],
+     "draft": "cad/draft.glb",
+     "draft_rev": 1,
+     "started": "2026-11-01T12:03:38Z",
+     "updated": "2026-11-01T12:05:50Z",
+     "draft_url": null
+    }
+   },
+   "ts": "2026-11-01T12:03:38Z"
+  },
+  {
+   "id": "m_qp658ux9hg",
+   "role": "assistant",
+   "kind": "result",
+   "text": "- Sleepy Bear's printed shell: 10 print parts with STEP and STL files.\n- A routed 2-layer backplane PCB with Gerbers.\n- Compiled ESP32-S3 firmware.\n- An illustrated build manual: 18 steps, 20 images.\n- A parts list of 22 purchased items with sources.\n- 88 of 90 digital checks passed; not passed: Full pair matrix of rigid components: no unintended intersection; Feature modules clear each other and the cartridge (>= 0.5 mm); firmware unit tests 58/58; PCB DRC errors: 0.\n- ₹18,999 delivered (estimate, not a binding price).\n\nSome digital checks failed; see Design progress before building this.\nPhysical checks still needed:\n- Power-on and self-test\n- Story, stop and volume\n- Listening light and confirmation\nPlus 4 further physical checks under Design progress below.",
+   "payload": {
+    "version": 2,
+    "summary": {
+     "state": "done",
+     "made": [
+      "Sleepy Bear's printed shell: 10 print parts with STEP and STL files",
+      "A routed 2-layer backplane PCB with Gerbers",
+      "Compiled ESP32-S3 firmware",
+      "An illustrated build manual: 18 steps, 20 images",
+      "A parts list of 22 purchased items with sources"
+     ],
+     "checks": {
+      "digital_passed": 88,
+      "digital_total": 90,
+      "digital_failed": [
+       "Full pair matrix of rigid components: no unintended intersection",
+       "Feature modules clear each other and the cartridge (>= 0.5 mm)"
+      ],
+      "firmware_compiled": true,
+      "firmware_tests": "58/58",
+      "pcb_drc_errors": 0,
+      "pcb_erc_errors": 0
+     },
+     "price": {
+      "inr": 18999.0,
+      "status": "ESTIMATE_REVIEW_REQUIRED",
+      "label": "₹18,999 delivered (estimate, not a binding price)"
+     },
+     "physical_checks": [
+      {
+       "title": "Power-on and self-test",
+       "expected": "On USB-C power the gadget starts, and every module passes its self-test as described in SOFTWARE_SETUP.md: button, display, light, microphone, speaker."
+      },
+      {
+       "title": "Story, stop and volume",
+       "expected": "A tap plays a story through the speaker; a tap during a story stops it; the volume is comfortable at the listening position."
+      },
+      {
+       "title": "Listening light and confirmation",
+       "expected": "The microphone opens only while the button is held, the light shows it is listening, and a new favourite is kept only after an explicit confirming tap."
+      },
+      {
+       "title": "Memory after restart",
+       "expected": "A confirmed favourite is still there after unplugging and re-plugging power, and appears in a later story."
+      },
+      {
+       "title": "Local API",
+       "expected": "From a phone or computer on the same network, GET /api/state returns the gadget's state and POST /api/action performs an action."
+      },
+      {
+       "title": "Closed-case heat, power and retention",
+       "expected": "During a 30-minute session with the gadget closed there are no resets, no part becomes uncomfortably warm to touch, nothing rattles and no cable is pinched."
+      },
+      {
+       "title": "Stability",
+       "expected": "The gadget stands level on its feet and does not tip or slide during normal use by a child under adult supervision."
+      }
+     ],
+     "notes": []
+    }
+   },
+   "ts": "2026-11-01T12:05:50Z"
+  },
+  {
+   "id": "m_z8it8mvvuw",
+   "role": "user",
+   "kind": "tweak",
+   "text": "Tweaked colour to pale teal",
+   "payload": {
+    "version": 3,
+    "patch": {
+     "colors": {
+      "body": "#8CC9C0",
+      "body_name": "pale teal"
+     }
+    },
+    "scale": null,
+    "base_version": 2
+   },
+   "ts": "2026-11-01T12:05:59Z"
+  },
+  {
+   "id": "m_q5ri45hquc",
+   "role": "assistant",
+   "kind": "progress",
+   "text": "Version 3 built.",
+   "payload": {
+    "version": 3,
+    "status": {
+     "state": "done",
+     "percent": 100.0,
+     "stages": [
+      {
+       "id": "normalize",
+       "label": "Check the design",
+       "state": "done",
+       "started": "2026-11-01T12:05:59Z",
+       "ended": "2026-11-01T12:05:59Z",
+       "message": "spec valid; 11 module instances",
+       "percent": 100.0,
+       "seconds": 0.19
+      },
+      {
+       "id": "electrical",
+       "label": "Wiring and pin map",
+       "state": "done",
+       "started": "2026-11-01T12:05:59Z",
+       "ended": "2026-11-01T12:05:59Z",
+       "message": "done",
+       "percent": 100.0,
+       "seconds": 0.0
+      },
+      {
+       "id": "cad",
+       "label": "Shell and CAD",
+       "state": "done",
+       "started": "2026-11-01T12:05:59Z",
+       "ended": "2026-11-01T12:07:36Z",
+       "message": "done",
+       "percent": 100.0,
+       "seconds": 96.9
+      },
+      {
+       "id": "pcb",
+       "label": "Backplane PCB",
+       "state": "done",
+       "started": "2026-11-01T12:05:59Z",
+       "ended": "2026-11-01T12:06:56Z",
+       "message": "done",
+       "percent": 100.0,
+       "seconds": 57.14
+      },
+      {
+       "id": "firmware",
+       "label": "Firmware",
+       "state": "done",
+       "started": "2026-11-01T12:05:59Z",
+       "ended": "2026-11-01T12:06:03Z",
+       "message": "done",
+       "percent": 100.0,
+       "seconds": 4.23
+      },
+      {
+       "id": "order",
+       "label": "Print slicing and price",
+       "state": "done",
+       "started": "2026-11-01T12:07:36Z",
+       "ended": "2026-11-01T12:07:45Z",
+       "message": "22 purchased rows, 7 print part(s) 293 g / 26.3 h, one-off ₹18,999 (ESTIMATE_REVIEW_REQUIRED)",
+       "percent": 100.0,
+       "seconds": 9.04
+      },
+      {
+       "id": "manual",
+       "label": "Build manual",
+       "state": "done",
+       "started": "2026-11-01T12:07:45Z",
+       "ended": "2026-11-01T12:08:06Z",
+       "message": "done",
+       "percent": 100.0,
+       "seconds": 20.92
+      },
+      {
+       "id": "checks",
+       "label": "Digital checks",
+       "state": "done",
+       "started": "2026-11-01T12:08:06Z",
+       "ended": "2026-11-01T12:08:08Z",
+       "message": "85 passed, 2 failed, 3 warnings, 0 not run",
+       "percent": 100.0,
+       "seconds": 1.55
+      },
+      {
+       "id": "docs",
+       "label": "Project documents",
+       "state": "done",
+       "started": "2026-11-01T12:08:08Z",
+       "ended": "2026-11-01T12:08:08Z",
+       "message": "PROJECT.md 10,183 B, PARTS_EVIDENCE.md 35,554 B, SOFTWARE_SETUP.md 8,421 B",
+       "percent": 100.0,
+       "seconds": 0.01
+      },
+      {
+       "id": "package",
+       "label": "Package and export",
+       "state": "done",
+       "started": "2026-11-01T12:08:08Z",
+       "ended": "2026-11-01T12:08:11Z",
+       "message": "226 files, 97.3 MB, export.zip 38.1 MB",
+       "percent": 100.0,
+       "seconds": 3.75
+      }
+     ],
+     "error": null,
+     "failed": [],
+     "messages": [
+      {
+       "text": "Checked the design against the module library.",
+       "ts": "2026-11-01T12:05:59Z",
+       "stage": "normalize"
+      },
+      {
+       "text": "Planned the wiring: 11 modules on 9 backplane slots, 31 nets.",
+       "ts": "2026-11-01T12:05:59Z",
+       "stage": "electrical"
+      },
+      {
+       "text": "Firmware compiled, 58/58 unit tests passed.",
+       "ts": "2026-11-01T12:06:03Z",
+       "stage": "firmware"
+      },
+      {
+       "text": "Routed the 62.8 x 78.6 mm backplane: 0 DRC errors, 0 ERC errors, 0 unrouted, 77 vias, 1609 mm of track.",
+       "ts": "2026-11-01T12:06:56Z",
+       "stage": "pcb"
+      },
+      {
+       "text": "Built the enclosure: 28 named parts, 7 printed parts plus 3 fit coupons; 16 of 18 CAD checks passed.",
+       "ts": "2026-11-01T12:07:36Z",
+       "stage": "cad"
+      },
+      {
+       "text": "Sliced the print parts (293 g, 26.3 h) and priced the build: about ₹18,999 for a one-off, ₹11,499 at volume (an estimate, incl. GST).",
+       "ts": "2026-11-01T12:07:45Z",
+       "stage": "order"
+      },
+      {
+       "text": "Wrote the build manual: 18 steps with 21 illustrations rendered from the CAD.",
+       "ts": "2026-11-01T12:08:06Z",
+       "stage": "manual"
+      },
+      {
+       "text": "Digital checks: 85 passed, 2 failed, 3 warnings.",
+       "ts": "2026-11-01T12:08:08Z",
+       "stage": "checks"
+      },
+      {
+       "text": "Packaged 226 files into export.zip (38.1 MB) with a checksum manifest.",
+       "ts": "2026-11-01T12:08:11Z",
+       "stage": "package"
+      }
+     ],
+     "draft": "cad/draft.glb",
+     "draft_rev": 1,
+     "started": "2026-11-01T12:05:59Z",
+     "updated": "2026-11-01T12:08:11Z",
+     "draft_url": null
+    }
+   },
+   "ts": "2026-11-01T12:05:59Z"
+  },
+  {
+   "id": "m_p935bnwbk8",
+   "role": "assistant",
+   "kind": "result",
+   "text": "- Sleepy Bear's printed shell: 10 print parts with STEP and STL files.\n- A routed 2-layer backplane PCB with Gerbers.\n- Compiled ESP32-S3 firmware.\n- An illustrated build manual: 18 steps, 20 images.\n- A parts list of 22 purchased items with sources.\n- 88 of 90 digital checks passed; not passed: Full pair matrix of rigid components: no unintended intersection; Feature modules clear each other and the cartridge (>= 0.5 mm); firmware unit tests 58/58; PCB DRC errors: 0.\n- ₹18,999 delivered (estimate, not a binding price).\n\nSome digital checks failed; see Design progress before building this.\nPhysical checks still needed:\n- Power-on and self-test\n- Story, stop and volume\n- Listening light and confirmation\nPlus 4 further physical checks under Design progress below.",
+   "payload": {
+    "version": 3,
+    "summary": {
+     "state": "done",
+     "made": [
+      "Sleepy Bear's printed shell: 10 print parts with STEP and STL files",
+      "A routed 2-layer backplane PCB with Gerbers",
+      "Compiled ESP32-S3 firmware",
+      "An illustrated build manual: 18 steps, 20 images",
+      "A parts list of 22 purchased items with sources"
+     ],
+     "checks": {
+      "digital_passed": 88,
+      "digital_total": 90,
+      "digital_failed": [
+       "Full pair matrix of rigid components: no unintended intersection",
+       "Feature modules clear each other and the cartridge (>= 0.5 mm)"
+      ],
+      "firmware_compiled": true,
+      "firmware_tests": "58/58",
+      "pcb_drc_errors": 0,
+      "pcb_erc_errors": 0
+     },
+     "price": {
+      "inr": 18999.0,
+      "status": "ESTIMATE_REVIEW_REQUIRED",
+      "label": "₹18,999 delivered (estimate, not a binding price)"
+     },
+     "physical_checks": [
+      {
+       "title": "Power-on and self-test",
+       "expected": "On USB-C power the gadget starts, and every module passes its self-test as described in SOFTWARE_SETUP.md: button, display, light, microphone, speaker."
+      },
+      {
+       "title": "Story, stop and volume",
+       "expected": "A tap plays a story through the speaker; a tap during a story stops it; the volume is comfortable at the listening position."
+      },
+      {
+       "title": "Listening light and confirmation",
+       "expected": "The microphone opens only while the button is held, the light shows it is listening, and a new favourite is kept only after an explicit confirming tap."
+      },
+      {
+       "title": "Memory after restart",
+       "expected": "A confirmed favourite is still there after unplugging and re-plugging power, and appears in a later story."
+      },
+      {
+       "title": "Local API",
+       "expected": "From a phone or computer on the same network, GET /api/state returns the gadget's state and POST /api/action performs an action."
+      },
+      {
+       "title": "Closed-case heat, power and retention",
+       "expected": "During a 30-minute session with the gadget closed there are no resets, no part becomes uncomfortably warm to touch, nothing rattles and no cable is pinched."
+      },
+      {
+       "title": "Stability",
+       "expected": "The gadget stands level on its feet and does not tip or slide during normal use by a child under adult supervision."
+      }
+     ],
+     "notes": []
+    }
+   },
+   "ts": "2026-11-01T12:08:11Z"
+  }
+ ],
+ "concepts": [
+  {
+   "id": "c_izebmb583d",
+   "title": "Sleepy Bear",
+   "tier": "expected",
+   "blurb": "A soft, cuddly bear shape with sleepy animated eyes and a tummy button.",
+   "spec": {
+    "electronics": {
+     "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+     "extra_modules": [],
+     "power": {
+      "input": "usb_c_5v",
+      "adapter_in_box": false
+     }
+    },
+    "tagline": "A gentle bear that tells stories about her favorite friends.",
+    "body": {
+     "split": "rear_cover",
+     "wall": 2.4,
+     "outline": [
+      [
+       -60,
+       0
+      ],
+      [
+       60,
+       0
+      ],
+      [
+       70,
+       40
+      ],
+      [
+       65,
+       110
+      ],
+      [
+       50,
+       150
+      ],
+      [
+       0,
+       165
+      ],
+      [
+       -50,
+       150
+      ],
+      [
+       -65,
+       110
+      ],
+      [
+       -70,
+       40
+      ]
+     ],
+     "depth": 110,
+     "family": "silhouette",
+     "edge_round": 12,
+     "feet": 4
+    },
+    "safety": {
+     "flags": [
+      "CHILD_DIRECTED",
+      "LOCAL_VOICE_CAPTURE",
+      "NIGHT_USE"
+     ],
+     "notes": "Adult assembly required. Microphone only active when button is held."
+    },
+    "features": [
+     {
+      "module": "SPK_40MM_4R_3W",
+      "id": "speaker",
+      "grille": {
+       "hole": 2.4,
+       "w": 36,
+       "h": 36,
+       "pitch": 4.4,
+       "pattern": "dots_ellipse"
+      },
+      "label": "Story speaker",
+      "face": "front",
+      "at": [
+       0,
+       56
+      ]
+     },
+     {
+      "id": "story_button",
+      "label": "Story and listening button",
+      "at": [
+       0,
+       -10
+      ],
+      "face": "top",
+      "module": "BUTTON_ARCADE_30MM_SNAPIN"
+     },
+     {
+      "module": "OLED_130_SH1106_I2C",
+      "at": [
+       0,
+       120
+      ],
+      "face": "front",
+      "id": "eyes",
+      "label": "Animated sleepy eyes"
+     },
+     {
+      "label": "Night light",
+      "at": [
+       0,
+       85
+      ],
+      "module": "LED_WS2812B_1PX_MODULE",
+      "face": "front",
+      "id": "status_light"
+     },
+     {
+      "module": "MIC_INMP441_I2S",
+      "id": "mic",
+      "face": "front",
+      "at": [
+       30,
+       85
+      ],
+      "label": "Voice microphone"
+     }
+    ],
+    "region": "IN",
+    "slug": "sleepy-bear",
+    "decor": [
+     {
+      "at": [
+       0,
+       120
+      ],
+      "relief": "engrave",
+      "type": "face_plate",
+      "size": [
+       100,
+       50
+      ],
+      "shape": "ellipse",
+      "depth": 1.2
+     },
+     {
+      "style": "bear",
+      "tilt": 0,
+      "side": "both",
+      "at": [
+       45,
+       155
+      ],
+      "size": [
+       25,
+       25
+      ],
+      "type": "ear"
+     }
+    ],
+    "audience": {
+     "age_years": 5,
+     "child_directed": true
+    },
+    "colors": {
+     "body_name": "dusk lavender",
+     "accent_name": "warm cream",
+     "body": "#B9B3E8",
+     "accent": "#FFF6EA",
+     "detail": "#2F2A52",
+     "detail_name": "night indigo"
+    },
+    "behaviour": {
+     "template": "story_player",
+     "summary": "Tap the top button for a bedtime story. Hold it down and tell the bear your new favorite character; it will remember for next time. The tummy light glows warmly during stories and turns blue when listening.",
+     "settings": {}
+    },
+    "schema": "gadget-spec/1",
+    "name": "Sleepy Bear"
+   },
+   "render_url": "/api/projects/p_d565a53hmmrp/concepts/c_izebmb583d/render.png",
+   "photo_url": "/api/projects/p_d565a53hmmrp/concepts/c_izebmb583d/photo.png",
+   "glb_url": "/api/projects/p_d565a53hmmrp/concepts/c_izebmb583d/preview.glb",
+   "state": "ready",
+   "warnings": [],
+   "photo_note": null
+  },
+  {
+   "id": "c_7zu9uh5dck",
+   "title": "Little Cloud",
+   "tier": "expected",
+   "blurb": "A bumpy, soft cloud shape with a calming night light and flush cheeks.",
+   "spec": {
+    "electronics": {
+     "power": {
+      "input": "usb_c_5v",
+      "adapter_in_box": false
+     },
+     "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+     "extra_modules": []
+    },
+    "colors": {
+     "body_name": "soft sky",
+     "body": "#AEE2FF",
+     "detail": "#1B4965",
+     "accent_name": "cloud white",
+     "accent": "#FFFFFF",
+     "detail_name": "deep blue"
+    },
+    "region": "IN",
+    "behaviour": {
+     "template": "story_player",
+     "settings": {},
+     "summary": "Tap the cloud's top button for a soothing story. Hold it to whisper a new favorite character. The light glows like a sunset while playing and twinkles when listening."
+    },
+    "slug": "little-cloud",
+    "schema": "gadget-spec/1",
+    "body": {
+     "feet": 4,
+     "split": "rear_cover",
+     "edge_round": 12,
+     "family": "silhouette",
+     "outline": [
+      [
+       -75,
+       0
+      ],
+      [
+       75,
+       0
+      ],
+      [
+       85,
+       30
+      ],
+      [
+       70,
+       60
+      ],
+      [
+       80,
+       90
+      ],
+      [
+       65,
+       120
+      ],
+      [
+       30,
+       150
+      ],
+      [
+       0,
+       155
+      ],
+      [
+       -30,
+       150
+      ],
+      [
+       -65,
+       120
+      ],
+      [
+       -80,
+       90
+      ],
+      [
+       -70,
+       60
+      ],
+      [
+       -85,
+       30
+      ]
+     ],
+     "wall": 2.4,
+     "depth": 110
+    },
+    "name": "Little Cloud",
+    "audience": {
+     "age_years": 5,
+     "child_directed": true
+    },
+    "features": [
+     {
+      "id": "speaker",
+      "module": "SPK_40MM_4R_3W",
+      "label": "Story speaker",
+      "at": [
+       0,
+       56
+      ],
+      "grille": {
+       "pitch": 4,
+       "h": 36,
+       "hole": 2.4,
+       "pattern": "concentric",
+       "w": 36
+      },
+      "face": "front"
+     },
+     {
+      "label": "Story and listening button",
+      "face": "top",
+      "id": "story_button",
+      "module": "BUTTON_ARCADE_30MM_SNAPIN",
+      "at": [
+       0,
+       -5
+      ]
+     },
+     {
+      "id": "eyes",
+      "at": [
+       0,
+       120
+      ],
+      "face": "front",
+      "label": "Animated eyes",
+      "module": "OLED_130_SH1106_I2C"
+     },
+     {
+      "label": "Night light",
+      "id": "status_light",
+      "face": "front",
+      "module": "LED_WS2812B_1PX_MODULE",
+      "at": [
+       0,
+       84
+      ]
+     },
+     {
+      "label": "Voice microphone",
+      "face": "front",
+      "module": "MIC_INMP441_I2S",
+      "id": "mic",
+      "at": [
+       35,
+       84
+      ]
+     }
+    ],
+    "safety": {
+     "flags": [
+      "CHILD_DIRECTED",
+      "LOCAL_VOICE_CAPTURE",
+      "NIGHT_USE"
+     ],
+     "notes": "Adult assembly required. Microphone only active when button is held."
+    },
+    "tagline": "A floating cloud friend full of magical stories.",
+    "decor": [
+     {
+      "relief": "emboss",
+      "side": "both",
+      "depth": 0.6,
+      "type": "blush",
+      "at": [
+       45,
+       100
+      ],
+      "size": [
+       15,
+       10
+      ]
+     },
+     {
+      "depth": 0.8,
+      "at": [
+       0,
+       96
+      ],
+      "type": "mouth",
+      "size": [
+       10,
+       6
+      ],
+      "style": "small_o",
+      "relief": "engrave"
+     }
+    ]
+   },
+   "render_url": "/api/projects/p_d565a53hmmrp/concepts/c_7zu9uh5dck/render.png",
+   "photo_url": "/api/projects/p_d565a53hmmrp/concepts/c_7zu9uh5dck/photo.png",
+   "glb_url": "/api/projects/p_d565a53hmmrp/concepts/c_7zu9uh5dck/preview.glb",
+   "state": "ready",
+   "warnings": [],
+   "photo_note": null
+  },
+  {
+   "id": "c_wkng39fyfp",
+   "title": "Bedtime Owl",
+   "tier": "different",
+   "blurb": "A classic bedside owl with cute ear tufts and large, expressive screen eyes.",
+   "spec": {
+    "region": "IN",
+    "electronics": {
+     "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+     "power": {
+      "adapter_in_box": false,
+      "input": "usb_c_5v"
+     },
+     "extra_modules": []
+    },
+    "safety": {
+     "flags": [
+      "CHILD_DIRECTED",
+      "LOCAL_VOICE_CAPTURE",
+      "NIGHT_USE"
+     ],
+     "notes": "Adult assembly required. Microphone only active when button is held."
+    },
+    "behaviour": {
+     "template": "story_player",
+     "summary": "Press the tummy button for a story. Hold it to tell the owl who should be in the next adventure. The chest light glows softly through the night.",
+     "settings": {}
+    },
+    "audience": {
+     "age_years": 5,
+     "child_directed": true
+    },
+    "name": "Bedtime Owl",
+    "body": {
+     "squash_y": 0.9,
+     "family": "revolve",
+     "profile": [
+      [
+       0,
+       0
+      ],
+      [
+       65,
+       0
+      ],
+      [
+       70,
+       20
+      ],
+      [
+       75,
+       50
+      ],
+      [
+       72,
+       90
+      ],
+      [
+       65,
+       140
+      ],
+      [
+       40,
+       160
+      ],
+      [
+       0,
+       170
+      ]
+     ],
+     "wall": 2.4,
+     "edge_round": 8,
+     "split": "base_plate",
+     "feet": 4
+    },
+    "colors": {
+     "body_name": "mint green",
+     "detail_name": "dark green",
+     "accent": "#FCF3CF",
+     "detail": "#0E6251",
+     "body": "#A3E4D7",
+     "accent_name": "pale yellow"
+    },
+    "tagline": "A wise little owl that loves bedtime stories.",
+    "schema": "gadget-spec/1",
+    "decor": [
+     {
+      "at": [
+       40,
+       160
+      ],
+      "tilt": 10,
+      "type": "ear",
+      "size": [
+       20,
+       25
+      ],
+      "style": "owl_tuft",
+      "side": "both"
+     }
+    ],
+    "slug": "bedtime-owl",
+    "features": [
+     {
+      "module": "SPK_40MM_4R_3W",
+      "id": "speaker",
+      "label": "Story speaker",
+      "face": "front",
+      "at": [
+       0,
+       95
+      ],
+      "grille": {
+       "pitch": 4.4,
+       "pattern": "slots",
+       "hole": 2.6,
+       "w": 36,
+       "h": 36
+      }
+     },
+     {
+      "at": [
+       0,
+       55
+      ],
+      "face": "front",
+      "id": "story_button",
+      "module": "BUTTON_ARCADE_30MM_SNAPIN",
+      "label": "Story button"
+     },
+     {
+      "face": "front",
+      "at": [
+       0,
+       145
+      ],
+      "label": "Big owl eyes",
+      "module": "OLED_096_SSD1306_I2C",
+      "id": "eyes"
+     },
+     {
+      "face": "front",
+      "label": "Night light",
+      "at": [
+       0,
+       122
+      ],
+      "module": "LED_WS2812B_1PX_MODULE",
+      "id": "status_light"
+     },
+     {
+      "label": "Voice microphone",
+      "module": "MIC_INMP441_I2S",
+      "at": [
+       30,
+       122
+      ],
+      "face": "front",
+      "id": "mic"
+     }
+    ]
+   },
+   "render_url": "/api/projects/p_d565a53hmmrp/concepts/c_wkng39fyfp/render.png",
+   "photo_url": "/api/projects/p_d565a53hmmrp/concepts/c_wkng39fyfp/photo.png",
+   "glb_url": "/api/projects/p_d565a53hmmrp/concepts/c_wkng39fyfp/preview.glb",
+   "state": "ready",
+   "warnings": [
+    "USB-C plug tunnel is 20.5 mm long (outer rear surface to receptacle face): the plug overmold passes through the 13 x 7 tunnel, but little of it is left to grip; a flatter rear helps",
+    "features[2] eyes: the face curves 23 mm across the module; CAD adds a mounting boss and a deep window",
+    "features[4] mic: the face curves 8 mm across the module; CAD adds a mounting boss and a deep window"
+   ],
+   "photo_note": null
+  },
+  {
+   "id": "c_vh95znmtqx",
+   "title": "Story Mushroom",
+   "tier": "different",
+   "blurb": "A whimsical mushroom with the controls on the stem and a wide, friendly cap.",
+   "spec": {
+    "decor": [],
+    "behaviour": {
+     "template": "story_player",
+     "summary": "Press the button on the stem for a story. Hold it to whisper a secret character to the mushroom. The top of the cap twinkles while listening.",
+     "settings": {}
+    },
+    "tagline": "A magical forest friend for bedtime.",
+    "body": {
+     "feet": 4,
+     "squash_y": 1,
+     "wall": 2.4,
+     "split": "base_plate",
+     "edge_round": 8,
+     "family": "revolve",
+     "profile": [
+      [
+       0,
+       0
+      ],
+      [
+       65,
+       0
+      ],
+      [
+       62,
+       40
+      ],
+      [
+       55,
+       60
+      ],
+      [
+       50,
+       80
+      ],
+      [
+       85,
+       85
+      ],
+      [
+       85,
+       110
+      ],
+      [
+       70,
+       150
+      ],
+      [
+       40,
+       170
+      ],
+      [
+       0,
+       180
+      ]
+     ]
+    },
+    "electronics": {
+     "power": {
+      "input": "usb_c_5v",
+      "adapter_in_box": false
+     },
+     "extra_modules": [],
+     "core": "CORE_ESP32S3_DEVKITC1_N8R8"
+    },
+    "region": "IN",
+    "name": "Story Mushroom",
+    "colors": {
+     "accent": "#FEF9E7",
+     "body_name": "blush pink",
+     "detail_name": "deep red",
+     "body": "#F5B7B1",
+     "accent_name": "cream",
+     "detail": "#78281F"
+    },
+    "slug": "story-mushroom",
+    "features": [
+     {
+      "module": "SPK_40MM_4R_3W",
+      "face": "front",
+      "at": [
+       0,
+       105
+      ],
+      "id": "speaker",
+      "label": "Story speaker",
+      "grille": {
+       "w": 36,
+       "hole": 2.4,
+       "pattern": "dots_ellipse",
+       "pitch": 4.4,
+       "h": 36
+      }
+     },
+     {
+      "at": [
+       0,
+       55
+      ],
+      "id": "story_button",
+      "module": "BUTTON_ARCADE_30MM_SNAPIN",
+      "label": "Story button",
+      "face": "front"
+     },
+     {
+      "face": "front",
+      "label": "Animated eyes",
+      "id": "eyes",
+      "module": "OLED_096_SSD1306_I2C",
+      "at": [
+       0,
+       142
+      ]
+     },
+     {
+      "face": "front",
+      "module": "LED_WS2812B_1PX_MODULE",
+      "label": "Night light",
+      "at": [
+       0,
+       166
+      ],
+      "id": "status_light"
+     },
+     {
+      "at": [
+       30,
+       60
+      ],
+      "id": "mic",
+      "label": "Voice microphone",
+      "module": "MIC_INMP441_I2S",
+      "face": "front"
+     }
+    ],
+    "audience": {
+     "age_years": 5,
+     "child_directed": true
+    },
+    "safety": {
+     "flags": [
+      "CHILD_DIRECTED",
+      "LOCAL_VOICE_CAPTURE",
+      "NIGHT_USE"
+     ],
+     "notes": "Adult assembly required. Microphone only active when button is held."
+    },
+    "schema": "gadget-spec/1"
+   },
+   "render_url": "/api/projects/p_d565a53hmmrp/concepts/c_vh95znmtqx/render.png",
+   "photo_url": "/api/projects/p_d565a53hmmrp/concepts/c_vh95znmtqx/photo.png",
+   "glb_url": "/api/projects/p_d565a53hmmrp/concepts/c_vh95znmtqx/preview.glb",
+   "state": "ready",
+   "warnings": [
+    "USB-C plug tunnel is 22.6 mm long (outer rear surface to receptacle face): the plug overmold passes through the 13 x 7 tunnel, but little of it is left to grip; a flatter rear helps",
+    "features[0] speaker: the face curves 8 mm across the module; CAD adds a mounting boss and a deep window",
+    "features[1] story_button: the face curves 10 mm across the module; CAD adds a mounting boss and a deep window",
+    "features[2] eyes: the face curves 17 mm across the module; CAD adds a mounting boss and a deep window",
+    "features[3] status_light: the face curves 18 mm across the module; CAD adds a mounting boss and a deep window",
+    "features[4] mic: the face curves 14 mm across the module; CAD adds a mounting boss and a deep window"
+   ],
+   "photo_note": null
+  },
+  {
+   "id": "c_a4p4ty9mqy",
+   "title": "Magic Lantern",
+   "tier": "wildcard",
+   "blurb": "A glowing lantern shape, keeping magical character stories inside its dome.",
+   "spec": {
+    "name": "Magic Lantern",
+    "electronics": {
+     "extra_modules": [],
+     "power": {
+      "adapter_in_box": false,
+      "input": "usb_c_5v"
+     },
+     "core": "CORE_ESP32S3_DEVKITC1_N8R8"
+    },
+    "tagline": "A magical lantern that glows with bedtime tales.",
+    "schema": "gadget-spec/1",
+    "audience": {
+     "age_years": 5,
+     "child_directed": true
+    },
+    "colors": {
+     "body": "#F4D03F",
+     "detail_name": "midnight",
+     "body_name": "star gold",
+     "accent_name": "soft white",
+     "detail": "#2C3E50",
+     "accent": "#FDFEFE"
+    },
+    "slug": "magic-lantern",
+    "safety": {
+     "notes": "Adult assembly required. Microphone only active when button is held.",
+     "flags": [
+      "CHILD_DIRECTED",
+      "LOCAL_VOICE_CAPTURE",
+      "NIGHT_USE"
+     ]
+    },
+    "behaviour": {
+     "template": "story_player",
+     "settings": {},
+     "summary": "Push the main button to release a story from the lantern. Hold it down to trap a new character inside. A warm light glows continuously at night."
+    },
+    "region": "IN",
+    "decor": [],
+    "features": [
+     {
+      "id": "speaker",
+      "label": "Story speaker",
+      "grille": {
+       "w": 36,
+       "h": 36,
+       "pitch": 4.4,
+       "hole": 2.6,
+       "pattern": "hex_holes"
+      },
+      "at": [
+       0,
+       60
+      ],
+      "face": "front",
+      "module": "SPK_40MM_4R_3W"
+     },
+     {
+      "id": "story_button",
+      "module": "BUTTON_ARCADE_30MM_SNAPIN",
+      "at": [
+       0,
+       100
+      ],
+      "label": "Story button",
+      "face": "front"
+     },
+     {
+      "face": "front",
+      "label": "Character display",
+      "id": "eyes",
+      "module": "OLED_096_SSD1306_I2C",
+      "at": [
+       0,
+       138
+      ]
+     },
+     {
+      "at": [
+       0,
+       165
+      ],
+      "face": "front",
+      "label": "Lantern glow",
+      "id": "status_light",
+      "module": "LED_WS2812B_1PX_MODULE"
+     },
+     {
+      "module": "MIC_INMP441_I2S",
+      "at": [
+       30,
+       138
+      ],
+      "label": "Voice microphone",
+      "id": "mic",
+      "face": "front"
+     }
+    ],
+    "body": {
+     "edge_round": 10,
+     "feet": 4,
+     "family": "revolve",
+     "squash_y": 1,
+     "wall": 2.4,
+     "profile": [
+      [
+       0,
+       0
+      ],
+      [
+       60,
+       0
+      ],
+      [
+       65,
+       20
+      ],
+      [
+       65,
+       110
+      ],
+      [
+       50,
+       140
+      ],
+      [
+       30,
+       160
+      ],
+      [
+       25,
+       180
+      ],
+      [
+       0,
+       180
+      ]
+     ],
+     "split": "base_plate"
+    }
+   },
+   "render_url": "/api/projects/p_d565a53hmmrp/concepts/c_a4p4ty9mqy/render.png",
+   "photo_url": "/api/projects/p_d565a53hmmrp/concepts/c_a4p4ty9mqy/photo.png",
+   "glb_url": "/api/projects/p_d565a53hmmrp/concepts/c_a4p4ty9mqy/preview.glb",
+   "state": "ready",
+   "warnings": [
+    "USB-C plug tunnel is 23.5 mm long (outer rear surface to receptacle face): the plug overmold passes through the 13 x 7 tunnel, but little of it is left to grip; a flatter rear helps",
+    "features[2] eyes: the face curves 20 mm across the module; CAD adds a mounting boss and a deep window",
+    "features[4] mic: the face curves 24 mm across the module; CAD adds a mounting boss and a deep window"
+   ],
+   "photo_note": null
+  },
+  {
+   "id": "c_szpt3n94aq",
+   "title": "Story Acorn",
+   "tier": "wildcard",
+   "blurb": "An upside-down acorn character with a broad, stable base and a little top stem.",
+   "spec": {
+    "slug": "story-acorn",
+    "region": "IN",
+    "colors": {
+     "accent": "#A9DFBF",
+     "detail_name": "dark brown",
+     "body": "#E59866",
+     "detail": "#5D4037",
+     "accent_name": "leaf green",
+     "body_name": "warm wood"
+    },
+    "decor": [
+     {
+      "style": "antenna",
+      "size": [
+       12,
+       20
+      ],
+      "type": "ear",
+      "at": [
+       0,
+       175
+      ],
+      "side": "left",
+      "tilt": 0
+     },
+     {
+      "depth": 0.6,
+      "size": [
+       12,
+       8
+      ],
+      "type": "blush",
+      "relief": "emboss",
+      "side": "both",
+      "at": [
+       35,
+       130
+      ]
+     }
+    ],
+    "safety": {
+     "flags": [
+      "CHILD_DIRECTED",
+      "LOCAL_VOICE_CAPTURE",
+      "NIGHT_USE"
+     ],
+     "notes": "Adult assembly required. Microphone only active when button is held."
+    },
+    "behaviour": {
+     "template": "story_player",
+     "settings": {},
+     "summary": "Press the acorn's big belly for a story. Hold it to add a new favorite character. The light above its eyes shows when it's listening."
+    },
+    "electronics": {
+     "power": {
+      "adapter_in_box": false,
+      "input": "usb_c_5v"
+     },
+     "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+     "extra_modules": []
+    },
+    "tagline": "A forest friend full of big stories.",
+    "schema": "gadget-spec/1",
+    "features": [
+     {
+      "grille": {
+       "hole": 2.4,
+       "w": 36,
+       "pitch": 4.4,
+       "h": 36,
+       "pattern": "dots_ellipse"
+      },
+      "at": [
+       0,
+       60
+      ],
+      "id": "speaker",
+      "face": "front",
+      "module": "SPK_40MM_4R_3W",
+      "label": "Story speaker"
+     },
+     {
+      "face": "front",
+      "module": "BUTTON_ARCADE_30MM_SNAPIN",
+      "at": [
+       0,
+       100
+      ],
+      "label": "Story button",
+      "id": "story_button"
+     },
+     {
+      "label": "Animated eyes",
+      "face": "front",
+      "at": [
+       0,
+       150
+      ],
+      "id": "eyes",
+      "module": "OLED_130_SH1106_I2C"
+     },
+     {
+      "id": "status_light",
+      "at": [
+       0,
+       125
+      ],
+      "module": "LED_WS2812B_1PX_MODULE",
+      "label": "Night light",
+      "face": "front"
+     },
+     {
+      "module": "MIC_INMP441_I2S",
+      "id": "mic",
+      "at": [
+       30,
+       85
+      ],
+      "face": "front",
+      "label": "Voice microphone"
+     }
+    ],
+    "name": "Story Acorn",
+    "audience": {
+     "age_years": 5,
+     "child_directed": true
+    },
+    "body": {
+     "wall": 2.4,
+     "outline": [
+      [
+       -55,
+       0
+      ],
+      [
+       55,
+       0
+      ],
+      [
+       75,
+       30
+      ],
+      [
+       80,
+       70
+      ],
+      [
+       82,
+       90
+      ],
+      [
+       65,
+       130
+      ],
+      [
+       30,
+       165
+      ],
+      [
+       0,
+       180
+      ],
+      [
+       -30,
+       165
+      ],
+      [
+       -65,
+       130
+      ],
+      [
+       -82,
+       90
+      ],
+      [
+       -80,
+       70
+      ],
+      [
+       -75,
+       30
+      ]
+     ],
+     "family": "silhouette",
+     "split": "rear_cover",
+     "depth": 110,
+     "feet": 4,
+     "edge_round": 16
+    }
+   },
+   "render_url": "/api/projects/p_d565a53hmmrp/concepts/c_szpt3n94aq/render.png",
+   "photo_url": "/api/projects/p_d565a53hmmrp/concepts/c_szpt3n94aq/photo.png",
+   "glb_url": "/api/projects/p_d565a53hmmrp/concepts/c_szpt3n94aq/preview.glb",
+   "state": "ready",
+   "warnings": [],
+   "photo_note": null
+  }
+ ],
+ "selected_concept": "c_izebmb583d",
+ "brief": {
+  "version": 1,
+  "concept_id": "c_izebmb583d",
+  "title": "Sleepy Bear Bedtime Storyteller",
+  "size": {
+   "w_mm": 141,
+   "d_mm": 110,
+   "h_mm": 168,
+   "value": "About 141 W x 110 D x 168 H mm",
+   "source": "suggested",
+   "evidence": "Body envelope computed from the design geometry; the CAD build gives the final numbers."
+  },
+  "functions": [
+   {
+    "title": "Audio output",
+    "value": "A clear speaker on the front to play bedtime stories.",
+    "source": "suggested",
+    "evidence": "Standard for audio storytelling"
+   },
+   {
+    "title": "Voice input",
+    "value": "A built-in microphone to capture her favorite character names.",
+    "source": "user",
+    "evidence": "You chose to let her tell the robot"
+   },
+   {
+    "title": "Controls",
+    "value": "A single, large arcade-style button on the top of the head.",
+    "source": "suggested",
+    "evidence": "Best for a 5-year-old's motor skills"
+   },
+   {
+    "title": "Animated eyes",
+    "value": "A small screen showing sleepy, expressive eyes.",
+    "source": "suggested",
+    "evidence": "Gives the bear character"
+   },
+   {
+    "title": "Night light",
+    "value": "A gentle tummy light that glows during stories and changes color when listening.",
+    "source": "suggested",
+    "evidence": "Provides bedtime comfort and feedback"
+   }
+  ],
+  "details": [
+   {
+    "topic": "Sourcing country",
+    "value": "India",
+    "source": "suggested",
+    "evidence": "Gadget Studio default"
+   },
+   {
+    "topic": "Offline storage",
+    "value": "Stories and voice clips are kept entirely on the device.",
+    "source": "suggested",
+    "evidence": "Default for child privacy"
+   }
+  ],
+  "parts": [
+   {
+    "module_id": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "name": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+    "role": "core",
+    "qty": 1,
+    "implied": false,
+    "reason": "",
+    "refs": [
+     "U1"
+    ],
+    "source": "suggested",
+    "evidence": "From the parts catalog"
+   },
+   {
+    "module_id": "BACKPLANE_V1",
+    "name": "Standard backplane PCB backplane-v1 (ours)",
+    "role": "backplane",
+    "qty": 1,
+    "implied": true,
+    "reason": "standard core cartridge",
+    "refs": [
+     "BP1"
+    ],
+    "source": "suggested",
+    "evidence": "Added automatically for the design"
+   },
+   {
+    "module_id": "USBC_RECEPTACLE_GCT_USB4105",
+    "name": "USB-C 2.0 receptacle on backplane (5V sink, CC 5.1k Rd)",
+    "role": "power_in",
+    "qty": 1,
+    "implied": true,
+    "reason": "USB-C 5 V input on the backplane",
+    "refs": [
+     "PWR1"
+    ],
+    "source": "suggested",
+    "evidence": "Added automatically for the design"
+   },
+   {
+    "module_id": "SPK_40MM_4R_3W",
+    "name": "Speaker 40 mm round, 4 ohm, 3 W",
+    "role": "speaker",
+    "qty": 1,
+    "implied": false,
+    "reason": "",
+    "refs": [
+     "SPK1"
+    ],
+    "source": "suggested",
+    "evidence": "From the parts catalog"
+   },
+   {
+    "module_id": "BUTTON_ARCADE_30MM_SNAPIN",
+    "name": "Big 30 mm snap-in arcade push button (microswitch)",
+    "role": "button",
+    "qty": 1,
+    "implied": false,
+    "reason": "",
+    "refs": [
+     "BTN1"
+    ],
+    "source": "suggested",
+    "evidence": "From the parts catalog"
+   },
+   {
+    "module_id": "OLED_130_SH1106_I2C",
+    "name": "1.3 in 128x64 mono OLED, SH1106, I2C 4-pin",
+    "role": "display",
+    "qty": 1,
+    "implied": false,
+    "reason": "",
+    "refs": [
+     "DISP1"
+    ],
+    "source": "suggested",
+    "evidence": "From the parts catalog"
+   },
+   {
+    "module_id": "LED_WS2812B_1PX_MODULE",
+    "name": "Addressable RGB LED, single WS2812B 5050 on a mini board",
+    "role": "led",
+    "qty": 1,
+    "implied": false,
+    "reason": "",
+    "refs": [
+     "LED1"
+    ],
+    "source": "suggested",
+    "evidence": "From the parts catalog"
+   },
+   {
+    "module_id": "MIC_INMP441_I2S",
+    "name": "INMP441 I2S MEMS microphone module",
+    "role": "mic",
+    "qty": 1,
+    "implied": false,
+    "reason": "",
+    "refs": [
+     "MIC1"
+    ],
+    "source": "suggested",
+    "evidence": "From the parts catalog"
+   },
+   {
+    "module_id": "AMP_MAX98357A_I2S",
+    "name": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+    "role": "amp",
+    "qty": 1,
+    "implied": true,
+    "reason": "a speaker needs the I2S amplifier",
+    "refs": [
+     "AMP1"
+    ],
+    "source": "suggested",
+    "evidence": "Added automatically for the design"
+   },
+   {
+    "module_id": "MICROSD_SPI_MODULE_5V",
+    "name": "microSD SPI module with LDO and level shifter (Catalex-type)",
+    "role": "storage",
+    "qty": 1,
+    "implied": true,
+    "reason": "story audio files live on microSD",
+    "refs": [
+     "SD1"
+    ],
+    "source": "suggested",
+    "evidence": "Added automatically for the design"
+   },
+   {
+    "module_id": "CABLE_USBC_C2C_1M",
+    "name": "USB-C to USB-C cable, 1 m, USB 2.0",
+    "role": "usb_cable",
+    "qty": 1,
+    "implied": true,
+    "reason": "USB-C cable in the box",
+    "refs": [
+     "CBL1"
+    ],
+    "source": "suggested",
+    "evidence": "Added automatically for the design"
+   }
+  ],
+  "limits": [
+   {
+    "value": "The bear's face and limbs do not move; it does not walk or gesture.",
+    "source": "suggested",
+    "evidence": "Stated in the concept phase"
+   },
+   {
+    "value": "Physical safety for a 5-year-old (durability, drop testing) requires a real-world physical check of the final build.",
+    "source": "suggested",
+    "evidence": "Standard digital limits"
+   },
+   {
+    "value": "No internal battery or direct wall plug; requires an external USB-C power source.",
+    "source": "suggested",
+    "evidence": "Catalog limitation"
+   }
+  ],
+  "safety_flags": [
+   "CHILD_DIRECTED",
+   "LOCAL_VOICE_CAPTURE",
+   "NIGHT_USE"
+  ],
+  "spec": {
+   "electronics": {
+    "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "extra_modules": [],
+    "power": {
+     "input": "usb_c_5v",
+     "adapter_in_box": false
+    }
+   },
+   "tagline": "A gentle bear that tells stories about her favorite friends.",
+   "body": {
+    "split": "rear_cover",
+    "wall": 2.4,
+    "outline": [
+     [
+      -60,
+      0
+     ],
+     [
+      60,
+      0
+     ],
+     [
+      70,
+      40
+     ],
+     [
+      65,
+      110
+     ],
+     [
+      50,
+      150
+     ],
+     [
+      0,
+      165
+     ],
+     [
+      -50,
+      150
+     ],
+     [
+      -65,
+      110
+     ],
+     [
+      -70,
+      40
+     ]
+    ],
+    "depth": 110,
+    "family": "silhouette",
+    "edge_round": 12,
+    "feet": 4
+   },
+   "safety": {
+    "flags": [
+     "CHILD_DIRECTED",
+     "LOCAL_VOICE_CAPTURE",
+     "NIGHT_USE"
+    ],
+    "notes": "Adult assembly required. Microphone only active when button is held."
+   },
+   "features": [
+    {
+     "module": "SPK_40MM_4R_3W",
+     "id": "speaker",
+     "grille": {
+      "hole": 2.4,
+      "w": 36,
+      "h": 36,
+      "pitch": 4.4,
+      "pattern": "dots_ellipse"
+     },
+     "label": "Story speaker",
+     "face": "front",
+     "at": [
+      0,
+      56
+     ]
+    },
+    {
+     "id": "story_button",
+     "label": "Story and listening button",
+     "at": [
+      0,
+      -10
+     ],
+     "face": "top",
+     "module": "BUTTON_ARCADE_30MM_SNAPIN"
+    },
+    {
+     "module": "OLED_130_SH1106_I2C",
+     "at": [
+      0,
+      120
+     ],
+     "face": "front",
+     "id": "eyes",
+     "label": "Animated sleepy eyes"
+    },
+    {
+     "label": "Night light",
+     "at": [
+      0,
+      85
+     ],
+     "module": "LED_WS2812B_1PX_MODULE",
+     "face": "front",
+     "id": "status_light"
+    },
+    {
+     "module": "MIC_INMP441_I2S",
+     "id": "mic",
+     "face": "front",
+     "at": [
+      30,
+      85
+     ],
+     "label": "Voice microphone"
+    }
+   ],
+   "region": "IN",
+   "slug": "sleepy-bear",
+   "decor": [
+    {
+     "at": [
+      0,
+      120
+     ],
+     "relief": "engrave",
+     "type": "face_plate",
+     "size": [
+      100,
+      50
+     ],
+     "shape": "ellipse",
+     "depth": 1.2
+    },
+    {
+     "style": "bear",
+     "tilt": 0,
+     "side": "both",
+     "at": [
+      45,
+      155
+     ],
+     "size": [
+      25,
+      25
+     ],
+     "type": "ear"
+    }
+   ],
+   "audience": {
+    "age_years": 5,
+    "child_directed": true
+   },
+   "colors": {
+    "body_name": "dusk lavender",
+    "accent_name": "warm cream",
+    "body": "#B9B3E8",
+    "accent": "#FFF6EA",
+    "detail": "#2F2A52",
+    "detail_name": "night indigo"
+   },
+   "behaviour": {
+    "template": "story_player",
+    "summary": "Tap the top button for a bedtime story. Hold it down and tell the bear your new favorite character; it will remember for next time. The tummy light glows warmly during stories and turns blue when listening.",
+    "settings": {}
+   },
+   "schema": "gadget-spec/1",
+   "name": "Sleepy Bear"
+  },
+  "created": "2026-11-01T12:00:26Z",
+  "approved": true,
+  "approved_at": "2026-11-01T12:00:37Z",
+  "summary": {
+   "value": "A soft, bear-shaped bedtime companion that tells short, age-appropriate stories and learns new favorite characters by voice.",
+   "source": "suggested",
+   "evidence": "Matches your Sleepy Bear choice"
+  },
+  "purpose": {
+   "value": "To help a 5-year-old settle down for bed with engaging stories about her favorite characters.",
+   "source": "user",
+   "evidence": "You chose 5 yo old and bedtime stories"
+  },
+  "interaction": {
+   "value": "Tap the top button for a bedtime story. Hold the button down and speak to teach the bear a new favorite character.",
+   "source": "suggested",
+   "evidence": "Simple one-button logic for a 5yo"
+  },
+  "privacy_safety": {
+   "value": "The microphone only activates while the button is physically held. Voice data is processed locally and never sent to the cloud. As a child-directed product, a physical safety review is needed before it can be sold.",
+   "source": "suggested",
+   "evidence": "Strict privacy rules for child-directed voice toys"
+  },
+  "power": {
+   "value": "Powered by a standard USB-C cable (5V). No batteries included or supported.",
+   "source": "suggested",
+   "evidence": "Gadget Studio safety rules"
+  }
+ },
+ "brief_history": [
+  {
+   "version": 1,
+   "concept_id": "c_izebmb583d",
+   "title": "Sleepy Bear Bedtime Storyteller",
+   "size": {
+    "w_mm": 141,
+    "d_mm": 110,
+    "h_mm": 168,
+    "value": "About 141 W x 110 D x 168 H mm",
+    "source": "suggested",
+    "evidence": "Body envelope computed from the design geometry; the CAD build gives the final numbers."
+   },
+   "functions": [
+    {
+     "title": "Audio output",
+     "value": "A clear speaker on the front to play bedtime stories.",
+     "source": "suggested",
+     "evidence": "Standard for audio storytelling"
+    },
+    {
+     "title": "Voice input",
+     "value": "A built-in microphone to capture her favorite character names.",
+     "source": "user",
+     "evidence": "You chose to let her tell the robot"
+    },
+    {
+     "title": "Controls",
+     "value": "A single, large arcade-style button on the top of the head.",
+     "source": "suggested",
+     "evidence": "Best for a 5-year-old's motor skills"
+    },
+    {
+     "title": "Animated eyes",
+     "value": "A small screen showing sleepy, expressive eyes.",
+     "source": "suggested",
+     "evidence": "Gives the bear character"
+    },
+    {
+     "title": "Night light",
+     "value": "A gentle tummy light that glows during stories and changes color when listening.",
+     "source": "suggested",
+     "evidence": "Provides bedtime comfort and feedback"
+    }
+   ],
+   "details": [
+    {
+     "topic": "Sourcing country",
+     "value": "India",
+     "source": "suggested",
+     "evidence": "Gadget Studio default"
+    },
+    {
+     "topic": "Offline storage",
+     "value": "Stories and voice clips are kept entirely on the device.",
+     "source": "suggested",
+     "evidence": "Default for child privacy"
+    }
+   ],
+   "parts": [
+    {
+     "module_id": "CORE_ESP32S3_DEVKITC1_N8R8",
+     "name": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+     "role": "core",
+     "qty": 1,
+     "implied": false,
+     "reason": "",
+     "refs": [
+      "U1"
+     ],
+     "source": "suggested",
+     "evidence": "From the parts catalog"
+    },
+    {
+     "module_id": "BACKPLANE_V1",
+     "name": "Standard backplane PCB backplane-v1 (ours)",
+     "role": "backplane",
+     "qty": 1,
+     "implied": true,
+     "reason": "standard core cartridge",
+     "refs": [
+      "BP1"
+     ],
+     "source": "suggested",
+     "evidence": "Added automatically for the design"
+    },
+    {
+     "module_id": "USBC_RECEPTACLE_GCT_USB4105",
+     "name": "USB-C 2.0 receptacle on backplane (5V sink, CC 5.1k Rd)",
+     "role": "power_in",
+     "qty": 1,
+     "implied": true,
+     "reason": "USB-C 5 V input on the backplane",
+     "refs": [
+      "PWR1"
+     ],
+     "source": "suggested",
+     "evidence": "Added automatically for the design"
+    },
+    {
+     "module_id": "SPK_40MM_4R_3W",
+     "name": "Speaker 40 mm round, 4 ohm, 3 W",
+     "role": "speaker",
+     "qty": 1,
+     "implied": false,
+     "reason": "",
+     "refs": [
+      "SPK1"
+     ],
+     "source": "suggested",
+     "evidence": "From the parts catalog"
+    },
+    {
+     "module_id": "BUTTON_ARCADE_30MM_SNAPIN",
+     "name": "Big 30 mm snap-in arcade push button (microswitch)",
+     "role": "button",
+     "qty": 1,
+     "implied": false,
+     "reason": "",
+     "refs": [
+      "BTN1"
+     ],
+     "source": "suggested",
+     "evidence": "From the parts catalog"
+    },
+    {
+     "module_id": "OLED_130_SH1106_I2C",
+     "name": "1.3 in 128x64 mono OLED, SH1106, I2C 4-pin",
+     "role": "display",
+     "qty": 1,
+     "implied": false,
+     "reason": "",
+     "refs": [
+      "DISP1"
+     ],
+     "source": "suggested",
+     "evidence": "From the parts catalog"
+    },
+    {
+     "module_id": "LED_WS2812B_1PX_MODULE",
+     "name": "Addressable RGB LED, single WS2812B 5050 on a mini board",
+     "role": "led",
+     "qty": 1,
+     "implied": false,
+     "reason": "",
+     "refs": [
+      "LED1"
+     ],
+     "source": "suggested",
+     "evidence": "From the parts catalog"
+    },
+    {
+     "module_id": "MIC_INMP441_I2S",
+     "name": "INMP441 I2S MEMS microphone module",
+     "role": "mic",
+     "qty": 1,
+     "implied": false,
+     "reason": "",
+     "refs": [
+      "MIC1"
+     ],
+     "source": "suggested",
+     "evidence": "From the parts catalog"
+    },
+    {
+     "module_id": "AMP_MAX98357A_I2S",
+     "name": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+     "role": "amp",
+     "qty": 1,
+     "implied": true,
+     "reason": "a speaker needs the I2S amplifier",
+     "refs": [
+      "AMP1"
+     ],
+     "source": "suggested",
+     "evidence": "Added automatically for the design"
+    },
+    {
+     "module_id": "MICROSD_SPI_MODULE_5V",
+     "name": "microSD SPI module with LDO and level shifter (Catalex-type)",
+     "role": "storage",
+     "qty": 1,
+     "implied": true,
+     "reason": "story audio files live on microSD",
+     "refs": [
+      "SD1"
+     ],
+     "source": "suggested",
+     "evidence": "Added automatically for the design"
+    },
+    {
+     "module_id": "CABLE_USBC_C2C_1M",
+     "name": "USB-C to USB-C cable, 1 m, USB 2.0",
+     "role": "usb_cable",
+     "qty": 1,
+     "implied": true,
+     "reason": "USB-C cable in the box",
+     "refs": [
+      "CBL1"
+     ],
+     "source": "suggested",
+     "evidence": "Added automatically for the design"
+    }
+   ],
+   "limits": [
+    {
+     "value": "The bear's face and limbs do not move; it does not walk or gesture.",
+     "source": "suggested",
+     "evidence": "Stated in the concept phase"
+    },
+    {
+     "value": "Physical safety for a 5-year-old (durability, drop testing) requires a real-world physical check of the final build.",
+     "source": "suggested",
+     "evidence": "Standard digital limits"
+    },
+    {
+     "value": "No internal battery or direct wall plug; requires an external USB-C power source.",
+     "source": "suggested",
+     "evidence": "Catalog limitation"
+    }
+   ],
+   "safety_flags": [
+    "CHILD_DIRECTED",
+    "LOCAL_VOICE_CAPTURE",
+    "NIGHT_USE"
+   ],
+   "spec": {
+    "electronics": {
+     "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+     "extra_modules": [],
+     "power": {
+      "input": "usb_c_5v",
+      "adapter_in_box": false
+     }
+    },
+    "tagline": "A gentle bear that tells stories about her favorite friends.",
+    "body": {
+     "split": "rear_cover",
+     "wall": 2.4,
+     "outline": [
+      [
+       -60,
+       0
+      ],
+      [
+       60,
+       0
+      ],
+      [
+       70,
+       40
+      ],
+      [
+       65,
+       110
+      ],
+      [
+       50,
+       150
+      ],
+      [
+       0,
+       165
+      ],
+      [
+       -50,
+       150
+      ],
+      [
+       -65,
+       110
+      ],
+      [
+       -70,
+       40
+      ]
+     ],
+     "depth": 110,
+     "family": "silhouette",
+     "edge_round": 12,
+     "feet": 4
+    },
+    "safety": {
+     "flags": [
+      "CHILD_DIRECTED",
+      "LOCAL_VOICE_CAPTURE",
+      "NIGHT_USE"
+     ],
+     "notes": "Adult assembly required. Microphone only active when button is held."
+    },
+    "features": [
+     {
+      "module": "SPK_40MM_4R_3W",
+      "id": "speaker",
+      "grille": {
+       "hole": 2.4,
+       "w": 36,
+       "h": 36,
+       "pitch": 4.4,
+       "pattern": "dots_ellipse"
+      },
+      "label": "Story speaker",
+      "face": "front",
+      "at": [
+       0,
+       56
+      ]
+     },
+     {
+      "id": "story_button",
+      "label": "Story and listening button",
+      "at": [
+       0,
+       -10
+      ],
+      "face": "top",
+      "module": "BUTTON_ARCADE_30MM_SNAPIN"
+     },
+     {
+      "module": "OLED_130_SH1106_I2C",
+      "at": [
+       0,
+       120
+      ],
+      "face": "front",
+      "id": "eyes",
+      "label": "Animated sleepy eyes"
+     },
+     {
+      "label": "Night light",
+      "at": [
+       0,
+       85
+      ],
+      "module": "LED_WS2812B_1PX_MODULE",
+      "face": "front",
+      "id": "status_light"
+     },
+     {
+      "module": "MIC_INMP441_I2S",
+      "id": "mic",
+      "face": "front",
+      "at": [
+       30,
+       85
+      ],
+      "label": "Voice microphone"
+     }
+    ],
+    "region": "IN",
+    "slug": "sleepy-bear",
+    "decor": [
+     {
+      "at": [
+       0,
+       120
+      ],
+      "relief": "engrave",
+      "type": "face_plate",
+      "size": [
+       100,
+       50
+      ],
+      "shape": "ellipse",
+      "depth": 1.2
+     },
+     {
+      "style": "bear",
+      "tilt": 0,
+      "side": "both",
+      "at": [
+       45,
+       155
+      ],
+      "size": [
+       25,
+       25
+      ],
+      "type": "ear"
+     }
+    ],
+    "audience": {
+     "age_years": 5,
+     "child_directed": true
+    },
+    "colors": {
+     "body_name": "dusk lavender",
+     "accent_name": "warm cream",
+     "body": "#B9B3E8",
+     "accent": "#FFF6EA",
+     "detail": "#2F2A52",
+     "detail_name": "night indigo"
+    },
+    "behaviour": {
+     "template": "story_player",
+     "summary": "Tap the top button for a bedtime story. Hold it down and tell the bear your new favorite character; it will remember for next time. The tummy light glows warmly during stories and turns blue when listening.",
+     "settings": {}
+    },
+    "schema": "gadget-spec/1",
+    "name": "Sleepy Bear"
+   },
+   "created": "2026-11-01T12:00:26Z",
+   "approved": true,
+   "approved_at": "2026-11-01T12:00:37Z",
+   "summary": {
+    "value": "A soft, bear-shaped bedtime companion that tells short, age-appropriate stories and learns new favorite characters by voice.",
+    "source": "suggested",
+    "evidence": "Matches your Sleepy Bear choice"
+   },
+   "purpose": {
+    "value": "To help a 5-year-old settle down for bed with engaging stories about her favorite characters.",
+    "source": "user",
+    "evidence": "You chose 5 yo old and bedtime stories"
+   },
+   "interaction": {
+    "value": "Tap the top button for a bedtime story. Hold the button down and speak to teach the bear a new favorite character.",
+    "source": "suggested",
+    "evidence": "Simple one-button logic for a 5yo"
+   },
+   "privacy_safety": {
+    "value": "The microphone only activates while the button is physically held. Voice data is processed locally and never sent to the cloud. As a child-directed product, a physical safety review is needed before it can be sold.",
+    "source": "suggested",
+    "evidence": "Strict privacy rules for child-directed voice toys"
+   },
+   "power": {
+    "value": "Powered by a standard USB-C cable (5V). No batteries included or supported.",
+    "source": "suggested",
+    "evidence": "Gadget Studio safety rules"
+   }
+  }
+ ],
+ "versions": [
+  {
+   "n": 1,
+   "created": "2026-11-01T12:00:37Z",
+   "label": "Build from brief v1",
+   "source": "build",
+   "state": "done",
+   "summary": "Sleepy Bear, 10 printed parts, 22 purchased parts, ₹18,999 delivered (estimate, not a binding price)",
+   "spec_hash": "sha256:e5c55336770ebe69916eb76ade0b9c08df0a122fd04ca434228a5f8d150845b4",
+   "brief_version": 1,
+   "base_version": null,
+   "percent": 100,
+   "error": null,
+   "started": "2026-11-01T12:00:37Z",
+   "ended": "2026-11-01T12:02:38Z",
+   "finalized": true,
+   "thumb": "manual/assembled.png"
+  },
+  {
+   "n": 2,
+   "created": "2026-11-01T12:03:38Z",
+   "label": "Edit main shell: Larger face and rounder ears",
+   "source": "update",
+   "state": "done",
+   "summary": "Sleepy Bear, 10 printed parts, 22 purchased parts, ₹18,999 delivered (estimate, not a binding price)",
+   "spec_hash": "sha256:9b61ddbf8f2bf41be4b6029a979f3f1060aa5ba8628469450b0bd14ea3564054",
+   "brief_version": 1,
+   "base_version": 1,
+   "percent": 100,
+   "error": null,
+   "started": "2026-11-01T12:03:38Z",
+   "ended": "2026-11-01T12:05:50Z",
+   "finalized": true,
+   "thumb": "manual/assembled.png"
+  },
+  {
+   "n": 3,
+   "created": "2026-11-01T12:05:59Z",
+   "label": "Pale teal body",
+   "source": "tweak",
+   "state": "done",
+   "summary": "Sleepy Bear, 10 printed parts, 22 purchased parts, ₹18,999 delivered (estimate, not a binding price)",
+   "spec_hash": "sha256:c7558b994fa8bf4e4f3a2a26346deeee24d808e96ca756a4fe989ff5b18aeaec",
+   "brief_version": 1,
+   "base_version": 2,
+   "percent": 100,
+   "error": null,
+   "started": "2026-11-01T12:05:59Z",
+   "ended": "2026-11-01T12:08:11Z",
+   "finalized": true,
+   "thumb": "manual/assembled.png"
+  }
+ ],
+ "current_version": 3,
+ "checklist": {
+  "assembly": {
+   "check-parts": true
+  },
+  "wiring": {}
+ },
+ "order_requests": [],
+ "share": null,
+ "usage": {
+  "basis": "Token counts from Vertex AI usage metadata. cost_usd_est uses configured per-unit rates (MODEL_PRICES_JSON; defaults are unverified placeholders), not billing data.",
+  "turns": [
+   {
+    "turn_id": "t_pbv4fraq4g",
+    "ts": "2026-11-01T11:54:01Z",
+    "action": "text",
+    "mode": "pro",
+    "calls": [
+     {
+      "model": "gemini-3.1-pro-preview",
+      "kind": "text",
+      "input_tokens": 10644,
+      "output_tokens": 240,
+      "thinking_tokens": 701,
+      "cached_tokens": 0,
+      "images": 0,
+      "seconds": 11.84,
+      "cost_usd_est": 0.03258
+     }
+    ],
+    "input_tokens": 10644,
+    "output_tokens": 240,
+    "thinking_tokens": 701,
+    "cached_tokens": 0,
+    "images": 0,
+    "cost_usd_est": 0.03258
+   },
+   {
+    "turn_id": "t_rwxiz9rvqp",
+    "ts": "2026-11-01T11:59:29Z",
+    "action": "answers",
+    "mode": "pro",
+    "calls": [
+     {
+      "model": "gemini-3.1-pro-preview",
+      "kind": "text",
+      "input_tokens": 10811,
+      "output_tokens": 4496,
+      "thinking_tokens": 9277,
+      "cached_tokens": 0,
+      "images": 0,
+      "seconds": 121.66,
+      "cost_usd_est": 0.186898
+     },
+     {
+      "model": "gemini-3.1-pro-preview",
+      "kind": "text",
+      "input_tokens": 23782,
+      "output_tokens": 4499,
+      "thinking_tokens": 7282,
+      "cached_tokens": 0,
+      "images": 0,
+      "seconds": 97.88,
+      "cost_usd_est": 0.188936
+     },
+     {
+      "model": "gemini-3.1-pro-preview",
+      "kind": "text",
+      "input_tokens": 34273,
+      "output_tokens": 2320,
+      "thinking_tokens": 4823,
+      "cached_tokens": 0,
+      "images": 0,
+      "seconds": 54.42,
+      "cost_usd_est": 0.154262
+     },
+     {
+      "model": "gemini-3-pro-image",
+      "kind": "image",
+      "input_tokens": 724,
+      "output_tokens": 1120,
+      "thinking_tokens": 279,
+      "cached_tokens": 0,
+      "images": 1,
+      "seconds": 19.53,
+      "cost_usd_est": 0.152236
+     },
+     {
+      "model": "gemini-3-pro-image",
+      "kind": "image",
+      "input_tokens": 727,
+      "output_tokens": 1120,
+      "thinking_tokens": 324,
+      "cached_tokens": 0,
+      "images": 1,
+      "seconds": 20.85,
+      "cost_usd_est": 0.152782
+     },
+     {
+      "model": "gemini-3-pro-image",
+      "kind": "image",
+      "input_tokens": 721,
+      "output_tokens": 1120,
+      "thinking_tokens": 289,
+      "cached_tokens": 0,
+      "images": 1,
+      "seconds": 19.87,
+      "cost_usd_est": 0.15235
+     },
+     {
+      "model": "gemini-3-pro-image",
+      "kind": "image",
+      "input_tokens": 721,
+      "output_tokens": 1120,
+      "thinking_tokens": 304,
+      "cached_tokens": 0,
+      "images": 1,
+      "seconds": 20.73,
+      "cost_usd_est": 0.15253
+     },
+     {
+      "model": "gemini-3-pro-image",
+      "kind": "image",
+      "input_tokens": 725,
+      "output_tokens": 1120,
+      "thinking_tokens": 297,
+      "cached_tokens": 0,
+      "images": 1,
+      "seconds": 19.14,
+      "cost_usd_est": 0.152454
+     },
+     {
+      "model": "gemini-3-pro-image",
+      "kind": "image",
+      "input_tokens": 725,
+      "output_tokens": 1120,
+      "thinking_tokens": 244,
+      "cached_tokens": 0,
+      "images": 1,
+      "seconds": 19.83,
+      "cost_usd_est": 0.151818
+     }
+    ],
+    "input_tokens": 73209,
+    "output_tokens": 18035,
+    "thinking_tokens": 23119,
+    "cached_tokens": 0,
+    "images": 6,
+    "cost_usd_est": 1.444266
+   },
+   {
+    "turn_id": "t_y5t4ym7zmr",
+    "ts": "2026-11-01T12:00:26Z",
+    "action": "select_concept",
+    "mode": "pro",
+    "calls": [
+     {
+      "model": "gemini-3.1-pro-preview",
+      "kind": "text",
+      "input_tokens": 11807,
+      "output_tokens": 743,
+      "thinking_tokens": 1067,
+      "cached_tokens": 0,
+      "images": 0,
+      "seconds": 19.08,
+      "cost_usd_est": 0.045334
+     }
+    ],
+    "input_tokens": 11807,
+    "output_tokens": 743,
+    "thinking_tokens": 1067,
+    "cached_tokens": 0,
+    "images": 0,
+    "cost_usd_est": 0.045334
+   },
+   {
+    "turn_id": "t_h6rav6fgdb",
+    "ts": "2026-11-01T12:05:51Z",
+    "action": "edit_part",
+    "mode": "pro",
+    "calls": [
+     {
+      "model": "gemini-3.1-pro-preview",
+      "kind": "text",
+      "input_tokens": 12227,
+      "output_tokens": 784,
+      "thinking_tokens": 2945,
+      "cached_tokens": 0,
+      "images": 0,
+      "seconds": 34.36,
+      "cost_usd_est": 0.069202
+     }
+    ],
+    "input_tokens": 12227,
+    "output_tokens": 784,
+    "thinking_tokens": 2945,
+    "cached_tokens": 0,
+    "images": 0,
+    "cost_usd_est": 0.069202
+   }
+  ],
+  "totals": {
+   "input_tokens": 107887,
+   "output_tokens": 19802,
+   "thinking_tokens": 27832,
+   "cached_tokens": 0,
+   "images": 6,
+   "cost_usd_est": 1.591382,
+   "turns": 4
+  }
+ }
+}

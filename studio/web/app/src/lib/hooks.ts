@@ -1,6 +1,49 @@
 import { useEffect, useRef, useState } from "react";
 import { api, fetchFile } from "./api";
 import { apiRoot, fileUrl, type Ctx } from "./urls";
+import type { FileEntry } from "./types";
+
+// ---------------------------------------------------------------- file list (with sizes) per version
+const filesCache = new Map<string, Promise<FileEntry[] | null>>();
+
+/** A version's files with sizes and hashes (GET /v/{n}, or manifest.json on share links). Finished versions are cached. */
+export function versionFiles(ctx: Ctx, n: number): Promise<FileEntry[] | null> {
+  const key = `${apiRoot(ctx)}/v/${n}`;
+  const hit = filesCache.get(key);
+  if (hit) return hit;
+  const fromManifest = () => fetchFile(fileUrl(ctx, n, "manifest.json")).then((m: any) => ({ files: m?.files, done: true }));
+  const p: Promise<FileEntry[] | null> = (
+    ctx.share ? fromManifest() : api.versionDetail(ctx.pid, n).then((d) => (d.files?.length ? { files: d.files, done: d.state === "done" } : fromManifest().catch(() => ({ files: [], done: false }))))
+  )
+    .then(({ files, done }) => {
+      if (!done) filesCache.delete(key);
+      return Array.isArray(files) && files.length ? (files as FileEntry[]) : null;
+    })
+    .catch(() => {
+      filesCache.delete(key);
+      return null;
+    });
+  filesCache.set(key, p);
+  return p;
+}
+
+/** undefined while loading, null when the version lists no files. */
+export function useVersionFiles(ctx: Ctx | null, n: number | null | undefined): FileEntry[] | null | undefined {
+  const [files, setFiles] = useState<FileEntry[] | null | undefined>(undefined);
+  useEffect(() => {
+    if (!ctx || n == null) {
+      setFiles(null);
+      return;
+    }
+    let alive = true;
+    setFiles(undefined);
+    versionFiles(ctx, n).then((f) => alive && setFiles(f));
+    return () => {
+      alive = false;
+    };
+  }, [ctx?.pid, ctx?.share, n]);
+  return files;
+}
 
 export interface Loaded<T> {
   data: T | null;

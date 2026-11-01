@@ -1,7 +1,7 @@
 """A stand-in for the device's web API, serving data/parent.html, so the parent page can be looked at in a
 browser without hardware. The JSON shapes copy what main.cpp (api_state) and app_story_player.cpp return.
 
-    python mock_device.py <port> <setup|ready>
+    python mock_device.py <port> <setup|ready>      (parent PIN 246813; story_player in its default parent_web mode)
 """
 from __future__ import annotations
 
@@ -30,18 +30,19 @@ STATE = {
     "update": {"state": "valid", "partition": "app0", "signed_updates": False, "boot_checks": "ok"},
     "card": {"present": True, "mounted": True, "total_mb": 29802, "used_mb": 38},
     "app": {
-        "capture_mode": "child_voice_clip", "clip_seconds": 2.0, "keep_window_seconds": 10,
+        "capture_mode": "parent_web", "network": "parent_page", "clip_seconds": 3.0, "keep_window_seconds": 10,
         "player": {"state": "playing", "light": "story", "story_id": "mango_tree", "story_title": "The Mango Tree That Hummed",
                    "missing_audio_files": 0, "listening": False},
         "volume": 35, "volume_max": 60, "volume_note": "software setting, not a measured sound level",
-        "night_light": {"enabled": True, "minutes": 20, "level": 12, "minutes_max": 120, "level_max": 60, "on": True, "remaining_s": 1020},
+        "night_light": {"enabled": True, "minutes": 20, "level": 12, "minutes_max": 120, "level_max": 30, "on": True, "remaining_s": 1020},
         "max_favourites": 12,
-        "favourites": [{"id": 1, "name": "Anya", "has_clip": True, "clip_on_card": True, "name_audio": False},
-                       {"id": 2, "name": "", "has_clip": True, "clip_on_card": True},
+        "pending_wipe": False,
+        "favourites": [{"id": 1, "name": "Anya", "has_clip": False, "name_audio": True},
+                       {"id": 2, "name": "Kabir", "has_clip": False, "name_audio": False},
                        {"id": 3, "name": "Gattu the Elephant", "has_clip": False, "name_audio": False}],
         "story_pack": {"loaded": True, "message": "6 of 6 stories have audio.", "language": "en-IN", "count": 6},
         "stories": [{"id": i, "title": t, "audio": True} for i, t in STORIES],
-        "privacy": "Voice clips are stored only on this device's microSD card and are never sent to the internet.",
+        "privacy": "This gadget records no voice. Names are typed by a parent; nothing is sent to the internet.",
     },
 }
 
@@ -70,7 +71,7 @@ class H(BaseHTTPRequestHandler):
             self._json(200, {"ok": True, "networks": [{"ssid": "Sharma Home", "rssi": -50, "secure": True},
                                                        {"ssid": "JioFiber-5G", "rssi": -71, "secure": True}]})
         elif self.path == "/api/state":
-            if self.headers.get("X-GS-PIN") != "2468":
+            if self.headers.get("X-GS-PIN") != "246813":
                 self._json(401, {"ok": False, "message": "Wrong parent PIN."})
             else:
                 self._json(200, STATE)

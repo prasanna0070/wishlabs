@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { CheckCircle2, Clock, Info, MapPin, Package, TriangleAlert, Truck } from "lucide-react";
+import { CheckCircle2, Clock, Cpu, Info, MapPin, Package, TriangleAlert, Truck } from "lucide-react";
 import { useProject } from "../../store/project";
 import { api, ApiError } from "../../lib/api";
 import { useVersionFile } from "../../lib/hooks";
-import { dateTime, humanPart, inr } from "../../lib/format";
+import { dateTime, excludesText, humanPart, inr, partsTotal, plainText, statusWords } from "../../lib/format";
 import type { Build, Quote, QuoteScenario } from "../../lib/types";
 import { Spinner } from "../ui";
 import type { TabProps } from "./RightPanel";
@@ -58,7 +58,9 @@ export default function OrderTab({ version }: TabProps) {
   }
   const scen = q.scenarios || [];
   const s: QuoteScenario | undefined = scen[si];
-  const st = STATUS_TEXT[q.status] || { tone: "warning", label: q.status };
+  const st = STATUS_TEXT[q.status] || { tone: "warning", label: statusWords(q.status) };
+  const parts = partsTotal(q, build.data);
+  const excludes = excludesText(q.delivered_price_inr?.excludes, q.missing_prices);
   const headline = q.delivered_price_inr?.pilot_one_off ?? q.list_price_inr ?? scen[0]?.list_price_incl_gst;
   const lt = q.lead_time_days;
   const printParts = Object.entries(q.inputs?.print?.parts || {});
@@ -92,6 +94,11 @@ export default function OrderTab({ version }: TabProps) {
                   <Clock size={15} /> Arrives in {lt.low}–{lt.high} days
                 </span>
               ) : null}
+              {parts ? (
+                <span title={parts.basis} data-testid="order-parts-total">
+                  <Cpu size={15} /> Parts {inr(parts.inr)} of this
+                </span>
+              ) : null}
               <span>
                 <Truck size={15} /> Courier within India
               </span>
@@ -100,7 +107,7 @@ export default function OrderTab({ version }: TabProps) {
           <div className="hero-note">
             <Info size={15} />
             <span>
-              {q.status_label || "Estimated total"}. {q.binding === false ? "Non-binding: nothing is charged or reserved." : ""}
+              {plainText(q.status_label) || "Estimated total"}. {q.binding === false ? "Non-binding: nothing is charged or reserved." : ""}
             </span>
           </div>
         </div>
@@ -148,10 +155,10 @@ export default function OrderTab({ version }: TabProps) {
             <h3 style={{ fontSize: 15, marginBottom: 8 }}>Why it is an estimate</h3>
             <ul className="reasons">
               {(q.reasons || []).map((r, i) => (
-                <li key={i}>{r}</li>
+                <li key={i}>{plainText(r)}</li>
               ))}
             </ul>
-            {q.missing_prices?.length ? <div className="callout danger small">Not in the total: {q.missing_prices.join(", ")}</div> : null}
+            {q.missing_prices?.length && !q.delivered_price_inr?.includes?.length ? <div className="callout danger small">Parts without a price yet (not in the total): {q.missing_prices.join(", ")}</div> : null}
           </div>
           <div className="card pad">
             <h3 style={{ fontSize: 15, marginBottom: 8 }}>Printing</h3>
@@ -191,14 +198,14 @@ export default function OrderTab({ version }: TabProps) {
               <h3 style={{ fontSize: 15, marginBottom: 8 }}>Included</h3>
               <ul className="reasons ok">
                 {q.delivered_price_inr.includes.map((x, i) => (
-                  <li key={i}>{x}</li>
+                  <li key={i}>{plainText(x)}</li>
                 ))}
               </ul>
             </div>
             <div className="card pad">
               <h3 style={{ fontSize: 15, marginBottom: 8 }}>Not included</h3>
               <ul className="reasons">
-                {(q.delivered_price_inr.excludes || []).map((x, i) => (
+                {excludes.map((x, i) => (
                   <li key={i}>{x}</li>
                 ))}
               </ul>
@@ -230,7 +237,7 @@ export default function OrderTab({ version }: TabProps) {
             <summary>Limits of this price</summary>
             <ul>
               {q.limits.map((l, i) => (
-                <li key={i}>{l}</li>
+                <li key={i}>{plainText(l)}</li>
               ))}
             </ul>
           </details>

@@ -1,0 +1,16 @@
+{
+ "_about": "Terms of the +5V voltage-drop budget (MIN-2). Every value says where it comes from; ASSUMPTION means it is not from a datasheet of the part that will be fitted.",
+ "source_min_v": {
+  "adapter": {"value": 4.75, "basis": "USB Type-C vSafe5V floor (4.75 V). The in-box adapter is rated 5.1 V nominal, but the library has no load-regulation figure for it, so the USB-C floor is used"},
+  "unknown_usb_c": {"value": 4.75, "basis": "USB Type-C vSafe5V floor (4.75 V) for a supply the buyer chooses"}
+ },
+ "cable_ohm": {
+  "adapter_captive": {"value": 0.063, "basis": "fallback when the adapter row gives no length and gauge: 2 x 1.5 m of 18 AWG copper"},
+  "usb_c_spec_max": {"value": 0.15, "basis": "ASSUMPTION: round-trip resistance of an unknown 1 m USB-C cable chosen by the buyer"}
+ },
+ "awg_ohm_per_m": {"18": 0.02095, "20": 0.03331, "22": 0.05296, "24": 0.08422, "26": 0.1339, "28": 0.2129},
+ "awg_basis": "standard AWG table, annealed copper at 20 C",
+ "contacts_ohm": {"value": 0.02, "basis": "ASSUMPTION: USB-C plug and receptacle VBUS and GND contacts, in and out"},
+ "ptc_ohm": {"value": 0.15, "basis": "ASSUMPTION: resistance of a 1.5 A-hold 1812 PTC after it has recovered from a trip; backplane F1 is 'PTC fuse 1.5 A hold, >= 6 V (1812)' with no part number, so no datasheet value"},
+ "trace_ohm": {"value": 0.035, "basis": "ESTIMATE: about 50 mm of 0.8 mm wide 1 oz (35 um) copper on +5V (0.61 ohm/m; backplane net_classes power_track_mm 0.8) plus about 5 mohm of GND pour; track length not measured from the routed board"}
+}

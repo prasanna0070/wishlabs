@@ -1,0 +1,738 @@
+{
+ "schema": "gadget-build/1",
+ "purchased": [
+  {
+   "name": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+   "quantity": 1,
+   "kind": "module",
+   "module_id": "CORE_ESP32S3_DEVKITC1_N8R8",
+   "refs": [
+    "U1"
+   ],
+   "modelPart": "PURCHASE_CoreBoard",
+   "use": null,
+   "prewire": null,
+   "sku": null,
+   "notes": "Price seen at Electropi on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: Rs 1,449 excl. 18% GST (MRP 1,709.82 incl.); genuine Espressif N8R8; page says USB Type-C while Espressif's v1.1 guide says Micro-USB",
+   "packSize": 1
+  },
+  {
+   "name": "Standard backplane PCB backplane-v1 (ours)",
+   "quantity": 1,
+   "kind": "module",
+   "module_id": "BACKPLANE_V1",
+   "refs": [
+    "BP1"
+   ],
+   "modelPart": "PURCHASE_Backplane",
+   "use": null,
+   "prewire": null,
+   "sku": null,
+   "notes": "Price estimate; confirm before ordering.",
+   "packSize": 1
+  },
+  {
+   "name": "USB-C 2.0 receptacle on backplane (5V sink, CC 5.1k Rd)",
+   "quantity": 1,
+   "kind": "module",
+   "module_id": "USBC_RECEPTACLE_GCT_USB4105",
+   "refs": [
+    "PWR1"
+   ],
+   "modelPart": "PURCHASE_Backplane",
+   "use": null,
+   "prewire": null,
+   "sku": null,
+   "notes": "Price estimate; confirm before ordering. Source note: DigiKey listings: 24 positions (16+8 dummy), 5 A rating, 20,000 mating cycles, -40 to 85 C; INR price not seen",
+   "packSize": 1
+  },
+  {
+   "name": "Speaker 40 mm round, 4 ohm, 3 W",
+   "quantity": 1,
+   "kind": "module",
+   "module_id": "SPK_40MM_4R_3W",
+   "refs": [
+    "SPK1"
+   ],
+   "modelPart": "PURCHASE_Speaker",
+   "use": "speaker",
+   "prewire": {
+    "by": "factory",
+    "lead": "JST-PH 2.0 2p 100 mm",
+    "pads": [
+     "+ eyelet",
+     "- eyelet"
+    ],
+    "slot": "J_SPK",
+    "note": "The factory solders a JST-PH 2-pin lead (stock: CABLE_JSTPH_2P_<len> with the module-end housing cut off; length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into J_SPK. The maker never solders."
+   },
+   "sku": null,
+   "notes": "Price seen at DigiKey India on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: qty 1; 25 in stock",
+   "packSize": 1
+  },
+  {
+   "name": "Big 30 mm snap-in arcade push button (microswitch)",
+   "quantity": 1,
+   "kind": "module",
+   "module_id": "BUTTON_ARCADE_30MM_SNAPIN",
+   "refs": [
+    "BTN1"
+   ],
+   "modelPart": "PURCHASE_Button",
+   "use": "story_button",
+   "prewire": null,
+   "sku": null,
+   "notes": "Price seen at Thingbits on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: TH1801; incl. GST (79.00 excl.); red sold out; red/yellow/blue/green/clear; 10.4 g",
+   "packSize": 1
+  },
+  {
+   "name": "1.3 in 128x64 mono OLED, SH1106, I2C 4-pin",
+   "quantity": 1,
+   "kind": "module",
+   "module_id": "OLED_130_SH1106_I2C",
+   "refs": [
+    "DISP1"
+   ],
+   "modelPart": "PURCHASE_Display",
+   "use": "eyes",
+   "prewire": null,
+   "sku": null,
+   "notes": "Price seen at Probots on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: PRO1243; incl. GST (278.81 excl.); in stock; pin order VCC, GND, SCK/SCL, SDA; 0x3C, 0x3D via resistor move",
+   "packSize": 1
+  },
+  {
+   "name": "Addressable RGB LED, single WS2812B 5050 on a mini board",
+   "quantity": 1,
+   "kind": "module",
+   "module_id": "LED_WS2812B_1PX_MODULE",
+   "refs": [
+    "LED1"
+   ],
+   "modelPart": "PURCHASE_Led",
+   "use": "status_light",
+   "prewire": {
+    "by": "factory",
+    "lead": "JST-PH 2.0 3p 100 mm",
+    "pads": [
+     "GND",
+     "5V",
+     "DIN"
+    ],
+    "slot": "J_LED",
+    "note": "The factory solders a JST-PH 3-pin lead (stock: CABLE_JSTPH_3P_<len> with the module-end housing cut off; length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into J_LED. The maker never solders. DOUT stays unconnected."
+   },
+   "sku": null,
+   "notes": "Price seen at Probots on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: PRO4080; incl. GST (83.90 excl.); in stock; 4-7 V; no dimensions or pin labels on page",
+   "packSize": 1
+  },
+  {
+   "name": "INMP441 I2S MEMS microphone module",
+   "quantity": 1,
+   "kind": "module",
+   "module_id": "MIC_INMP441_I2S",
+   "refs": [
+    "MIC1"
+   ],
+   "modelPart": "PURCHASE_Microphone",
+   "use": "mic",
+   "prewire": null,
+   "sku": null,
+   "notes": "Price seen at Robocraze on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: incl. GST; 272 in stock",
+   "packSize": 1
+  },
+  {
+   "name": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+   "quantity": 1,
+   "kind": "module",
+   "module_id": "AMP_MAX98357A_I2S",
+   "refs": [
+    "AMP1"
+   ],
+   "modelPart": "PURCHASE_Amplifier",
+   "use": null,
+   "prewire": {
+    "by": "factory",
+    "lead": null,
+    "pads": [
+     "7-pin header (pins down)",
+     "VO+ pin",
+     "VO- pin"
+    ],
+    "slot": "A1",
+    "note": "The factory solders the 7-pin header pins-down and two 2.54 mm pins into the VO+/VO- terminal pads (instead of the screw terminal) so the amp plugs straight into A1. The maker never solders."
+   },
+   "sku": null,
+   "notes": "Price seen at Robocraze on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: SmartElex MAX98357A breakout (third-party), incl. GST, 179 in stock; dims/pinout not shown, equivalence to Adafruit 3006 not confirmed",
+   "packSize": 1
+  },
+  {
+   "name": "microSD SPI module with LDO and level shifter (Catalex-type)",
+   "quantity": 1,
+   "kind": "module",
+   "module_id": "MICROSD_SPI_MODULE_5V",
+   "refs": [
+    "SD1"
+   ],
+   "modelPart": "PURCHASE_MicroSdModule",
+   "use": null,
+   "prewire": null,
+   "sku": null,
+   "notes": "Price seen at Probots on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: PRO1129; incl. GST (41.53 excl.); in stock; 4x M2 holes; level shifter 'like 74LVC125A'",
+   "packSize": 1
+  },
+  {
+   "name": "USB-C to USB-C cable, 1 m, USB 2.0",
+   "quantity": 1,
+   "kind": "module",
+   "module_id": "CABLE_USBC_C2C_1M",
+   "refs": [
+    "CBL1"
+   ],
+   "modelPart": null,
+   "use": null,
+   "prewire": null,
+   "in_box": true,
+   "sku": null,
+   "notes": "Price seen at Probots on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: Rs 199 incl. GST (168.64 excl.); in stock; spec list says 3A but description says 2A / 2.4A",
+   "packSize": 1
+  },
+  {
+   "name": "JST-PH 2.0 2-pin harness, 200 mm, pre-crimped both ends",
+   "quantity": 1,
+   "kind": "cable",
+   "module_id": "CABLE_JSTPH_2P_200",
+   "refs": [
+    "SPK1"
+   ],
+   "modelPart": null,
+   "use": "harness to SPK1",
+   "prewire": null,
+   "sku": null,
+   "notes": "Keyed cable, 2 pins; length class needed: 200 mm. Price estimate; confirm before ordering.",
+   "packSize": 1
+  },
+  {
+   "name": "JST-PH 2.0 3-pin harness, 300 mm, pre-crimped both ends",
+   "quantity": 1,
+   "kind": "cable",
+   "module_id": "CABLE_JSTPH_3P_300",
+   "refs": [
+    "BTN1"
+   ],
+   "modelPart": null,
+   "use": "harness to BTN1",
+   "prewire": null,
+   "sku": null,
+   "notes": "Keyed cable, 3 pins; length class needed: 300 mm. Price estimate; confirm before ordering.",
+   "packSize": 1
+  },
+  {
+   "name": "JST-PH 2.0 4-pin harness, 300 mm, pre-crimped both ends",
+   "quantity": 1,
+   "kind": "cable",
+   "module_id": "CABLE_JSTPH_4P_300",
+   "refs": [
+    "DISP1"
+   ],
+   "modelPart": null,
+   "use": "harness to DISP1",
+   "prewire": null,
+   "sku": null,
+   "notes": "Keyed cable, 4 pins; length class needed: 300 mm. Price estimate; confirm before ordering.",
+   "packSize": 1
+  },
+  {
+   "name": "JST-PH 2.0 3-pin harness, 200 mm, pre-crimped both ends",
+   "quantity": 1,
+   "kind": "cable",
+   "module_id": "CABLE_JSTPH_3P_200",
+   "refs": [
+    "LED1"
+   ],
+   "modelPart": null,
+   "use": "harness to LED1",
+   "prewire": null,
+   "sku": null,
+   "notes": "Keyed cable, 3 pins; length class needed: 200 mm. Price estimate; confirm before ordering.",
+   "packSize": 1
+  },
+  {
+   "name": "JST-PH 2.0 6-pin harness, 300 mm, pre-crimped both ends",
+   "quantity": 1,
+   "kind": "cable",
+   "module_id": "CABLE_JSTPH_6P_300",
+   "refs": [
+    "MIC1"
+   ],
+   "modelPart": null,
+   "use": "harness to MIC1",
+   "prewire": null,
+   "sku": null,
+   "notes": "Keyed cable, 6 pins; length class needed: 300 mm. Price estimate; confirm before ordering.",
+   "packSize": 1
+  },
+  {
+   "name": "M2 / M2.5 socket head cap screws (SS304) + ISO 4032 hex nuts",
+   "quantity": 17,
+   "kind": "hardware",
+   "module_id": "SCREW_SET_M2_M2_5_SHCS_A2",
+   "refs": [],
+   "modelPart": "PURCHASE_CartridgeScrews",
+   "use": "4 x M2.5 cartridge screws x4; 4 x M2.5 cover screws x4; 9 x M2.5 module clamp screws x9",
+   "prewire": null,
+   "sku": null,
+   "notes": "Quantity 17 from the CAD model (4 x M2.5 cartridge screws x4; 4 x M2.5 cover screws x4; 9 x M2.5 module clamp screws x9); the normalizer's hardware list says 19. Price seen at ThinkRobotics on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Sold in packs of 10; this build uses 17.",
+   "packSize": 10
+  },
+  {
+   "name": "Heat-set insert M2.5 x 4.0 (standard)",
+   "quantity": 17,
+   "kind": "hardware",
+   "module_id": "INSERT_HEATSET_M2_5X4_STD",
+   "refs": [],
+   "modelPart": "PURCHASE_HeatSetInserts",
+   "use": "17 x M2.5 heat-set inserts x17",
+   "prewire": null,
+   "sku": null,
+   "notes": "Price seen at ThinkRobotics on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Pack size not recorded; priced as one set per build for the 17 pieces used (the blueprint catalog prices this kind of row per set). Confirm the pack holds enough.",
+   "packSize": null
+  },
+  {
+   "name": "Adhesive bumper feet, hemispherical ~7.9 mm",
+   "quantity": 4,
+   "kind": "hardware",
+   "module_id": "FEET_BUMPON_SJ5302_CLEAR",
+   "refs": [],
+   "modelPart": "PURCHASE_Feet",
+   "use": "4 x adhesive bumper feet x4",
+   "prewire": null,
+   "sku": null,
+   "notes": "Price estimate; confirm before ordering. Pack size not recorded; priced as one set per build for the 4 pieces used (the blueprint catalog prices this kind of row per set). Confirm the pack holds enough.",
+   "packSize": null
+  },
+  {
+   "name": "Cable tie 100 x 2.5 mm (nylon 6/6) + printed tie anchors",
+   "quantity": 6,
+   "kind": "hardware",
+   "module_id": "STRAIN_TIE_NYLON66_100X2_5",
+   "refs": [],
+   "modelPart": null,
+   "use": "6 x cable tie 100 x 2.5 mm (harness retention at printed anchors)",
+   "prewire": null,
+   "sku": null,
+   "notes": "Price seen at Quartz Components on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Sold in packs of 100; this build uses 6.",
+   "packSize": 100
+  },
+  {
+   "name": "Speaker gasket: single-sided adhesive foam strip 25 x 3 mm (+ printed clamp ring)",
+   "quantity": 1,
+   "kind": "hardware",
+   "module_id": "SPK_GASKET_FOAM_25X3_ADH",
+   "refs": [],
+   "modelPart": "PURCHASE_MicGasket",
+   "use": "1 x speaker foam gasket strip (seal the speaker to the baffle)",
+   "prewire": null,
+   "sku": null,
+   "notes": "Price seen at Quartz Components on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt.",
+   "packSize": 1
+  },
+  {
+   "name": "Device ID label (QR + serial, silver/white polyester, thermal transfer) + packing kit",
+   "quantity": 1,
+   "kind": "hardware",
+   "module_id": "LABEL_QR_POLYESTER_50X25_PACK",
+   "refs": [],
+   "modelPart": null,
+   "use": "1 x device ID label + packing kit (serial/QR label and packing)",
+   "prewire": null,
+   "sku": null,
+   "notes": "IndiaMART (Quick Barcode Solution, New Delhi) price 280 INR was only seen in a search result on 2026-11-01, not on the vendor page. Price estimate; confirm before ordering.",
+   "packSize": 1
+  }
+ ],
+ "printed": [
+  {
+   "name": "PRINT_DisplayClip",
+   "file": "print/PRINT_DisplayClip.stl",
+   "kind": "print",
+   "material": "PLA",
+   "color": "#ADD5CD",
+   "color_name": "pale teal",
+   "grams": 1.14,
+   "hours": 0.156,
+   "print_time": "9m 20s",
+   "supports": false,
+   "support_g": 0.0,
+   "size_mm": [
+    51.0,
+    7.2,
+    9.3
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "flat strap face on the bed, fingers up; no supports",
+   "orientation_basis": "cad"
+  },
+  {
+   "name": "PRINT_LedClip",
+   "file": "print/PRINT_LedClip.stl",
+   "kind": "print",
+   "material": "PLA",
+   "color": "#ADD5CD",
+   "color_name": "pale teal",
+   "grams": 0.54,
+   "hours": 0.079,
+   "print_time": "4m 43s",
+   "supports": false,
+   "support_g": 0.0,
+   "size_mm": [
+    25.6,
+    7.4,
+    5.4
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "flat strap face on the bed, fingers up; no supports",
+   "orientation_basis": "cad"
+  },
+  {
+   "name": "PRINT_LedDiffuser",
+   "file": "print/PRINT_LedDiffuser.stl",
+   "kind": "print",
+   "material": "PETG natural",
+   "color": "#F7F5EB",
+   "color_name": "pale teal",
+   "grams": 0.5,
+   "hours": 0.066,
+   "print_time": "3m 56s",
+   "supports": true,
+   "support_g": 0.2,
+   "size_mm": [
+    10.4,
+    10.397,
+    3.6
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "outer face on the bed (smooth light face); print in natural PETG",
+   "orientation_basis": "cad"
+  },
+  {
+   "name": "PRINT_MicClip",
+   "file": "print/PRINT_MicClip.stl",
+   "kind": "print",
+   "material": "PLA",
+   "color": "#ADD5CD",
+   "color_name": "pale teal",
+   "grams": 0.68,
+   "hours": 0.105,
+   "print_time": "6m 18s",
+   "supports": false,
+   "support_g": 0.0,
+   "size_mm": [
+    7.2,
+    29.6,
+    8.2
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "flat strap face on the bed, fingers up; no supports",
+   "orientation_basis": "cad"
+  },
+  {
+   "name": "PRINT_RearCover",
+   "file": "print/PRINT_RearCover.stl",
+   "kind": "print",
+   "material": "PLA",
+   "color": "#8CC9C0",
+   "color_name": "pale teal",
+   "grams": 60.03,
+   "hours": 6.718,
+   "print_time": "6h 43m 6s",
+   "supports": true,
+   "support_g": 2.53,
+   "size_mm": [
+    141.856,
+    165.0,
+    10.38
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "outer back face on the bed, lip and tubes up; no supports",
+   "orientation_basis": "cad"
+  },
+  {
+   "name": "PRINT_Shell",
+   "file": "print/PRINT_Shell.stl",
+   "kind": "print",
+   "material": "PLA",
+   "color": "#8CC9C0",
+   "color_name": "pale teal",
+   "grams": 226.66,
+   "hours": 18.913,
+   "print_time": "18h 54m 47s",
+   "supports": true,
+   "support_g": 1.88,
+   "size_mm": [
+    141.856,
+    102.62,
+    186.355
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "upright on its flat base: face and decor print on vertical walls; tree supports for the domed top and the inside of the head",
+   "orientation_basis": "cad"
+  },
+  {
+   "name": "PRINT_SpeakerRing",
+   "file": "print/PRINT_SpeakerRing.stl",
+   "kind": "print",
+   "material": "PLA",
+   "color": "#ADD5CD",
+   "color_name": "pale teal",
+   "grams": 3.06,
+   "hours": 0.301,
+   "print_time": "18m 2s",
+   "supports": false,
+   "support_g": 0.0,
+   "size_mm": [
+    50.324,
+    49.694,
+    7.1
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "ring face on the bed, presser tube up; no supports",
+   "orientation_basis": "cad"
+  },
+  {
+   "name": "TEST_FitCoupon",
+   "file": "print/TEST_FitCoupon.stl",
+   "kind": "test_coupon",
+   "material": "PETG",
+   "color": "#8CC9C0",
+   "color_name": null,
+   "grams": 9.35,
+   "hours": 1.131,
+   "print_time": "1h 7m 52s",
+   "supports": false,
+   "support_g": 0.0,
+   "size_mm": [
+    78.0,
+    46.0,
+    15.0
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "flat on the bed as generated",
+   "orientation_basis": "cad",
+   "note": "Fit coupon: print first with the same material and settings; not a part of the gadget."
+  },
+  {
+   "name": "TEST_SeamMate",
+   "file": "print/TEST_SeamMate.stl",
+   "kind": "test_coupon",
+   "material": "PETG",
+   "color": "#8CC9C0",
+   "color_name": null,
+   "grams": 5.29,
+   "hours": 0.435,
+   "print_time": "26m 7s",
+   "supports": true,
+   "support_g": 1.8,
+   "size_mm": [
+    36.0,
+    10.38,
+    27.335
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "flat on the bed as generated",
+   "orientation_basis": "cad",
+   "note": "Fit coupon: print first with the same material and settings; not a part of the gadget."
+  },
+  {
+   "name": "TEST_SeamShell",
+   "file": "print/TEST_SeamShell.stl",
+   "kind": "test_coupon",
+   "material": "PETG",
+   "color": "#8CC9C0",
+   "color_name": null,
+   "grams": 6.95,
+   "hours": 0.594,
+   "print_time": "35m 37s",
+   "supports": true,
+   "support_g": 3.54,
+   "size_mm": [
+    36.0,
+    25.0,
+    12.934
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "flat on the bed as generated",
+   "orientation_basis": "cad",
+   "note": "Fit coupon: print first with the same material and settings; not a part of the gadget."
+  }
+ ],
+ "factory_work": [
+  {
+   "name": "Speaker 40 mm round, 4 ohm, 3 W",
+   "module_id": "SPK_40MM_4R_3W",
+   "refs": [
+    "SPK1"
+   ],
+   "by": "factory",
+   "what": "The factory solders a JST-PH 2-pin lead (stock: CABLE_JSTPH_2P_<len> with the module-end housing cut off; length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into J_SPK. The maker never solders.",
+   "prewire": {
+    "by": "factory",
+    "lead": "JST-PH 2.0 2p 100 mm",
+    "pads": [
+     "+ eyelet",
+     "- eyelet"
+    ],
+    "slot": "J_SPK",
+    "note": "The factory solders a JST-PH 2-pin lead (stock: CABLE_JSTPH_2P_<len> with the module-end housing cut off; length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into J_SPK. The maker never solders."
+   }
+  },
+  {
+   "name": "Addressable RGB LED, single WS2812B 5050 on a mini board",
+   "module_id": "LED_WS2812B_1PX_MODULE",
+   "refs": [
+    "LED1"
+   ],
+   "by": "factory",
+   "what": "The factory solders a JST-PH 3-pin lead (stock: CABLE_JSTPH_3P_<len> with the module-end housing cut off; length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into J_LED. The maker never solders. DOUT stays unconnected.",
+   "prewire": {
+    "by": "factory",
+    "lead": "JST-PH 2.0 3p 100 mm",
+    "pads": [
+     "GND",
+     "5V",
+     "DIN"
+    ],
+    "slot": "J_LED",
+    "note": "The factory solders a JST-PH 3-pin lead (stock: CABLE_JSTPH_3P_<len> with the module-end housing cut off; length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into J_LED. The maker never solders. DOUT stays unconnected."
+   }
+  },
+  {
+   "name": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+   "module_id": "AMP_MAX98357A_I2S",
+   "refs": [
+    "AMP1"
+   ],
+   "by": "factory",
+   "what": "The factory solders the 7-pin header pins-down and two 2.54 mm pins into the VO+/VO- terminal pads (instead of the screw terminal) so the amp plugs straight into A1. The maker never solders.",
+   "prewire": {
+    "by": "factory",
+    "lead": null,
+    "pads": [
+     "7-pin header (pins down)",
+     "VO+ pin",
+     "VO- pin"
+    ],
+    "slot": "A1",
+    "note": "The factory solders the 7-pin header pins-down and two 2.54 mm pins into the VO+/VO- terminal pads (instead of the screw terminal) so the amp plugs straight into A1. The maker never solders."
+   }
+  }
+ ],
+ "tests": [
+  {
+   "title": "Power-on and self-test",
+   "expected": "On USB-C power the gadget starts, and every module passes its self-test as described in SOFTWARE_SETUP.md: button, display, light, microphone, speaker.",
+   "kind": "physical",
+   "status": "not_run"
+  },
+  {
+   "title": "Story, stop and volume",
+   "expected": "A tap plays a story through the speaker; a tap during a story stops it; the volume is comfortable at the listening position.",
+   "kind": "physical",
+   "status": "not_run"
+  },
+  {
+   "title": "Listening light and confirmation",
+   "expected": "The microphone opens only while the button is held, the light shows it is listening, and a new favourite is kept only after an explicit confirming tap.",
+   "kind": "physical",
+   "status": "not_run"
+  },
+  {
+   "title": "Memory after restart",
+   "expected": "A confirmed favourite is still there after unplugging and re-plugging power, and appears in a later story.",
+   "kind": "physical",
+   "status": "not_run"
+  },
+  {
+   "title": "Local API",
+   "expected": "From a phone or computer on the same network, GET /api/state returns the gadget's state and POST /api/action performs an action.",
+   "kind": "physical",
+   "status": "not_run"
+  },
+  {
+   "title": "Closed-case heat, power and retention",
+   "expected": "During a 30-minute session with the gadget closed there are no resets, no part becomes uncomfortably warm to touch, nothing rattles and no cable is pinched.",
+   "kind": "physical",
+   "status": "not_run"
+  },
+  {
+   "title": "Stability",
+   "expected": "The gadget stands level on its feet and does not tip or slide during normal use by a child under adult supervision.",
+   "kind": "physical",
+   "status": "not_run"
+  },
+  {
+   "title": "Firmware compiles",
+   "expected": "PlatformIO builds the delivered firmware for esp32-s3-devkitc-1.",
+   "kind": "digital",
+   "status": "passed",
+   "evidence": "firmware/firmware.bin"
+  },
+  {
+   "title": "Firmware unit tests",
+   "expected": "The hardware-free unit tests of the firmware logic pass.",
+   "kind": "digital",
+   "status": "passed",
+   "evidence": "firmware/test-results.txt"
+  },
+  {
+   "title": "Backplane design-rule check",
+   "expected": "The routed backplane has no design-rule errors (warnings and waived items excluded).",
+   "kind": "digital",
+   "status": "passed",
+   "evidence": ".gstudio/stages/pcb.json"
+  },
+  {
+   "title": "CAD geometry checks",
+   "expected": "every CAD check passes: valid solids, no unintended collisions, closed print meshes",
+   "kind": "digital",
+   "status": "failed",
+   "source": "checks",
+   "detail": "15/18 checks passed"
+  },
+  {
+   "title": "Print slicing and parts list",
+   "expected": "every print part fits the bed and slices; every purchased row is complete",
+   "kind": "digital",
+   "status": "passed",
+   "source": "checks",
+   "detail": "33/34 checks passed"
+  },
+  {
+   "title": "Cross-stage consistency",
+   "expected": "CAD, parts list, wiring, firmware pins and electrical data agree",
+   "kind": "digital",
+   "status": "passed",
+   "source": "checks",
+   "detail": "27/28 checks passed"
+  }
+ ]
+}

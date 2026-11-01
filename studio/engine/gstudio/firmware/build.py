@@ -172,6 +172,33 @@ def parse_warnings(log: str) -> list[str]:
     return out
 
 
+TEST_LINE = re.compile(r"^test/([\w.-]+)/[^:\s]+:\d+:\s*(\w+)(?::(PASS|FAIL|IGNORE)\b.*|.*\s\[(PASSED|FAILED|IGNORED)\])\s*$", re.M)
+
+
+def parse_suites(log: str, shared: tuple[str, ...] = ("test_core", "test_net")) -> dict:
+    """Per-suite counts from `pio test` output. Shared suites run for every template; the others are the product's."""
+    suites: dict[str, dict] = {}
+    for m in TEST_LINE.finditer(log):
+        res = (m.group(3) or m.group(4) or "")[:4]
+        row = suites.setdefault(m.group(1), {"passed": 0, "failed": 0, "ignored": 0})
+        row["passed" if res == "PASS" else "failed" if res == "FAIL" else "ignored"] += 1
+    def total(names):
+        rows = [suites[n] for n in names]
+        return {"passed": sum(r["passed"] for r in rows), "total": sum(r["passed"] + r["failed"] for r in rows),
+                "ignored": sum(r["ignored"] for r in rows), "suites": sorted(names)}
+    sh = [n for n in suites if n in shared]
+    pr = [n for n in suites if n not in shared]
+    return {"suites": suites, "product": total(pr), "shared": total(sh)}
+
+
+def scrub_paths(text: str, mapping: list[tuple[str, str]]) -> str:
+    """Replaces machine paths (the version folder, the staging copy, caches, the home folder) with neutral names."""
+    for old, new in sorted(mapping, key=lambda kv: -len(kv[0])):
+        if old:
+            text = text.replace(old, new)
+    return re.sub(r"/(Users|home)/[^/\s]+", "~", text)
+
+
 def parse_tests(log: str) -> tuple[Optional[int], Optional[int]]:
     m = re.search(r"(\d+)\s+test cases?:\s*(?:(\d+)\s+failed,\s*)?(?:(\d+)\s+skipped,\s*)?(\d+)\s+succeeded", log)
     if m:
@@ -238,8 +265,10 @@ def _build_in(fw: Path, proj: Path, workspace: Path, lib_deps: list[str], run_te
     env = _env(workspace, lib_hash)
     sh = shared_dir()
     res: dict[str, Any] = {"compiled": False, "tests_passed": None, "tests_total": None, "timings": {}}
-    log_parts = [f"# Gadget Studio firmware build\n# project {fw} (compiled in the staging copy {proj})\n# PLATFORMIO_CORE_DIR={env['PLATFORMIO_CORE_DIR']}\n"
-                 f"# libdeps {env['PLATFORMIO_LIBDEPS_DIR']}\n# workspace {env['PLATFORMIO_WORKSPACE_DIR']}\n"]
+    scrub = [(str(fw), "."), (str(proj), "<staging>"), (str(workspace), "<workspace>"),
+             (env["PLATFORMIO_LIBDEPS_DIR"], "<libdeps>"), (str(sh), "<pio-shared>"), (env["PLATFORMIO_CORE_DIR"], "<pio-core>")]
+    log_parts = ["# Gadget Studio firmware build\n# project . (compiled in a fixed staging copy, <staging>)\n"
+                 "# PLATFORMIO_CORE_DIR=<pio-core>\n# libdeps <libdeps>\n# workspace <workspace>\n"]
     rc, ver, _ = _run([pio, "--version"], proj, env, 60)
     res["platformio"] = ver.strip()
     if progress:
@@ -249,8 +278,8 @@ def _build_in(fw: Path, proj: Path, workspace: Path, lib_deps: list[str], run_te
         log_parts.append("$ pio pkg install -e s3\n" + o)
         res["timings"]["deps_s"] = round(dt, 1)
         if rc != 0:
-            (fw / "build-log.txt").write_text("\n".join(log_parts))
-            raise StageError("could not install the firmware libraries", {"log": o[-3000:]})
+            (fw / "build-log.txt").write_text(scrub_paths("\n".join(log_parts), scrub))
+            raise StageError("could not install the firmware libraries", {"log": scrub_paths(o[-3000:], scrub)})
     if progress:
         progress("Compiling for ESP32-S3", 40)
     rc, o, dt = _run([pio, "run", "-e", "s3"], proj, env, timeout)
@@ -267,12 +296,22 @@ def _build_in(fw: Path, proj: Path, workspace: Path, lib_deps: list[str], run_te
         flash.mkdir(exist_ok=True)
         boot_app0 = core_dir() / "packages" / "framework-arduinoespressif32" / "tools" / "partitions" / "boot_app0.bin"
         parts = [(0x0, bdir / "bootloader.bin"), (0x8000, bdir / "partitions.bin"), (0xE000, boot_app0), (0x10000, app)]
+        # REVIEW-1 MAJ-38: one firmware.bin in the delivery; flash/ holds only the bootloader, partition table and boot_app0,
+        # and the app part (0x10000) is firmware/firmware.bin itself
+        stale = flash / "firmware.bin"
+        if stale.exists():
+            stale.unlink()
+        local = []
         for off, p in parts:
-            shutil.copyfile(p, flash / p.name)
+            if p == app:
+                local.append((off, fw / "firmware.bin", "firmware.bin"))
+            else:
+                shutil.copyfile(p, flash / p.name)
+                local.append((off, flash / p.name, f"flash/{p.name}"))
         params = flash_params(flash / "bootloader.bin")
-        ok, mlog = merge_bin([(o_, flash / p.name) for o_, p in parts], fw / "firmware-merged.bin", params, env)
+        ok, mlog = merge_bin([(o_, lp) for o_, lp, _rel in local], fw / "firmware-merged.bin", params, env)
         log_parts.append(mlog)
-        res["flash"] = dict(params, parts=[{"offset": hex(o_), "file": f"flash/{p.name}"} for o_, p in parts])
+        res["flash"] = dict(params, parts=[{"offset": hex(o_), "file": rel} for o_, _lp, rel in local])
         res["merged"] = ok
         res["sha256"] = sha256(fw / "firmware.bin")
         res["bytes"] = (fw / "firmware.bin").stat().st_size
@@ -298,12 +337,13 @@ def _build_in(fw: Path, proj: Path, workspace: Path, lib_deps: list[str], run_te
         with locked(sh / "libdeps" / f"{lib_hash}.native.lock"):
             rc, o, dt = _run([pio, "test", "-e", "native", "-v"], proj, env, timeout)
         res["timings"]["tests_s"] = round(dt, 1)
-        (fw / "test-results.txt").write_text(f"$ pio test -e native -v\n# {res['platformio']}\n" + o)
+        (fw / "test-results.txt").write_text(scrub_paths(f"$ pio test -e native -v\n# {res['platformio']}\n" + o, scrub))
         p, t = parse_tests(o)
         res["tests_passed"], res["tests_total"] = p, t
         res["tests_ok"] = rc == 0 and t is not None and p == t
-    (fw / "build-log.txt").write_text("\n".join(log_parts))
+        res["test_suites"] = parse_suites(o)
+    (fw / "build-log.txt").write_text(scrub_paths("\n".join(log_parts), scrub))
     return res
 
 
-__all__ = ["build", "parse_size", "parse_tests", "flash_params", "shared_dir", "sha256"]
+__all__ = ["build", "parse_size", "parse_tests", "parse_suites", "scrub_paths", "flash_params", "shared_dir", "sha256"]

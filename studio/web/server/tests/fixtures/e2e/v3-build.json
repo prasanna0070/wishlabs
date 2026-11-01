@@ -1,0 +1,3169 @@
+{
+ "schema": "gadget-build/1",
+ "purchased": [
+  {
+   "name": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "module",
+   "module_id": "CORE_ESP32S3_DEVKITC1_N8R8",
+   "catalog_row": "01",
+   "refs": [
+    "U1"
+   ],
+   "use": null,
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "plugs into a backplane socket on its own pin headers; check the headers are fitted on receipt",
+   "solderedBy": null,
+   "prewire": null,
+   "url": "https://www.electropi.in/espressif-esp32-s3-devkitc-1-n8r8-development-board",
+   "vendor": "Electropi",
+   "sku": null,
+   "price_inr_planning": [
+    650.0,
+    1300.0
+   ],
+   "price_basis": "library CORE_ESP32S3_DEVKITC1_N8R8 price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": 1449.0,
+   "seen_on": "2026-11-01",
+   "estimate": false,
+   "evidence_tier": "seen",
+   "listing": {
+    "url": "https://www.electropi.in/espressif-esp32-s3-devkitc-1-n8r8-development-board",
+    "vendor": "Electropi",
+    "sku": null,
+    "packQuantity": 1,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "price_inr_seen": 1449.0,
+    "notes": "Rs 1,449 excl. 18% GST (MRP 1,709.82 incl.); genuine Espressif N8R8; page says USB Type-C while Espressif's v1.1 guide says Micro-USB",
+    "signed": false
+   },
+   "alternatives": [
+    {
+     "vendor": "Robocraze",
+     "url": "https://robocraze.com/products/7semi-esp32-s3-dev-boardc-1-n8r8-wifi-bluetooth-dual-usb-c-rgb-led",
+     "sku": null,
+     "price_inr": 949.0,
+     "seen_on": "2026-11-01",
+     "status": "page_read",
+     "pack": 1,
+     "notes": "7Semi clone, N8R8, dual USB-C, incl. GST; DevKitC-1 pin compatibility not stated"
+    },
+    {
+     "vendor": "Robo Bazar",
+     "url": "https://robobazar.in/product/esp32-s3-devkit-n16r8-development-board/",
+     "sku": null,
+     "price_inr": 599.0,
+     "seen_on": "2026-11-01",
+     "status": "page_read",
+     "pack": 1,
+     "notes": "N16R8 clone, USB-C, GST basis not stated; module and header count not stated"
+    },
+    {
+     "vendor": "Robu.in",
+     "url": "https://www.espressif.com/en/dev-board/esp32-s3-devkitc-1-en",
+     "sku": null,
+     "price_inr": null,
+     "seen_on": "2026-11-01",
+     "status": "search_snippet",
+     "pack": 1,
+     "notes": "Espressif's dev-board page lists Robu India as an N8R8 retailer; robu.in returned HTTP 403 to fetches, price not seen"
+    }
+   ],
+   "notes": "Price seen at Electropi on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: Rs 1,449 excl. 18% GST (MRP 1,709.82 incl.); genuine Espressif N8R8; page says USB Type-C while Espressif's v1.1 guide says Micro-USB",
+   "modelPart": "PURCHASE_CoreBoard"
+  },
+  {
+   "name": "Standard backplane PCB backplane-v1 (ours)",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "module",
+   "module_id": "BACKPLANE_V1",
+   "catalog_row": "02",
+   "refs": [
+    "BP1"
+   ],
+   "use": null,
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: soldered during backplane PCB assembly, not by the maker",
+   "solderedBy": null,
+   "prewire": null,
+   "url": null,
+   "vendor": null,
+   "sku": null,
+   "price_inr_planning": [
+    120.0,
+    450.0
+   ],
+   "price_basis": "library BACKPLANE_V1 price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": null,
+   "seen_on": null,
+   "estimate": true,
+   "evidence_tier": "estimate",
+   "listing": null,
+   "alternatives": [],
+   "notes": "Price estimate; confirm before ordering.",
+   "modelPart": "PURCHASE_Backplane"
+  },
+  {
+   "name": "USB-C 2.0 receptacle on backplane (5V sink, CC 5.1k Rd)",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "module",
+   "module_id": "USBC_RECEPTACLE_GCT_USB4105",
+   "catalog_row": "03",
+   "refs": [
+    "PWR1"
+   ],
+   "use": null,
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: soldered during backplane PCB assembly, not by the maker",
+   "solderedBy": null,
+   "prewire": null,
+   "url": "https://www.digikey.com/en/products/detail/gct/USB4105-GF-A/11198441",
+   "vendor": "DigiKey India",
+   "sku": null,
+   "price_inr_planning": [
+    80.0,
+    250.0
+   ],
+   "price_basis": "library USBC_RECEPTACLE_GCT_USB4105 price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": null,
+   "seen_on": null,
+   "estimate": true,
+   "evidence_tier": "estimate",
+   "listing": {
+    "url": "https://www.digikey.com/en/products/detail/gct/USB4105-GF-A/11198441",
+    "vendor": "DigiKey India",
+    "sku": null,
+    "packQuantity": 1,
+    "seen_on": "2026-11-01",
+    "status": "search_snippet",
+    "price_inr_seen": null,
+    "notes": "DigiKey listings: 24 positions (16+8 dummy), 5 A rating, 20,000 mating cycles, -40 to 85 C; INR price not seen",
+    "signed": false
+   },
+   "alternatives": [],
+   "notes": "Price estimate; confirm before ordering. Source note: DigiKey listings: 24 positions (16+8 dummy), 5 A rating, 20,000 mating cycles, -40 to 85 C; INR price not seen",
+   "modelPart": "PURCHASE_Backplane",
+   "mounted_on": "backplane PCB"
+  },
+  {
+   "name": "Speaker 40 mm round, 4 ohm, 3 W",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "module",
+   "module_id": "SPK_40MM_4R_3W",
+   "catalog_row": "22",
+   "refs": [
+    "SPK1"
+   ],
+   "use": "speaker",
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: the factory pre-wires it (see prewire); the maker never solders",
+   "solderedBy": "factory",
+   "prewire": {
+    "by": "factory",
+    "lead": "JST-PH 2.0 2p 100 mm",
+    "pads": [
+     "+ eyelet",
+     "- eyelet"
+    ],
+    "slot": "J_SPK",
+    "note": "The factory solders a JST-PH 2-pin lead (stock: CABLE_JSTPH_2P_<len> with the module-end housing cut off; length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into J_SPK. The maker never solders."
+   },
+   "url": "https://www.digikey.in/en/products/detail/pui-audio-inc/AS04004PR-WR-R/13165952",
+   "vendor": "DigiKey India",
+   "sku": null,
+   "price_inr_planning": [
+    80.0,
+    250.0
+   ],
+   "price_basis": "library SPK_40MM_4R_3W price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": 787.51,
+   "seen_on": "2026-11-01",
+   "estimate": false,
+   "evidence_tier": "seen",
+   "listing": {
+    "url": "https://www.digikey.in/en/products/detail/pui-audio-inc/AS04004PR-WR-R/13165952",
+    "vendor": "DigiKey India",
+    "sku": null,
+    "packQuantity": 1,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "price_inr_seen": 787.51,
+    "notes": "qty 1; 25 in stock",
+    "signed": false
+   },
+   "alternatives": [
+    {
+     "vendor": "Pimoroni (UK)",
+     "url": "https://shop.pimoroni.com/products/mini-speaker-4-3w-with-jst-ph-connector",
+     "sku": null,
+     "price_inr": null,
+     "seen_on": "2026-11-01",
+     "status": "page_read",
+     "pack": 1,
+     "notes": "COM1606 'Mini Speaker 4 ohm (3W) with JST-PH Connector': 40x40x20 mm per the seller (the PUI reference is 40 mm OD, 17.5 mm overall), about 80 mm of 20 AWG lead with a 2-pin JST-PH plug. Price not shown on the page (a search snippet said GBP 2.50); the page shows 'Notify me'. Ships from the UK; no Indian seller found. Different body: needs its own module entry and a measured sample before the CAD can use it."
+    },
+    {
+     "vendor": "Robocomp",
+     "url": "https://robocomp.in/?p=12264",
+     "sku": null,
+     "price_inr": 89.0,
+     "seen_on": "2026-11-01",
+     "status": "search_snippet",
+     "pack": 1,
+     "notes": "DIFFERENT generic 40 mm 4 ohm 3 W speaker, 40 x 23 mm, Rs 89 excl. GST, out of stock; needs measurement"
+    }
+   ],
+   "notes": "Price seen at DigiKey India on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: qty 1; 25 in stock",
+   "modelPart": "PURCHASE_Speaker"
+  },
+  {
+   "name": "Big 30 mm snap-in arcade push button (microswitch)",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "module",
+   "module_id": "BUTTON_ARCADE_30MM_SNAPIN",
+   "catalog_row": "24",
+   "refs": [
+    "BTN1"
+   ],
+   "use": "story_button",
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: plug-in connector or crimped spade (library text)",
+   "solderedBy": null,
+   "prewire": null,
+   "url": "https://thingbits.in/products/30mm-round-translucent-arcade-push-button",
+   "vendor": "Thingbits",
+   "sku": null,
+   "price_inr_planning": [
+    15.0,
+    70.0
+   ],
+   "price_basis": "library BUTTON_ARCADE_30MM_SNAPIN price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": 93.22,
+   "seen_on": "2026-11-01",
+   "estimate": false,
+   "evidence_tier": "seen",
+   "listing": {
+    "url": "https://thingbits.in/products/30mm-round-translucent-arcade-push-button",
+    "vendor": "Thingbits",
+    "sku": null,
+    "packQuantity": 1,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "price_inr_seen": 93.22,
+    "notes": "TH1801; incl. GST (79.00 excl.); red sold out; red/yellow/blue/green/clear; 10.4 g",
+    "signed": false
+   },
+   "alternatives": [],
+   "notes": "Price seen at Thingbits on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: TH1801; incl. GST (79.00 excl.); red sold out; red/yellow/blue/green/clear; 10.4 g",
+   "modelPart": "PURCHASE_Button"
+  },
+  {
+   "name": "1.3 in 128x64 mono OLED, SH1106, I2C 4-pin",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "module",
+   "module_id": "OLED_130_SH1106_I2C",
+   "catalog_row": "15",
+   "refs": [
+    "DISP1"
+   ],
+   "use": "eyes",
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "unverified: the library does not say whether this module's pin header comes fitted; generic modules can ship with loose headers. Check on receipt (physical check)",
+   "solderedBy": null,
+   "prewire": null,
+   "url": "https://probots.co.in/1-3-inch-128x64-oled-blue-display-sh1106-i2c.html",
+   "vendor": "Probots",
+   "sku": null,
+   "price_inr_planning": [
+    220.0,
+    550.0
+   ],
+   "price_basis": "library OLED_130_SH1106_I2C price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": 329.0,
+   "seen_on": "2026-11-01",
+   "estimate": false,
+   "evidence_tier": "seen",
+   "listing": {
+    "url": "https://probots.co.in/1-3-inch-128x64-oled-blue-display-sh1106-i2c.html",
+    "vendor": "Probots",
+    "sku": null,
+    "packQuantity": 1,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "price_inr_seen": 329.0,
+    "notes": "PRO1243; incl. GST (278.81 excl.); in stock; pin order VCC, GND, SCK/SCL, SDA; 0x3C, 0x3D via resistor move",
+    "signed": false
+   },
+   "alternatives": [],
+   "notes": "Price seen at Probots on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: PRO1243; incl. GST (278.81 excl.); in stock; pin order VCC, GND, SCK/SCL, SDA; 0x3C, 0x3D via resistor move",
+   "modelPart": "PURCHASE_Display"
+  },
+  {
+   "name": "Addressable RGB LED, single WS2812B 5050 on a mini board",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "module",
+   "module_id": "LED_WS2812B_1PX_MODULE",
+   "catalog_row": "17",
+   "refs": [
+    "LED1"
+   ],
+   "use": "status_light",
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: the factory pre-wires it (see prewire); the maker never solders",
+   "solderedBy": "factory",
+   "prewire": {
+    "by": "factory",
+    "lead": "JST-PH 2.0 3p 100 mm",
+    "pads": [
+     "GND",
+     "5V",
+     "DIN"
+    ],
+    "slot": "J_LED",
+    "note": "The factory solders a JST-PH 3-pin lead (stock: CABLE_JSTPH_3P_<len> with the module-end housing cut off; length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into J_LED. The maker never solders. DOUT stays unconnected."
+   },
+   "url": "https://probots.co.in/rgb-led-module-ws2812b-1-bit.html",
+   "vendor": "Probots",
+   "sku": null,
+   "price_inr_planning": [
+    25.0,
+    100.0
+   ],
+   "price_basis": "library LED_WS2812B_1PX_MODULE price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": 99.0,
+   "seen_on": "2026-11-01",
+   "estimate": false,
+   "evidence_tier": "seen",
+   "listing": {
+    "url": "https://probots.co.in/rgb-led-module-ws2812b-1-bit.html",
+    "vendor": "Probots",
+    "sku": null,
+    "packQuantity": 1,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "price_inr_seen": 99.0,
+    "notes": "PRO4080; incl. GST (83.90 excl.); in stock; 4-7 V; no dimensions or pin labels on page",
+    "signed": false
+   },
+   "alternatives": [
+    {
+     "vendor": "Hubtronics",
+     "url": "https://hubtronics.in/ws2812-rgb-led-breakout-module",
+     "sku": null,
+     "price_inr": 31.0,
+     "seen_on": "2026-11-01",
+     "status": "page_read",
+     "pack": 1,
+     "notes": "SKU 05508, incl. GST (26.27 excl.); 11 in stock; no dimensions or pin labels on page; different PCB"
+    }
+   ],
+   "notes": "Price seen at Probots on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: PRO4080; incl. GST (83.90 excl.); in stock; 4-7 V; no dimensions or pin labels on page",
+   "modelPart": "PURCHASE_Led"
+  },
+  {
+   "name": "INMP441 I2S MEMS microphone module",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "module",
+   "module_id": "MIC_INMP441_I2S",
+   "catalog_row": "20",
+   "refs": [
+    "MIC1"
+   ],
+   "use": "mic",
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "unverified: the library does not say whether this module's pin header comes fitted; generic modules can ship with loose headers. Check on receipt (physical check)",
+   "solderedBy": null,
+   "prewire": null,
+   "url": "https://robocraze.com/products/inmp441-mems-high-precision-omnidirectional-microphone-module-i2s",
+   "vendor": "Robocraze",
+   "sku": null,
+   "price_inr_planning": [
+    110.0,
+    350.0
+   ],
+   "price_basis": "library MIC_INMP441_I2S price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": 179.0,
+   "seen_on": "2026-11-01",
+   "estimate": false,
+   "evidence_tier": "seen",
+   "listing": {
+    "url": "https://robocraze.com/products/inmp441-mems-high-precision-omnidirectional-microphone-module-i2s",
+    "vendor": "Robocraze",
+    "sku": null,
+    "packQuantity": 1,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "price_inr_seen": 179.0,
+    "notes": "incl. GST; 272 in stock",
+    "signed": false
+   },
+   "alternatives": [
+    {
+     "vendor": "Probots",
+     "url": "https://probots.co.in/inmp441-mems-high-precision-omnidirectional-microphone-module-i2s.html",
+     "sku": null,
+     "price_inr": 429.0,
+     "seen_on": "2026-11-01",
+     "status": "page_read",
+     "pack": 1,
+     "notes": "PRO3034; incl. GST; out of stock online (store pickup Koramangala)"
+    }
+   ],
+   "notes": "Price seen at Robocraze on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: incl. GST; 272 in stock",
+   "modelPart": "PURCHASE_Microphone"
+  },
+  {
+   "name": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "module",
+   "module_id": "AMP_MAX98357A_I2S",
+   "catalog_row": "21",
+   "refs": [
+    "AMP1"
+   ],
+   "use": null,
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: the factory pre-wires it (see prewire); the maker never solders",
+   "solderedBy": "factory",
+   "prewire": {
+    "by": "factory",
+    "lead": null,
+    "pads": [
+     "7-pin header (pins down)",
+     "VO+ pin",
+     "VO- pin"
+    ],
+    "slot": "A1",
+    "note": "The factory solders the 7-pin header pins-down and two 2.54 mm pins into the VO+/VO- terminal pads (instead of the screw terminal) so the amp plugs straight into A1. The maker never solders."
+   },
+   "url": "https://robocraze.com/products/smartelex-max98357a-i2s-audio-breakout-amplifier-for-raspberry-pi-and-microcontrollers",
+   "vendor": "Robocraze",
+   "sku": null,
+   "price_inr_planning": [
+    110.0,
+    300.0
+   ],
+   "price_basis": "library AMP_MAX98357A_I2S price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": 195.0,
+   "seen_on": "2026-11-01",
+   "estimate": false,
+   "evidence_tier": "seen",
+   "listing": {
+    "url": "https://robocraze.com/products/smartelex-max98357a-i2s-audio-breakout-amplifier-for-raspberry-pi-and-microcontrollers",
+    "vendor": "Robocraze",
+    "sku": null,
+    "packQuantity": 1,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "price_inr_seen": 195.0,
+    "notes": "SmartElex MAX98357A breakout (third-party), incl. GST, 179 in stock; dims/pinout not shown, equivalence to Adafruit 3006 not confirmed",
+    "signed": false
+   },
+   "alternatives": [
+    {
+     "vendor": "ibots",
+     "url": "https://ibots.in/?p=11907",
+     "sku": null,
+     "price_inr": 838.98,
+     "seen_on": "2026-11-01",
+     "status": "page_read",
+     "pack": 1,
+     "notes": "'Adafruit MAX98357A' listing, incl. GST, backorder; 19.4 x 17.8 x 3.0 mm; genuineness not confirmed"
+    }
+   ],
+   "notes": "Price seen at Robocraze on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: SmartElex MAX98357A breakout (third-party), incl. GST, 179 in stock; dims/pinout not shown, equivalence to Adafruit 3006 not confirmed",
+   "modelPart": "PURCHASE_Amplifier"
+  },
+  {
+   "name": "microSD SPI module with LDO and level shifter (Catalex-type)",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "module",
+   "module_id": "MICROSD_SPI_MODULE_5V",
+   "catalog_row": "37",
+   "refs": [
+    "SD1"
+   ],
+   "use": null,
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "plugs into a backplane socket on its own pin headers; check the headers are fitted on receipt",
+   "solderedBy": null,
+   "prewire": null,
+   "url": "https://probots.co.in/micro-sd-card-adapter-module-with-spi-interface-for-arduino.html",
+   "vendor": "Probots",
+   "sku": null,
+   "price_inr_planning": [
+    120.0,
+    380.0
+   ],
+   "price_basis": "library MICROSD_SPI_MODULE_5V price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": 49.0,
+   "seen_on": "2026-11-01",
+   "estimate": false,
+   "evidence_tier": "seen",
+   "listing": {
+    "url": "https://probots.co.in/micro-sd-card-adapter-module-with-spi-interface-for-arduino.html",
+    "vendor": "Probots",
+    "sku": null,
+    "packQuantity": 1,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "price_inr_seen": 49.0,
+    "notes": "PRO1129; incl. GST (41.53 excl.); in stock; 4x M2 holes; level shifter 'like 74LVC125A'",
+    "signed": false
+   },
+   "alternatives": [
+    {
+     "vendor": "Robocraze",
+     "url": "https://robocraze.com/products/sd-card-module",
+     "sku": null,
+     "price_inr": 41.0,
+     "seen_on": "2026-11-01",
+     "status": "search_snippet",
+     "pack": 1,
+     "notes": "SPI SD card module, 4.5-5.5 V; sold out"
+    }
+   ],
+   "notes": "Price seen at Probots on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: PRO1129; incl. GST (41.53 excl.); in stock; 4x M2 holes; level shifter 'like 74LVC125A'",
+   "modelPart": "PURCHASE_MicroSdModule"
+  },
+  {
+   "name": "USB-C to USB-C cable, 1 m, USB 2.0",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "module",
+   "module_id": "CABLE_USBC_C2C_1M",
+   "catalog_row": "05",
+   "refs": [
+    "CBL1"
+   ],
+   "use": null,
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: plug-in connector or crimped spade (library text)",
+   "solderedBy": null,
+   "prewire": null,
+   "url": "https://probots.co.in/usb-c-to-c-cable-1-meter-high-quality.html",
+   "vendor": "Probots",
+   "sku": null,
+   "price_inr_planning": [
+    70.0,
+    180.0
+   ],
+   "price_basis": "library CABLE_USBC_C2C_1M price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": 199.0,
+   "seen_on": "2026-11-01",
+   "estimate": false,
+   "evidence_tier": "seen",
+   "listing": {
+    "url": "https://probots.co.in/usb-c-to-c-cable-1-meter-high-quality.html",
+    "vendor": "Probots",
+    "sku": null,
+    "packQuantity": 1,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "price_inr_seen": 199.0,
+    "notes": "Rs 199 incl. GST (168.64 excl.); in stock; spec list says 3A but description says 2A / 2.4A",
+    "signed": false
+   },
+   "alternatives": [
+    {
+     "vendor": "Robu.in",
+     "url": "https://robu.in/product/baseus-cafule-type-c-pd2-0-60w-flash-charging-data-line-20v-3a-1m-gray-black/",
+     "sku": null,
+     "price_inr": null,
+     "seen_on": "2026-11-01",
+     "status": "search_snippet",
+     "pack": 1,
+     "notes": "Baseus Cafule C-to-C 60 W 20V/3A 1 m; price not seen"
+    }
+   ],
+   "notes": "Price seen at Probots on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Source note: Rs 199 incl. GST (168.64 excl.); in stock; spec list says 3A but description says 2A / 2.4A",
+   "modelPart": null,
+   "in_box": true
+  },
+  {
+   "name": "JST-PH 2.0 2-pin harness, 200 mm, pre-crimped both ends",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "cable",
+   "module_id": "CABLE_JSTPH_2P_200",
+   "catalog_row": "06b",
+   "refs": [
+    "SPK1"
+   ],
+   "use": "harness to SPK1",
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: plug-in connector or crimped spade (library text)",
+   "solderedBy": null,
+   "prewire": null,
+   "url": null,
+   "vendor": null,
+   "sku": null,
+   "price_inr_planning": [
+    30.0,
+    100.0
+   ],
+   "price_basis": "library CABLE_JSTPH_2P_200 price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": null,
+   "seen_on": null,
+   "estimate": true,
+   "evidence_tier": "estimate",
+   "listing": null,
+   "alternatives": [],
+   "notes": "Keyed cable, 2 pins; length class needed: 200 mm. Price estimate; confirm before ordering.",
+   "modelPart": null
+  },
+  {
+   "name": "JST-PH 2.0 3-pin harness, 300 mm, pre-crimped both ends",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "cable",
+   "module_id": "CABLE_JSTPH_3P_300",
+   "catalog_row": "07",
+   "refs": [
+    "BTN1"
+   ],
+   "use": "harness to BTN1",
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: plug-in connector or crimped spade (library text)",
+   "solderedBy": null,
+   "prewire": null,
+   "url": null,
+   "vendor": null,
+   "sku": null,
+   "price_inr_planning": [
+    30.0,
+    100.0
+   ],
+   "price_basis": "library CABLE_JSTPH_3P_300 price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": null,
+   "seen_on": null,
+   "estimate": true,
+   "evidence_tier": "estimate",
+   "listing": null,
+   "alternatives": [],
+   "notes": "Keyed cable, 3 pins; length class needed: 300 mm. Price estimate; confirm before ordering.",
+   "modelPart": null
+  },
+  {
+   "name": "JST-PH 2.0 4-pin harness, 300 mm, pre-crimped both ends",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "cable",
+   "module_id": "CABLE_JSTPH_4P_300",
+   "catalog_row": "06",
+   "refs": [
+    "DISP1"
+   ],
+   "use": "harness to DISP1",
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: plug-in connector or crimped spade (library text)",
+   "solderedBy": null,
+   "prewire": null,
+   "url": null,
+   "vendor": null,
+   "sku": null,
+   "price_inr_planning": [
+    30.0,
+    100.0
+   ],
+   "price_basis": "library CABLE_JSTPH_4P_300 price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": null,
+   "seen_on": null,
+   "estimate": true,
+   "evidence_tier": "estimate",
+   "listing": null,
+   "alternatives": [],
+   "notes": "Keyed cable, 4 pins; length class needed: 300 mm. Price estimate; confirm before ordering.",
+   "modelPart": null
+  },
+  {
+   "name": "JST-PH 2.0 3-pin harness, 200 mm, pre-crimped both ends",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "cable",
+   "module_id": "CABLE_JSTPH_3P_200",
+   "catalog_row": "07",
+   "refs": [
+    "LED1"
+   ],
+   "use": "harness to LED1",
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: plug-in connector or crimped spade (library text)",
+   "solderedBy": null,
+   "prewire": null,
+   "url": null,
+   "vendor": null,
+   "sku": null,
+   "price_inr_planning": [
+    30.0,
+    100.0
+   ],
+   "price_basis": "library CABLE_JSTPH_3P_200 price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": null,
+   "seen_on": null,
+   "estimate": true,
+   "evidence_tier": "estimate",
+   "listing": null,
+   "alternatives": [],
+   "notes": "Keyed cable, 3 pins; length class needed: 200 mm. Price estimate; confirm before ordering.",
+   "modelPart": null
+  },
+  {
+   "name": "JST-PH 2.0 6-pin harness, 300 mm, pre-crimped both ends",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "cable",
+   "module_id": "CABLE_JSTPH_6P_300",
+   "catalog_row": "06c",
+   "refs": [
+    "MIC1"
+   ],
+   "use": "harness to MIC1",
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: plug-in connector or crimped spade (library text)",
+   "solderedBy": null,
+   "prewire": null,
+   "url": null,
+   "vendor": null,
+   "sku": null,
+   "price_inr_planning": [
+    30.0,
+    100.0
+   ],
+   "price_basis": "library CABLE_JSTPH_6P_300 price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": null,
+   "seen_on": null,
+   "estimate": true,
+   "evidence_tier": "estimate",
+   "listing": null,
+   "alternatives": [],
+   "notes": "Keyed cable, 6 pins; length class needed: 300 mm. Price estimate; confirm before ordering.",
+   "modelPart": null
+  },
+  {
+   "name": "M2 / M2.5 socket head cap screws (SS304) + ISO 4032 hex nuts",
+   "quantity": 17,
+   "packSize": 10,
+   "packsToBuy": 2,
+   "pack_basis": "recorded",
+   "kind": "hardware",
+   "module_id": "SCREW_SET_M2_M2_5_SHCS_A2",
+   "catalog_row": "09",
+   "refs": [],
+   "use": "4 x M2.5 cartridge screws x4; 4 x M2.5 cover screws x4; 9 x M2.5 module clamp screws x9",
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: mechanical/consumable or PCB-assembled part",
+   "solderedBy": null,
+   "prewire": null,
+   "url": "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric",
+   "vendor": "ThinkRobotics",
+   "sku": null,
+   "price_inr_planning": [
+    15.0,
+    70.0
+   ],
+   "price_basis": "library SCREW_SET_M2_M2_5_SHCS_A2 price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": 79.99,
+   "seen_on": "2026-11-01",
+   "estimate": false,
+   "evidence_tier": "seen",
+   "listing": {
+    "url": "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric",
+    "vendor": "ThinkRobotics",
+    "sku": null,
+    "packQuantity": 10,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "price_inr_seen": 79.99,
+    "notes": null,
+    "signed": false
+   },
+   "alternatives": [
+    {
+     "vendor": "Quartz Components",
+     "url": "https://quartzcomponents.com/products/m2-x-6mm-pan-head-phillips-screw-pack-of-4",
+     "sku": null,
+     "price_inr": 8.0,
+     "seen_on": "2026-11-01",
+     "status": "search_snippet",
+     "pack": 10,
+     "notes": null
+    },
+    {
+     "vendor": "Quartz Components",
+     "url": "https://quartzcomponents.com/products/m2-5-6mm-bolt-mounting-screw-pack-of-4",
+     "sku": null,
+     "price_inr": 8.0,
+     "seen_on": "2026-11-01",
+     "status": "search_snippet",
+     "pack": 10,
+     "notes": null
+    }
+   ],
+   "notes": "Quantity 17 from the CAD model (4 x M2.5 cartridge screws x4; 4 x M2.5 cover screws x4; 9 x M2.5 module clamp screws x9); the normalizer's hardware list says 19. Price seen at ThinkRobotics on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Sold in packs of 10; this build uses 17.",
+   "modelPart": "PURCHASE_CartridgeScrews",
+   "modelParts": [
+    "PURCHASE_CartridgeScrews",
+    "PURCHASE_CoverScrews",
+    "PURCHASE_ModuleScrews"
+   ],
+   "quantity_basis": "cad/components.json (qty)",
+   "quantity_normalizer": 19,
+   "hardware_id": "SCREW_SET_M2_M2_5_SHCS_A2"
+  },
+  {
+   "name": "Heat-set insert M2.5 x 4.0 (standard)",
+   "quantity": 17,
+   "packSize": null,
+   "packsToBuy": 1,
+   "pack_basis": "not recorded: one set per build assumed",
+   "kind": "hardware",
+   "module_id": "INSERT_HEATSET_M2_5X4_STD",
+   "catalog_row": "10",
+   "refs": [],
+   "use": "17 x M2.5 heat-set inserts x17",
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: mechanical/consumable or PCB-assembled part",
+   "solderedBy": null,
+   "prewire": null,
+   "url": "https://thinkrobotics.com/products/brass-heat-set-inserts-for-plastic",
+   "vendor": "ThinkRobotics",
+   "sku": null,
+   "price_inr_planning": [
+    20.0,
+    100.0
+   ],
+   "price_basis": "library INSERT_HEATSET_M2_5X4_STD price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": 59.99,
+   "seen_on": "2026-11-01",
+   "estimate": false,
+   "evidence_tier": "seen",
+   "listing": {
+    "url": "https://thinkrobotics.com/products/brass-heat-set-inserts-for-plastic",
+    "vendor": "ThinkRobotics",
+    "sku": null,
+    "packQuantity": 1,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "price_inr_seen": 59.99,
+    "notes": null,
+    "signed": false
+   },
+   "alternatives": [],
+   "notes": "Price seen at ThinkRobotics on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Pack size not recorded; priced as one set per build for the 17 pieces used (the blueprint catalog prices this kind of row per set). Confirm the pack holds enough.",
+   "modelPart": "PURCHASE_HeatSetInserts",
+   "quantity_basis": "cad/components.json (qty)",
+   "hardware_id": "INSERT_HEATSET_M2_5X4_STD"
+  },
+  {
+   "name": "Adhesive bumper feet, hemispherical ~7.9 mm",
+   "quantity": 4,
+   "packSize": null,
+   "packsToBuy": 1,
+   "pack_basis": "not recorded: one set per build assumed",
+   "kind": "hardware",
+   "module_id": "FEET_BUMPON_SJ5302_CLEAR",
+   "catalog_row": "11",
+   "refs": [],
+   "use": "4 x adhesive bumper feet x4",
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: mechanical/consumable or PCB-assembled part",
+   "solderedBy": null,
+   "prewire": null,
+   "url": "https://m.indiamart.com/adhesivesolutions/bumpon.html",
+   "vendor": "IndiaMART (Adhesive Solutions, New Delhi)",
+   "sku": null,
+   "price_inr_planning": [
+    20.0,
+    70.0
+   ],
+   "price_basis": "library FEET_BUMPON_SJ5302_CLEAR price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": null,
+   "seen_on": null,
+   "estimate": true,
+   "evidence_tier": "estimate",
+   "listing": {
+    "url": "https://m.indiamart.com/adhesivesolutions/bumpon.html",
+    "vendor": "IndiaMART (Adhesive Solutions, New Delhi)",
+    "sku": null,
+    "packQuantity": 1,
+    "seen_on": "2026-11-01",
+    "status": "search_snippet",
+    "price_inr_seen": null,
+    "notes": null,
+    "signed": false
+   },
+   "alternatives": [],
+   "notes": "Price estimate; confirm before ordering. Pack size not recorded; priced as one set per build for the 4 pieces used (the blueprint catalog prices this kind of row per set). Confirm the pack holds enough.",
+   "modelPart": "PURCHASE_Feet",
+   "quantity_basis": "cad/components.json (qty)",
+   "hardware_id": "FEET_BUMPON_SJ5302_CLEAR"
+  },
+  {
+   "name": "Cable tie 100 x 2.5 mm (nylon 6/6) + printed tie anchors",
+   "quantity": 6,
+   "packSize": 100,
+   "packsToBuy": 1,
+   "pack_basis": "recorded",
+   "kind": "hardware",
+   "module_id": "STRAIN_TIE_NYLON66_100X2_5",
+   "catalog_row": "08",
+   "refs": [],
+   "use": "6 x cable tie 100 x 2.5 mm (harness retention at printed anchors)",
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: mechanical/consumable or PCB-assembled part",
+   "solderedBy": null,
+   "prewire": null,
+   "url": "https://quartzcomponents.com/products/tie-100x2-2-100-pc-in-each",
+   "vendor": "Quartz Components",
+   "sku": null,
+   "price_inr_planning": [
+    15.0,
+    50.0
+   ],
+   "price_basis": "library STRAIN_TIE_NYLON66_100X2_5 price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": 44.0,
+   "seen_on": "2026-11-01",
+   "estimate": false,
+   "evidence_tier": "seen",
+   "listing": {
+    "url": "https://quartzcomponents.com/products/tie-100x2-2-100-pc-in-each",
+    "vendor": "Quartz Components",
+    "sku": null,
+    "packQuantity": 100,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "price_inr_seen": 44.0,
+    "notes": null,
+    "signed": false
+   },
+   "alternatives": [
+    {
+     "vendor": "Amazon.in",
+     "url": "https://www.amazon.in/Adhesive-Mounts-Cable-Holders-Multi-Purpose/dp/B083R5HT9X",
+     "sku": null,
+     "price_inr": null,
+     "seen_on": "2026-11-01",
+     "status": "search_snippet",
+     "pack": 100,
+     "notes": null
+    }
+   ],
+   "notes": "Price seen at Quartz Components on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt. Sold in packs of 100; this build uses 6.",
+   "modelPart": null,
+   "quantity_basis": "normalizer hardware list (the CAD has no group for this part)",
+   "hardware_id": "STRAIN_TIE_NYLON66_100X2_5"
+  },
+  {
+   "name": "Speaker gasket: single-sided adhesive foam strip 25 x 3 mm (+ printed clamp ring)",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "hardware",
+   "module_id": "SPK_GASKET_FOAM_25X3_ADH",
+   "catalog_row": "13",
+   "refs": [],
+   "use": "1 x speaker foam gasket strip (seal the speaker to the baffle)",
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: mechanical/consumable or PCB-assembled part",
+   "solderedBy": null,
+   "prewire": null,
+   "url": "https://quartzcomponents.com/products/gasket-black-foam-single-sided-adhesive-tape-insulation-foam-strip-25mm-x-3mm-x-10-meter-length",
+   "vendor": "Quartz Components",
+   "sku": null,
+   "price_inr_planning": [
+    30.0,
+    120.0
+   ],
+   "price_basis": "library SPK_GASKET_FOAM_25X3_ADH price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": 64.0,
+   "seen_on": "2026-11-01",
+   "estimate": false,
+   "evidence_tier": "seen",
+   "listing": {
+    "url": "https://quartzcomponents.com/products/gasket-black-foam-single-sided-adhesive-tape-insulation-foam-strip-25mm-x-3mm-x-10-meter-length",
+    "vendor": "Quartz Components",
+    "sku": null,
+    "packQuantity": 1,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "price_inr_seen": 64.0,
+    "notes": null,
+    "signed": false
+   },
+   "alternatives": [
+    {
+     "vendor": "Quartz Components",
+     "url": "https://quartzcomponents.com/products/gasket-black-foam-single-sided-adhesive-tape-insulation-foam-strip",
+     "sku": null,
+     "price_inr": 76.0,
+     "seen_on": "2026-11-01",
+     "status": "search_snippet",
+     "pack": 1,
+     "notes": null
+    }
+   ],
+   "notes": "Price seen at Quartz Components on 2026-11-01: a retail snapshot, not reserved stock or a signed receipt.",
+   "modelPart": "PURCHASE_MicGasket",
+   "modelParts": [
+    "PURCHASE_MicGasket",
+    "PURCHASE_SpeakerGasket"
+   ],
+   "quantity_basis": "normalizer hardware list (the CAD has no group for this part)",
+   "hardware_id": "SPK_GASKET_FOAM_25X3_ADH"
+  },
+  {
+   "name": "Device ID label (QR + serial, silver/white polyester, thermal transfer) + packing kit",
+   "quantity": 1,
+   "packSize": 1,
+   "packsToBuy": 1,
+   "pack_basis": "single item",
+   "kind": "hardware",
+   "module_id": "LABEL_QR_POLYESTER_50X25_PACK",
+   "catalog_row": "50",
+   "refs": [],
+   "use": "1 x device ID label + packing kit (serial/QR label and packing)",
+   "requiresSoldering": false,
+   "requiresSoldering_basis": "library: mechanical/consumable or PCB-assembled part",
+   "solderedBy": null,
+   "prewire": null,
+   "url": "https://m.indiamart.com/quickbarcodesolution-com/label-roll.html",
+   "vendor": "IndiaMART (Quick Barcode Solution, New Delhi)",
+   "sku": null,
+   "price_inr_planning": [
+    30.0,
+    150.0
+   ],
+   "price_basis": "library LABEL_QR_POLYESTER_50X25_PACK price_inr_planning",
+   "price_catalog_id": null,
+   "price_inr_seen": null,
+   "seen_on": null,
+   "estimate": true,
+   "evidence_tier": "estimate",
+   "listing": {
+    "url": "https://m.indiamart.com/quickbarcodesolution-com/label-roll.html",
+    "vendor": "IndiaMART (Quick Barcode Solution, New Delhi)",
+    "sku": null,
+    "packQuantity": 1,
+    "seen_on": "2026-11-01",
+    "status": "search_snippet",
+    "price_inr_seen": 280.0,
+    "notes": null,
+    "signed": false
+   },
+   "alternatives": [],
+   "notes": "IndiaMART (Quick Barcode Solution, New Delhi) price 280 INR was only seen in a search result on 2026-11-01, not on the vendor page. Price estimate; confirm before ordering.",
+   "modelPart": null,
+   "quantity_basis": "normalizer hardware list (the CAD has no group for this part)",
+   "hardware_id": "LABEL_QR_POLYESTER_50X25_PACK"
+  }
+ ],
+ "printed": [
+  {
+   "name": "PRINT_DisplayClip",
+   "file": "print/PRINT_DisplayClip.stl",
+   "kind": "print",
+   "material": "PLA",
+   "color": "#ADD5CD",
+   "color_name": "pale teal",
+   "grams": 1.14,
+   "hours": 0.156,
+   "print_time": "9m 20s",
+   "supports": false,
+   "support_g": 0.0,
+   "size_mm": [
+    51.0,
+    7.2,
+    9.3
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "flat strap face on the bed, fingers up; no supports",
+   "orientation_basis": "cad"
+  },
+  {
+   "name": "PRINT_LedClip",
+   "file": "print/PRINT_LedClip.stl",
+   "kind": "print",
+   "material": "PLA",
+   "color": "#ADD5CD",
+   "color_name": "pale teal",
+   "grams": 0.54,
+   "hours": 0.079,
+   "print_time": "4m 43s",
+   "supports": false,
+   "support_g": 0.0,
+   "size_mm": [
+    25.6,
+    7.4,
+    5.4
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "flat strap face on the bed, fingers up; no supports",
+   "orientation_basis": "cad"
+  },
+  {
+   "name": "PRINT_LedDiffuser",
+   "file": "print/PRINT_LedDiffuser.stl",
+   "kind": "print",
+   "material": "PETG natural",
+   "color": "#F7F5EB",
+   "color_name": "pale teal",
+   "grams": 0.5,
+   "hours": 0.066,
+   "print_time": "3m 56s",
+   "supports": true,
+   "support_g": 0.2,
+   "size_mm": [
+    10.4,
+    10.397,
+    3.6
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "outer face on the bed (smooth light face); print in natural PETG",
+   "orientation_basis": "cad"
+  },
+  {
+   "name": "PRINT_MicClip",
+   "file": "print/PRINT_MicClip.stl",
+   "kind": "print",
+   "material": "PLA",
+   "color": "#ADD5CD",
+   "color_name": "pale teal",
+   "grams": 0.68,
+   "hours": 0.105,
+   "print_time": "6m 18s",
+   "supports": false,
+   "support_g": 0.0,
+   "size_mm": [
+    7.2,
+    29.6,
+    8.2
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "flat strap face on the bed, fingers up; no supports",
+   "orientation_basis": "cad"
+  },
+  {
+   "name": "PRINT_RearCover",
+   "file": "print/PRINT_RearCover.stl",
+   "kind": "print",
+   "material": "PLA",
+   "color": "#8CC9C0",
+   "color_name": "pale teal",
+   "grams": 60.03,
+   "hours": 6.718,
+   "print_time": "6h 43m 6s",
+   "supports": true,
+   "support_g": 2.53,
+   "size_mm": [
+    141.856,
+    165.0,
+    10.38
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "outer back face on the bed, lip and tubes up; no supports",
+   "orientation_basis": "cad"
+  },
+  {
+   "name": "PRINT_Shell",
+   "file": "print/PRINT_Shell.stl",
+   "kind": "print",
+   "material": "PLA",
+   "color": "#8CC9C0",
+   "color_name": "pale teal",
+   "grams": 226.66,
+   "hours": 18.913,
+   "print_time": "18h 54m 47s",
+   "supports": true,
+   "support_g": 1.88,
+   "size_mm": [
+    141.856,
+    102.62,
+    186.355
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "upright on its flat base: face and decor print on vertical walls; tree supports for the domed top and the inside of the head",
+   "orientation_basis": "cad"
+  },
+  {
+   "name": "PRINT_SpeakerRing",
+   "file": "print/PRINT_SpeakerRing.stl",
+   "kind": "print",
+   "material": "PLA",
+   "color": "#ADD5CD",
+   "color_name": "pale teal",
+   "grams": 3.06,
+   "hours": 0.301,
+   "print_time": "18m 2s",
+   "supports": false,
+   "support_g": 0.0,
+   "size_mm": [
+    50.324,
+    49.694,
+    7.1
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "ring face on the bed, presser tube up; no supports",
+   "orientation_basis": "cad"
+  },
+  {
+   "name": "TEST_FitCoupon",
+   "file": "print/TEST_FitCoupon.stl",
+   "kind": "test_coupon",
+   "material": "PETG",
+   "color": "#8CC9C0",
+   "color_name": null,
+   "grams": 9.35,
+   "hours": 1.131,
+   "print_time": "1h 7m 52s",
+   "supports": false,
+   "support_g": 0.0,
+   "size_mm": [
+    78.0,
+    46.0,
+    15.0
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "flat on the bed as generated",
+   "orientation_basis": "cad",
+   "note": "Fit coupon: print first with the same material and settings; not a part of the gadget."
+  },
+  {
+   "name": "TEST_SeamMate",
+   "file": "print/TEST_SeamMate.stl",
+   "kind": "test_coupon",
+   "material": "PETG",
+   "color": "#8CC9C0",
+   "color_name": null,
+   "grams": 5.29,
+   "hours": 0.435,
+   "print_time": "26m 7s",
+   "supports": true,
+   "support_g": 1.8,
+   "size_mm": [
+    36.0,
+    10.38,
+    27.335
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "flat on the bed as generated",
+   "orientation_basis": "cad",
+   "note": "Fit coupon: print first with the same material and settings; not a part of the gadget."
+  },
+  {
+   "name": "TEST_SeamShell",
+   "file": "print/TEST_SeamShell.stl",
+   "kind": "test_coupon",
+   "material": "PETG",
+   "color": "#8CC9C0",
+   "color_name": null,
+   "grams": 6.95,
+   "hours": 0.594,
+   "print_time": "35m 37s",
+   "supports": true,
+   "support_g": 3.54,
+   "size_mm": [
+    36.0,
+    25.0,
+    12.934
+   ],
+   "fits_bed": true,
+   "rotate_z_deg": 0,
+   "sliced": true,
+   "orientation_note": "flat on the bed as generated",
+   "orientation_basis": "cad",
+   "note": "Fit coupon: print first with the same material and settings; not a part of the gadget."
+  }
+ ],
+ "steps": [
+  {
+   "id": "check-parts",
+   "title": "Check the parts",
+   "instruction": "**Use:** 1 × **Speaker 40 mm round, 4 ohm, 3 W**, 1 × **Speaker gasket: single-sided adhesive foam strip 25 x 3 mm (+ printed clamp ring)**, 1 × **Big 30 mm snap-in arcade push button (microswitch)**, 1 × **1.3 in 128x64 mono OLED, SH1106, I2C 4-pin**, 1 × **Addressable RGB LED, single WS2812B 5050 on a mini board**, 1 × **Speaker gasket: single-sided adhesive foam strip 25 x 3 mm (+ printed clamp ring)**, 1 × **INMP441 I2S MEMS microphone module**, 1 × **Standard backplane PCB backplane-v1 (ours)**, 1 × **ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)**, 1 × **MAX98357A I2S 3 W class-D mono amplifier breakout**, 1 × **microSD SPI module with LDO and level shifter (Catalex-type)**, 17 × **M2.5 heat-set inserts**, 9 × **M2.5 module clamp screws**, 4 × **M2.5 cartridge screws**, 4 × **M2.5 cover screws** and 4 × **adhesive bumper feet**.\n\n**Tools:** None. A clear table, a small parts tray and the parts list.\n\nLay every purchased item on a clear table and tick it off against the parts list: exact module, quantity and connector pin count. Keep screws, inserts and feet in a small tray, away from children.\n\nDo not substitute a module. The backplane ports, cable pin counts and firmware pin numbers are fixed for these exact modules. Compare each module's printed pin labels with the wiring table (`manual/wiring.png`) now, before anything is printed or plugged.\n\nThe 7 printed parts come later (step 3). The exploded view shows where every part ends up.\n\n**Stop if:** a module, its pin labels or a cable's pin count differ from the parts list or the wiring table. Photograph both sides of the module and ask before continuing; do not swap in a similar part.",
+   "expected": "Every line of the parts list is present in the stated quantity, and each module's printed pin labels match the wiring table.",
+   "parts": [
+    "PURCHASE_Speaker",
+    "PURCHASE_SpeakerGasket",
+    "PURCHASE_Button",
+    "PURCHASE_Display",
+    "PURCHASE_Led",
+    "PURCHASE_MicGasket",
+    "PURCHASE_Microphone",
+    "PURCHASE_Backplane",
+    "PURCHASE_CoreBoard",
+    "PURCHASE_Amplifier",
+    "PURCHASE_MicroSdModule",
+    "PURCHASE_HeatSetInserts",
+    "PURCHASE_ModuleScrews",
+    "PURCHASE_CartridgeScrews",
+    "PURCHASE_CoverScrews",
+    "PURCHASE_Feet"
+   ],
+   "highlight": [
+    "PURCHASE_Speaker",
+    "PURCHASE_SpeakerGasket",
+    "PURCHASE_Button",
+    "PURCHASE_Display",
+    "PURCHASE_Led",
+    "PURCHASE_MicGasket",
+    "PURCHASE_Microphone",
+    "PURCHASE_Backplane",
+    "PURCHASE_CoreBoard",
+    "PURCHASE_Amplifier",
+    "PURCHASE_MicroSdModule",
+    "PURCHASE_HeatSetInserts",
+    "PURCHASE_ModuleScrews",
+    "PURCHASE_CartridgeScrews",
+    "PURCHASE_CoverScrews",
+    "PURCHASE_Feet"
+   ],
+   "camera": {
+    "position": [
+     -1.9,
+     -317.8,
+     483.8
+    ],
+    "target": [
+     -1.9,
+     1.1,
+     85.2
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/step-01-parts.png",
+     "alt": "Every purchased part laid out on a table, one of each, labelled with the quantity used and its name.",
+     "caption": "CAD envelopes, not photos: check the real parts against the parts list and the wiring table."
+    },
+    {
+     "path": "manual/exploded.png",
+     "alt": "Exploded view of the Sleepy Bear: shell, front modules, core cartridge and closing part separated along one axis.",
+     "caption": "Separation distances are for clarity only. Cables are hidden."
+    }
+   ]
+  },
+  {
+   "id": "fit-coupon",
+   "title": "Print and try the fit coupon",
+   "instruction": "**Use:** 1 × `TEST_FitCoupon`, `TEST_SeamMate`, `TEST_SeamShell` and, for trying only, 1 × **Big 30 mm snap-in arcade push button (microswitch)**, 1 × **M2.5 heat-set inserts** and 1 × **M2.5 cartridge screws**.\n\n**Tools:** Printer or printing service, ruler or caliper.\n\nPrint `print/TEST_FitCoupon.stl`, `print/TEST_SeamMate.stl`, `print/TEST_SeamShell.stl` first, in the same material and with the same settings you will use for the shell. It is a small, cheap sample of the tight interfaces: try each real part in its matching feature by hand (Big 30 mm snap-in arcade push button (microswitch), M2.5 heat-set inserts and M2.5 cartridge screws). Parts should go in without force and stay put.\n\nIf something binds or is loose, stop before printing the shell and record what binds. Do not scale the design to force a fit. Printer accuracy is not assumed: the designed clearances are trial values that this real coupon checks.\n\n**Stop if:** a part binds, a hole is too tight or loose, or an insert will not seat square. Measure the hole and record the material and printer; send that with a photo before printing the shell.",
+   "expected": "The real parts fit the printed coupon by hand without force and are held without wobble. Keep the coupon as a reference; it is not a gadget part.",
+   "parts": [
+    "TEST_FitCoupon",
+    "TEST_SeamMate",
+    "TEST_SeamShell",
+    "PURCHASE_Button",
+    "PURCHASE_HeatSetInserts",
+    "PURCHASE_CartridgeScrews"
+   ],
+   "highlight": [
+    "PURCHASE_Button",
+    "PURCHASE_HeatSetInserts",
+    "PURCHASE_CartridgeScrews"
+   ],
+   "camera": {
+    "position": [
+     135.8,
+     -430.3,
+     269.2
+    ],
+    "target": [
+     -1.9,
+     0.1,
+     88.4
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/print-bed.png",
+     "alt": "The print STL files resting on a notional print bed in their exported orientation.",
+     "caption": "Orientation view only. It does not show supports or prove that a printer can print the part."
+    }
+   ]
+  },
+  {
+   "id": "print-parts",
+   "title": "Print and inspect the printed parts",
+   "instruction": "**Use:** 1 × `PRINT_Shell`, 1 × `PRINT_RearCover`, 1 × `PRINT_SpeakerRing`, 1 × `PRINT_DisplayClip`, 1 × `PRINT_LedDiffuser`, 1 × `PRINT_LedClip` and 1 × `PRINT_MicClip`.\n\n**Tools:** Printer or printing service, slicer, flush cutters or a deburring tool, ruler or caliper.\n\nPrint each file from `print/` as exported: it is already in its print orientation, resting on the bed. Do not scale or rotate it.\n\n- `print/PRINT_Shell.stl`: PLA; #8CC9C0; about 227 g (slicer estimate); about 18.9 h (slicer estimate); supports: yes; upright on its flat base: face and decor print on vertical walls; tree supports for the domed top and the inside of the head\n- `print/PRINT_RearCover.stl`: PLA; #8CC9C0; about 60 g (slicer estimate); about 6.7 h (slicer estimate); supports: yes; outer back face on the bed, lip and tubes up; no supports\n- `print/PRINT_SpeakerRing.stl`: PLA; #ADD5CD; about 3 g (slicer estimate); about 0.3 h (slicer estimate); supports: none; ring face on the bed, presser tube up; no supports\n- `print/PRINT_DisplayClip.stl`: PLA; #ADD5CD; about 1 g (slicer estimate); about 0.2 h (slicer estimate); supports: none; flat strap face on the bed, fingers up; no supports\n- `print/PRINT_LedDiffuser.stl`: PETG natural; #F7F5EB; about 0 g (slicer estimate); about 0.1 h (slicer estimate); supports: yes; outer face on the bed (smooth light face); print in natural PETG\n- `print/PRINT_LedClip.stl`: PLA; #ADD5CD; about 1 g (slicer estimate); about 0.1 h (slicer estimate); supports: none; flat strap face on the bed, fingers up; no supports\n- `print/PRINT_MicClip.stl`: PLA; #ADD5CD; about 1 g (slicer estimate); about 0.1 h (slicer estimate); supports: none; flat strap face on the bed, fingers up; no supports\n\nThe design colour is pale teal. Remove all support material. Deburr every opening (grille holes, windows, button and screw holes) so no strings or flakes are left. Check that every boss and clip is whole. Try the closing part on the empty shell before adding anything: it should seat evenly by hand.\n\n**Stop if:** a part is warped, a boss or clip is cracked, or the closing part will not seat without force. Reprint rather than sand or force it, and note which part and where.",
+   "expected": "Every printed part is complete, unscaled and clean, with open holes and whole bosses, and the closing part seats on the empty shell by hand.",
+   "parts": [
+    "PRINT_Shell",
+    "PRINT_RearCover",
+    "PRINT_SpeakerRing",
+    "PRINT_DisplayClip",
+    "PRINT_LedDiffuser",
+    "PRINT_LedClip",
+    "PRINT_MicClip"
+   ],
+   "highlight": [
+    "PRINT_Shell",
+    "PRINT_RearCover",
+    "PRINT_SpeakerRing",
+    "PRINT_DisplayClip",
+    "PRINT_LedDiffuser",
+    "PRINT_LedClip",
+    "PRINT_MicClip"
+   ],
+   "camera": {
+    "position": [
+     156.1,
+     -487.8,
+     299.6
+    ],
+    "target": [
+     0.0,
+     0.0,
+     94.8
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/print-bed.png",
+     "alt": "The print STL files resting on a notional print bed in their exported orientation.",
+     "caption": "Orientation view only. It does not show supports or prove that a printer can print the part."
+    }
+   ]
+  },
+  {
+   "id": "install-inserts",
+   "title": "Install the heat-set inserts",
+   "instruction": "**Use:** 17 × **M2.5 heat-set inserts**, 1 × `PRINT_Shell` and 1 × `PRINT_RearCover`.\n\n**Tools:** Soldering iron with a heat-set insert tip (or a clean conical tip), tweezers, a flat metal tool to level each insert.\n\nFit all 17 inserts before any electronics go in. Set the iron to the temperature the insert supplier recommends for your print material. Stand each insert on its boss, then let the hot tip carry it in with light, straight pressure until its top is flush with the boss. Do not push it below flush, and do not tilt it. Lift the iron straight out and let the boss cool before the next one.\n\nWork in a ventilated place and park the iron in its stand between inserts. The tip and the insert stay hot after you lift the iron.\n\n**Stop if:** an insert goes in crooked or sinks below flush, or a boss cracks. Let it cool, photograph it, and ask before using that boss.",
+   "expected": "All 17 inserts sit square and flush in their bosses, and no boss is cracked or bulged.",
+   "parts": [
+    "PURCHASE_HeatSetInserts",
+    "PRINT_Shell",
+    "PRINT_RearCover"
+   ],
+   "highlight": [
+    "PURCHASE_HeatSetInserts"
+   ],
+   "camera": {
+    "position": [
+     -178.6,
+     392.7,
+     298.9
+    ],
+    "target": [
+     -1.9,
+     0.0,
+     83.0
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/step-04-inserts.png",
+     "alt": "Heat-set inserts shown above the printed bosses, then seated flush in them.",
+     "caption": "Placement only. The image does not prove the insert is straight or fully melted in; check each one by eye."
+    }
+   ]
+  },
+  {
+   "id": "assemble-cartridge",
+   "title": "Assemble the core cartridge",
+   "instruction": "**Use:** 1 × **Standard backplane PCB backplane-v1 (ours)**, 1 × **ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)**, 1 × **MAX98357A I2S 3 W class-D mono amplifier breakout** and 1 × **microSD SPI module with LDO and level shifter (Catalex-type)**.\n\n**Tools:** Fingers only. Work on a clean, dry, non-metal surface.\n\n1. Press the **ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)** into the core-board sockets at **U1** (ESP32-S3-DevKitC-1 on 2 x 1x22 female sockets) so its USB connectors point toward +X (the gadget's left), over the board edge. Push evenly on both ends until it sits fully down. Every pin must be inside a socket; none may hang outside a row. Slot map: devkit USB ports face +x (robot's left), 1.0 mm past the board edge; antenna overhangs the -x edge.\n2. Plug the **MAX98357A I2S 3 W class-D mono amplifier breakout** (AMP1) into socket **A1** (MAX98357A I2S amplifier breakout (1x7 + 2 x 1x1 sockets)). Match its pin labels to the labels next to the socket before pressing it down.\n3. Plug the **microSD SPI module with LDO and level shifter (Catalex-type)** (SD1) into socket **S1** (microSD SPI module (Catalex-type) on a 1x6 socket). Match its pin labels to the labels next to the socket before pressing it down. Slot map: -x (board edge at the robot's right); card ejects toward -x.\n\nThe socket ids (U1, A1, S1) are the reference designators of the backplane; check the board's own markings and stop if they differ. Handle boards by their edges.\n\n**Stop if:** a pin misses its socket, a module rocks, or a label on a module differs from the socket labels. Unplug it, photograph the header and the board markings, and ask. Do not bend pins straight by force.",
+   "expected": "The core board and every plug-in module sit fully down in their sockets, in the orientation shown, with no visible pin outside a socket row.",
+   "parts": [
+    "PURCHASE_Backplane",
+    "PURCHASE_CoreBoard",
+    "PURCHASE_Amplifier",
+    "PURCHASE_MicroSdModule"
+   ],
+   "highlight": [
+    "PURCHASE_Backplane",
+    "PURCHASE_CoreBoard",
+    "PURCHASE_Amplifier",
+    "PURCHASE_MicroSdModule"
+   ],
+   "camera": {
+    "position": [
+     54.8,
+     -116.6,
+     244.7
+    ],
+    "target": [
+     -1.6,
+     7.6,
+     19.1
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/step-05-cartridge.png",
+     "alt": "The core board, amplifier and microSD module lifted above the backplane, then seated in their sockets.",
+     "caption": "Shows placement and orientation only; it does not prove every pin is in its socket. Check each row by eye."
+    }
+   ]
+  },
+  {
+   "id": "mount-cartridge",
+   "title": "Mount the core cartridge",
+   "instruction": "**Use:** 4 × **M2.5 cartridge screws** and the assembled core cartridge from the previous step.\n\n**Tools:** A screwdriver that fits the supplied screws.\n\nLower the cartridge onto its 4 bosses, component side up, with the core board's USB connectors toward +X (the gadget's left). The USB-C power input must line up with its opening in the shell. Fit the 4 × **M2.5 cartridge screws** through the board holes into the bosses. Tighten each one a little at a time, in a cross pattern, and stop as soon as it is snug: the board must not bend. No torque value has been established.\n\n**Stop if:** a screw will not start by hand, the board bends or rocks, or the USB-C input does not line up with its opening. Back the screws out and photograph the boss and the opening.",
+   "expected": "The cartridge sits flat on all its bosses, every screw is snug, and the USB-C power input lines up with its opening.",
+   "parts": [
+    "PURCHASE_Backplane",
+    "PURCHASE_CoreBoard",
+    "PURCHASE_Amplifier",
+    "PURCHASE_MicroSdModule",
+    "PURCHASE_CartridgeScrews"
+   ],
+   "highlight": [
+    "PURCHASE_Backplane",
+    "PURCHASE_CoreBoard",
+    "PURCHASE_Amplifier",
+    "PURCHASE_MicroSdModule",
+    "PURCHASE_CartridgeScrews"
+   ],
+   "camera": {
+    "position": [
+     -158.6,
+     356.4,
+     210.9
+    ],
+    "target": [
+     -1.6,
+     7.6,
+     19.1
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/step-06-mount-cartridge.png",
+     "alt": "The assembled core cartridge lifted out of the shell, then screwed onto its bosses.",
+     "caption": "Placement only: the image does not prove screw engagement or that the USB-C port lines up. Check both by hand."
+    }
+   ]
+  },
+  {
+   "id": "mount-speaker",
+   "title": "Fit the speaker (Story speaker)",
+   "instruction": "**Use:** 1 × **Speaker gasket: single-sided adhesive foam strip 25 x 3 mm (+ printed clamp ring)**.\n\n**Tools:** Fingers only.\n\nPeel the backing and press the **Speaker gasket: single-sided adhesive foam strip 25 x 3 mm (+ printed clamp ring)** in place behind its opening (Story speaker), cone toward -Y (front). Hold it firmly; it cannot be repositioned easily.\n\nIts cable connector points toward +X (the gadget's left); keep that side clear for the cable.\n\nDo not press on the speaker cone. Keep the speaker leads free toward the cartridge.\n\n**Stop if:** the speaker does not sit flat, the cone is not centred on its opening, or anything needs force. Photograph it from inside and outside before changing anything; do not drill, cut or glue.",
+   "expected": "The speaker sits square behind its opening with the cone toward -Y (front), held without force, and its cable is free.",
+   "parts": [
+    "PURCHASE_SpeakerGasket"
+   ],
+   "highlight": [
+    "PURCHASE_SpeakerGasket"
+   ],
+   "camera": {
+    "position": [
+     98.2,
+     -332.8,
+     169.8
+    ],
+    "target": [
+     0.0,
+     -52.4,
+     57.6
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/step-07-speaker.png",
+     "alt": "The speaker shown moving into position, then installed behind Story speaker.",
+     "caption": "Shows where the speaker sits and which way it faces. It does not prove fit or retention; check it by hand."
+    }
+   ]
+  },
+  {
+   "id": "mount-speaker-2",
+   "title": "Fit the speaker (Story speaker)",
+   "instruction": "**Use:** 1 × **Speaker 40 mm round, 4 ohm, 3 W**, 1 × `PRINT_SpeakerRing` and 2 × **M2.5 module clamp screws**.\n\n**Tools:** A screwdriver that fits the supplied screws.\n\nSeat the **Speaker 40 mm round, 4 ohm, 3 W** behind its opening (Story speaker) so the cone faces -Y (front). It must sit flat and square to the opening.\n\nIts cable connector points toward +X (the gadget's left); keep that side clear for the cable.\n\nFit `PRINT_SpeakerRing` as shown in the image to hold it.\n\nFix it with the 2 × **M2.5 module clamp screws**. Tighten gently and stop as soon as it is snug.\n\nDo not press on the speaker cone. Keep the speaker leads free toward the cartridge.\n\n**Stop if:** the speaker does not sit flat, the cone is not centred on its opening, or anything needs force. Photograph it from inside and outside before changing anything; do not drill, cut or glue.",
+   "expected": "The speaker sits square behind its opening with the cone toward -Y (front), held without force, and its cable is free.",
+   "parts": [
+    "PURCHASE_Speaker",
+    "PRINT_SpeakerRing",
+    "PURCHASE_ModuleScrews"
+   ],
+   "highlight": [
+    "PURCHASE_Speaker",
+    "PRINT_SpeakerRing",
+    "PURCHASE_ModuleScrews"
+   ],
+   "camera": {
+    "position": [
+     98.1,
+     -323.1,
+     173.4
+    ],
+    "target": [
+     0.0,
+     -42.7,
+     61.3
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/step-08-speaker.png",
+     "alt": "The speaker shown moving into position, then installed behind Story speaker.",
+     "caption": "Shows where the speaker sits and which way it faces. It does not prove fit or retention; check it by hand."
+    }
+   ]
+  },
+  {
+   "id": "mount-eyes",
+   "title": "Fit the display (Animated sleepy eyes)",
+   "instruction": "**Use:** 1 × **1.3 in 128x64 mono OLED, SH1106, I2C 4-pin**, 1 × `PRINT_DisplayClip` and 2 × **M2.5 module clamp screws**.\n\n**Tools:** A screwdriver that fits the supplied screws.\n\nHold the **1.3 in 128x64 mono OLED, SH1106, I2C 4-pin** against its bosses behind its opening (Animated sleepy eyes), screen toward -Y (front).\n\nIts cable connector points toward +Z (up); keep that side clear for the cable.\n\nFit `PRINT_DisplayClip` as shown in the image.\n\nFix it with the 2 × **M2.5 module clamp screws**. Tighten gently and stop as soon as it is snug.\n\nHold the display by its edges and do not press on the glass.\n\n**Stop if:** the display does not sit flat, the screen is not centred on its opening, or anything needs force. Photograph it from inside and outside before changing anything; do not drill, cut or glue.",
+   "expected": "The display sits square behind its opening with the screen toward -Y (front), held without force, and its cable is free.",
+   "parts": [
+    "PURCHASE_Display",
+    "PRINT_DisplayClip",
+    "PURCHASE_ModuleScrews"
+   ],
+   "highlight": [
+    "PURCHASE_Display",
+    "PRINT_DisplayClip",
+    "PURCHASE_ModuleScrews"
+   ],
+   "camera": {
+    "position": [
+     98.1,
+     -325.2,
+     233.8
+    ],
+    "target": [
+     0.0,
+     -44.7,
+     121.6
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/step-09-eyes.png",
+     "alt": "The display shown moving into position, then installed behind Animated sleepy eyes.",
+     "caption": "Shows where the display sits and which way it faces. It does not prove fit or retention; check it by hand."
+    }
+   ]
+  },
+  {
+   "id": "mount-story-button",
+   "title": "Fit the button (Story and listening button)",
+   "instruction": "**Use:** 1 × **Big 30 mm snap-in arcade push button (microswitch)**.\n\n**Tools:** Fingers only.\n\nFrom the outside, push the **Big 30 mm snap-in arcade push button (microswitch)** straight into its opening, cap toward +Z (up), until its clips catch. Check from inside that every clip has caught; do not lever against the cap.\n\nIts cable connector points toward -Z (down); keep that side clear for the cable.\n\n**Stop if:** the button does not sit flat, the cap is not centred on its opening, or anything needs force. Photograph it from inside and outside before changing anything; do not drill, cut or glue.",
+   "expected": "The button sits square behind its opening with the cap toward +Z (up), held without force, and its cable is free.",
+   "parts": [
+    "PURCHASE_Button"
+   ],
+   "highlight": [
+    "PURCHASE_Button"
+   ],
+   "camera": {
+    "position": [
+     82.3,
+     -147.2,
+     425.8
+    ],
+    "target": [
+     0.0,
+     -10.0,
+     151.5
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/step-10-story-button.png",
+     "alt": "The button shown moving into position, then installed behind Story and listening button.",
+     "caption": "Shows where the button sits and which way it faces. It does not prove fit or retention; check it by hand."
+    }
+   ]
+  },
+  {
+   "id": "mount-status-light",
+   "title": "Fit the light (Night light)",
+   "instruction": "**Use:** 1 × **Addressable RGB LED, single WS2812B 5050 on a mini board**, 1 × `PRINT_LedDiffuser`, 1 × `PRINT_LedClip` and 3 × **M2.5 module clamp screws**.\n\n**Tools:** A screwdriver that fits the supplied screws.\n\nPeel the backing and press the **Addressable RGB LED, single WS2812B 5050 on a mini board** in place behind its opening (Night light), LEDs toward -Y (front). Hold it firmly; it cannot be repositioned easily.\n\nIts cable connector points toward +Y (rear); keep that side clear for the cable.\n\nFit `PRINT_LedDiffuser` as shown in the image.\n\nFit `PRINT_LedClip` as shown in the image.\n\nFix it with the 3 × **M2.5 module clamp screws**. Tighten gently and stop as soon as it is snug.\n\nDo not look directly into the LEDs from close up when they are tested later.\n\n**Stop if:** the light does not sit flat, the LEDs are not centred on its opening, or anything needs force. Photograph it from inside and outside before changing anything; do not drill, cut or glue.",
+   "expected": "The light sits square behind its opening with the LEDs toward -Y (front), held without force, and its cable is free.",
+   "parts": [
+    "PURCHASE_Led",
+    "PRINT_LedDiffuser",
+    "PRINT_LedClip",
+    "PURCHASE_ModuleScrews"
+   ],
+   "highlight": [
+    "PURCHASE_Led",
+    "PRINT_LedDiffuser",
+    "PRINT_LedClip",
+    "PURCHASE_ModuleScrews"
+   ],
+   "camera": {
+    "position": [
+     98.1,
+     -326.6,
+     198.2
+    ],
+    "target": [
+     0.0,
+     -46.1,
+     86.0
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/step-11-status-light.png",
+     "alt": "The light shown moving into position, then installed behind Night light.",
+     "caption": "Shows where the light sits and which way it faces. It does not prove fit or retention; check it by hand."
+    }
+   ]
+  },
+  {
+   "id": "mount-mic",
+   "title": "Fit the microphone (Voice microphone)",
+   "instruction": "**Use:** 1 × **Speaker gasket: single-sided adhesive foam strip 25 x 3 mm (+ printed clamp ring)**, 1 × `PRINT_MicClip` and 2 × **M2.5 module clamp screws**.\n\n**Tools:** A screwdriver that fits the supplied screws.\n\nPeel the backing and press the **Speaker gasket: single-sided adhesive foam strip 25 x 3 mm (+ printed clamp ring)** in place behind its opening (Voice microphone), sound port toward -Y (front). Hold it firmly; it cannot be repositioned easily.\n\nIts cable connector points toward +Y (rear); keep that side clear for the cable.\n\nFit `PRINT_MicClip` as shown in the image.\n\nFix it with the 2 × **M2.5 module clamp screws**. Tighten gently and stop as soon as it is snug.\n\nKeep the sound port clear: no foam, tape or glue over it.\n\n**Stop if:** the microphone does not sit flat, the sound port is not centred on its opening, or anything needs force. Photograph it from inside and outside before changing anything; do not drill, cut or glue.",
+   "expected": "The microphone sits square behind its opening with the sound port toward -Y (front), held without force, and its cable is free.",
+   "parts": [
+    "PURCHASE_MicGasket",
+    "PRINT_MicClip",
+    "PURCHASE_ModuleScrews"
+   ],
+   "highlight": [
+    "PURCHASE_MicGasket",
+    "PRINT_MicClip",
+    "PURCHASE_ModuleScrews"
+   ],
+   "camera": {
+    "position": [
+     128.2,
+     -327.2,
+     198.8
+    ],
+    "target": [
+     30.0,
+     -46.7,
+     86.6
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/step-12-mic.png",
+     "alt": "The microphone shown moving into position, then installed behind Voice microphone.",
+     "caption": "Shows where the microphone sits and which way it faces. It does not prove fit or retention; check it by hand."
+    }
+   ]
+  },
+  {
+   "id": "mount-mic-2",
+   "title": "Fit the microphone (Voice microphone)",
+   "instruction": "**Use:** 1 × **INMP441 I2S MEMS microphone module**.\n\n**Tools:** Fingers only.\n\nPeel the backing and press the **INMP441 I2S MEMS microphone module** in place behind its opening (Voice microphone), sound port toward -Y (front). Hold it firmly; it cannot be repositioned easily.\n\nIts cable connector points toward +X (the gadget's left); keep that side clear for the cable.\n\nKeep the sound port clear: no foam, tape or glue over it.\n\n**Stop if:** the microphone does not sit flat, the sound port is not centred on its opening, or anything needs force. Photograph it from inside and outside before changing anything; do not drill, cut or glue.",
+   "expected": "The microphone sits square behind its opening with the sound port toward -Y (front), held without force, and its cable is free.",
+   "parts": [
+    "PURCHASE_Microphone"
+   ],
+   "highlight": [
+    "PURCHASE_Microphone"
+   ],
+   "camera": {
+    "position": [
+     128.1,
+     -327.8,
+     198.8
+    ],
+    "target": [
+     30.0,
+     -47.3,
+     86.6
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/step-13-mic.png",
+     "alt": "The microphone shown moving into position, then installed behind Voice microphone.",
+     "caption": "Shows where the microphone sits and which way it faces. It does not prove fit or retention; check it by hand."
+    }
+   ]
+  },
+  {
+   "id": "plug-harnesses",
+   "title": "Plug the cables into their ports",
+   "instruction": "**Use:** 6 module cables (already on the modules or in the kit).\n\n**Tools:** Fingers only.\n\nDisconnect USB-C power first. Plug each cable into the port named below. Every JST-PH plug is keyed and fits one way: line up the ridge on the plug with the slot in the header, then push straight in until it seats fully. Never pull a cable by its wires; hold the plug body.\n\n1. **J_PWR** ← USB-C 2.0 receptacle on backplane (5V sink, CC 5.1k Rd) (PWR1), its cable.\n2. **J_SPK** ← Speaker 40 mm round, 4 ohm, 3 W (SPK1), JST-PH 2.0 2p, 200 mm. Pin order at the port: 1 white +, 2 grey -.\n3. **J_IO1** ← Big 30 mm snap-in arcade push button (microswitch) (BTN1), JST-PH 2.0 3p, 300 mm. Pin order at the port: 1 black COM, 3 white NO.\n4. **J_I2C1** ← 1.3 in 128x64 mono OLED, SH1106, I2C 4-pin (DISP1), JST-PH 2.0 4p, 300 mm. Pin order at the port: 1 black GND, 2 orange VCC, 3 blue SDA, 4 yellow SCL.\n5. **J_LED** ← Addressable RGB LED, single WS2812B 5050 on a mini board (LED1), JST-PH 2.0 3p, 200 mm. Pin order at the port: 1 black GND, 2 red 5V, 3 green DIN.\n6. **J_MIC** ← Speaker gasket: single-sided adhesive foam strip 25 x 3 mm (+ printed clamp ring) (MIC1), JST-PH 2.0 6p, 300 mm. Pin order at the port: 1 black GND, 2 orange VDD, 3 yellow SCK, 4 green WS, 5 blue SD, 6 black L/R.\n\nThe pin order is listed from pin 1. Wire colours are a cross-check, not the identifier: read the port name on the board. The full table is in the wiring diagram.\n\n**Stop if:** a plug will not go in without force, a cable's colours differ from the table, or a port named here is missing on your board. Photograph both ends; do not re-pin a housing or swap wires.",
+   "expected": "Every cable is fully seated in the port named in the wiring table, and no port has the wrong cable.",
+   "parts": [
+    "PURCHASE_Backplane",
+    "PURCHASE_Speaker",
+    "PURCHASE_Button",
+    "PURCHASE_Display",
+    "PURCHASE_Led",
+    "PURCHASE_MicGasket"
+   ],
+   "highlight": [
+    "PURCHASE_Backplane",
+    "PURCHASE_Speaker",
+    "PURCHASE_Button",
+    "PURCHASE_Display",
+    "PURCHASE_Led",
+    "PURCHASE_MicGasket",
+    "REFERENCE_CableSpk1",
+    "REFERENCE_CableBtn1",
+    "REFERENCE_CableDisp1",
+    "REFERENCE_CableLed1",
+    "REFERENCE_CableMic1"
+   ],
+   "camera": {
+    "position": [
+     128.3,
+     -394.0,
+     254.7
+    ],
+    "target": [
+     3.2,
+     -3.0,
+     90.4
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/backplane-pcb.png",
+     "alt": "KiCad render of this build's routed backplane, top side, with the printed port labels.",
+     "caption": "Rendered by the PCB stage from pcb/backplane.kicad_pcb, not a photo of a made board. Compare the printed labels with the port names in this guide."
+    },
+    {
+     "path": "manual/ports.png",
+     "alt": "The core cartridge from above with every port this build uses labelled with the module that plugs into it.",
+     "caption": "Port positions from the saved CAD and slot map. It does not prove a plug is seated; push each one fully home."
+    },
+    {
+     "path": "manual/wiring.png",
+     "alt": "Top view of the backplane with the used ports highlighted, each module's cable drawn in its wire colours, and the pin table.",
+     "caption": "Diagram from the saved slot map and electrical data, not a photo. Read the port names on your board; colours are only a cross-check."
+    }
+   ]
+  },
+  {
+   "id": "route-cables",
+   "title": "Route and tie the cables",
+   "instruction": "**Use:** the cables plugged in the previous step.\n\n**Tools:** Fingers only.\n\nLay each cable along the path shown, without twisting it, and leave a little slack at both plugs so no plug is pulled sideways. Keep cables away from screw bosses, the closing seam and the speaker cone.\n\nRoutes in the CAD:\n- JST-PH 2.0 2p 200 mm: BP1.J_SPK to SPK1.CONN, CAD route about 58 mm for a 200 mm cable (enough slack).\n- JST-PH 2.0 3p 300 mm: BP1.J_IO1 to BTN1.CONN, CAD route about 133 mm for a 300 mm cable (enough slack).\n- JST-PH 2.0 4p 300 mm: BP1.J_I2C1 to DISP1.CONN, CAD route about 138 mm for a 300 mm cable (enough slack).\n- JST-PH 2.0 3p 200 mm: BP1.J_LED to LED1.CONN, CAD route about 74 mm for a 200 mm cable (enough slack).\n- JST-PH 2.0 6p 300 mm: BP1.J_MIC to MIC1.CONN, CAD route about 113 mm for a 300 mm cable (enough slack).\n\nThe routes are display envelopes. Cable stiffness and plug housings are not modeled.\n\n**Stop if:** a cable is too short to reach without pulling on its plug, or it has to cross the seam. Photograph the route; do not extend or cut a cable.",
+   "expected": "Every cable follows its route with slack at both plugs, nothing crosses the seam or a screw boss, and no plug is pulled sideways.",
+   "parts": [
+    "REFERENCE_CableSpk1",
+    "REFERENCE_CableBtn1",
+    "REFERENCE_CableDisp1",
+    "REFERENCE_CableLed1",
+    "REFERENCE_CableMic1"
+   ],
+   "highlight": [
+    "REFERENCE_CableSpk1",
+    "REFERENCE_CableBtn1",
+    "REFERENCE_CableDisp1",
+    "REFERENCE_CableLed1",
+    "REFERENCE_CableMic1"
+   ],
+   "camera": {
+    "position": [
+     -200.2,
+     441.2,
+     339.5
+    ],
+    "target": [
+     0.0,
+     -3.7,
+     94.8
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/step-15-routing.png",
+     "alt": "The open gadget with every cable route shown in colour and the tie points labelled.",
+     "caption": "Routes show occupied space, not the exact cable path. Check slack and that nothing crosses the seam."
+    }
+   ]
+  },
+  {
+   "id": "flash-and-test",
+   "title": "Flash the firmware and run the bench self-test",
+   "instruction": "**Use:** The open gadget from the previous steps, 1 × **ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)** already installed, and a data-capable USB cable (not in the kit).\n\n**Tools:** A computer with PlatformIO (see `SOFTWARE_SETUP.md`).\n\nKeep the gadget open. Connect a computer to the core board's USB port with a data-capable USB cable (the port faces +X (the gadget's left)). Then, from the delivered project folder:\n\n```sh\ncd firmware\npio run -t upload\npio device monitor -b 115200\n```\n\nPlatformIO builds the delivered source and writes it to the board. Follow `SOFTWARE_SETUP.md` to run the self-test, and check each module in turn:\n\n- the speaker plays the test sound clearly, without crackle\n- the speaker plays the test sound clearly, without crackle\n- the display shows the test image the right way up\n- each press of the button is reported once\n- the light shows each test colour\n- the microphone level reacts when you speak near it\n- the microphone level reacts when you speak near it\n\nUnplug the USB cable before you close the gadget. These are checks for you to make; nothing here records them as passed.\n\n**Stop if:** the upload fails, the board resets repeatedly, any part gets warm, or a module does not respond. Unplug USB first, then save the monitor output and check that module's cable against the wiring table.",
+   "expected": "The upload finishes without errors and every module passes its self-test check by your observation.",
+   "parts": [
+    "PURCHASE_CoreBoard",
+    "PURCHASE_Backplane",
+    "PURCHASE_SpeakerGasket",
+    "PURCHASE_Speaker",
+    "PURCHASE_Display",
+    "PURCHASE_Button",
+    "PURCHASE_Led",
+    "PURCHASE_MicGasket",
+    "PURCHASE_Microphone"
+   ],
+   "highlight": [
+    "PURCHASE_CoreBoard"
+   ],
+   "camera": {
+    "position": [
+     -200.2,
+     441.2,
+     339.5
+    ],
+    "target": [
+     0.0,
+     -3.7,
+     94.8
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/open-back.png",
+     "alt": "The open gadget with the core board's USB port and every module labelled.",
+     "caption": "Placement view. It does not show that the firmware runs or that any module works."
+    }
+   ]
+  },
+  {
+   "id": "close-cover",
+   "title": "Close the rear cover",
+   "instruction": "**Use:** 1 × `PRINT_RearCover`, 4 × **M2.5 cover screws** and 4 × **adhesive bumper feet**.\n\n**Tools:** A screwdriver that fits the supplied screws.\n\nCheck that the USB cable from the bench test is unplugged and that no cable lies across the seam. Bring `PRINT_RearCover` straight on along -Y (front). It should seat evenly by hand, without pressure. Fit the 4 × **M2.5 cover screws** and tighten them a little at a time, in a cross pattern, until snug. Never use the screws to pull the seam shut. No torque value has been established.\n\nTurn it over and stick the 4 × **adhesive bumper feet** at the positions shown, on a clean, dry surface.\n\n**Stop if:** the part rocks, a gap stays open, or it needs screw force to close. Open it again and look for a cable, a plug or a print edge in the way; photograph it if you cannot find it.",
+   "expected": "The seam is closed evenly all round, no cable is pinched, and the gadget stands level on its feet.",
+   "parts": [
+    "PRINT_RearCover",
+    "PURCHASE_CoverScrews",
+    "PURCHASE_Feet"
+   ],
+   "highlight": [
+    "PRINT_RearCover",
+    "PURCHASE_CoverScrews",
+    "PURCHASE_Feet"
+   ],
+   "camera": {
+    "position": [
+     -236.5,
+     394.2,
+     -210.2
+    ],
+    "target": [
+     0.0,
+     0.0,
+     94.8
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/step-17-close.png",
+     "alt": "The closing part separated from the shell with its screws, then closed.",
+     "caption": "The image does not prove that the seam closes without pinching a cable. Close it by hand first."
+    }
+   ]
+  },
+  {
+   "id": "final-checks",
+   "title": "Final checks",
+   "instruction": "**Use:** The finished Sleepy Bear and a USB-C 5 V supply (not included).\n\n**Tools:** None (adult supervision).\n\nConnect a USB-C 5 V supply (not included). Keep the supply and its plug outside the gadget, and route the cord where nobody trips on it and away from a bed.\n\nWork through the final checks listed at the end of this guide. They are actions for you, not passed results: record what you observe. Do not leave a gadget that fails a check in use.\n\n**Stop if:** any check fails, the gadget gets hot, smells, rattles or tips over. Unplug it and do not use it until the cause is found.",
+   "expected": "Every final check is done and recorded, and each one behaves as described.",
+   "parts": [
+    "PRINT_Shell",
+    "PRINT_RearCover"
+   ],
+   "highlight": [],
+   "camera": {
+    "position": [
+     156.8,
+     -489.8,
+     299.8
+    ],
+    "target": [
+     0.0,
+     0.2,
+     94.0
+    ],
+    "up": [
+     0,
+     0,
+     1
+    ]
+   },
+   "visuals": [
+    {
+     "path": "manual/assembled.png",
+     "alt": "The finished Sleepy Bear from the front, with each control and opening labelled.",
+     "caption": "Saved CAD appearance only. Complete the final checks below before regular use."
+    }
+   ]
+  }
+ ],
+ "wiring": {
+  "runtime": "esp32-arduino",
+  "board": "esp32-s3-devkitc-1",
+  "code": "firmware/src/main.cpp",
+  "parts": [
+   {
+    "id": "U1",
+    "name": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+    "kind": "controller",
+    "item": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+    "module_id": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "sizeMm": [
+     70.2,
+     25.5,
+     7.2
+    ]
+   },
+   {
+    "id": "BP1",
+    "name": "Standard backplane PCB backplane-v1 (ours)",
+    "kind": "board",
+    "item": "Standard backplane PCB backplane-v1 (ours)",
+    "module_id": "BACKPLANE_V1",
+    "sizeMm": [
+     62.8,
+     79.1,
+     10.1
+    ]
+   },
+   {
+    "id": "PWR1",
+    "name": "USB-C 2.0 receptacle on backplane (5V sink, CC 5.1k Rd)",
+    "kind": "power",
+    "item": "USB-C 2.0 receptacle on backplane (5V sink, CC 5.1k Rd)",
+    "module_id": "USBC_RECEPTACLE_GCT_USB4105"
+   },
+   {
+    "id": "SPK1",
+    "name": "Speaker 40 mm round, 4 ohm, 3 W",
+    "kind": "component",
+    "item": "Speaker 40 mm round, 4 ohm, 3 W",
+    "module_id": "SPK_40MM_4R_3W",
+    "sizeMm": [
+     40.0,
+     17.5,
+     40.0
+    ]
+   },
+   {
+    "id": "BTN1",
+    "name": "Big 30 mm snap-in arcade push button (microswitch)",
+    "kind": "component",
+    "item": "Big 30 mm snap-in arcade push button (microswitch)",
+    "module_id": "BUTTON_ARCADE_30MM_SNAPIN",
+    "sizeMm": [
+     33.0,
+     33.0,
+     38.0
+    ]
+   },
+   {
+    "id": "DISP1",
+    "name": "1.3 in 128x64 mono OLED, SH1106, I2C 4-pin",
+    "kind": "board",
+    "item": "1.3 in 128x64 mono OLED, SH1106, I2C 4-pin",
+    "module_id": "OLED_130_SH1106_I2C",
+    "sizeMm": [
+     35.4,
+     11.3,
+     33.5
+    ]
+   },
+   {
+    "id": "LED1",
+    "name": "Addressable RGB LED, single WS2812B 5050 on a mini board",
+    "kind": "board",
+    "item": "Addressable RGB LED, single WS2812B 5050 on a mini board",
+    "module_id": "LED_WS2812B_1PX_MODULE",
+    "sizeMm": [
+     10.0,
+     5.7,
+     10.0
+    ]
+   },
+   {
+    "id": "MIC1",
+    "name": "Speaker gasket: single-sided adhesive foam strip 25 x 3 mm (+ printed clamp ring)",
+    "kind": "board",
+    "item": "INMP441 I2S MEMS microphone module",
+    "module_id": "MIC_INMP441_I2S",
+    "sizeMm": [
+     7.6,
+     1.0,
+     7.6
+    ]
+   },
+   {
+    "id": "AMP1",
+    "name": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+    "kind": "board",
+    "item": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+    "module_id": "AMP_MAX98357A_I2S",
+    "sizeMm": [
+     17.9,
+     19.1,
+     5.0
+    ]
+   },
+   {
+    "id": "SD1",
+    "name": "microSD SPI module with LDO and level shifter (Catalex-type)",
+    "kind": "board",
+    "item": "microSD SPI module with LDO and level shifter (Catalex-type)",
+    "module_id": "MICROSD_SPI_MODULE_5V",
+    "sizeMm": [
+     42.0,
+     24.0,
+     6.0
+    ]
+   },
+   {
+    "id": "CBL1",
+    "name": "USB-C to USB-C cable, 1 m, USB 2.0",
+    "kind": "board",
+    "item": "USB-C to USB-C cable, 1 m, USB 2.0",
+    "module_id": "CABLE_USBC_C2C_1M"
+   }
+  ],
+  "connections": [
+   {
+    "from": "SPK1.+",
+    "to": "BP1.J_SPK.1",
+    "kind": "cable",
+    "via": "JST-PH 2.0 2p 200 mm",
+    "color": "white",
+    "net": "SPK_P",
+    "note": "J_SPK pin 1 = SPK+; net SPK_P"
+   },
+   {
+    "from": "SPK1.-",
+    "to": "BP1.J_SPK.2",
+    "kind": "cable",
+    "via": "JST-PH 2.0 2p 200 mm",
+    "color": "grey",
+    "net": "SPK_N",
+    "note": "J_SPK pin 2 = SPK-; net SPK_N"
+   },
+   {
+    "from": "BTN1.COM",
+    "to": "BP1.J_IO1.1",
+    "kind": "cable",
+    "via": "JST-PH 2.0 3p 300 mm",
+    "color": "black",
+    "net": "GND",
+    "note": "J_IO1 pin 1 = GND; net GND"
+   },
+   {
+    "from": "BTN1.NO",
+    "to": "BP1.J_IO1.3",
+    "kind": "cable",
+    "via": "JST-PH 2.0 3p 300 mm",
+    "color": "white",
+    "net": "IO1_SIG",
+    "gpio": 4,
+    "note": "J_IO1 pin 3 = SIG; net IO1_SIG; ESP32-S3 GPIO4"
+   },
+   {
+    "from": "DISP1.GND",
+    "to": "BP1.J_I2C1.1",
+    "kind": "cable",
+    "via": "JST-PH 2.0 4p 300 mm",
+    "color": "black",
+    "net": "GND",
+    "note": "J_I2C1 pin 1 = GND; net GND"
+   },
+   {
+    "from": "DISP1.VCC",
+    "to": "BP1.J_I2C1.2",
+    "kind": "cable",
+    "via": "JST-PH 2.0 4p 300 mm",
+    "color": "orange",
+    "net": "+3V3",
+    "note": "J_I2C1 pin 2 = 3V3; net +3V3"
+   },
+   {
+    "from": "DISP1.SDA",
+    "to": "BP1.J_I2C1.3",
+    "kind": "cable",
+    "via": "JST-PH 2.0 4p 300 mm",
+    "color": "blue",
+    "net": "I2C_SDA",
+    "gpio": 8,
+    "note": "J_I2C1 pin 3 = SDA; net I2C_SDA; ESP32-S3 GPIO8"
+   },
+   {
+    "from": "DISP1.SCL",
+    "to": "BP1.J_I2C1.4",
+    "kind": "cable",
+    "via": "JST-PH 2.0 4p 300 mm",
+    "color": "yellow",
+    "net": "I2C_SCL",
+    "gpio": 9,
+    "note": "J_I2C1 pin 4 = SCL; net I2C_SCL; ESP32-S3 GPIO9"
+   },
+   {
+    "from": "LED1.GND",
+    "to": "BP1.J_LED.1",
+    "kind": "cable",
+    "via": "JST-PH 2.0 3p 200 mm",
+    "color": "black",
+    "net": "GND",
+    "note": "J_LED pin 1 = GND; net GND"
+   },
+   {
+    "from": "LED1.5V",
+    "to": "BP1.J_LED.2",
+    "kind": "cable",
+    "via": "JST-PH 2.0 3p 200 mm",
+    "color": "red",
+    "net": "+5V",
+    "note": "J_LED pin 2 = 5V; net +5V"
+   },
+   {
+    "from": "LED1.DIN",
+    "to": "BP1.J_LED.3",
+    "kind": "cable",
+    "via": "JST-PH 2.0 3p 200 mm",
+    "color": "green",
+    "net": "LED_DIN_5V",
+    "note": "J_LED pin 3 = DIN; net LED_DIN_5V"
+   },
+   {
+    "from": "MIC1.GND",
+    "to": "BP1.J_MIC.1",
+    "kind": "cable",
+    "via": "JST-PH 2.0 6p 300 mm",
+    "color": "black",
+    "net": "GND",
+    "note": "J_MIC pin 1 = GND; net GND"
+   },
+   {
+    "from": "MIC1.VDD",
+    "to": "BP1.J_MIC.2",
+    "kind": "cable",
+    "via": "JST-PH 2.0 6p 300 mm",
+    "color": "orange",
+    "net": "+3V3",
+    "note": "J_MIC pin 2 = 3V3; net +3V3"
+   },
+   {
+    "from": "MIC1.SCK",
+    "to": "BP1.J_MIC.3",
+    "kind": "cable",
+    "via": "JST-PH 2.0 6p 300 mm",
+    "color": "yellow",
+    "net": "I2S_MIC_SCK",
+    "gpio": 41,
+    "note": "J_MIC pin 3 = SCK; net I2S_MIC_SCK; ESP32-S3 GPIO41"
+   },
+   {
+    "from": "MIC1.WS",
+    "to": "BP1.J_MIC.4",
+    "kind": "cable",
+    "via": "JST-PH 2.0 6p 300 mm",
+    "color": "green",
+    "net": "I2S_MIC_WS",
+    "gpio": 42,
+    "note": "J_MIC pin 4 = WS; net I2S_MIC_WS; ESP32-S3 GPIO42"
+   },
+   {
+    "from": "MIC1.SD",
+    "to": "BP1.J_MIC.5",
+    "kind": "cable",
+    "via": "JST-PH 2.0 6p 300 mm",
+    "color": "blue",
+    "net": "I2S_MIC_SD",
+    "gpio": 40,
+    "note": "J_MIC pin 5 = SD; net I2S_MIC_SD; ESP32-S3 GPIO40"
+   },
+   {
+    "from": "MIC1.L/R",
+    "to": "BP1.J_MIC.6",
+    "kind": "cable",
+    "via": "JST-PH 2.0 6p 300 mm",
+    "color": "black",
+    "net": "GND",
+    "note": "J_MIC pin 6 = LR; net GND"
+   },
+   {
+    "from": "AMP1.LRC",
+    "to": "BP1.A1.1",
+    "kind": "socket",
+    "via": "socket A1",
+    "net": "I2S_SPK_LRC",
+    "gpio": 16,
+    "note": "A1 pin 1 = LRC; net I2S_SPK_LRC; ESP32-S3 GPIO16"
+   },
+   {
+    "from": "AMP1.BCLK",
+    "to": "BP1.A1.2",
+    "kind": "socket",
+    "via": "socket A1",
+    "net": "I2S_SPK_BCLK",
+    "gpio": 15,
+    "note": "A1 pin 2 = BCLK; net I2S_SPK_BCLK; ESP32-S3 GPIO15"
+   },
+   {
+    "from": "AMP1.DIN",
+    "to": "BP1.A1.3",
+    "kind": "socket",
+    "via": "socket A1",
+    "net": "I2S_SPK_DIN",
+    "gpio": 7,
+    "note": "A1 pin 3 = DIN; net I2S_SPK_DIN; ESP32-S3 GPIO7"
+   },
+   {
+    "from": "AMP1.SD",
+    "to": "BP1.A1.5",
+    "kind": "socket",
+    "via": "socket A1",
+    "net": "AMP_SD",
+    "gpio": 39,
+    "note": "A1 pin 5 = SD; net AMP_SD; ESP32-S3 GPIO39"
+   },
+   {
+    "from": "AMP1.GND",
+    "to": "BP1.A1.6",
+    "kind": "socket",
+    "via": "socket A1",
+    "net": "GND",
+    "note": "A1 pin 6 = GND; net GND"
+   },
+   {
+    "from": "AMP1.VIN",
+    "to": "BP1.A1.7",
+    "kind": "socket",
+    "via": "socket A1",
+    "net": "+5V",
+    "note": "A1 pin 7 = VIN; net +5V"
+   },
+   {
+    "from": "AMP1.VO+",
+    "to": "BP1.A1.VO+",
+    "kind": "socket",
+    "via": "socket A1",
+    "net": "SPK_P",
+    "note": "A1 pin VO+ = VO+; net SPK_P"
+   },
+   {
+    "from": "AMP1.VO-",
+    "to": "BP1.A1.VO-",
+    "kind": "socket",
+    "via": "socket A1",
+    "net": "SPK_N",
+    "note": "A1 pin VO- = VO-; net SPK_N"
+   },
+   {
+    "from": "SD1.GND",
+    "to": "BP1.S1.1",
+    "kind": "socket",
+    "via": "socket S1",
+    "net": "GND",
+    "note": "S1 pin 1 = GND; net GND"
+   },
+   {
+    "from": "SD1.VCC",
+    "to": "BP1.S1.2",
+    "kind": "socket",
+    "via": "socket S1",
+    "net": "+5V",
+    "note": "S1 pin 2 = VCC; net +5V"
+   },
+   {
+    "from": "SD1.MISO",
+    "to": "BP1.S1.3",
+    "kind": "socket",
+    "via": "socket S1",
+    "net": "SPI_MISO",
+    "gpio": 13,
+    "note": "S1 pin 3 = MISO; net SPI_MISO; ESP32-S3 GPIO13"
+   },
+   {
+    "from": "SD1.MOSI",
+    "to": "BP1.S1.4",
+    "kind": "socket",
+    "via": "socket S1",
+    "net": "SPI_MOSI",
+    "gpio": 11,
+    "note": "S1 pin 4 = MOSI; net SPI_MOSI; ESP32-S3 GPIO11"
+   },
+   {
+    "from": "SD1.SCK",
+    "to": "BP1.S1.5",
+    "kind": "socket",
+    "via": "socket S1",
+    "net": "SPI_SCK",
+    "gpio": 12,
+    "note": "S1 pin 5 = SCK; net SPI_SCK; ESP32-S3 GPIO12"
+   },
+   {
+    "from": "SD1.CS",
+    "to": "BP1.S1.6",
+    "kind": "socket",
+    "via": "socket S1",
+    "net": "SD_CS",
+    "gpio": 10,
+    "note": "S1 pin 6 = CS; net SD_CS; ESP32-S3 GPIO10"
+   },
+   {
+    "from": "U1.header",
+    "to": "BP1.U1",
+    "kind": "socket",
+    "via": "board socket",
+    "note": "Plugs straight into socket U1; no cable."
+   }
+  ],
+  "steps": [
+   {
+    "id": "meet-backplane",
+    "title": "Meet the backplane",
+    "text": "The backplane carries the core board in U1, the amplifier in A1, the microSD module in S1 and the USB-C power input (J_PWR). Every plug-in module has its own keyed JST-PH port. This build uses J_I2C1, J_IO1, J_LED, J_MIC, J_SPK. Ports J_DISP, J_I2C2, J_I2C3, J_IO2, J_IO3 stay empty. Disconnect USB-C power before plugging or unplugging anything.",
+    "highlight": [
+     "PURCHASE_Backplane",
+     "PURCHASE_CoreBoard",
+     "PURCHASE_Amplifier",
+     "PURCHASE_MicroSdModule"
+    ],
+    "labels": [
+     "BP1.J_I2C1",
+     "BP1.J_IO1",
+     "BP1.J_LED",
+     "BP1.J_MIC",
+     "BP1.J_PWR",
+     "BP1.J_SPK"
+    ],
+    "camera": {
+     "position": [
+      54.8,
+      -116.6,
+      244.7
+     ],
+     "target": [
+      -1.6,
+      7.6,
+      19.1
+     ],
+     "up": [
+      0,
+      0,
+      1
+     ]
+    },
+    "visuals": [
+     {
+      "path": "manual/wiring.png",
+      "alt": "Top view of the backplane with the used ports highlighted and each module's cable drawn to its port, plus the pin table.",
+      "caption": "Diagram from the saved slot map and electrical data, not a photo. Check the port names printed on your board."
+     },
+     {
+      "path": "manual/backplane-pcb.png",
+      "alt": "KiCad render of this build's routed backplane, top side, with the printed port labels.",
+      "caption": "Rendered by the PCB stage from pcb/backplane.kicad_pcb, not a photo of a made board. Compare the printed labels with the port names in this guide."
+     }
+    ]
+   },
+   {
+    "id": "seat-core",
+    "title": "Seat the core board in U1",
+    "text": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM) (U1) plugs straight into socket U1. No cable.",
+    "highlight": [
+     "PURCHASE_CoreBoard",
+     "PURCHASE_Backplane"
+    ],
+    "labels": [
+     "U1.USB"
+    ],
+    "camera": {
+     "position": [
+      54.8,
+      -116.6,
+      244.7
+     ],
+     "target": [
+      -1.6,
+      7.6,
+      19.1
+     ],
+     "up": [
+      0,
+      0,
+      1
+     ]
+    }
+   },
+   {
+    "id": "seat-amp",
+    "title": "Seat the amplifier in A1",
+    "text": "MAX98357A I2S 3 W class-D mono amplifier breakout (AMP1) plugs straight into socket A1. No cable.",
+    "highlight": [
+     "PURCHASE_Amplifier",
+     "PURCHASE_Backplane"
+    ],
+    "labels": [
+     "AMP1.SOCKET"
+    ],
+    "camera": {
+     "position": [
+      54.4,
+      -112.0,
+      235.4
+     ],
+     "target": [
+      0.0,
+      7.6,
+      17.9
+     ],
+     "up": [
+      0,
+      0,
+      1
+     ]
+    }
+   },
+   {
+    "id": "seat-sd",
+    "title": "Seat the microSD module in S1",
+    "text": "microSD SPI module with LDO and level shifter (Catalex-type) (SD1) plugs straight into socket S1. No cable.",
+    "highlight": [
+     "PURCHASE_MicroSdModule",
+     "PURCHASE_Backplane"
+    ],
+    "labels": [
+     "SD1.SOCKET"
+    ],
+    "camera": {
+     "position": [
+      54.4,
+      -112.2,
+      236.1
+     ],
+     "target": [
+      0.0,
+      7.6,
+      18.4
+     ],
+     "up": [
+      0,
+      0,
+      1
+     ]
+    }
+   },
+   {
+    "id": "wire-eyes",
+    "title": "Connect the display to J_I2C1",
+    "text": "Plug the JST-PH 2.0 4p from the 1.3 in 128x64 mono OLED, SH1106, I2C 4-pin (DISP1) into port J_I2C1. The plug is keyed; push it straight in until it seats. From pin 1: pin 1 black GND; pin 2 orange VCC; pin 3 blue SDA (GPIO8); pin 4 yellow SCL (GPIO9).",
+    "highlight": [
+     "PURCHASE_Display",
+     "PURCHASE_Backplane",
+     "REFERENCE_CableDisp1"
+    ],
+    "labels": [
+     "BP1.J_I2C1",
+     "DISP1.CONN"
+    ],
+    "camera": {
+     "position": [
+      83.4,
+      -186.0,
+      408.1
+     ],
+     "target": [
+      0.0,
+      -2.4,
+      74.4
+     ],
+     "up": [
+      0,
+      0,
+      1
+     ]
+    }
+   },
+   {
+    "id": "wire-story-button",
+    "title": "Connect the button to J_IO1",
+    "text": "Plug the JST-PH 2.0 3p from the Big 30 mm snap-in arcade push button (microswitch) (BTN1) into port J_IO1. The plug is keyed; push it straight in until it seats. From pin 1: pin 1 black COM; pin 3 white NO (GPIO4).",
+    "highlight": [
+     "PURCHASE_Button",
+     "PURCHASE_Backplane",
+     "REFERENCE_CableBtn1"
+    ],
+    "labels": [
+     "BP1.J_IO1",
+     "BTN1.CONN"
+    ],
+    "camera": {
+     "position": [
+      91.7,
+      -199.5,
+      457.2
+     ],
+     "target": [
+      0.0,
+      2.3,
+      90.4
+     ],
+     "up": [
+      0,
+      0,
+      1
+     ]
+    }
+   },
+   {
+    "id": "wire-status-light",
+    "title": "Connect the light to J_LED",
+    "text": "Plug the JST-PH 2.0 3p from the Addressable RGB LED, single WS2812B 5050 on a mini board (LED1) into port J_LED. The plug is keyed; push it straight in until it seats. From pin 1: pin 1 black GND; pin 2 red 5V; pin 3 green DIN.",
+    "highlight": [
+     "PURCHASE_Led",
+     "PURCHASE_Backplane",
+     "REFERENCE_CableLed1"
+    ],
+    "labels": [
+     "BP1.J_LED",
+     "LED1.CONN"
+    ],
+    "camera": {
+     "position": [
+      69.8,
+      -154.3,
+      330.4
+     ],
+     "target": [
+      0.0,
+      -0.6,
+      51.0
+     ],
+     "up": [
+      0,
+      0,
+      1
+     ]
+    }
+   },
+   {
+    "id": "wire-mic",
+    "title": "Connect the microphone to J_MIC",
+    "text": "Plug the JST-PH 2.0 6p from the Speaker gasket: single-sided adhesive foam strip 25 x 3 mm (+ printed clamp ring) (MIC1) into port J_MIC. The plug is keyed; push it straight in until it seats. From pin 1: pin 1 black GND; pin 2 orange VDD; pin 3 yellow SCK (GPIO41); pin 4 green WS (GPIO42); pin 5 blue SD (GPIO40); pin 6 black L/R.",
+    "highlight": [
+     "PURCHASE_MicGasket",
+     "PURCHASE_Backplane",
+     "REFERENCE_CableMic1"
+    ],
+    "labels": [
+     "BP1.J_MIC",
+     "MIC1.CONN"
+    ],
+    "camera": {
+     "position": [
+      75.3,
+      -161.6,
+      338.7
+     ],
+     "target": [
+      3.2,
+      -3.0,
+      50.4
+     ],
+     "up": [
+      0,
+      0,
+      1
+     ]
+    }
+   },
+   {
+    "id": "wire-speaker",
+    "title": "Connect the speaker to J_SPK",
+    "text": "Plug the JST-PH 2.0 2p from the Speaker 40 mm round, 4 ohm, 3 W (SPK1) into port J_SPK. The plug is keyed; push it straight in until it seats. From pin 1: pin 1 white +; pin 2 grey -.",
+    "highlight": [
+     "PURCHASE_Speaker",
+     "PURCHASE_Backplane",
+     "REFERENCE_CableSpk1"
+    ],
+    "labels": [
+     "BP1.J_SPK",
+     "SPK1.CONN"
+    ],
+    "camera": {
+     "position": [
+      67.6,
+      -150.9,
+      314.5
+     ],
+     "target": [
+      0.0,
+      -2.1,
+      44.0
+     ],
+     "up": [
+      0,
+      0,
+      1
+     ]
+    }
+   },
+   {
+    "id": "power-input",
+    "title": "Power comes in at J_PWR",
+    "text": "A USB-C 5 V supply plugs into J_PWR at the rear edge of the backplane; the board feeds the core board from it. Plug it in only after everything else is connected and the gadget is closed.",
+    "highlight": [
+     "PURCHASE_Backplane"
+    ],
+    "labels": [
+     "BP1.J_PWR"
+    ],
+    "camera": {
+     "position": [
+      54.1,
+      -111.5,
+      231.9
+     ],
+     "target": [
+      0.0,
+      7.6,
+      15.4
+     ],
+     "up": [
+      0,
+      0,
+      1
+     ]
+    }
+   }
+  ]
+ },
+ "tests": [
+  {
+   "title": "Power-on and self-test",
+   "expected": "On USB-C power the gadget starts, and every module passes its self-test as described in SOFTWARE_SETUP.md: button, display, light, microphone, speaker.",
+   "kind": "physical",
+   "status": "not_run"
+  },
+  {
+   "title": "Story, stop and volume",
+   "expected": "A tap plays a story through the speaker; a tap during a story stops it; the volume is comfortable at the listening position.",
+   "kind": "physical",
+   "status": "not_run"
+  },
+  {
+   "title": "Listening light and confirmation",
+   "expected": "The microphone opens only while the button is held, the light shows it is listening, and a new favourite is kept only after an explicit confirming tap.",
+   "kind": "physical",
+   "status": "not_run"
+  },
+  {
+   "title": "Memory after restart",
+   "expected": "A confirmed favourite is still there after unplugging and re-plugging power, and appears in a later story.",
+   "kind": "physical",
+   "status": "not_run"
+  },
+  {
+   "title": "Local API",
+   "expected": "From a phone or computer on the same network, GET /api/state returns the gadget's state and POST /api/action performs an action.",
+   "kind": "physical",
+   "status": "not_run"
+  },
+  {
+   "title": "Closed-case heat, power and retention",
+   "expected": "During a 30-minute session with the gadget closed there are no resets, no part becomes uncomfortably warm to touch, nothing rattles and no cable is pinched.",
+   "kind": "physical",
+   "status": "not_run"
+  },
+  {
+   "title": "Stability",
+   "expected": "The gadget stands level on its feet and does not tip or slide during normal use by a child under adult supervision.",
+   "kind": "physical",
+   "status": "not_run"
+  },
+  {
+   "title": "Firmware compiles",
+   "expected": "PlatformIO builds the delivered firmware for esp32-s3-devkitc-1.",
+   "kind": "digital",
+   "status": "passed",
+   "evidence": "firmware/firmware.bin"
+  },
+  {
+   "title": "Firmware unit tests",
+   "expected": "The hardware-free unit tests of the firmware logic pass.",
+   "kind": "digital",
+   "status": "passed",
+   "evidence": "firmware/test-results.txt"
+  },
+  {
+   "title": "Backplane design-rule check",
+   "expected": "The routed backplane has no design-rule errors (warnings and waived items excluded).",
+   "kind": "digital",
+   "status": "passed",
+   "evidence": ".gstudio/stages/pcb.json"
+  },
+  {
+   "title": "CAD geometry checks",
+   "expected": "every CAD check passes: valid solids, no unintended collisions, closed print meshes",
+   "kind": "digital",
+   "status": "failed",
+   "source": "checks",
+   "detail": "15/18 checks passed"
+  },
+  {
+   "title": "Print slicing and parts list",
+   "expected": "every print part fits the bed and slices; every purchased row is complete",
+   "kind": "digital",
+   "status": "passed",
+   "source": "checks",
+   "detail": "33/34 checks passed"
+  },
+  {
+   "title": "Cross-stage consistency",
+   "expected": "CAD, parts list, wiring, firmware pins and electrical data agree",
+   "kind": "digital",
+   "status": "passed",
+   "source": "checks",
+   "detail": "27/28 checks passed"
+  }
+ ],
+ "firmware": {
+  "framework": "arduino",
+  "board": "esp32-s3-devkitc-1",
+  "platform": "platformio/espressif32@8.0.0",
+  "compiled": true,
+  "size": {
+   "ram": {
+    "percent": 23.3,
+    "used_bytes": 76380,
+    "total_bytes": 327680
+   },
+   "flash": {
+    "percent": 39.2,
+    "used_bytes": 1412523,
+    "total_bytes": 3604480
+   },
+   "sections": {
+    ".rtc.force_slow": 32,
+    ".rtc_reserved": 40,
+    ".iram0.vectors": 1028,
+    ".iram0.text": 81259,
+    ".dram0.data": 23340,
+    ".dram0.bss": 53040,
+    ".flash.text": 1127436,
+    ".flash.appdesc": 256,
+    ".flash.rodata": 179460
+   },
+   "app_bin_bytes": 1463856,
+   "app_slot_bytes": 3604480,
+   "app_slot_used_percent": 40.6,
+   "merged_bin_bytes": 1529392,
+   "sha256": "c2aace08bb5226a8b619e6219985c9e55d958a6a4a115328521ad26f058a07e3",
+   "merged_sha256": "c7ec79253c95ec45ce407bad4bcae5320399f9b049bebdbad5bff4203df8af64"
+  },
+  "tests_passed": 58,
+  "tests_total": 58,
+  "binary": "firmware/firmware.bin",
+  "merged_binary": "firmware/firmware-merged.bin",
+  "sha256": "c2aace08bb5226a8b619e6219985c9e55d958a6a4a115328521ad26f058a07e3",
+  "merged_sha256": "c7ec79253c95ec45ce407bad4bcae5320399f9b049bebdbad5bff4203df8af64",
+  "flash": {
+   "flash_mode": "dio",
+   "flash_size": "8MB",
+   "flash_freq": "80m",
+   "parts": [
+    {
+     "offset": "0x0",
+     "file": "flash/bootloader.bin"
+    },
+    {
+     "offset": "0x8000",
+     "file": "flash/partitions.bin"
+    },
+    {
+     "offset": "0xe000",
+     "file": "flash/boot_app0.bin"
+    },
+    {
+     "offset": "0x10000",
+     "file": "flash/firmware.bin"
+    }
+   ]
+  },
+  "version": "0.1.0+69e2f76d",
+  "template": "story_player",
+  "ota_signed": false,
+  "web_flasher_manifest": "firmware/web-flasher-manifest.json"
+ },
+ "pcb": {
+  "layers": 2,
+  "size_mm": [
+   62.8,
+   78.6
+  ],
+  "thickness_mm": 1.6,
+  "routed": true,
+  "unrouted": 0,
+  "drc_errors": 0,
+  "drc_warnings": 0,
+  "erc_errors": 0,
+  "erc_warnings": 0,
+  "parity_issues": 0,
+  "vias": 77,
+  "track_length_mm": 1608.7,
+  "files": [
+   "pcb/backplane-gerbers.zip",
+   "pcb/backplane.kicad_dru",
+   "pcb/backplane.kicad_pcb",
+   "pcb/backplane.kicad_prl",
+   "pcb/backplane.kicad_pro",
+   "pcb/backplane.kicad_sch",
+   "pcb/backplane.net",
+   "pcb/board-bottom.png",
+   "pcb/board-bottom.svg",
+   "pcb/board-iso.png",
+   "pcb/board-top.png",
+   "pcb/board-top.svg",
+   "pcb/board.dsn",
+   "pcb/board.glb",
+   "pcb/board.ses",
+   "pcb/bom.csv",
+   "pcb/cpl.csv",
+   "pcb/drc.json",
+   "pcb/erc.json",
+   "pcb/fp-lib-table",
+   "pcb/freerouting.log",
+   "pcb/gerbers/backplane-B_Cu.gbl",
+   "pcb/gerbers/backplane-B_Mask.gbs",
+   "pcb/gerbers/backplane-B_Paste.gbp",
+   "pcb/gerbers/backplane-B_Silkscreen.gbo",
+   "pcb/gerbers/backplane-Edge_Cuts.gm1",
+   "pcb/gerbers/backplane-F_Cu.gtl",
+   "pcb/gerbers/backplane-F_Mask.gts",
+   "pcb/gerbers/backplane-F_Paste.gtp",
+   "pcb/gerbers/backplane-F_Silkscreen.gto",
+   "pcb/gerbers/backplane-NPTH-drl_map.gbr",
+   "pcb/gerbers/backplane-NPTH.drl",
+   "pcb/gerbers/backplane-PTH-drl_map.gbr",
+   "pcb/gerbers/backplane-PTH.drl",
+   "pcb/gerbers/backplane-job.gbrjob",
+   "pcb/gstudio.kicad_sym",
+   "pcb/gstudio.pretty/NPTH_4.5mm.kicad_mod",
+   "pcb/netlist.json",
+   "pcb/schematic.pdf",
+   "pcb/schematic.png",
+   "pcb/schematic.svg",
+   "pcb/sym-lib-table"
+  ]
+ },
+ "order": {
+  "list_price_inr": 18999,
+  "steady_state_price_inr": 11499,
+  "status": "ESTIMATE_REVIEW_REQUIRED",
+  "lead_time_days": [
+   10,
+   24
+  ],
+  "quote": "order/quote.json"
+ },
+ "factory_work": [
+  {
+   "name": "Speaker 40 mm round, 4 ohm, 3 W",
+   "module_id": "SPK_40MM_4R_3W",
+   "refs": [
+    "SPK1"
+   ],
+   "by": "factory",
+   "what": "The factory solders a JST-PH 2-pin lead (stock: CABLE_JSTPH_2P_<len> with the module-end housing cut off; length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into J_SPK. The maker never solders.",
+   "prewire": {
+    "by": "factory",
+    "lead": "JST-PH 2.0 2p 100 mm",
+    "pads": [
+     "+ eyelet",
+     "- eyelet"
+    ],
+    "slot": "J_SPK",
+    "note": "The factory solders a JST-PH 2-pin lead (stock: CABLE_JSTPH_2P_<len> with the module-end housing cut off; length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into J_SPK. The maker never solders."
+   }
+  },
+  {
+   "name": "Addressable RGB LED, single WS2812B 5050 on a mini board",
+   "module_id": "LED_WS2812B_1PX_MODULE",
+   "refs": [
+    "LED1"
+   ],
+   "by": "factory",
+   "what": "The factory solders a JST-PH 3-pin lead (stock: CABLE_JSTPH_3P_<len> with the module-end housing cut off; length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into J_LED. The maker never solders. DOUT stays unconnected.",
+   "prewire": {
+    "by": "factory",
+    "lead": "JST-PH 2.0 3p 100 mm",
+    "pads": [
+     "GND",
+     "5V",
+     "DIN"
+    ],
+    "slot": "J_LED",
+    "note": "The factory solders a JST-PH 3-pin lead (stock: CABLE_JSTPH_3P_<len> with the module-end housing cut off; length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into J_LED. The maker never solders. DOUT stays unconnected."
+   }
+  },
+  {
+   "name": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+   "module_id": "AMP_MAX98357A_I2S",
+   "refs": [
+    "AMP1"
+   ],
+   "by": "factory",
+   "what": "The factory solders the 7-pin header pins-down and two 2.54 mm pins into the VO+/VO- terminal pads (instead of the screw terminal) so the amp plugs straight into A1. The maker never solders.",
+   "prewire": {
+    "by": "factory",
+    "lead": null,
+    "pads": [
+     "7-pin header (pins down)",
+     "VO+ pin",
+     "VO- pin"
+    ],
+    "slot": "A1",
+    "note": "The factory solders the 7-pin header pins-down and two 2.54 mm pins into the VO+/VO- terminal pads (instead of the screw terminal) so the amp plugs straight into A1. The maker never solders."
+   }
+  }
+ ]
+}

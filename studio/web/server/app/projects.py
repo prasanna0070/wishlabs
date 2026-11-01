@@ -84,7 +84,30 @@ def summary_of(p: dict) -> dict:
         if c:
             thumb = c.get("photo_url") or c.get("render_url")
     return {"id": p["id"], "name": p["name"], "created": p["created"], "updated": p["updated"],
-            "stage": p["stage"], "current_version": p.get("current_version"), "thumb_url": thumb}
+            "stage": p["stage"], "current_version": p.get("current_version"), "thumb_url": thumb,
+            **measured_waits(p)}
+
+
+def measured_waits(p: dict) -> dict:
+    """MIN-45: the last finished build's and concept turn's wall time in seconds, measured from this project."""
+    from .util import parse_iso
+
+    def secs(a, b):
+        ta, tb = parse_iso(a), parse_iso(b)
+        return round((tb - ta).total_seconds()) if ta and tb and tb >= ta else None
+
+    build = None
+    for v in sorted(p.get("versions") or [], key=lambda x: x.get("n", 0)):
+        if v.get("state") == "done" and v.get("source") in ("build", "update", "tweak", "story_audio"):
+            build = secs(v.get("started"), v.get("ended")) or build
+    concepts = None
+    chat = p.get("chat") or []
+    for i, m in enumerate(chat):
+        if m.get("kind") == "concepts" and m.get("role") == "assistant":
+            prev = next((x for x in reversed(chat[:i]) if x.get("role") == "user"), None)
+            if prev:
+                concepts = secs(prev.get("ts"), m.get("ts")) or concepts
+    return {"last_build_seconds": build, "last_concepts_seconds": concepts}
 
 
 class ProjectRepo:

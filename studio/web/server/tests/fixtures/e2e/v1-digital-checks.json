@@ -1,0 +1,809 @@
+{
+ "schema": "gadget-digital-checks/1",
+ "summary": {
+  "passed": 83,
+  "failed": 4,
+  "warning": 3,
+  "not_run": 0
+ },
+ "all_passed": false,
+ "stages": {
+  "normalize": {
+   "state": "done",
+   "message": "spec valid; 11 module instances",
+   "log": "logs/normalize.log",
+   "checks": 0
+  },
+  "electrical": {
+   "state": "done",
+   "message": "done",
+   "log": "logs/electrical.log",
+   "checks": 0
+  },
+  "cad": {
+   "state": "done",
+   "message": "done",
+   "log": "logs/cad.log",
+   "checks": 18
+  },
+  "pcb": {
+   "state": "done",
+   "message": "done",
+   "log": "logs/pcb.log",
+   "checks": 7
+  },
+  "firmware": {
+   "state": "done",
+   "message": "done",
+   "log": "logs/firmware.log",
+   "checks": 0
+  },
+  "order": {
+   "state": "done",
+   "message": "22 purchased rows, 7 print part(s) 290 g / 26.1 h, one-off ₹18,999 (ESTIMATE_REVIEW_REQUIRED)",
+   "log": "logs/order.log",
+   "checks": 34
+  },
+  "manual": {
+   "state": "done",
+   "message": "done",
+   "log": "logs/manual.log",
+   "checks": 0
+  }
+ },
+ "checks": [
+  {
+   "id": "occ_validity",
+   "title": "Every component is a valid OpenCascade shape",
+   "status": "passed",
+   "detail": "28 components, 0 invalid",
+   "stage": "cad",
+   "qb": "QB-07",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "print_single_solid",
+   "title": "Each printed part is exactly one solid",
+   "status": "passed",
+   "detail": "all printed parts are one solid",
+   "stage": "cad",
+   "qb": "QB-07",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "role_prefix",
+   "title": "Role prefixes and purchase links",
+   "status": "passed",
+   "detail": "16 purchased components all carry module_id or ref",
+   "stage": "cad",
+   "qb": "QB-06",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "print_watertight",
+   "title": "Print STLs are watertight with one connected component",
+   "status": "failed",
+   "detail": "10 STL files; problems: ['PRINT_Shell']",
+   "stage": "cad",
+   "qb": "QB-07",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "brep_vs_stl_volume",
+   "title": "B-rep volume and STL volume agree within 1 %",
+   "status": "passed",
+   "detail": "max difference 0.027 %",
+   "stage": "cad",
+   "qb": "QB-16",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "bed_fit",
+   "title": "Each print lies on z=0 in its stated orientation and fits a 250 x 210 x 210 mm bed",
+   "status": "passed",
+   "detail": "all fit",
+   "stage": "cad",
+   "qb": "QB-10",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "frame_zmin",
+   "title": "mm, +Z up, front -Y, assembly rests on z = 0",
+   "status": "passed",
+   "detail": "zmin = 0.000 mm; size 141.9 x 110.5 x 181.0 mm",
+   "stage": "cad",
+   "qb": "QB-05",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "step_valid",
+   "title": "STEP re-imports as a valid shape",
+   "status": "passed",
+   "detail": "14.8 MB, valid=True",
+   "stage": "cad",
+   "qb": "QB-04",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "collisions",
+   "title": "Full pair matrix of rigid components: no unintended intersection",
+   "status": "failed",
+   "detail": "23 rigid components, 253 pairs, 64 with overlapping boxes checked by boolean, 6 unintended intersections, 13 allowed by rule",
+   "stage": "cad",
+   "qb": "QB-08",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "clearances",
+   "title": "Clearance from each purchased part to its printed neighbours (contact = intended seat)",
+   "status": "passed",
+   "detail": "12 purchased/printed pairs within 3 mm; 11 seated contacts; 0 gaps under 0.2 mm",
+   "stage": "cad",
+   "qb": "QB-09",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "cartridge_clearance",
+   "title": "Core cartridge clears the shell and the feature modules",
+   "status": "passed",
+   "detail": "3 neighbours within 10 mm; min gap to a non-mount neighbour 99.0 mm",
+   "stage": "cad",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "feature_module_clearance",
+   "title": "Feature modules clear each other and the cartridge (>= 0.5 mm)",
+   "status": "failed",
+   "detail": "4 module neighbour pairs within 5 mm; 1 under 0.5 mm",
+   "stage": "cad",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "min_wall",
+   "title": "Wall thickness sampling (rule: >= 1.2 mm at the 1st percentile)",
+   "status": "warning",
+   "detail": "PRINT_Shell: min 0.66 / p1 1.18 / median 2.38 mm; PRINT_RearCover: min 0.95 / p1 1.86 / median 2.38 mm",
+   "stage": "cad",
+   "qb": "QB-11",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "fastener_engagement",
+   "title": "Every screw engages >= 3 mm of its insert and does not bottom out",
+   "status": "passed",
+   "detail": "17 screws; 0 problems",
+   "stage": "cad",
+   "qb": "QB-14",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "tool_access",
+   "title": "A 6 mm driver reaches every cartridge, cover and plate screw along its axis",
+   "status": "passed",
+   "detail": "8 screws; 0 blocked",
+   "stage": "cad",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "cable_routes",
+   "title": "Cable routes named after their cable, length within the harness, clear of walls",
+   "status": "passed",
+   "detail": "5 of 5 cables routed; 0 too long; 0 touch a wall",
+   "stage": "cad",
+   "qb": "QB-15",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "fit_coupon",
+   "title": "Fit coupons cover every tight interface",
+   "status": "passed",
+   "detail": "3 coupons; covers ['boss_insert', 'button_hole_d', 'insert_holes', 'lip_gap_mm', 'mic_port_d', 'panel_thickness_mm', 'screw_clearance', 'tie_slot', 'usb_c_opening']",
+   "stage": "cad",
+   "qb": "QB-13",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "tip_over",
+   "title": "Static tip-over angle from CAD centre of gravity (>= 15 deg)",
+   "status": "passed",
+   "detail": "mass 390.9 g (estimate), CoG [0.45, -3.92, 77.71] mm, minimum tip angle 23.5 deg on feet",
+   "stage": "cad",
+   "artifact": "cad/digital-checks.json"
+  },
+  {
+   "id": "pcb.erc",
+   "title": "Schematic ERC has no errors",
+   "status": "passed",
+   "detail": "0 errors, 0 warnings",
+   "stage": "pcb"
+  },
+  {
+   "id": "pcb.netlist",
+   "title": "Schematic netlist equals electrical.json (on-board nodes)",
+   "status": "passed",
+   "detail": "147 nodes checked; no differences",
+   "stage": "pcb"
+  },
+  {
+   "id": "pcb.drc",
+   "title": "Board DRC has no errors",
+   "status": "passed",
+   "detail": "0 errors, 0 warnings, 0 waived (backplane-v1 drc_waivers)",
+   "stage": "pcb"
+  },
+  {
+   "id": "pcb.routed",
+   "title": "Every connection is routed",
+   "status": "passed",
+   "detail": "0 unrouted (pcbnew), 0 unconnected (DRC)",
+   "stage": "pcb"
+  },
+  {
+   "id": "pcb.parity",
+   "title": "Board matches the schematic (DRC schematic parity)",
+   "status": "passed",
+   "detail": "0 parity issues",
+   "stage": "pcb"
+  },
+  {
+   "id": "pcb.courtyards",
+   "title": "No overlapping courtyards",
+   "status": "passed",
+   "detail": "none",
+   "stage": "pcb"
+  },
+  {
+   "id": "pcb.gerbers",
+   "title": "Gerber zip holds copper, mask, silk, paste, outline and drill",
+   "status": "passed",
+   "detail": "all layers present",
+   "stage": "pcb"
+  },
+  {
+   "id": "bed-fit:PRINT_DisplayClip",
+   "title": "PRINT_DisplayClip fits the 250 x 210 x 210 mm build volume",
+   "status": "passed",
+   "detail": "size [51.0, 7.2, 9.3] mm",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "on-bed:PRINT_DisplayClip",
+   "title": "PRINT_DisplayClip rests on Z=0",
+   "status": "passed",
+   "detail": "STL minimum Z within 0.05 mm of the bed",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "sliced:PRINT_DisplayClip",
+   "title": "PRINT_DisplayClip slices",
+   "status": "passed",
+   "detail": "1.14 g, 9m 20s, supports no",
+   "stage": "order",
+   "qb": "QB-11"
+  },
+  {
+   "id": "bed-fit:PRINT_LedClip",
+   "title": "PRINT_LedClip fits the 250 x 210 x 210 mm build volume",
+   "status": "passed",
+   "detail": "size [25.6, 7.4, 5.4] mm",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "on-bed:PRINT_LedClip",
+   "title": "PRINT_LedClip rests on Z=0",
+   "status": "passed",
+   "detail": "STL minimum Z within 0.05 mm of the bed",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "sliced:PRINT_LedClip",
+   "title": "PRINT_LedClip slices",
+   "status": "passed",
+   "detail": "0.54 g, 4m 43s, supports no",
+   "stage": "order",
+   "qb": "QB-11"
+  },
+  {
+   "id": "bed-fit:PRINT_LedDiffuser",
+   "title": "PRINT_LedDiffuser fits the 250 x 210 x 210 mm build volume",
+   "status": "passed",
+   "detail": "size [10.4, 10.397, 3.6] mm",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "on-bed:PRINT_LedDiffuser",
+   "title": "PRINT_LedDiffuser rests on Z=0",
+   "status": "passed",
+   "detail": "STL minimum Z within 0.05 mm of the bed",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "sliced:PRINT_LedDiffuser",
+   "title": "PRINT_LedDiffuser slices",
+   "status": "passed",
+   "detail": "0.5 g, 3m 56s, supports yes",
+   "stage": "order",
+   "qb": "QB-11"
+  },
+  {
+   "id": "bed-fit:PRINT_MicClip",
+   "title": "PRINT_MicClip fits the 250 x 210 x 210 mm build volume",
+   "status": "passed",
+   "detail": "size [7.2, 29.6, 8.2] mm",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "on-bed:PRINT_MicClip",
+   "title": "PRINT_MicClip rests on Z=0",
+   "status": "passed",
+   "detail": "STL minimum Z within 0.05 mm of the bed",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "sliced:PRINT_MicClip",
+   "title": "PRINT_MicClip slices",
+   "status": "passed",
+   "detail": "0.68 g, 6m 18s, supports no",
+   "stage": "order",
+   "qb": "QB-11"
+  },
+  {
+   "id": "bed-fit:PRINT_RearCover",
+   "title": "PRINT_RearCover fits the 250 x 210 x 210 mm build volume",
+   "status": "passed",
+   "detail": "size [141.856, 165.0, 10.38] mm",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "on-bed:PRINT_RearCover",
+   "title": "PRINT_RearCover rests on Z=0",
+   "status": "passed",
+   "detail": "STL minimum Z within 0.05 mm of the bed",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "sliced:PRINT_RearCover",
+   "title": "PRINT_RearCover slices",
+   "status": "passed",
+   "detail": "60.0 g, 6h 43m 7s, supports yes",
+   "stage": "order",
+   "qb": "QB-11"
+  },
+  {
+   "id": "bed-fit:PRINT_Shell",
+   "title": "PRINT_Shell fits the 250 x 210 x 210 mm build volume",
+   "status": "passed",
+   "detail": "size [141.856, 102.62, 179.353] mm",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "on-bed:PRINT_Shell",
+   "title": "PRINT_Shell rests on Z=0",
+   "status": "passed",
+   "detail": "STL minimum Z within 0.05 mm of the bed",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "sliced:PRINT_Shell",
+   "title": "PRINT_Shell slices",
+   "status": "passed",
+   "detail": "223.81 g, 18h 38m 18s, supports yes",
+   "stage": "order",
+   "qb": "QB-11"
+  },
+  {
+   "id": "bed-fit:PRINT_SpeakerRing",
+   "title": "PRINT_SpeakerRing fits the 250 x 210 x 210 mm build volume",
+   "status": "passed",
+   "detail": "size [50.324, 49.694, 7.1] mm",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "on-bed:PRINT_SpeakerRing",
+   "title": "PRINT_SpeakerRing rests on Z=0",
+   "status": "passed",
+   "detail": "STL minimum Z within 0.05 mm of the bed",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "sliced:PRINT_SpeakerRing",
+   "title": "PRINT_SpeakerRing slices",
+   "status": "passed",
+   "detail": "3.06 g, 18m 2s, supports no",
+   "stage": "order",
+   "qb": "QB-11"
+  },
+  {
+   "id": "bed-fit:TEST_FitCoupon",
+   "title": "TEST_FitCoupon fits the 250 x 210 x 210 mm build volume",
+   "status": "passed",
+   "detail": "size [78.0, 46.0, 15.0] mm",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "on-bed:TEST_FitCoupon",
+   "title": "TEST_FitCoupon rests on Z=0",
+   "status": "passed",
+   "detail": "STL minimum Z within 0.05 mm of the bed",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "sliced:TEST_FitCoupon",
+   "title": "TEST_FitCoupon slices",
+   "status": "passed",
+   "detail": "9.35 g, 1h 7m 52s, supports no",
+   "stage": "order",
+   "qb": "QB-11"
+  },
+  {
+   "id": "bed-fit:TEST_SeamMate",
+   "title": "TEST_SeamMate fits the 250 x 210 x 210 mm build volume",
+   "status": "passed",
+   "detail": "size [36.0, 10.38, 27.331] mm",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "on-bed:TEST_SeamMate",
+   "title": "TEST_SeamMate rests on Z=0",
+   "status": "passed",
+   "detail": "STL minimum Z within 0.05 mm of the bed",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "sliced:TEST_SeamMate",
+   "title": "TEST_SeamMate slices",
+   "status": "passed",
+   "detail": "5.29 g, 26m 10s, supports yes",
+   "stage": "order",
+   "qb": "QB-11"
+  },
+  {
+   "id": "bed-fit:TEST_SeamShell",
+   "title": "TEST_SeamShell fits the 250 x 210 x 210 mm build volume",
+   "status": "passed",
+   "detail": "size [36.0, 25.0, 12.93] mm",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "on-bed:TEST_SeamShell",
+   "title": "TEST_SeamShell rests on Z=0",
+   "status": "passed",
+   "detail": "STL minimum Z within 0.05 mm of the bed",
+   "stage": "order",
+   "qb": "QB-10"
+  },
+  {
+   "id": "sliced:TEST_SeamShell",
+   "title": "TEST_SeamShell slices",
+   "status": "passed",
+   "detail": "6.89 g, 35m 44s, supports yes",
+   "stage": "order",
+   "qb": "QB-11"
+  },
+  {
+   "id": "purchased-fields",
+   "title": "every purchased row has name, quantity, pack size, URL and vendor",
+   "status": "warning",
+   "detail": "missing URL: ['Standard backplane PCB backplane-v1 (ours)', 'JST-PH 2.0 2-pin harness, 200 mm, pre-crimped both ends', 'JST-PH 2.0 3-pin harness, 300 mm, pre-crimped both ends', 'JST-PH 2.0 4-pin harness, 300 mm, pre-crimped both ends', 'JST-PH 2.0 3-pin harness, 200 mm, pre-crimped both ends', 'JST-PH 2.0 6-pin harness, 300 mm, pre-crimped both ends']; missing vendor: ['Standard backplane PCB backplane-v1 (ours)', 'JST-PH 2.0 2-pin harness, 200 mm, pre-crimped both ends', 'JST-PH 2.0 3-pin harness, 300 mm, pre-crimped both ends', 'JST-PH 2.0 4-pin harness, 300 mm, pre-crimped both ends', 'JST-PH 2.0 3-pin harness, 200 mm, pre-crimped both ends', 'JST-PH 2.0 6-pin harness, 300 mm, pre-crimped both ends']",
+   "stage": "order",
+   "qb": "QB-22"
+  },
+  {
+   "id": "price-evidence",
+   "title": "every price is a dated observation or labelled an estimate",
+   "status": "passed",
+   "detail": "13 seen, 9 estimate, 0 not confirmed",
+   "stage": "order",
+   "qb": "QB-23"
+  },
+  {
+   "id": "no-soldering",
+   "title": "no part needs soldering by the maker",
+   "status": "passed",
+   "detail": "no maker soldering; done before delivery: Speaker 40 mm round, 4 ohm, 3 W (factory), Addressable RGB LED, single WS2812B 5050 on a mini board (factory), MAX98357A I2S 3 W class-D mono amplifier breakout (factory); not stated by the library for: 1.3 in 128x64 mono OLED, SH1106, I2C 4-pin, INMP441 I2S MEMS microphone module",
+   "stage": "order",
+   "qb": "QB-28"
+  },
+  {
+   "id": "quote",
+   "title": "delivered price computed",
+   "status": "passed",
+   "detail": "pilot one-off ₹18,999, steady state ₹11,499 incl. GST; status ESTIMATE_REVIEW_REQUIRED",
+   "stage": "order",
+   "qb": "QB-24"
+  },
+  {
+   "id": "fw-compiled",
+   "title": "firmware compiles for ESP32-S3",
+   "status": "passed",
+   "detail": "1,463,856 bytes",
+   "stage": "firmware",
+   "artifact": "firmware/firmware.bin"
+  },
+  {
+   "id": "fw-tests",
+   "title": "native unit tests pass",
+   "status": "passed",
+   "detail": "58/58 passed",
+   "stage": "firmware",
+   "qb": "QB-40",
+   "artifact": "firmware/test-results.txt"
+  },
+  {
+   "id": "cad-bom-join",
+   "title": "every PURCHASE_ component maps to a purchased row (modelPart)",
+   "status": "passed",
+   "detail": "16/16 linked",
+   "stage": "pipeline",
+   "qb": "QB-06",
+   "artifact": "cad/components.json"
+  },
+  {
+   "id": "bom-cad-join",
+   "title": "every purchased module has CAD geometry",
+   "status": "passed",
+   "detail": "all linked",
+   "stage": "pipeline",
+   "qb": "QB-06"
+  },
+  {
+   "id": "volume:PRINT_DisplayClip",
+   "title": "PRINT_DisplayClip: BREP and STL volumes agree within 1%",
+   "status": "passed",
+   "detail": "components.json 944 mm3 vs STL 944 mm3 (0.01%)",
+   "stage": "pipeline",
+   "qb": "QB-16",
+   "artifact": "print/PRINT_DisplayClip.stl"
+  },
+  {
+   "id": "watertight:PRINT_DisplayClip",
+   "title": "PRINT_DisplayClip: closed mesh, one body",
+   "status": "passed",
+   "detail": "watertight=True, bodies=1, triangles=1572",
+   "stage": "pipeline",
+   "qb": "QB-07",
+   "artifact": "print/PRINT_DisplayClip.stl"
+  },
+  {
+   "id": "volume:PRINT_LedClip",
+   "title": "PRINT_LedClip: BREP and STL volumes agree within 1%",
+   "status": "passed",
+   "detail": "components.json 440 mm3 vs STL 440 mm3 (0.01%)",
+   "stage": "pipeline",
+   "qb": "QB-16",
+   "artifact": "print/PRINT_LedClip.stl"
+  },
+  {
+   "id": "watertight:PRINT_LedClip",
+   "title": "PRINT_LedClip: closed mesh, one body",
+   "status": "passed",
+   "detail": "watertight=True, bodies=1, triangles=1588",
+   "stage": "pipeline",
+   "qb": "QB-07",
+   "artifact": "print/PRINT_LedClip.stl"
+  },
+  {
+   "id": "volume:PRINT_LedDiffuser",
+   "title": "PRINT_LedDiffuser: BREP and STL volumes agree within 1%",
+   "status": "passed",
+   "detail": "components.json 214 mm3 vs STL 214 mm3 (0.02%)",
+   "stage": "pipeline",
+   "qb": "QB-16",
+   "artifact": "print/PRINT_LedDiffuser.stl"
+  },
+  {
+   "id": "watertight:PRINT_LedDiffuser",
+   "title": "PRINT_LedDiffuser: closed mesh, one body",
+   "status": "passed",
+   "detail": "watertight=True, bodies=1, triangles=1004",
+   "stage": "pipeline",
+   "qb": "QB-07",
+   "artifact": "print/PRINT_LedDiffuser.stl"
+  },
+  {
+   "id": "volume:PRINT_MicClip",
+   "title": "PRINT_MicClip: BREP and STL volumes agree within 1%",
+   "status": "passed",
+   "detail": "components.json 555 mm3 vs STL 555 mm3 (0.01%)",
+   "stage": "pipeline",
+   "qb": "QB-16",
+   "artifact": "print/PRINT_MicClip.stl"
+  },
+  {
+   "id": "watertight:PRINT_MicClip",
+   "title": "PRINT_MicClip: closed mesh, one body",
+   "status": "passed",
+   "detail": "watertight=True, bodies=1, triangles=1572",
+   "stage": "pipeline",
+   "qb": "QB-07",
+   "artifact": "print/PRINT_MicClip.stl"
+  },
+  {
+   "id": "volume:PRINT_RearCover",
+   "title": "PRINT_RearCover: BREP and STL volumes agree within 1%",
+   "status": "passed",
+   "detail": "components.json 52,095 mm3 vs STL 52,086 mm3 (0.02%)",
+   "stage": "pipeline",
+   "qb": "QB-16",
+   "artifact": "print/PRINT_RearCover.stl"
+  },
+  {
+   "id": "watertight:PRINT_RearCover",
+   "title": "PRINT_RearCover: closed mesh, one body",
+   "status": "passed",
+   "detail": "watertight=True, bodies=1, triangles=142586",
+   "stage": "pipeline",
+   "qb": "QB-07",
+   "artifact": "print/PRINT_RearCover.stl"
+  },
+  {
+   "id": "volume:PRINT_Shell",
+   "title": "PRINT_Shell: BREP and STL volumes agree within 1%",
+   "status": "passed",
+   "detail": "components.json 190,327 mm3 vs STL 190,281 mm3 (0.02%)",
+   "stage": "pipeline",
+   "qb": "QB-16",
+   "artifact": "print/PRINT_Shell.stl"
+  },
+  {
+   "id": "watertight:PRINT_Shell",
+   "title": "PRINT_Shell: closed mesh, one body",
+   "status": "failed",
+   "detail": "watertight=False, bodies=5, triangles=198180",
+   "stage": "pipeline",
+   "qb": "QB-07",
+   "artifact": "print/PRINT_Shell.stl"
+  },
+  {
+   "id": "volume:PRINT_SpeakerRing",
+   "title": "PRINT_SpeakerRing: BREP and STL volumes agree within 1%",
+   "status": "passed",
+   "detail": "components.json 2,548 mm3 vs STL 2,548 mm3 (0.01%)",
+   "stage": "pipeline",
+   "qb": "QB-16",
+   "artifact": "print/PRINT_SpeakerRing.stl"
+  },
+  {
+   "id": "watertight:PRINT_SpeakerRing",
+   "title": "PRINT_SpeakerRing: closed mesh, one body",
+   "status": "passed",
+   "detail": "watertight=True, bodies=1, triangles=39466",
+   "stage": "pipeline",
+   "qb": "QB-07",
+   "artifact": "print/PRINT_SpeakerRing.stl"
+  },
+  {
+   "id": "cable-length",
+   "title": "every cable route is no longer than its purchased cable",
+   "status": "passed",
+   "detail": "5 ok",
+   "stage": "pipeline",
+   "qb": "QB-15",
+   "artifact": "cad/cable-routes.json"
+  },
+  {
+   "id": "wiring-bom-join",
+   "title": "every wiring part is a purchased item",
+   "status": "passed",
+   "detail": "all joined",
+   "stage": "pipeline",
+   "qb": "QB-18"
+  },
+  {
+   "id": "wiring-endpoints",
+   "title": "every wiring connection is <part>.<pin> on a listed part",
+   "status": "passed",
+   "detail": "all endpoints known",
+   "stage": "pipeline",
+   "qb": "QB-17"
+  },
+  {
+   "id": "pins-match",
+   "title": "firmware pin constants equal the electrical pin map",
+   "status": "passed",
+   "detail": "33 constants compared",
+   "stage": "pipeline",
+   "qb": "QB-19",
+   "artifact": "firmware/include/pins.h"
+  },
+  {
+   "id": "web-flasher",
+   "title": "the web-flasher manifest names firmware files that ship in this delivery",
+   "status": "passed",
+   "detail": "1 part(s)",
+   "stage": "firmware",
+   "artifact": "firmware/web-flasher-manifest.json"
+  },
+  {
+   "id": "step-parts-in-cad",
+   "title": "every part a step names exists in the CAD (or as a TEST_ coupon STL)",
+   "status": "passed",
+   "detail": "all found",
+   "stage": "pipeline",
+   "qb": "QB-29"
+  },
+  {
+   "id": "power-budget",
+   "title": "worst-case current is within the USB-C supply limit",
+   "status": "passed",
+   "detail": "822.4 mA max vs 1350 mA limit with the firmware caps (calculated from module data, not measured)",
+   "stage": "pipeline",
+   "qb": "QB-20",
+   "artifact": "electrical.json"
+  },
+  {
+   "id": "power-budget-uncapped",
+   "title": "worst case without firmware caps",
+   "status": "warning",
+   "detail": "1367.4 mA uncapped vs 1350 mA limit: the budget relies on the firmware limiting LED brightness and volume (calculated, not measured)",
+   "stage": "pipeline",
+   "qb": "QB-20",
+   "artifact": "electrical.json"
+  },
+  {
+   "id": "no-mains",
+   "title": "no mains voltage inside the enclosure (5 V USB-C input only)",
+   "status": "passed",
+   "detail": "power input: usb_c_5v",
+   "stage": "pipeline",
+   "qb": "QB-21"
+  },
+  {
+   "id": "step-ids",
+   "title": "every step has a unique stable id, title, instruction and expected result",
+   "status": "passed",
+   "detail": "18 steps",
+   "stage": "pipeline",
+   "qb": "QB-29"
+  },
+  {
+   "id": "step-parts",
+   "title": "every step lists the parts it handles",
+   "status": "passed",
+   "detail": "all steps list parts",
+   "stage": "pipeline",
+   "qb": "QB-29"
+  },
+  {
+   "id": "step-use-tools",
+   "title": "every step opens with **Use:** and **Tools:**",
+   "status": "passed",
+   "detail": "all steps",
+   "stage": "pipeline",
+   "qb": "QB-30"
+  },
+  {
+   "id": "manual-images",
+   "title": "every referenced image exists and no unreferenced image ships",
+   "status": "passed",
+   "detail": "20 images, 20 referenced",
+   "stage": "pipeline",
+   "qb": "QB-34"
+  }
+ ],
+ "limits": [
+  "Digital evidence only: geometry, file, schema, compile and unit-test checks run on the builder. No physical assembly, electrical, acoustic, thermal, drop or child-safety test was performed.",
+  "Purchased-part shapes are simplified envelopes from published dimensions, not factory CAD.",
+  "Cable routes are display-only envelopes; bend radius and fit are physical checks.",
+  "Prices are planning ranges or dated retail snapshots, never signed receipts; the quote is not binding."
+ ]
+}

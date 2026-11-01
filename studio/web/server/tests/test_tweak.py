@@ -5,7 +5,7 @@ import pytest
 from app.tweak import TweakError, apply_tweak, describe_tweak, merge_patch, scale_spec
 
 SPEC = {
-    "schema": "gadget-spec/1", "name": "Moon Hug",
+    "schema": "gadget-spec/1", "name": "Lullaby Pod",
     "colors": {"body": "#8CC9C0", "body_name": "pale teal"},
     "body": {"family": "silhouette", "outline": [[-60, 0], [60, 0], [0, 180]], "depth": 120, "edge_round": 12},
     "decor": [{"type": "eye", "at": [-16, 128], "size": [9, 9]}, {"type": "blush", "at": [-26, 116], "size": [8, 5]}],

@@ -1,6 +1,7 @@
 """Command line for the Gadget Studio engine.
 
   python -m gstudio build    <spec.json> <out> [--only cad,pcb] [--fast] [--version N] [--brief-file brief.json]
+                             [--stories-audio | --no-stories-audio] [--price-check live|cache_only|off] [--no-auto-repair]
   python -m gstudio preview  <spec.json> <out>
   python -m gstudio validate <spec.json>
 
@@ -46,6 +47,24 @@ def _read_json(path: str):
     return json.loads(Path(path).read_text())
 
 
+def brief_facts(brief: dict) -> dict:
+    """MAJ-36: {brief_version, concept_id} recorded in project.json, read from the approved brief itself."""
+    out = {}
+    if not isinstance(brief, dict):
+        return out
+    v = next((brief.get(k) for k in ("version", "brief_version", "v") if brief.get(k) is not None), None)
+    if v is None and isinstance(brief.get("meta"), dict):
+        v = brief["meta"].get("version")
+    if v is not None:
+        out["brief_version"] = v
+    c = next((brief.get(k) for k in ("concept_id", "selected_concept", "concept") if brief.get(k) is not None), None)
+    if isinstance(c, dict):
+        c = c.get("id")
+    if c is not None:
+        out["concept_id"] = c
+    return out
+
+
 def cmd_build(a: argparse.Namespace) -> int:
     from gstudio.pipeline import build, parse_only
 
@@ -54,15 +73,27 @@ def cmd_build(a: argparse.Namespace) -> int:
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
-    opts = {"only": only, "fast": a.fast, "stories_audio": a.stories_audio}
+    opts = {"only": only, "fast": a.fast}
+    if a.stories_audio is not None:
+        opts["stories_audio"] = a.stories_audio  # unset: the pipeline turns it on for story_player (BLK-4)
+    if a.price_check:
+        opts["price_check"] = a.price_check
+    if a.no_auto_repair:
+        opts["auto_repair"] = False
     if a.version is not None:
         opts["version"] = a.version
     if a.project_id:
         opts["project_id"] = a.project_id
     if a.brief_file:
         opts["brief"] = _read_json(a.brief_file)
+        opts.update(brief_facts(opts["brief"]))
     if a.options_file:
-        opts.update(_read_json(a.options_file))
+        extra = _read_json(a.options_file)
+        opts.update(extra)
+        if isinstance(extra.get("brief"), dict):
+            for k, v in brief_facts(extra["brief"]).items():
+                if extra.get(k) is None:
+                    opts[k] = v
     if a.jobs:
         opts["jobs"] = a.jobs
     from gstudio.pipeline import Terminated
@@ -106,6 +137,11 @@ def cmd_preview(a: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    a = make_parser().parse_args(argv)
+    return a.fn(a)
+
+
+def make_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="gstudio", description="Gadget Studio engine")
     sub = p.add_subparsers(dest="cmd", required=True)
     b = sub.add_parser("build", help="build every artefact for a spec")
@@ -113,7 +149,12 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("out")
     b.add_argument("--only", help="comma-separated stages: normalize,electrical,cad,pcb,firmware,order,manual,checks,docs,package")
     b.add_argument("--fast", action="store_true", help="fewer Monte Carlo draws and faster stage settings")
-    b.add_argument("--stories-audio", action="store_true", help="synthesise story audio (Vertex TTS) in the firmware stage")
+    sa = b.add_mutually_exclusive_group()
+    sa.add_argument("--stories-audio", dest="stories_audio", action="store_true", default=None,
+                    help="synthesise story audio (Vertex TTS) in the firmware stage (default: on for story_player)")
+    sa.add_argument("--no-stories-audio", dest="stories_audio", action="store_false", help="text-only story card")
+    b.add_argument("--price-check", choices=("live", "cache_only", "off"), help="re-read vendor listings for seen prices (default live)")
+    b.add_argument("--no-auto-repair", action="store_true", help="no automatic repair round when the CAD collision check fails")
     b.add_argument("--version", type=int, help="version number recorded in project.json")
     b.add_argument("--project-id")
     b.add_argument("--brief-file", help="approved brief JSON recorded in project.json")
@@ -130,8 +171,7 @@ def main(argv: list[str] | None = None) -> int:
     pv.add_argument("spec")
     pv.add_argument("out")
     pv.set_defaults(fn=cmd_preview)
-    a = p.parse_args(argv)
-    return a.fn(a)
+    return p
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -1,0 +1,4162 @@
+{
+ "schema": "gadget-backplane/1",
+ "id": "backplane-v1",
+ "version": "1.0.0",
+ "status": "design data, not fabricated: every physical item still needs a first-article check",
+ "units": "mm",
+ "frame": {
+  "origin": "board lower-left corner, top view",
+  "x": "world +X (robot's left)",
+  "y": "world +Y (rear)",
+  "rotation": "degrees counter-clockwise seen from the top (same value as KiCad)",
+  "kicad": "kicad_x = x, kicad_y = board.size[1] - y with the board's top-left at the KiCad origin",
+  "pin_at": "pin coordinates are board-frame positions of the pad centres"
+ },
+ "board": {
+  "size": [
+   62.8,
+   78.6
+  ],
+  "thickness": 1.6,
+  "layers": 2,
+  "material": "FR-4",
+  "copper_oz": 1,
+  "corner_radius": 1.0,
+  "outline": [
+   [
+    0,
+    0
+   ],
+   [
+    62.8,
+    0
+   ],
+   [
+    62.8,
+    78.6
+   ],
+   [
+    0,
+    78.6
+   ]
+  ],
+  "holes": [
+   {
+    "id": "H1",
+    "at": [
+     3.5,
+     3.5
+    ],
+    "d": 2.7,
+    "footprint": "MountingHole:MountingHole_2.7mm_M2.5"
+   },
+   {
+    "id": "H2",
+    "at": [
+     59.3,
+     3.5
+    ],
+    "d": 2.7,
+    "footprint": "MountingHole:MountingHole_2.7mm_M2.5"
+   },
+   {
+    "id": "H3",
+    "at": [
+     3.5,
+     75.1
+    ],
+    "d": 2.7,
+    "footprint": "MountingHole:MountingHole_2.7mm_M2.5"
+   },
+   {
+    "id": "H4",
+    "at": [
+     59.3,
+     75.1
+    ],
+    "d": 2.7,
+    "footprint": "MountingHole:MountingHole_2.7mm_M2.5"
+   },
+   {
+    "id": "S1_POST1",
+    "at": [
+     3.0,
+     11.0
+    ],
+    "d": 4.5,
+    "footprint": null,
+    "note": "NPTH for the printed S1 support post"
+   },
+   {
+    "id": "S1_POST2",
+    "at": [
+     3.0,
+     30.0
+    ],
+    "d": 4.5,
+    "footprint": null,
+    "note": "NPTH for the printed S1 support post"
+   }
+  ],
+  "why_size": "The DevKitC antenna must overhang a board edge (library rows 01/02), so the board is no longer than the DevKitC (62.865) minus the socket courtyard margin: 62.8 wide. Depth 78.6 holds the amp, microSD module, 11 ports and the rear USB-C without stacking parts under the modules' plug paths."
+ },
+ "core": {
+  "slot": "U1",
+  "module": "CORE_ESP32S3_DEVKITC1_N8R8",
+  "variants_ok": [
+   "N8R8 (Espressif)",
+   "N16R8 clones (measure first)"
+  ],
+  "rgb_led_gpio": {
+   "v1.1": 38,
+   "v1.0_and_clones": 48
+  }
+ },
+ "gpio": {
+  "I2C_SDA": 8,
+  "I2C_SCL": 9,
+  "SPI_SCK": 12,
+  "SPI_MOSI": 11,
+  "SPI_MISO": 13,
+  "SD_CS": 10,
+  "DISP_CS": 14,
+  "DISP_DC": 21,
+  "DISP_RST": 18,
+  "DISP_BL": 17,
+  "I2S_SPK_BCLK": 15,
+  "I2S_SPK_LRC": 16,
+  "I2S_SPK_DIN": 7,
+  "AMP_SD": 39,
+  "I2S_MIC_SCK": 41,
+  "I2S_MIC_WS": 42,
+  "I2S_MIC_SD": 40,
+  "IO1_SIG": 4,
+  "IO2_SIG": 5,
+  "IO3_SIG": 6,
+  "LED_DIN": 2,
+  "USB_DP": 20,
+  "USB_DN": 19,
+  "UART0_TX": 43,
+  "UART0_RX": 44,
+  "BOOT_IO0": 0
+ },
+ "gpio_reserved": {
+  "0": "strapping (boot mode); BOOT button; test pad TP7 only",
+  "3": "strapping (JTAG source select)",
+  "45": "strapping (VDD_SPI voltage); must stay low at reset",
+  "46": "strapping (boot mode / ROM log); weak pull-down",
+  "19": "USB D- (native USB); wired to the rear USB-C through U2 ESD",
+  "20": "USB D+ (native USB); wired to the rear USB-C through U2 ESD",
+  "43": "UART0 TX to the DevKitC USB-UART bridge; test pad TP5",
+  "44": "UART0 RX from the DevKitC USB-UART bridge; test pad TP6",
+  "35": "Octal PSRAM (R8 modules): not available",
+  "36": "Octal PSRAM (R8 modules): not available",
+  "37": "Octal PSRAM (R8 modules): not available",
+  "38": "on-board RGB LED on DevKitC-1 v1.1",
+  "48": "on-board RGB LED on DevKitC-1 v1.0 and many clones",
+  "47": "SPICLK_P; left free (VDD_SPI domain on 1.8 V-flash variants; not needed)"
+ },
+ "gpio_free": [
+  {
+   "gpio": 1,
+   "note": "ADC1_CH0/TOUCH1; routed to nothing in v1 (kept for a later 5 V servo port once a keyed family is approved)"
+  }
+ ],
+ "buses": [
+  {
+   "type": "i2c",
+   "sda": 8,
+   "scl": 9,
+   "pullups": "4.7 k to +3V3 (R4, R5)",
+   "slots": [
+    "J_I2C1",
+    "J_I2C2",
+    "J_I2C3"
+   ]
+  },
+  {
+   "type": "spi",
+   "host": "SPI2/FSPI",
+   "sck": 12,
+   "mosi": 11,
+   "miso": 13,
+   "cs": {
+    "S1": 10,
+    "J_DISP": 14
+   },
+   "note": "FSPI IO_MUX pins (CLK 12, D 11, Q 13); CS pins via GPIO matrix",
+   "slots": [
+    "S1",
+    "J_DISP"
+   ]
+  },
+  {
+   "type": "i2s_tx",
+   "port": "I2S0",
+   "bclk": 15,
+   "ws": 16,
+   "dout": 7,
+   "enable": 39,
+   "slots": [
+    "A1"
+   ]
+  },
+  {
+   "type": "i2s_rx",
+   "port": "I2S1",
+   "bclk": 41,
+   "ws": 42,
+   "din": 40,
+   "slots": [
+    "J_MIC"
+   ]
+  },
+  {
+   "type": "rmt_led",
+   "gpio": 2,
+   "level_shift": "U3 74AHCT1G125 at 5 V",
+   "slots": [
+    "J_LED"
+   ]
+  },
+  {
+   "type": "gpio",
+   "slots": {
+    "J_IO1": 4,
+    "J_IO2": 5,
+    "J_IO3": 6
+   }
+  },
+  {
+   "type": "usb",
+   "dp": 20,
+   "dn": 19,
+   "slots": [
+    "J_PWR"
+   ]
+  }
+ ],
+ "slots": [
+  {
+   "id": "U1",
+   "kind": "core",
+   "title": "ESP32-S3-DevKitC-1 on 2 x 1x22 female sockets",
+   "module": "CORE_ESP32S3_DEVKITC1_N8R8",
+   "accepts_roles": [
+    "core"
+   ],
+   "parts": [
+    "J_U1A",
+    "J_U1B"
+   ],
+   "devkit_origin": [
+    63.8,
+    43.0
+   ],
+   "rotation_deg": 90,
+   "devkit_frame": "devkit (u across 0..25.4 with J1 at u=1.27, v along 0..62.865 with v=0 at the USB end) -> board (x0 - v, y0 + u)",
+   "devkit_pcb_plan": [
+    0.935,
+    63.8,
+    43.0,
+    68.4
+   ],
+   "antenna_plan": [
+    -5.35,
+    0.935,
+    46.7,
+    64.7
+   ],
+   "usb_end_x": 63.8,
+   "usb_overhang_mm": 1.0,
+   "facing": "devkit USB ports face +x (robot's left), 1.0 mm past the board edge; antenna overhangs the -x edge",
+   "row_spacing_mm": 22.86,
+   "pins": [
+    {
+     "pin": "J1-1",
+     "devkit_label": "3V3",
+     "gpio": null,
+     "net": "+3V3",
+     "at": [
+      2.5,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 1
+    },
+    {
+     "pin": "J1-2",
+     "devkit_label": "3V3",
+     "gpio": null,
+     "net": "+3V3",
+     "at": [
+      5.04,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 2
+    },
+    {
+     "pin": "J1-3",
+     "devkit_label": "RST",
+     "gpio": null,
+     "net": "EN",
+     "at": [
+      7.58,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 3
+    },
+    {
+     "pin": "J1-4",
+     "devkit_label": "4",
+     "gpio": 4,
+     "net": "IO1_SIG",
+     "at": [
+      10.12,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 4
+    },
+    {
+     "pin": "J1-5",
+     "devkit_label": "5",
+     "gpio": 5,
+     "net": "IO2_SIG",
+     "at": [
+      12.66,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 5
+    },
+    {
+     "pin": "J1-6",
+     "devkit_label": "6",
+     "gpio": 6,
+     "net": "IO3_SIG",
+     "at": [
+      15.2,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 6
+    },
+    {
+     "pin": "J1-7",
+     "devkit_label": "7",
+     "gpio": 7,
+     "net": "I2S_SPK_DIN",
+     "at": [
+      17.74,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 7
+    },
+    {
+     "pin": "J1-8",
+     "devkit_label": "15",
+     "gpio": 15,
+     "net": "I2S_SPK_BCLK",
+     "at": [
+      20.28,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 8
+    },
+    {
+     "pin": "J1-9",
+     "devkit_label": "16",
+     "gpio": 16,
+     "net": "I2S_SPK_LRC",
+     "at": [
+      22.82,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 9
+    },
+    {
+     "pin": "J1-10",
+     "devkit_label": "17",
+     "gpio": 17,
+     "net": "DISP_BL",
+     "at": [
+      25.36,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 10
+    },
+    {
+     "pin": "J1-11",
+     "devkit_label": "18",
+     "gpio": 18,
+     "net": "DISP_RST",
+     "at": [
+      27.9,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 11
+    },
+    {
+     "pin": "J1-12",
+     "devkit_label": "8",
+     "gpio": 8,
+     "net": "I2C_SDA",
+     "at": [
+      30.44,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 12
+    },
+    {
+     "pin": "J1-13",
+     "devkit_label": "3",
+     "gpio": 3,
+     "net": null,
+     "at": [
+      32.98,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 13,
+     "kind": "nc",
+     "why": "strapping (JTAG source select)"
+    },
+    {
+     "pin": "J1-14",
+     "devkit_label": "46",
+     "gpio": 46,
+     "net": null,
+     "at": [
+      35.52,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 14,
+     "kind": "nc",
+     "why": "strapping (boot mode / ROM log); weak pull-down"
+    },
+    {
+     "pin": "J1-15",
+     "devkit_label": "9",
+     "gpio": 9,
+     "net": "I2C_SCL",
+     "at": [
+      38.06,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 15
+    },
+    {
+     "pin": "J1-16",
+     "devkit_label": "10",
+     "gpio": 10,
+     "net": "SD_CS",
+     "at": [
+      40.6,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 16
+    },
+    {
+     "pin": "J1-17",
+     "devkit_label": "11",
+     "gpio": 11,
+     "net": "SPI_MOSI",
+     "at": [
+      43.14,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 17
+    },
+    {
+     "pin": "J1-18",
+     "devkit_label": "12",
+     "gpio": 12,
+     "net": "SPI_SCK",
+     "at": [
+      45.68,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 18
+    },
+    {
+     "pin": "J1-19",
+     "devkit_label": "13",
+     "gpio": 13,
+     "net": "SPI_MISO",
+     "at": [
+      48.22,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 19
+    },
+    {
+     "pin": "J1-20",
+     "devkit_label": "14",
+     "gpio": 14,
+     "net": "DISP_CS",
+     "at": [
+      50.76,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 20
+    },
+    {
+     "pin": "J1-21",
+     "devkit_label": "5V",
+     "gpio": null,
+     "net": "+5V",
+     "at": [
+      53.3,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 21
+    },
+    {
+     "pin": "J1-22",
+     "devkit_label": "G",
+     "gpio": null,
+     "net": "GND",
+     "at": [
+      55.84,
+      44.27
+     ],
+     "socket": "J_U1A",
+     "socket_pin": 22
+    },
+    {
+     "pin": "J3-1",
+     "devkit_label": "G",
+     "gpio": null,
+     "net": "GND",
+     "at": [
+      2.5,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 1
+    },
+    {
+     "pin": "J3-2",
+     "devkit_label": "TX",
+     "gpio": 43,
+     "net": "UART0_TX",
+     "at": [
+      5.04,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 2
+    },
+    {
+     "pin": "J3-3",
+     "devkit_label": "RX",
+     "gpio": 44,
+     "net": "UART0_RX",
+     "at": [
+      7.58,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 3
+    },
+    {
+     "pin": "J3-4",
+     "devkit_label": "1",
+     "gpio": 1,
+     "net": null,
+     "at": [
+      10.12,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 4,
+     "kind": "nc",
+     "why": "free (GPIO1) or not used by backplane-v1"
+    },
+    {
+     "pin": "J3-5",
+     "devkit_label": "2",
+     "gpio": 2,
+     "net": "LED_DIN_3V3",
+     "at": [
+      12.66,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 5
+    },
+    {
+     "pin": "J3-6",
+     "devkit_label": "42",
+     "gpio": 42,
+     "net": "I2S_MIC_WS",
+     "at": [
+      15.2,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 6
+    },
+    {
+     "pin": "J3-7",
+     "devkit_label": "41",
+     "gpio": 41,
+     "net": "I2S_MIC_SCK",
+     "at": [
+      17.74,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 7
+    },
+    {
+     "pin": "J3-8",
+     "devkit_label": "40",
+     "gpio": 40,
+     "net": "I2S_MIC_SD",
+     "at": [
+      20.28,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 8
+    },
+    {
+     "pin": "J3-9",
+     "devkit_label": "39",
+     "gpio": 39,
+     "net": "AMP_SD",
+     "at": [
+      22.82,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 9
+    },
+    {
+     "pin": "J3-10",
+     "devkit_label": "38",
+     "gpio": 38,
+     "net": null,
+     "at": [
+      25.36,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 10,
+     "kind": "nc",
+     "why": "on-board RGB LED on DevKitC-1 v1.1"
+    },
+    {
+     "pin": "J3-11",
+     "devkit_label": "37",
+     "gpio": 37,
+     "net": null,
+     "at": [
+      27.9,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 11,
+     "kind": "nc",
+     "why": "Octal PSRAM (R8 modules): not available"
+    },
+    {
+     "pin": "J3-12",
+     "devkit_label": "36",
+     "gpio": 36,
+     "net": null,
+     "at": [
+      30.44,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 12,
+     "kind": "nc",
+     "why": "Octal PSRAM (R8 modules): not available"
+    },
+    {
+     "pin": "J3-13",
+     "devkit_label": "35",
+     "gpio": 35,
+     "net": null,
+     "at": [
+      32.98,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 13,
+     "kind": "nc",
+     "why": "Octal PSRAM (R8 modules): not available"
+    },
+    {
+     "pin": "J3-14",
+     "devkit_label": "0",
+     "gpio": 0,
+     "net": "BOOT_IO0",
+     "at": [
+      35.52,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 14
+    },
+    {
+     "pin": "J3-15",
+     "devkit_label": "45",
+     "gpio": 45,
+     "net": null,
+     "at": [
+      38.06,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 15,
+     "kind": "nc",
+     "why": "strapping (VDD_SPI voltage); must stay low at reset"
+    },
+    {
+     "pin": "J3-16",
+     "devkit_label": "48",
+     "gpio": 48,
+     "net": null,
+     "at": [
+      40.6,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 16,
+     "kind": "nc",
+     "why": "on-board RGB LED on DevKitC-1 v1.0 and many clones"
+    },
+    {
+     "pin": "J3-17",
+     "devkit_label": "47",
+     "gpio": 47,
+     "net": null,
+     "at": [
+      43.14,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 17,
+     "kind": "nc",
+     "why": "SPICLK_P; left free (VDD_SPI domain on 1.8 V-flash variants; not needed)"
+    },
+    {
+     "pin": "J3-18",
+     "devkit_label": "21",
+     "gpio": 21,
+     "net": "DISP_DC",
+     "at": [
+      45.68,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 18
+    },
+    {
+     "pin": "J3-19",
+     "devkit_label": "20",
+     "gpio": 20,
+     "net": "USB_DP",
+     "at": [
+      48.22,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 19
+    },
+    {
+     "pin": "J3-20",
+     "devkit_label": "19",
+     "gpio": 19,
+     "net": "USB_DN",
+     "at": [
+      50.76,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 20
+    },
+    {
+     "pin": "J3-21",
+     "devkit_label": "G",
+     "gpio": null,
+     "net": "GND",
+     "at": [
+      53.3,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 21
+    },
+    {
+     "pin": "J3-22",
+     "devkit_label": "G",
+     "gpio": null,
+     "net": "GND",
+     "at": [
+      55.84,
+      67.13
+     ],
+     "socket": "J_U1B",
+     "socket_pin": 22
+    }
+   ],
+   "height_envelope_mm": {
+    "devkit_bottom_above_board_top": 11.0,
+    "above_board_top": 16.0,
+    "why": "8.5 socket + ~2.5 male-header spacer + 1.6 PCB + 3.1 WROOM-1 + 0.3 (estimate; measure)"
+   },
+   "under_devkit_zone": [
+    5.5,
+    52.84,
+    46.47,
+    64.93
+   ],
+   "under_devkit_max_height_mm": 9.0
+  },
+  {
+   "id": "A1",
+   "kind": "module_socket",
+   "title": "MAX98357A I2S amplifier breakout (1x7 + 2 x 1x1 sockets)",
+   "accepts_roles": [
+    "amp"
+   ],
+   "module": "AMP_MAX98357A_I2S",
+   "parts": [
+    "J_A1",
+    "J_A1P",
+    "J_A1N"
+   ],
+   "module_plan": [
+    44.5,
+    62.28,
+    8.5,
+    27.55
+   ],
+   "module_frame_origin": [
+    44.5,
+    8.5
+   ],
+   "module_rotation_deg": 0,
+   "pins": [
+    {
+     "pin": 1,
+     "name": "LRC",
+     "net": "I2S_SPK_LRC",
+     "gpio": 16,
+     "at": [
+      45.77,
+      11.04
+     ],
+     "socket": "J_A1"
+    },
+    {
+     "pin": 2,
+     "name": "BCLK",
+     "net": "I2S_SPK_BCLK",
+     "gpio": 15,
+     "at": [
+      48.31,
+      11.04
+     ],
+     "socket": "J_A1"
+    },
+    {
+     "pin": 3,
+     "name": "DIN",
+     "net": "I2S_SPK_DIN",
+     "gpio": 7,
+     "at": [
+      50.85,
+      11.04
+     ],
+     "socket": "J_A1"
+    },
+    {
+     "pin": 4,
+     "name": "GAIN",
+     "net": null,
+     "gpio": null,
+     "at": [
+      53.39,
+      11.04
+     ],
+     "socket": "J_A1",
+     "note": "GAIN left open = 9 dB (Adafruit default); not connected on the backplane",
+     "kind": "nc"
+    },
+    {
+     "pin": 5,
+     "name": "SD",
+     "net": "AMP_SD",
+     "gpio": 39,
+     "at": [
+      55.93,
+      11.04
+     ],
+     "socket": "J_A1"
+    },
+    {
+     "pin": 6,
+     "name": "GND",
+     "net": "GND",
+     "gpio": null,
+     "at": [
+      58.47,
+      11.04
+     ],
+     "socket": "J_A1"
+    },
+    {
+     "pin": 7,
+     "name": "VIN",
+     "net": "+5V",
+     "gpio": null,
+     "at": [
+      61.01,
+      11.04
+     ],
+     "socket": "J_A1"
+    },
+    {
+     "pin": "VO+",
+     "name": "VO+",
+     "net": "SPK_P",
+     "gpio": null,
+     "at": [
+      55.09,
+      23.990000000000002
+     ],
+     "socket": "J_A1P"
+    },
+    {
+     "pin": "VO-",
+     "name": "VO-",
+     "net": "SPK_N",
+     "gpio": null,
+     "at": [
+      51.59,
+      23.990000000000002
+     ],
+     "socket": "J_A1N"
+    }
+   ],
+   "supply": "+5V",
+   "height_envelope_mm": {
+    "module_bottom_above_board_top": 11.0,
+    "above_board_top": 15.0,
+    "why": "socket 8.5 + header spacer 2.5 + PCB 1.6 + parts (estimate)"
+   },
+   "assembly": "Solder the 7-pin header pins-down. Instead of the supplied screw terminal, solder two 2.54 mm male pins into the VO+/VO- terminal pads (Adafruit board file: 3.5 mm pitch at y = 15.49) so the amp plugs fully into the backplane. Speaker audio then reaches J_SPK through the board. Physical check still needed on a real board.",
+   "uncertain": [
+    "VO pin trick not yet tried on a real Adafruit 3006",
+    "clone boards may differ from the Adafruit outline"
+   ]
+  },
+  {
+   "id": "J_SPK",
+   "kind": "port",
+   "title": "Speaker (amp output)",
+   "footprint": "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical",
+   "at": [
+    52.0,
+    31.3
+   ],
+   "rotation_deg": 0,
+   "kicad": {
+    "x": 52.0,
+    "y": 47.3,
+    "rot": 0
+   },
+   "courtyard": [
+    49.55,
+    56.45,
+    28.0,
+    33.5
+   ],
+   "facing": "up",
+   "connector": "JST-PH 2.0",
+   "pins_count": 2,
+   "supply": "none (bridge-tied amp output; never ground either pin)",
+   "cable": {
+    "family": "JST-PH 2.0",
+    "pins": 2,
+    "type": "PHR-2 housing, speaker lead"
+   },
+   "accepts_roles": [
+    "speaker"
+   ],
+   "pins": [
+    {
+     "pin": 1,
+     "name": "SPK+",
+     "net": "SPK_P",
+     "gpio": null,
+     "kind": "audio",
+     "accepts": [
+      "+",
+      "SPK+",
+      "VO+",
+      "RED"
+     ],
+     "at": [
+      52.0,
+      31.3
+     ]
+    },
+    {
+     "pin": 2,
+     "name": "SPK-",
+     "net": "SPK_N",
+     "gpio": null,
+     "kind": "audio",
+     "accepts": [
+      "-",
+      "SPK-",
+      "VO-",
+      "BLACK"
+     ],
+     "at": [
+      54.0,
+      31.3
+     ]
+    }
+   ],
+   "height_envelope_mm": {
+    "above_board_top": 18.0,
+    "why": "header + mated plug + wire bend zone (estimate)"
+   },
+   "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+   "note": "Both pins are amplifier outputs (BTL): never connect SPK- to GND."
+  },
+  {
+   "id": "S1",
+   "kind": "module_socket",
+   "title": "microSD SPI module (Catalex-type) on a 1x6 socket",
+   "accepts_roles": [
+    "storage"
+   ],
+   "module": "MICROSD_SPI_MODULE_5V",
+   "parts": [
+    "J_S1"
+   ],
+   "module_plan": [
+    0.5,
+    42.5,
+    8.5,
+    32.5
+   ],
+   "module_rotation_deg": 180,
+   "card_slot_side": "-x (board edge at the robot's right); card ejects toward -x",
+   "pins": [
+    {
+     "pin": 1,
+     "name": "GND",
+     "net": "GND",
+     "gpio": null,
+     "at": [
+      40.5,
+      26.85
+     ],
+     "socket": "J_S1"
+    },
+    {
+     "pin": 2,
+     "name": "VCC",
+     "net": "+5V",
+     "gpio": null,
+     "at": [
+      40.5,
+      24.31
+     ],
+     "socket": "J_S1"
+    },
+    {
+     "pin": 3,
+     "name": "MISO",
+     "net": "SPI_MISO",
+     "gpio": 13,
+     "at": [
+      40.5,
+      21.77
+     ],
+     "socket": "J_S1"
+    },
+    {
+     "pin": 4,
+     "name": "MOSI",
+     "net": "SPI_MOSI",
+     "gpio": 11,
+     "at": [
+      40.5,
+      19.23
+     ],
+     "socket": "J_S1"
+    },
+    {
+     "pin": 5,
+     "name": "SCK",
+     "net": "SPI_SCK",
+     "gpio": 12,
+     "at": [
+      40.5,
+      16.69
+     ],
+     "socket": "J_S1"
+    },
+    {
+     "pin": 6,
+     "name": "CS",
+     "net": "SD_CS",
+     "gpio": 10,
+     "at": [
+      40.5,
+      14.15
+     ],
+     "socket": "J_S1"
+    }
+   ],
+   "supply": "+5V (module has its own 3.3 V LDO and level shifter)",
+   "height_envelope_mm": {
+    "module_bottom_above_board_top": 11.0,
+    "above_board_top": 16.0,
+    "why": "socket 8.5 + spacer 2.5 + PCB 1.6 + card socket/LDO ~3 (estimate)"
+   },
+   "support": "Cantilevered 42 mm module: the cartridge adds two printed posts S1_POST1/2 through the board (see cartridge.support_posts).",
+   "uncertain": [
+    "header position on the module (2.0 mm from the short edge) and pin-1 end are estimates; confirm on a sample",
+    "Probots lists VCC first; physical pin order must be checked before the socket pin map is frozen",
+    "the module's MISO buffer may not tri-state; the display never drives MISO so the shared SPI bus still works"
+   ]
+  },
+  {
+   "id": "J_MIC",
+   "kind": "port",
+   "title": "I2S microphone",
+   "footprint": "Connector_JST:JST_PH_B6B-PH-K_1x06_P2.00mm_Vertical",
+   "at": [
+    2.95,
+    37.5
+   ],
+   "rotation_deg": 0,
+   "kicad": {
+    "x": 2.95,
+    "y": 41.1,
+    "rot": 0
+   },
+   "courtyard": [
+    0.5,
+    15.4,
+    34.2,
+    39.7
+   ],
+   "facing": "up",
+   "connector": "JST-PH 2.0",
+   "pins_count": 6,
+   "supply": "+3V3 only (INMP441 max 3.63 V)",
+   "cable": {
+    "family": "JST-PH 2.0",
+    "pins": 6,
+    "type": "PHR-6 to Dupont 1x6 female, by label"
+   },
+   "accepts_roles": [
+    "mic"
+   ],
+   "pins": [
+    {
+     "pin": 1,
+     "name": "GND",
+     "net": "GND",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "GND",
+      "G",
+      "-",
+      "VSS",
+      "COM"
+     ],
+     "at": [
+      2.95,
+      37.5
+     ]
+    },
+    {
+     "pin": 2,
+     "name": "3V3",
+     "net": "+3V3",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "3V3",
+      "3.3V",
+      "VCC",
+      "VDD",
+      "VIN",
+      "V+",
+      "+",
+      "VCC_3V3"
+     ],
+     "at": [
+      4.95,
+      37.5
+     ]
+    },
+    {
+     "pin": 3,
+     "name": "SCK",
+     "net": "I2S_MIC_SCK",
+     "gpio": 41,
+     "kind": "signal",
+     "accepts": [
+      "SCK",
+      "BCLK",
+      "CLK"
+     ],
+     "at": [
+      6.95,
+      37.5
+     ]
+    },
+    {
+     "pin": 4,
+     "name": "WS",
+     "net": "I2S_MIC_WS",
+     "gpio": 42,
+     "kind": "signal",
+     "accepts": [
+      "WS",
+      "LRCL",
+      "LRC"
+     ],
+     "at": [
+      8.95,
+      37.5
+     ]
+    },
+    {
+     "pin": 5,
+     "name": "SD",
+     "net": "I2S_MIC_SD",
+     "gpio": 40,
+     "kind": "signal",
+     "accepts": [
+      "SD",
+      "DOUT",
+      "DATA"
+     ],
+     "at": [
+      10.95,
+      37.5
+     ]
+    },
+    {
+     "pin": 6,
+     "name": "LR",
+     "net": "GND",
+     "gpio": null,
+     "kind": "strap",
+     "accepts": [
+      "L/R",
+      "LR",
+      "SEL"
+     ],
+     "at": [
+      12.95,
+      37.5
+     ]
+    }
+   ],
+   "height_envelope_mm": {
+    "above_board_top": 20.0,
+    "why": "header + mated plug + wire bend zone (estimate)"
+   },
+   "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+   "note": "LR (pin 6) is tied to GND on the board: the mic sends on the left channel."
+  },
+  {
+   "id": "J_DISP",
+   "kind": "port",
+   "title": "SPI colour display",
+   "footprint": "Connector_JST:JST_PH_B8B-PH-K_1x08_P2.00mm_Vertical",
+   "at": [
+    18.85,
+    37.5
+   ],
+   "rotation_deg": 0,
+   "kicad": {
+    "x": 18.85,
+    "y": 41.1,
+    "rot": 0
+   },
+   "courtyard": [
+    16.4,
+    35.3,
+    34.2,
+    39.7
+   ],
+   "facing": "up",
+   "connector": "JST-PH 2.0",
+   "pins_count": 8,
+   "supply": "+3V3",
+   "cable": {
+    "family": "JST-PH 2.0",
+    "pins": 8,
+    "type": "PH-PH 8p same-order cable (matches the Waveshare 2in LCD socket order)"
+   },
+   "accepts_roles": [
+    "display"
+   ],
+   "pins": [
+    {
+     "pin": 1,
+     "name": "VCC",
+     "net": "+3V3",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "3V3",
+      "3.3V",
+      "VCC",
+      "VDD",
+      "VIN",
+      "V+",
+      "+",
+      "VCC_3V3"
+     ],
+     "at": [
+      18.85,
+      37.5
+     ]
+    },
+    {
+     "pin": 2,
+     "name": "GND",
+     "net": "GND",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "GND",
+      "G",
+      "-",
+      "VSS",
+      "COM"
+     ],
+     "at": [
+      20.85,
+      37.5
+     ]
+    },
+    {
+     "pin": 3,
+     "name": "DIN",
+     "net": "SPI_MOSI",
+     "gpio": 11,
+     "kind": "signal",
+     "accepts": [
+      "DIN",
+      "MOSI",
+      "SDA",
+      "SDI"
+     ],
+     "at": [
+      22.85,
+      37.5
+     ]
+    },
+    {
+     "pin": 4,
+     "name": "CLK",
+     "net": "SPI_SCK",
+     "gpio": 12,
+     "kind": "signal",
+     "accepts": [
+      "CLK",
+      "SCK",
+      "SCL"
+     ],
+     "at": [
+      24.85,
+      37.5
+     ]
+    },
+    {
+     "pin": 5,
+     "name": "CS",
+     "net": "DISP_CS",
+     "gpio": 14,
+     "kind": "signal",
+     "accepts": [
+      "CS"
+     ],
+     "at": [
+      26.85,
+      37.5
+     ]
+    },
+    {
+     "pin": 6,
+     "name": "DC",
+     "net": "DISP_DC",
+     "gpio": 21,
+     "kind": "signal",
+     "accepts": [
+      "DC",
+      "RS",
+      "A0"
+     ],
+     "at": [
+      28.85,
+      37.5
+     ]
+    },
+    {
+     "pin": 7,
+     "name": "RST",
+     "net": "DISP_RST",
+     "gpio": 18,
+     "kind": "signal",
+     "accepts": [
+      "RST",
+      "RES",
+      "RESET"
+     ],
+     "at": [
+      30.85,
+      37.5
+     ]
+    },
+    {
+     "pin": 8,
+     "name": "BL",
+     "net": "DISP_BL",
+     "gpio": 17,
+     "kind": "signal",
+     "accepts": [
+      "BL",
+      "BLK",
+      "LED"
+     ],
+     "at": [
+      32.85,
+      37.5
+     ]
+    }
+   ],
+   "height_envelope_mm": {
+    "above_board_top": 20.0,
+    "why": "header + mated plug + wire bend zone (estimate)"
+   },
+   "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+   "note": "Pin order VCC, GND, DIN, CLK, CS, DC, RST, BL equals the Waveshare 2inch LCD PH2.0 socket, so a straight 1:1 cable works. This replaces the ARCHITECTURE \u00a76 draft order (GND first) on purpose."
+  },
+  {
+   "id": "J_I2C1",
+   "kind": "port",
+   "title": "I2C port 1",
+   "footprint": "Connector_JST:JST_PH_B4B-PH-K_1x04_P2.00mm_Vertical",
+   "at": [
+    38.75,
+    37.5
+   ],
+   "rotation_deg": 0,
+   "kicad": {
+    "x": 38.75,
+    "y": 41.1,
+    "rot": 0
+   },
+   "courtyard": [
+    36.3,
+    47.2,
+    34.2,
+    39.7
+   ],
+   "facing": "up",
+   "connector": "JST-PH 2.0",
+   "pins_count": 4,
+   "supply": "+3V3",
+   "cable": {
+    "family": "JST-PH 2.0",
+    "pins": 4,
+    "type": "PHR-4 to Dupont 1x4 female (by label) or PH-SH for STEMMA QT"
+   },
+   "accepts_roles": [
+    "display",
+    "light_sensor",
+    "temp_humidity",
+    "pressure",
+    "distance",
+    "imu",
+    "rtc"
+   ],
+   "pins": [
+    {
+     "pin": 1,
+     "name": "GND",
+     "net": "GND",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "GND",
+      "G",
+      "-",
+      "VSS",
+      "COM"
+     ],
+     "at": [
+      38.75,
+      37.5
+     ]
+    },
+    {
+     "pin": 2,
+     "name": "3V3",
+     "net": "+3V3",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "3V3",
+      "3.3V",
+      "VCC",
+      "VDD",
+      "VIN",
+      "V+",
+      "+",
+      "VCC_3V3"
+     ],
+     "at": [
+      40.75,
+      37.5
+     ]
+    },
+    {
+     "pin": 3,
+     "name": "SDA",
+     "net": "I2C_SDA",
+     "gpio": 8,
+     "kind": "signal",
+     "accepts": [
+      "SDA",
+      "SDI",
+      "DATA"
+     ],
+     "at": [
+      42.75,
+      37.5
+     ]
+    },
+    {
+     "pin": 4,
+     "name": "SCL",
+     "net": "I2C_SCL",
+     "gpio": 9,
+     "kind": "signal",
+     "accepts": [
+      "SCL",
+      "SCK",
+      "CLK"
+     ],
+     "at": [
+      44.75,
+      37.5
+     ]
+    }
+   ],
+   "height_envelope_mm": {
+    "above_board_top": 20.0,
+    "why": "header + mated plug + wire bend zone (estimate)"
+   },
+   "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+   "note": "Shared I2C bus (SDA GPIO8, SCL GPIO9) with 4.7 k pull-ups R4/R5 on the board."
+  },
+  {
+   "id": "J_I2C2",
+   "kind": "port",
+   "title": "I2C port 2",
+   "footprint": "Connector_JST:JST_PH_B4B-PH-K_1x04_P2.00mm_Vertical",
+   "at": [
+    50.65,
+    37.5
+   ],
+   "rotation_deg": 0,
+   "kicad": {
+    "x": 50.65,
+    "y": 41.1,
+    "rot": 0
+   },
+   "courtyard": [
+    48.2,
+    59.1,
+    34.2,
+    39.7
+   ],
+   "facing": "up",
+   "connector": "JST-PH 2.0",
+   "pins_count": 4,
+   "supply": "+3V3",
+   "cable": {
+    "family": "JST-PH 2.0",
+    "pins": 4,
+    "type": "PHR-4 to Dupont 1x4 female (by label) or PH-SH for STEMMA QT"
+   },
+   "accepts_roles": [
+    "display",
+    "light_sensor",
+    "temp_humidity",
+    "pressure",
+    "distance",
+    "imu",
+    "rtc"
+   ],
+   "pins": [
+    {
+     "pin": 1,
+     "name": "GND",
+     "net": "GND",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "GND",
+      "G",
+      "-",
+      "VSS",
+      "COM"
+     ],
+     "at": [
+      50.65,
+      37.5
+     ]
+    },
+    {
+     "pin": 2,
+     "name": "3V3",
+     "net": "+3V3",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "3V3",
+      "3.3V",
+      "VCC",
+      "VDD",
+      "VIN",
+      "V+",
+      "+",
+      "VCC_3V3"
+     ],
+     "at": [
+      52.65,
+      37.5
+     ]
+    },
+    {
+     "pin": 3,
+     "name": "SDA",
+     "net": "I2C_SDA",
+     "gpio": 8,
+     "kind": "signal",
+     "accepts": [
+      "SDA",
+      "SDI",
+      "DATA"
+     ],
+     "at": [
+      54.65,
+      37.5
+     ]
+    },
+    {
+     "pin": 4,
+     "name": "SCL",
+     "net": "I2C_SCL",
+     "gpio": 9,
+     "kind": "signal",
+     "accepts": [
+      "SCL",
+      "SCK",
+      "CLK"
+     ],
+     "at": [
+      56.65,
+      37.5
+     ]
+    }
+   ],
+   "height_envelope_mm": {
+    "above_board_top": 20.0,
+    "why": "header + mated plug + wire bend zone (estimate)"
+   },
+   "plug_access": "vertical from above; keep the plan courtyard free of modules above it"
+  },
+  {
+   "id": "J_IO1",
+   "kind": "port",
+   "title": "Digital/analog IO 1",
+   "footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+   "at": [
+    9.5,
+    3.8
+   ],
+   "rotation_deg": 0,
+   "kicad": {
+    "x": 9.5,
+    "y": 74.8,
+    "rot": 0
+   },
+   "courtyard": [
+    7.05,
+    15.95,
+    0.5,
+    6.0
+   ],
+   "facing": "up",
+   "connector": "JST-PH 2.0",
+   "pins_count": 3,
+   "supply": "+3V3",
+   "cable": {
+    "family": "JST-PH 2.0",
+    "pins": 3,
+    "type": "PHR-3 to Dupont/spade by label"
+   },
+   "accepts_roles": [
+    "button",
+    "touch",
+    "buzzer",
+    "motion",
+    "light_sensor",
+    "endstop",
+    "hall"
+   ],
+   "pins": [
+    {
+     "pin": 1,
+     "name": "GND",
+     "net": "GND",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "GND",
+      "G",
+      "-",
+      "VSS",
+      "COM"
+     ],
+     "at": [
+      9.5,
+      3.8
+     ]
+    },
+    {
+     "pin": 2,
+     "name": "3V3",
+     "net": "+3V3",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "3V3",
+      "3.3V",
+      "VCC",
+      "VDD",
+      "VIN",
+      "V+",
+      "+",
+      "VCC_3V3"
+     ],
+     "at": [
+      11.5,
+      3.8
+     ]
+    },
+    {
+     "pin": 3,
+     "name": "SIG",
+     "net": "IO1_SIG",
+     "gpio": 4,
+     "kind": "signal",
+     "accepts": [
+      "SIG",
+      "S",
+      "OUT",
+      "I/O",
+      "IO",
+      "DO",
+      "D0",
+      "A0",
+      "AO",
+      "NO",
+      "SW"
+     ],
+     "at": [
+      13.5,
+      3.8
+     ]
+    }
+   ],
+   "height_envelope_mm": {
+    "above_board_top": 20.0,
+    "why": "header + mated plug + wire bend zone (estimate)"
+   },
+   "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+   "note": "GPIO4 (ADC1 + touch capable). 3.3 V logic and 3.3 V supply only."
+  },
+  {
+   "id": "J_IO2",
+   "kind": "port",
+   "title": "Digital/analog IO 2",
+   "footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+   "at": [
+    20.0,
+    3.8
+   ],
+   "rotation_deg": 0,
+   "kicad": {
+    "x": 20.0,
+    "y": 74.8,
+    "rot": 0
+   },
+   "courtyard": [
+    17.55,
+    26.45,
+    0.5,
+    6.0
+   ],
+   "facing": "up",
+   "connector": "JST-PH 2.0",
+   "pins_count": 3,
+   "supply": "+3V3",
+   "cable": {
+    "family": "JST-PH 2.0",
+    "pins": 3,
+    "type": "PHR-3 to Dupont/spade by label"
+   },
+   "accepts_roles": [
+    "button",
+    "touch",
+    "buzzer",
+    "motion",
+    "light_sensor",
+    "endstop",
+    "hall"
+   ],
+   "pins": [
+    {
+     "pin": 1,
+     "name": "GND",
+     "net": "GND",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "GND",
+      "G",
+      "-",
+      "VSS",
+      "COM"
+     ],
+     "at": [
+      20.0,
+      3.8
+     ]
+    },
+    {
+     "pin": 2,
+     "name": "3V3",
+     "net": "+3V3",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "3V3",
+      "3.3V",
+      "VCC",
+      "VDD",
+      "VIN",
+      "V+",
+      "+",
+      "VCC_3V3"
+     ],
+     "at": [
+      22.0,
+      3.8
+     ]
+    },
+    {
+     "pin": 3,
+     "name": "SIG",
+     "net": "IO2_SIG",
+     "gpio": 5,
+     "kind": "signal",
+     "accepts": [
+      "SIG",
+      "S",
+      "OUT",
+      "I/O",
+      "IO",
+      "DO",
+      "D0",
+      "A0",
+      "AO",
+      "NO",
+      "SW"
+     ],
+     "at": [
+      24.0,
+      3.8
+     ]
+    }
+   ],
+   "height_envelope_mm": {
+    "above_board_top": 20.0,
+    "why": "header + mated plug + wire bend zone (estimate)"
+   },
+   "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+   "note": "GPIO5 (ADC1 + touch capable). 3.3 V logic and 3.3 V supply only."
+  },
+  {
+   "id": "J_IO3",
+   "kind": "port",
+   "title": "Digital/analog IO 3",
+   "footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+   "at": [
+    30.5,
+    3.8
+   ],
+   "rotation_deg": 0,
+   "kicad": {
+    "x": 30.5,
+    "y": 74.8,
+    "rot": 0
+   },
+   "courtyard": [
+    28.05,
+    36.95,
+    0.5,
+    6.0
+   ],
+   "facing": "up",
+   "connector": "JST-PH 2.0",
+   "pins_count": 3,
+   "supply": "+3V3",
+   "cable": {
+    "family": "JST-PH 2.0",
+    "pins": 3,
+    "type": "PHR-3 to Dupont/spade by label"
+   },
+   "accepts_roles": [
+    "button",
+    "touch",
+    "buzzer",
+    "motion",
+    "light_sensor",
+    "endstop",
+    "hall"
+   ],
+   "pins": [
+    {
+     "pin": 1,
+     "name": "GND",
+     "net": "GND",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "GND",
+      "G",
+      "-",
+      "VSS",
+      "COM"
+     ],
+     "at": [
+      30.5,
+      3.8
+     ]
+    },
+    {
+     "pin": 2,
+     "name": "3V3",
+     "net": "+3V3",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "3V3",
+      "3.3V",
+      "VCC",
+      "VDD",
+      "VIN",
+      "V+",
+      "+",
+      "VCC_3V3"
+     ],
+     "at": [
+      32.5,
+      3.8
+     ]
+    },
+    {
+     "pin": 3,
+     "name": "SIG",
+     "net": "IO3_SIG",
+     "gpio": 6,
+     "kind": "signal",
+     "accepts": [
+      "SIG",
+      "S",
+      "OUT",
+      "I/O",
+      "IO",
+      "DO",
+      "D0",
+      "A0",
+      "AO",
+      "NO",
+      "SW"
+     ],
+     "at": [
+      34.5,
+      3.8
+     ]
+    }
+   ],
+   "height_envelope_mm": {
+    "above_board_top": 20.0,
+    "why": "header + mated plug + wire bend zone (estimate)"
+   },
+   "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+   "note": "GPIO6 (ADC1 + touch capable). 3.3 V logic and 3.3 V supply only."
+  },
+  {
+   "id": "J_LED",
+   "kind": "port",
+   "title": "Addressable LED or servo (5 V supply, 5 V data via level shifter)",
+   "footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+   "at": [
+    41.0,
+    3.8
+   ],
+   "rotation_deg": 0,
+   "kicad": {
+    "x": 41.0,
+    "y": 74.8,
+    "rot": 0
+   },
+   "courtyard": [
+    38.55,
+    47.45,
+    0.5,
+    6.0
+   ],
+   "facing": "up",
+   "connector": "JST-PH 2.0",
+   "pins_count": 3,
+   "supply": "+5V",
+   "cable": {
+    "family": "JST-PH 2.0",
+    "pins": 3,
+    "type": "PHR-3; port and cable labelled LED 5V"
+   },
+   "accepts_roles": [
+    "led",
+    "servo"
+   ],
+   "pins": [
+    {
+     "pin": 1,
+     "name": "GND",
+     "net": "GND",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "GND",
+      "G",
+      "-",
+      "VSS",
+      "COM"
+     ],
+     "at": [
+      41.0,
+      3.8
+     ]
+    },
+    {
+     "pin": 2,
+     "name": "5V",
+     "net": "+5V",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "5V",
+      "VCC",
+      "VIN",
+      "V+",
+      "+",
+      "VDD",
+      "+5V"
+     ],
+     "at": [
+      43.0,
+      3.8
+     ]
+    },
+    {
+     "pin": 3,
+     "name": "DIN",
+     "net": "LED_DIN_5V",
+     "gpio": null,
+     "kind": "signal",
+     "accepts": [
+      "DIN",
+      "DI",
+      "IN",
+      "D",
+      "SIG",
+      "PWM",
+      "S"
+     ],
+     "source_gpio": 2,
+     "via": "U3 74AHCT1G125 (3.3 V -> 5 V) + R3 330 ohm",
+     "at": [
+      45.0,
+      3.8
+     ]
+    }
+   ],
+   "height_envelope_mm": {
+    "above_board_top": 20.0,
+    "why": "header + mated plug + wire bend zone (estimate)"
+   },
+   "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+   "note": "DIN is driven by U3 (74AHCT1G125 at 5 V) through R3 330 ohm from GPIO2. Same 3-pin PH family as J_IO: a mis-plugged 3-pin IO module from this library sees 5 V (all of them accept 3.3-5 V) and its output meets the buffer, never a GPIO; an LED plugged into J_IO just gets 3.3 V. Silkscreen 'LED 5V' and a red housing mark."
+  },
+  {
+   "id": "J_PWR",
+   "kind": "power_in",
+   "title": "USB-C receptacle (power + native USB for flashing)",
+   "accepts_roles": [
+    "power_in"
+   ],
+   "module": "USBC_RECEPTACLE_GCT_USB4105",
+   "footprint": "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal",
+   "alt_footprint": "Connector_USB:USB_C_Receptacle_HRO_TYPE-C-31-M-12",
+   "mpn": "GCT USB4105-GF-A",
+   "edge_line_local_y": 3.675,
+   "at": [
+    31.4,
+    74.925
+   ],
+   "rotation_deg": 180,
+   "kicad": {
+    "x": 31.4,
+    "y": 3.675,
+    "rot": 180
+   },
+   "courtyard": [
+    26.08,
+    36.72,
+    70.17,
+    79.11
+   ],
+   "front_face_board_y": 79.105,
+   "facing": "rear (+y), board edge",
+   "edge": "rear",
+   "pins": [
+    {
+     "pin": "A1",
+     "name": "GND",
+     "net": "GND",
+     "gpio": null
+    },
+    {
+     "pin": "B1",
+     "name": "GND",
+     "net": "GND",
+     "gpio": null
+    },
+    {
+     "pin": "A12",
+     "name": "GND",
+     "net": "GND",
+     "gpio": null
+    },
+    {
+     "pin": "B12",
+     "name": "GND",
+     "net": "GND",
+     "gpio": null
+    },
+    {
+     "pin": "A4",
+     "name": "VBUS",
+     "net": "VBUS",
+     "gpio": null
+    },
+    {
+     "pin": "B4",
+     "name": "VBUS",
+     "net": "VBUS",
+     "gpio": null
+    },
+    {
+     "pin": "A9",
+     "name": "VBUS",
+     "net": "VBUS",
+     "gpio": null
+    },
+    {
+     "pin": "B9",
+     "name": "VBUS",
+     "net": "VBUS",
+     "gpio": null
+    },
+    {
+     "pin": "A5",
+     "name": "CC1",
+     "net": "CC1",
+     "gpio": null
+    },
+    {
+     "pin": "B5",
+     "name": "CC2",
+     "net": "CC2",
+     "gpio": null
+    },
+    {
+     "pin": "A6",
+     "name": "D+",
+     "net": "USB_DP",
+     "gpio": null
+    },
+    {
+     "pin": "B6",
+     "name": "D+",
+     "net": "USB_DP",
+     "gpio": null
+    },
+    {
+     "pin": "A7",
+     "name": "D-",
+     "net": "USB_DN",
+     "gpio": null
+    },
+    {
+     "pin": "B7",
+     "name": "D-",
+     "net": "USB_DN",
+     "gpio": null
+    },
+    {
+     "pin": "A8",
+     "name": "SBU1",
+     "net": null,
+     "gpio": null,
+     "kind": "nc"
+    },
+    {
+     "pin": "B8",
+     "name": "SBU2",
+     "net": null,
+     "gpio": null,
+     "kind": "nc"
+    },
+    {
+     "pin": "S1",
+     "name": "SHIELD",
+     "net": "GND",
+     "gpio": null
+    }
+   ],
+   "opening_center_board": [
+    31.4,
+    78.6
+   ],
+   "receptacle_center_above_board_top": 1.6,
+   "shell_opening_mm": {
+    "w": 13.0,
+    "h": 7.0,
+    "corner_r": 2.5,
+    "why": "plug overmold estimate from library row 03; confirm with the shipped cable"
+   },
+   "height_envelope_mm": {
+    "above_board_top": 3.3,
+    "why": "receptacle body (estimate)"
+   }
+  },
+  {
+   "id": "J_I2C3",
+   "kind": "port",
+   "title": "I2C port 3",
+   "footprint": "Connector_JST:JST_PH_B4B-PH-K_1x04_P2.00mm_Vertical",
+   "at": [
+    40.15,
+    73.0
+   ],
+   "rotation_deg": 0,
+   "kicad": {
+    "x": 40.15,
+    "y": 5.6,
+    "rot": 0
+   },
+   "courtyard": [
+    37.7,
+    48.6,
+    69.7,
+    75.2
+   ],
+   "facing": "up",
+   "connector": "JST-PH 2.0",
+   "pins_count": 4,
+   "supply": "+3V3",
+   "cable": {
+    "family": "JST-PH 2.0",
+    "pins": 4,
+    "type": "PHR-4 to Dupont 1x4 female (by label) or PH-SH for STEMMA QT"
+   },
+   "accepts_roles": [
+    "display",
+    "light_sensor",
+    "temp_humidity",
+    "pressure",
+    "distance",
+    "imu",
+    "rtc"
+   ],
+   "pins": [
+    {
+     "pin": 1,
+     "name": "GND",
+     "net": "GND",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "GND",
+      "G",
+      "-",
+      "VSS",
+      "COM"
+     ],
+     "at": [
+      40.15,
+      73.0
+     ]
+    },
+    {
+     "pin": 2,
+     "name": "3V3",
+     "net": "+3V3",
+     "gpio": null,
+     "kind": "power",
+     "accepts": [
+      "3V3",
+      "3.3V",
+      "VCC",
+      "VDD",
+      "VIN",
+      "V+",
+      "+",
+      "VCC_3V3"
+     ],
+     "at": [
+      42.15,
+      73.0
+     ]
+    },
+    {
+     "pin": 3,
+     "name": "SDA",
+     "net": "I2C_SDA",
+     "gpio": 8,
+     "kind": "signal",
+     "accepts": [
+      "SDA",
+      "SDI",
+      "DATA"
+     ],
+     "at": [
+      44.15,
+      73.0
+     ]
+    },
+    {
+     "pin": 4,
+     "name": "SCL",
+     "net": "I2C_SCL",
+     "gpio": 9,
+     "kind": "signal",
+     "accepts": [
+      "SCL",
+      "SCK",
+      "CLK"
+     ],
+     "at": [
+      46.15,
+      73.0
+     ]
+    }
+   ],
+   "height_envelope_mm": {
+    "above_board_top": 20.0,
+    "why": "header + mated plug + wire bend zone (estimate)"
+   },
+   "plug_access": "vertical from above; keep the plan courtyard free of modules above it"
+  }
+ ],
+ "parts": [
+  {
+   "ref": "J_U1A",
+   "footprint": "Connector_PinSocket_2.54mm:PinSocket_1x22_P2.54mm_Vertical",
+   "at": [
+    2.5,
+    44.27
+   ],
+   "rotation_deg": 90,
+   "side": "top",
+   "kicad": {
+    "x": 2.5,
+    "y": 34.33,
+    "rot": 90
+   },
+   "courtyard": [
+    0.7,
+    57.6,
+    42.47,
+    46.02
+   ],
+   "role": "core_socket",
+   "slot": "U1",
+   "note": "DevKitC header J1 (pin 1 = 3V3 at the antenna end)"
+  },
+  {
+   "ref": "J_U1B",
+   "footprint": "Connector_PinSocket_2.54mm:PinSocket_1x22_P2.54mm_Vertical",
+   "at": [
+    2.5,
+    67.13
+   ],
+   "rotation_deg": 90,
+   "side": "top",
+   "kicad": {
+    "x": 2.5,
+    "y": 11.47,
+    "rot": 90
+   },
+   "courtyard": [
+    0.7,
+    57.6,
+    65.33,
+    68.88
+   ],
+   "role": "core_socket",
+   "slot": "U1",
+   "note": "DevKitC header J3 (pin 1 = GND at the antenna end)"
+  },
+  {
+   "ref": "J_A1",
+   "footprint": "Connector_PinSocket_2.54mm:PinSocket_1x07_P2.54mm_Vertical",
+   "at": [
+    45.77,
+    11.04
+   ],
+   "rotation_deg": 90,
+   "side": "top",
+   "kicad": {
+    "x": 45.77,
+    "y": 67.56,
+    "rot": 90
+   },
+   "courtyard": [
+    43.97,
+    62.77,
+    9.24,
+    12.79
+   ],
+   "role": "module_socket",
+   "slot": "A1"
+  },
+  {
+   "ref": "J_A1P",
+   "footprint": "Connector_PinSocket_2.54mm:PinSocket_1x01_P2.54mm_Vertical",
+   "at": [
+    55.09,
+    23.99
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 55.09,
+    "y": 54.61,
+    "rot": 0
+   },
+   "courtyard": [
+    53.29,
+    56.84,
+    22.24,
+    25.79
+   ],
+   "role": "module_socket",
+   "slot": "A1",
+   "note": "amp VO+ (terminal pad); factory solders a 2.54 male pin instead of the screw terminal"
+  },
+  {
+   "ref": "J_A1N",
+   "footprint": "Connector_PinSocket_2.54mm:PinSocket_1x01_P2.54mm_Vertical",
+   "at": [
+    51.59,
+    23.99
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 51.59,
+    "y": 54.61,
+    "rot": 0
+   },
+   "courtyard": [
+    49.79,
+    53.34,
+    22.24,
+    25.79
+   ],
+   "role": "module_socket",
+   "slot": "A1",
+   "note": "amp VO- (terminal pad)"
+  },
+  {
+   "ref": "J_SPK",
+   "footprint": "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical",
+   "at": [
+    52.0,
+    31.3
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 52.0,
+    "y": 47.3,
+    "rot": 0
+   },
+   "courtyard": [
+    49.55,
+    56.45,
+    28.0,
+    33.5
+   ],
+   "role": "port",
+   "slot": "J_SPK"
+  },
+  {
+   "ref": "J_S1",
+   "footprint": "Connector_PinSocket_2.54mm:PinSocket_1x06_P2.54mm_Vertical",
+   "at": [
+    40.5,
+    26.85
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 40.5,
+    "y": 51.75,
+    "rot": 0
+   },
+   "courtyard": [
+    38.7,
+    42.25,
+    12.4,
+    28.65
+   ],
+   "role": "module_socket",
+   "slot": "S1"
+  },
+  {
+   "ref": "J_MIC",
+   "footprint": "Connector_JST:JST_PH_B6B-PH-K_1x06_P2.00mm_Vertical",
+   "at": [
+    2.95,
+    37.5
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 2.95,
+    "y": 41.1,
+    "rot": 0
+   },
+   "courtyard": [
+    0.5,
+    15.4,
+    34.2,
+    39.7
+   ],
+   "role": "port",
+   "slot": "J_MIC"
+  },
+  {
+   "ref": "J_DISP",
+   "footprint": "Connector_JST:JST_PH_B8B-PH-K_1x08_P2.00mm_Vertical",
+   "at": [
+    18.85,
+    37.5
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 18.85,
+    "y": 41.1,
+    "rot": 0
+   },
+   "courtyard": [
+    16.4,
+    35.3,
+    34.2,
+    39.7
+   ],
+   "role": "port",
+   "slot": "J_DISP"
+  },
+  {
+   "ref": "J_I2C1",
+   "footprint": "Connector_JST:JST_PH_B4B-PH-K_1x04_P2.00mm_Vertical",
+   "at": [
+    38.75,
+    37.5
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 38.75,
+    "y": 41.1,
+    "rot": 0
+   },
+   "courtyard": [
+    36.3,
+    47.2,
+    34.2,
+    39.7
+   ],
+   "role": "port",
+   "slot": "J_I2C1"
+  },
+  {
+   "ref": "J_I2C2",
+   "footprint": "Connector_JST:JST_PH_B4B-PH-K_1x04_P2.00mm_Vertical",
+   "at": [
+    50.65,
+    37.5
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 50.65,
+    "y": 41.1,
+    "rot": 0
+   },
+   "courtyard": [
+    48.2,
+    59.1,
+    34.2,
+    39.7
+   ],
+   "role": "port",
+   "slot": "J_I2C2"
+  },
+  {
+   "ref": "J_IO1",
+   "footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+   "at": [
+    9.5,
+    3.8
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 9.5,
+    "y": 74.8,
+    "rot": 0
+   },
+   "courtyard": [
+    7.05,
+    15.95,
+    0.5,
+    6.0
+   ],
+   "role": "port",
+   "slot": "J_IO1"
+  },
+  {
+   "ref": "J_IO2",
+   "footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+   "at": [
+    20.0,
+    3.8
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 20.0,
+    "y": 74.8,
+    "rot": 0
+   },
+   "courtyard": [
+    17.55,
+    26.45,
+    0.5,
+    6.0
+   ],
+   "role": "port",
+   "slot": "J_IO2"
+  },
+  {
+   "ref": "J_IO3",
+   "footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+   "at": [
+    30.5,
+    3.8
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 30.5,
+    "y": 74.8,
+    "rot": 0
+   },
+   "courtyard": [
+    28.05,
+    36.95,
+    0.5,
+    6.0
+   ],
+   "role": "port",
+   "slot": "J_IO3"
+  },
+  {
+   "ref": "J_LED",
+   "footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+   "at": [
+    41.0,
+    3.8
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 41.0,
+    "y": 74.8,
+    "rot": 0
+   },
+   "courtyard": [
+    38.55,
+    47.45,
+    0.5,
+    6.0
+   ],
+   "role": "port",
+   "slot": "J_LED"
+  },
+  {
+   "ref": "J_PWR",
+   "footprint": "Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal",
+   "at": [
+    31.4,
+    74.925
+   ],
+   "rotation_deg": 180,
+   "side": "top",
+   "kicad": {
+    "x": 31.4,
+    "y": 3.675,
+    "rot": 180
+   },
+   "courtyard": [
+    26.08,
+    36.72,
+    70.17,
+    79.11
+   ],
+   "role": "power_in",
+   "slot": "J_PWR",
+   "note": "GCT USB4105-GF-A; opening faces +y (rear); the footprint's 'PCB Edge' line sits on the board edge (PCB stage alignment, +0.175 mm vs the earlier HRO position); body front 0.505 mm past the edge"
+  },
+  {
+   "ref": "J_I2C3",
+   "footprint": "Connector_JST:JST_PH_B4B-PH-K_1x04_P2.00mm_Vertical",
+   "at": [
+    40.15,
+    73.0
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 40.15,
+    "y": 5.6,
+    "rot": 0
+   },
+   "courtyard": [
+    37.7,
+    48.6,
+    69.7,
+    75.2
+   ],
+   "role": "port",
+   "slot": "J_I2C3"
+  },
+  {
+   "ref": "F1",
+   "footprint": "Fuse:Fuse_1812_4532Metric",
+   "at": [
+    31.4,
+    60.0
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 31.4,
+    "y": 18.6,
+    "rot": 0
+   },
+   "courtyard": [
+    28.45,
+    34.35,
+    58.05,
+    61.95
+   ],
+   "value": "PTC fuse 1.5 A hold, >= 6 V (1812)",
+   "role": "support",
+   "note": "suggested position; keep inside under_devkit_zone or near its slot",
+   "group": "power",
+   "pins": {
+    "1": "VBUS",
+    "2": "+5V"
+   }
+  },
+  {
+   "ref": "D1",
+   "footprint": "Diode_SMD:D_SMA",
+   "at": [
+    22.5,
+    60.0
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 22.5,
+    "y": 18.6,
+    "rot": 0
+   },
+   "courtyard": [
+    18.99,
+    26.0,
+    58.25,
+    61.75
+   ],
+   "value": "TVS 5.0 V standoff, unidirectional (SMAJ5.0A class); pad 1 = cathode",
+   "role": "support",
+   "note": "suggested position; keep inside under_devkit_zone or near its slot",
+   "group": "power",
+   "pins": {
+    "1": "+5V",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C1",
+   "footprint": "Capacitor_SMD:C_0805_2012Metric",
+   "at": [
+    38.0,
+    60.0
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 38.0,
+    "y": 18.6,
+    "rot": 0
+   },
+   "courtyard": [
+    36.3,
+    39.7,
+    59.02,
+    60.98
+   ],
+   "value": "10 uF 25 V X5R",
+   "role": "support",
+   "note": "suggested position; keep inside under_devkit_zone or near its slot",
+   "group": "power",
+   "pins": {
+    "1": "+5V",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C2",
+   "footprint": "Capacitor_SMD:C_0603_1608Metric",
+   "at": [
+    41.5,
+    60.0
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 41.5,
+    "y": 18.6,
+    "rot": 0
+   },
+   "courtyard": [
+    40.02,
+    42.98,
+    59.27,
+    60.73
+   ],
+   "value": "100 nF 50 V X7R",
+   "role": "support",
+   "note": "suggested position; keep inside under_devkit_zone or near its slot",
+   "group": "power",
+   "pins": {
+    "1": "+5V",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "R1",
+   "footprint": "Resistor_SMD:R_0603_1608Metric",
+   "at": [
+    22.0,
+    72.0
+   ],
+   "rotation_deg": 90,
+   "side": "top",
+   "kicad": {
+    "x": 22.0,
+    "y": 6.6,
+    "rot": 90
+   },
+   "courtyard": [
+    21.27,
+    22.73,
+    70.52,
+    73.48
+   ],
+   "value": "5.1 k 1% (CC1 to GND)",
+   "role": "support",
+   "note": "suggested position; keep inside under_devkit_zone or near its slot",
+   "group": "power",
+   "pins": {
+    "1": "CC1",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "R2",
+   "footprint": "Resistor_SMD:R_0603_1608Metric",
+   "at": [
+    24.5,
+    72.0
+   ],
+   "rotation_deg": 90,
+   "side": "top",
+   "kicad": {
+    "x": 24.5,
+    "y": 6.6,
+    "rot": 90
+   },
+   "courtyard": [
+    23.77,
+    25.23,
+    70.52,
+    73.48
+   ],
+   "value": "5.1 k 1% (CC2 to GND)",
+   "role": "support",
+   "note": "suggested position; keep inside under_devkit_zone or near its slot",
+   "group": "power",
+   "pins": {
+    "1": "CC2",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "U2",
+   "footprint": "Package_TO_SOT_SMD:SOT-23-6",
+   "at": [
+    53.5,
+    72.0
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 53.5,
+    "y": 6.6,
+    "rot": 0
+   },
+   "courtyard": [
+    51.45,
+    55.55,
+    70.3,
+    73.84
+   ],
+   "value": "USBLC6-2SC6 USB ESD array",
+   "role": "support",
+   "note": "suggested position; keep inside under_devkit_zone or near its slot",
+   "group": "usb",
+   "pins": {
+    "1": "USB_DP",
+    "2": "GND",
+    "3": "USB_DN",
+    "4": "USB_DN",
+    "5": "+5V",
+    "6": "USB_DP"
+   }
+  },
+  {
+   "ref": "U3",
+   "footprint": "Package_TO_SOT_SMD:SOT-23-5",
+   "at": [
+    14.0,
+    55.0
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 14.0,
+    "y": 23.6,
+    "rot": 0
+   },
+   "courtyard": [
+    11.95,
+    16.05,
+    53.3,
+    56.84
+   ],
+   "value": "74AHCT1G125 buffer at +5V (LED data level shift; OE# tied low)",
+   "role": "support",
+   "note": "suggested position; keep inside under_devkit_zone or near its slot",
+   "group": "led",
+   "pins": {
+    "1": "GND",
+    "2": "LED_DIN_3V3",
+    "3": "GND",
+    "4": "LED_DIN_BUF",
+    "5": "+5V"
+   }
+  },
+  {
+   "ref": "R3",
+   "footprint": "Resistor_SMD:R_0603_1608Metric",
+   "at": [
+    18.5,
+    55.0
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 18.5,
+    "y": 23.6,
+    "rot": 0
+   },
+   "courtyard": [
+    17.02,
+    19.98,
+    54.27,
+    55.73
+   ],
+   "value": "330 ohm (LED DIN series)",
+   "role": "support",
+   "note": "suggested position; keep inside under_devkit_zone or near its slot",
+   "group": "led",
+   "pins": {
+    "1": "LED_DIN_BUF",
+    "2": "LED_DIN_5V"
+   }
+  },
+  {
+   "ref": "C5",
+   "footprint": "Capacitor_SMD:C_0603_1608Metric",
+   "at": [
+    14.0,
+    51.5
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 14.0,
+    "y": 27.1,
+    "rot": 0
+   },
+   "courtyard": [
+    12.52,
+    15.48,
+    50.77,
+    52.23
+   ],
+   "value": "100 nF (U3 decoupling)",
+   "role": "support",
+   "note": "suggested position; keep inside under_devkit_zone or near its slot",
+   "group": "led",
+   "pins": {
+    "1": "+5V",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C4",
+   "footprint": "Capacitor_SMD:C_1206_3216Metric",
+   "at": [
+    48.0,
+    55.0
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 48.0,
+    "y": 23.6,
+    "rot": 0
+   },
+   "courtyard": [
+    45.7,
+    50.3,
+    53.85,
+    56.15
+   ],
+   "value": "22 uF 10 V X5R (J_LED 5 V bulk)",
+   "role": "support",
+   "note": "suggested position; keep inside under_devkit_zone or near its slot",
+   "group": "led",
+   "pins": {
+    "1": "+5V",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "R4",
+   "footprint": "Resistor_SMD:R_0603_1608Metric",
+   "at": [
+    26.0,
+    55.0
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 26.0,
+    "y": 23.6,
+    "rot": 0
+   },
+   "courtyard": [
+    24.52,
+    27.48,
+    54.27,
+    55.73
+   ],
+   "value": "4.7 k (I2C SDA pull-up to +3V3)",
+   "role": "support",
+   "note": "suggested position; keep inside under_devkit_zone or near its slot",
+   "group": "i2c",
+   "pins": {
+    "1": "I2C_SDA",
+    "2": "+3V3"
+   }
+  },
+  {
+   "ref": "R5",
+   "footprint": "Resistor_SMD:R_0603_1608Metric",
+   "at": [
+    26.0,
+    52.5
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 26.0,
+    "y": 26.1,
+    "rot": 0
+   },
+   "courtyard": [
+    24.52,
+    27.48,
+    51.77,
+    53.23
+   ],
+   "value": "4.7 k (I2C SCL pull-up to +3V3)",
+   "role": "support",
+   "note": "suggested position; keep inside under_devkit_zone or near its slot",
+   "group": "i2c",
+   "pins": {
+    "1": "I2C_SCL",
+    "2": "+3V3"
+   }
+  },
+  {
+   "ref": "R7",
+   "footprint": "Resistor_SMD:R_0603_1608Metric",
+   "at": [
+    36.0,
+    55.0
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 36.0,
+    "y": 23.6,
+    "rot": 0
+   },
+   "courtyard": [
+    34.52,
+    37.48,
+    54.27,
+    55.73
+   ],
+   "value": "100 k (AMP_SD pull-down: amp stays off until firmware enables it)",
+   "role": "support",
+   "note": "suggested position; keep inside under_devkit_zone or near its slot",
+   "group": "audio",
+   "pins": {
+    "1": "AMP_SD",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "C3",
+   "footprint": "Capacitor_SMD:C_1206_3216Metric",
+   "at": [
+    42.0,
+    55.0
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 42.0,
+    "y": 23.6,
+    "rot": 0
+   },
+   "courtyard": [
+    39.7,
+    44.3,
+    53.85,
+    56.15
+   ],
+   "value": "22 uF 10 V X5R (A1 VIN bulk)",
+   "role": "support",
+   "note": "suggested position; keep inside under_devkit_zone or near its slot",
+   "group": "audio",
+   "pins": {
+    "1": "+5V",
+    "2": "GND"
+   }
+  },
+  {
+   "ref": "H1",
+   "footprint": "MountingHole:MountingHole_2.7mm_M2.5",
+   "at": [
+    3.5,
+    3.5
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 3.5,
+    "y": 75.1,
+    "rot": 0
+   },
+   "courtyard": [
+    0.55,
+    6.45,
+    0.55,
+    6.45
+   ],
+   "role": "mounting_hole"
+  },
+  {
+   "ref": "H2",
+   "footprint": "MountingHole:MountingHole_2.7mm_M2.5",
+   "at": [
+    59.3,
+    3.5
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 59.3,
+    "y": 75.1,
+    "rot": 0
+   },
+   "courtyard": [
+    56.35,
+    62.25,
+    0.55,
+    6.45
+   ],
+   "role": "mounting_hole"
+  },
+  {
+   "ref": "H3",
+   "footprint": "MountingHole:MountingHole_2.7mm_M2.5",
+   "at": [
+    3.5,
+    75.1
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 3.5,
+    "y": 3.5,
+    "rot": 0
+   },
+   "courtyard": [
+    0.55,
+    6.45,
+    72.15,
+    78.05
+   ],
+   "role": "mounting_hole"
+  },
+  {
+   "ref": "H4",
+   "footprint": "MountingHole:MountingHole_2.7mm_M2.5",
+   "at": [
+    59.3,
+    75.1
+   ],
+   "rotation_deg": 0,
+   "side": "top",
+   "kicad": {
+    "x": 59.3,
+    "y": 3.5,
+    "rot": 0
+   },
+   "courtyard": [
+    56.35,
+    62.25,
+    72.15,
+    78.05
+   ],
+   "role": "mounting_hole"
+  },
+  {
+   "ref": "TP1",
+   "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+   "at": [
+    12.0,
+    50.0
+   ],
+   "rotation_deg": 0,
+   "side": "bottom",
+   "kicad": {
+    "x": 12.0,
+    "y": 28.6,
+    "rot": 0
+   },
+   "courtyard": [
+    10.75,
+    13.25,
+    48.75,
+    51.25
+   ],
+   "value": "+5V",
+   "role": "test_pad",
+   "note": "bottom side, 5.08 mm grid for a pogo jig; reach from below before the cartridge goes into the shell",
+   "group": "test",
+   "pins": {
+    "1": "+5V"
+   }
+  },
+  {
+   "ref": "TP2",
+   "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+   "at": [
+    17.08,
+    50.0
+   ],
+   "rotation_deg": 0,
+   "side": "bottom",
+   "kicad": {
+    "x": 17.08,
+    "y": 28.6,
+    "rot": 0
+   },
+   "courtyard": [
+    15.83,
+    18.33,
+    48.75,
+    51.25
+   ],
+   "value": "+3V3",
+   "role": "test_pad",
+   "note": "bottom side, 5.08 mm grid for a pogo jig; reach from below before the cartridge goes into the shell",
+   "group": "test",
+   "pins": {
+    "1": "+3V3"
+   }
+  },
+  {
+   "ref": "TP3",
+   "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+   "at": [
+    22.16,
+    50.0
+   ],
+   "rotation_deg": 0,
+   "side": "bottom",
+   "kicad": {
+    "x": 22.16,
+    "y": 28.6,
+    "rot": 0
+   },
+   "courtyard": [
+    20.91,
+    23.41,
+    48.75,
+    51.25
+   ],
+   "value": "GND",
+   "role": "test_pad",
+   "note": "bottom side, 5.08 mm grid for a pogo jig; reach from below before the cartridge goes into the shell",
+   "group": "test",
+   "pins": {
+    "1": "GND"
+   }
+  },
+  {
+   "ref": "TP4",
+   "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+   "at": [
+    27.24,
+    50.0
+   ],
+   "rotation_deg": 0,
+   "side": "bottom",
+   "kicad": {
+    "x": 27.24,
+    "y": 28.6,
+    "rot": 0
+   },
+   "courtyard": [
+    25.99,
+    28.49,
+    48.75,
+    51.25
+   ],
+   "value": "EN",
+   "role": "test_pad",
+   "note": "bottom side, 5.08 mm grid for a pogo jig; reach from below before the cartridge goes into the shell",
+   "group": "test",
+   "pins": {
+    "1": "EN"
+   }
+  },
+  {
+   "ref": "TP5",
+   "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+   "at": [
+    32.32,
+    50.0
+   ],
+   "rotation_deg": 0,
+   "side": "bottom",
+   "kicad": {
+    "x": 32.32,
+    "y": 28.6,
+    "rot": 0
+   },
+   "courtyard": [
+    31.07,
+    33.57,
+    48.75,
+    51.25
+   ],
+   "value": "UART0_TX",
+   "role": "test_pad",
+   "note": "bottom side, 5.08 mm grid for a pogo jig; reach from below before the cartridge goes into the shell",
+   "group": "test",
+   "pins": {
+    "1": "UART0_TX"
+   }
+  },
+  {
+   "ref": "TP6",
+   "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+   "at": [
+    37.4,
+    50.0
+   ],
+   "rotation_deg": 0,
+   "side": "bottom",
+   "kicad": {
+    "x": 37.4,
+    "y": 28.6,
+    "rot": 0
+   },
+   "courtyard": [
+    36.15,
+    38.65,
+    48.75,
+    51.25
+   ],
+   "value": "UART0_RX",
+   "role": "test_pad",
+   "note": "bottom side, 5.08 mm grid for a pogo jig; reach from below before the cartridge goes into the shell",
+   "group": "test",
+   "pins": {
+    "1": "UART0_RX"
+   }
+  },
+  {
+   "ref": "TP7",
+   "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+   "at": [
+    42.48,
+    50.0
+   ],
+   "rotation_deg": 0,
+   "side": "bottom",
+   "kicad": {
+    "x": 42.48,
+    "y": 28.6,
+    "rot": 0
+   },
+   "courtyard": [
+    41.23,
+    43.73,
+    48.75,
+    51.25
+   ],
+   "value": "BOOT_IO0",
+   "role": "test_pad",
+   "note": "bottom side, 5.08 mm grid for a pogo jig; reach from below before the cartridge goes into the shell",
+   "group": "test",
+   "pins": {
+    "1": "BOOT_IO0"
+   }
+  }
+ ],
+ "power": {
+  "rails": [
+   {
+    "name": "VBUS",
+    "source": "USB-C J_PWR VBUS pins (sink only)",
+    "note": "before the fuse"
+   },
+   {
+    "name": "+5V",
+    "source": "VBUS -> F1 (PTC 1.5 A hold) -> +5V; D1 TVS to GND after F1; C1 10 uF + C2 100 nF",
+    "feeds": [
+     "U1 5V pin (J1-21)",
+     "A1 VIN",
+     "S1 VCC",
+     "J_LED 5V",
+     "U3 VCC"
+    ]
+   },
+   {
+    "name": "+3V3",
+    "source": "DevKitC on-board LDO SGM2212-3.3 (fed from its VCC_5V net, which is the header 5V pin)",
+    "feeds": [
+     "J_I2C1..3",
+     "J_DISP",
+     "J_MIC",
+     "J_IO1..3",
+     "R4/R5 pull-ups"
+    ]
+   }
+  ],
+  "cc": "CC1 (A5) and CC2 (B5) each through their own 5.1 k to GND (R1, R2): USB-C sink advertisement.",
+  "usb_data": "D+ (A6/B6) and D- (A7/B7) through U2 USBLC6-2SC6 to GPIO20/GPIO19 (DevKitC J3-19/J3-20): the rear port flashes and talks to the ESP32-S3 native USB. The DevKitC 'USB' micro port shares the same pins, so only one of the two may be connected at a time (physical check still needed for the stub).",
+  "devkit_isolation": {
+   "finding": "On the DevKitC-1 v1.1 schematic (SCH_ESP32-S3-DevKitC-1_V1.1_20221130.pdf) each micro-USB VBUS reaches the VCC_5V net through its own Schottky diode (D1 and D7, 1N5819HW-7-F). The header 5V pin (J1-21) is VCC_5V, which feeds the SGM2212-3.3 LDO.",
+   "consequence": "Backplane +5V into J1-21 cannot back-feed a PC on the DevKitC's own USB ports: those diodes block it. If someone powers only from a DevKitC USB port, about VBUS - 0.4 V reaches the backplane +5V and the rear USB-C VBUS pins.",
+   "decision": "No series diode between F1 and +5V. A Schottky would drop about 0.4-0.5 V at 1-1.5 A and push the Catalex microSD module (4.5-5.5 V) out of range. Factory rule: never connect the DevKitC USB and the rear USB-C at the same time; flash through the rear USB-C. Fit a low-drop ideal-diode stage in a later revision if the factory needs both ports at once."
+  },
+  "limits": {
+   "usb_source_ma": 3000,
+   "usb_source_note": "approved 5.1 V 3 A adapter (library row 04); a computer port may give only 500-900 mA",
+   "fuse_hold_ma": 1500,
+   "limit_5v_ma": 1350,
+   "limit_5v_why": "90% of the 1.5 A PTC hold current (also under 80% of a 3 A source)",
+   "ldo_3v3_rating_ma": 800,
+   "ldo_3v3_source": "SG Micro SGM2212 product page: 800 mA output current capability",
+   "limit_3v3_ma": 600,
+   "limit_3v3_why": "75% of the LDO rating; average dissipation (V5 - 3.3) x I must also stay low (SOT-223, estimate)"
+  },
+  "firmware_rules": [
+   "cap LED brightness so the LED port stays under its budget",
+   "limit amp volume when the budget is tight",
+   "keep AMP_SD low (amp off) when idle"
+  ]
+ },
+ "test_pads": [
+  {
+   "ref": "TP1",
+   "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+   "at": [
+    12.0,
+    50.0
+   ],
+   "rotation_deg": 0,
+   "side": "bottom",
+   "kicad": {
+    "x": 12.0,
+    "y": 28.6,
+    "rot": 0
+   },
+   "courtyard": [
+    10.75,
+    13.25,
+    48.75,
+    51.25
+   ],
+   "value": "+5V",
+   "role": "test_pad",
+   "note": "bottom side, 5.08 mm grid for a pogo jig; reach from below before the cartridge goes into the shell",
+   "group": "test",
+   "pins": {
+    "1": "+5V"
+   }
+  },
+  {
+   "ref": "TP2",
+   "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+   "at": [
+    17.08,
+    50.0
+   ],
+   "rotation_deg": 0,
+   "side": "bottom",
+   "kicad": {
+    "x": 17.08,
+    "y": 28.6,
+    "rot": 0
+   },
+   "courtyard": [
+    15.83,
+    18.33,
+    48.75,
+    51.25
+   ],
+   "value": "+3V3",
+   "role": "test_pad",
+   "note": "bottom side, 5.08 mm grid for a pogo jig; reach from below before the cartridge goes into the shell",
+   "group": "test",
+   "pins": {
+    "1": "+3V3"
+   }
+  },
+  {
+   "ref": "TP3",
+   "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+   "at": [
+    22.16,
+    50.0
+   ],
+   "rotation_deg": 0,
+   "side": "bottom",
+   "kicad": {
+    "x": 22.16,
+    "y": 28.6,
+    "rot": 0
+   },
+   "courtyard": [
+    20.91,
+    23.41,
+    48.75,
+    51.25
+   ],
+   "value": "GND",
+   "role": "test_pad",
+   "note": "bottom side, 5.08 mm grid for a pogo jig; reach from below before the cartridge goes into the shell",
+   "group": "test",
+   "pins": {
+    "1": "GND"
+   }
+  },
+  {
+   "ref": "TP4",
+   "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+   "at": [
+    27.24,
+    50.0
+   ],
+   "rotation_deg": 0,
+   "side": "bottom",
+   "kicad": {
+    "x": 27.24,
+    "y": 28.6,
+    "rot": 0
+   },
+   "courtyard": [
+    25.99,
+    28.49,
+    48.75,
+    51.25
+   ],
+   "value": "EN",
+   "role": "test_pad",
+   "note": "bottom side, 5.08 mm grid for a pogo jig; reach from below before the cartridge goes into the shell",
+   "group": "test",
+   "pins": {
+    "1": "EN"
+   }
+  },
+  {
+   "ref": "TP5",
+   "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+   "at": [
+    32.32,
+    50.0
+   ],
+   "rotation_deg": 0,
+   "side": "bottom",
+   "kicad": {
+    "x": 32.32,
+    "y": 28.6,
+    "rot": 0
+   },
+   "courtyard": [
+    31.07,
+    33.57,
+    48.75,
+    51.25
+   ],
+   "value": "UART0_TX",
+   "role": "test_pad",
+   "note": "bottom side, 5.08 mm grid for a pogo jig; reach from below before the cartridge goes into the shell",
+   "group": "test",
+   "pins": {
+    "1": "UART0_TX"
+   }
+  },
+  {
+   "ref": "TP6",
+   "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+   "at": [
+    37.4,
+    50.0
+   ],
+   "rotation_deg": 0,
+   "side": "bottom",
+   "kicad": {
+    "x": 37.4,
+    "y": 28.6,
+    "rot": 0
+   },
+   "courtyard": [
+    36.15,
+    38.65,
+    48.75,
+    51.25
+   ],
+   "value": "UART0_RX",
+   "role": "test_pad",
+   "note": "bottom side, 5.08 mm grid for a pogo jig; reach from below before the cartridge goes into the shell",
+   "group": "test",
+   "pins": {
+    "1": "UART0_RX"
+   }
+  },
+  {
+   "ref": "TP7",
+   "footprint": "TestPoint:TestPoint_Pad_D1.5mm",
+   "at": [
+    42.48,
+    50.0
+   ],
+   "rotation_deg": 0,
+   "side": "bottom",
+   "kicad": {
+    "x": 42.48,
+    "y": 28.6,
+    "rot": 0
+   },
+   "courtyard": [
+    41.23,
+    43.73,
+    48.75,
+    51.25
+   ],
+   "value": "BOOT_IO0",
+   "role": "test_pad",
+   "note": "bottom side, 5.08 mm grid for a pogo jig; reach from below before the cartridge goes into the shell",
+   "group": "test",
+   "pins": {
+    "1": "BOOT_IO0"
+   }
+  }
+ ],
+ "cartridge": {
+  "board_top_above_floor": 8.0,
+  "board_bottom_above_floor": 6.4,
+  "boss": {
+   "od": 7.2,
+   "height_above_floor": 6.4,
+   "insert_hole_d": 4.0,
+   "insert_hole_depth": 5.0,
+   "insert": "INSERT_HEATSET_M2_5X4_STD",
+   "screw": "M2.5 x 5 socket head (SCREW_SET_M2_M2_5_SHCS_A2)",
+   "screw_length_mm": 5,
+   "screw_head_d": 4.6,
+   "why": "CNC Kitchen table via library row 10: hole 4.0, wall >= 1.6 -> OD >= 7.2. M2.5 is stocked only in 5/8/10/12 mm (library row 09); the shortest that engages >= 3 mm through the 1.6 mm board is 5 mm (3.4 mm engagement), as the CAD picks (head size estimate)"
+  },
+  "holes": [
+   {
+    "id": "H1",
+    "at": [
+     3.5,
+     3.5
+    ],
+    "d": 2.7
+   },
+   {
+    "id": "H2",
+    "at": [
+     59.3,
+     3.5
+    ],
+    "d": 2.7
+   },
+   {
+    "id": "H3",
+    "at": [
+     3.5,
+     75.1
+    ],
+    "d": 2.7
+   },
+   {
+    "id": "H4",
+    "at": [
+     59.3,
+     75.1
+    ],
+    "d": 2.7
+   }
+  ],
+  "support_posts": [
+   {
+    "id": "S1_POST1",
+    "board_hole": {
+     "at": [
+      3.0,
+      11.0
+     ],
+     "d": 4.5
+    },
+    "post_d": 4.0,
+    "top_above_board_top": 11.0,
+    "pilot_hole_d": 1.8,
+    "screw": "M2 x 6 into the post through the S1 module corner hole (hole position estimated)"
+   },
+   {
+    "id": "S1_POST2",
+    "board_hole": {
+     "at": [
+      3.0,
+      30.0
+     ],
+     "d": 4.5
+    },
+    "post_d": 4.0,
+    "top_above_board_top": 11.0,
+    "pilot_hole_d": 1.8,
+    "screw": "M2 x 6 (as above)"
+   }
+  ],
+  "keepout_plan_board": [
+   -5.35,
+   64.8,
+   0.0,
+   79.11
+  ],
+  "keepout_height_above_floor": 32.0,
+  "keepout_bottom_above_floor": 4.9,
+  "keepout_why": "top: board 8.0 + tallest envelope 20.0 (PH plug + wire bend, estimate) rounded up with margin; bottom: board underside minus 1.5 mm for through-hole pin ends. Below that only the 4 bosses reach the floor.",
+  "clearance_mm": 3.0,
+  "envelopes": [
+   {
+    "id": "U1",
+    "plan": [
+     0.935,
+     63.8,
+     43.0,
+     68.4
+    ],
+    "z_above_board_top": [
+     0.0,
+     16.0
+    ]
+   },
+   {
+    "id": "A1",
+    "plan": [
+     44.5,
+     62.28,
+     8.5,
+     27.55
+    ],
+    "z_above_board_top": [
+     0.0,
+     15.0
+    ]
+   },
+   {
+    "id": "J_SPK",
+    "plan": [
+     49.55,
+     56.45,
+     28.0,
+     33.5
+    ],
+    "z_above_board_top": [
+     0.0,
+     18.0
+    ]
+   },
+   {
+    "id": "S1",
+    "plan": [
+     0.5,
+     42.5,
+     8.5,
+     32.5
+    ],
+    "z_above_board_top": [
+     0.0,
+     16.0
+    ]
+   },
+   {
+    "id": "J_MIC",
+    "plan": [
+     0.5,
+     15.4,
+     34.2,
+     39.7
+    ],
+    "z_above_board_top": [
+     0.0,
+     20.0
+    ]
+   },
+   {
+    "id": "J_DISP",
+    "plan": [
+     16.4,
+     35.3,
+     34.2,
+     39.7
+    ],
+    "z_above_board_top": [
+     0.0,
+     20.0
+    ]
+   },
+   {
+    "id": "J_I2C1",
+    "plan": [
+     36.3,
+     47.2,
+     34.2,
+     39.7
+    ],
+    "z_above_board_top": [
+     0.0,
+     20.0
+    ]
+   },
+   {
+    "id": "J_I2C2",
+    "plan": [
+     48.2,
+     59.1,
+     34.2,
+     39.7
+    ],
+    "z_above_board_top": [
+     0.0,
+     20.0
+    ]
+   },
+   {
+    "id": "J_IO1",
+    "plan": [
+     7.05,
+     15.95,
+     0.5,
+     6.0
+    ],
+    "z_above_board_top": [
+     0.0,
+     20.0
+    ]
+   },
+   {
+    "id": "J_IO2",
+    "plan": [
+     17.55,
+     26.45,
+     0.5,
+     6.0
+    ],
+    "z_above_board_top": [
+     0.0,
+     20.0
+    ]
+   },
+   {
+    "id": "J_IO3",
+    "plan": [
+     28.05,
+     36.95,
+     0.5,
+     6.0
+    ],
+    "z_above_board_top": [
+     0.0,
+     20.0
+    ]
+   },
+   {
+    "id": "J_LED",
+    "plan": [
+     38.55,
+     47.45,
+     0.5,
+     6.0
+    ],
+    "z_above_board_top": [
+     0.0,
+     20.0
+    ]
+   },
+   {
+    "id": "J_PWR",
+    "plan": [
+     26.08,
+     36.72,
+     70.17,
+     79.11
+    ],
+    "z_above_board_top": [
+     0.0,
+     3.3
+    ]
+   },
+   {
+    "id": "J_I2C3",
+    "plan": [
+     37.7,
+     48.6,
+     69.7,
+     75.2
+    ],
+    "z_above_board_top": [
+     0.0,
+     20.0
+    ]
+   }
+  ],
+  "antenna_keepout": {
+   "plan_board": [
+    -10.35,
+    3.94,
+    41.7,
+    69.7
+   ],
+   "rule": "no metal (screws, inserts, magnets, speaker, metal paint) within 15 mm of the antenna; plastic wall only. 15 mm is from secondary sources (library rows 01/12); verify against the WROOM-1 datasheet.",
+   "copper_keepout_board": [
+    0.0,
+    8.0,
+    43.0,
+    68.4
+   ]
+  },
+  "placement_rule": "Board lies flat (rotation 0: board +x = world +X, board +y = world +Y). Board centre x = world x 0. Board slides as far toward the rear (+Y) as the inner shell allows: the J_PWR front face sits 0.2 mm inside the inner rear wall surface, and the whole keep-out box keeps clearance_mm to every inner wall. With a rear cover the rear bosses (board y 75.1, OD 7.2) also stay 0.8 mm forward of the cover seam: y_off + 75.1 + 3.6 + 0.8 <= seam_y (silhouette seam_y = depth/2 - min(edge_round, 6) - 1.5); the CAD then cuts the 13 x 7 plug tunnel from the outer surface to the receptacle face. Base plate: floor = 3.5. World point = (bx - W/2, by + y_offset, floor_z + 6.4 + bz). gstudio.normalize writes the chosen board_origin into spec.derived.cartridge.",
+  "rear_gap_mm": 0.2,
+  "usb_c_opening": {
+   "center_board_x": 31.4,
+   "center_above_board_top": 1.6,
+   "w": 13.0,
+   "h": 7.0,
+   "corner_r": 2.5
+  },
+  "factory_access": "DevKitC micro-USB ports face +X (robot's left) for bench flashing before the cartridge goes in; production flashing uses the rear USB-C (native USB on GPIO19/20) or the bottom test pads TP1..TP7."
+ },
+ "support_groups": {
+  "power": "always",
+  "usb": "always",
+  "test": "always",
+  "led": "when J_LED is used",
+  "i2c": "when any J_I2C port is used",
+  "audio": "when A1 is used"
+ },
+ "always_nets": [
+  "GND",
+  "+5V",
+  "+3V3",
+  "VBUS",
+  "CC1",
+  "CC2",
+  "EN",
+  "UART0_TX",
+  "UART0_RX",
+  "BOOT_IO0",
+  "USB_DP",
+  "USB_DN"
+ ],
+ "net_classes": {
+  "power": [
+   "VBUS",
+   "+5V",
+   "GND"
+  ],
+  "power_track_mm": 0.8,
+  "signal_track_mm": 0.25,
+  "clearance_mm": 0.2
+ },
+ "checks": {
+  "layout_issues": [],
+  "checked_by": "library/tools/gen_backplane_v1.py",
+  "rules": [
+   "courtyards inside the board",
+   "no top courtyard overlaps",
+   "screw heads clear parts",
+   "ports not under elevated modules or the devkit",
+   "elevated modules do not collide"
+  ]
+ },
+ "drc_waivers": [
+  {
+   "refs": [
+    "J_A1P",
+    "J_A1N"
+   ],
+   "rule": "courtyards_overlap",
+   "why": "single 1x1 sockets at the amp's 3.5 mm terminal pitch: courtyards overlap 0.05 mm, housings clear by 0.96 mm"
+  }
+ ],
+ "evidence": [
+  "Espressif ESP32-S3-DevKitC-1 v1.1 user guide (esp-dev-kits latest, read 2026-11-01): J1/J3 header tables; RGB LED GPIO38 (v1.1) vs GPIO48 (v1.0); GPIO35/36/37 used by Octal flash/PSRAM; power options USB / 5V pin / 3V3 pin",
+  "Espressif DXF_ESP32-S3-DevKitC-1_V1.1_20220429.dxf parsed: BOARD_OUTLINE 25.40 x 62.865; header pads TOOL_BOT at x 1.27 / 24.13, y 7.96..61.30 step 2.54; module outline to y 69.15",
+  "Espressif SCH_ESP32-S3-DevKitC-1_V1.1_20221130.pdf: VBUS -> D1 1N5819HW-7-F -> VCC_5V (UART port), VBUSB -> D7 1N5819HW-7-F -> VCC_5V (ESP USB port); J1 pin 21 = VCC_5V; U2 SGM2212-3.3XKC3G/TR VIN = VCC_5V",
+  "SG Micro SGM2212 product page: '800mA output current capability', input 2.7 V to 20 V",
+  "KiCad 9.0.9 footprints present on the build VM (/usr/share/kicad/footprints), courtyards read 2026-11-01",
+  "library rows 21 (Adafruit 3006 board file: header y 2.54, VO pads y 15.49 at x 7.09/10.59) and 37 (Catalex-type 42 x 24, estimates)"
+ ],
+ "uncertain": [
+  "DevKitC seated height (socket 8.5 + spacer 2.5) is an estimate; measure on the first article",
+  "S1 module header position and pin order are estimates (library row 37)",
+  "amp VO pin trick (2.54 pins in 3.5 mm terminal pads) is untested",
+  "USB-C receptacle: board-edge position follows the KiCad footprint's own PCB Edge line; GCT drawing not read",
+  "USB D+/D- stub shared with the DevKitC's own USB connector: works at full speed in principle; physical check still needed",
+  "antenna keep-out distance 15 mm comes from secondary sources",
+  "PTC/TVS/ESD/level-shifter parts are classes, not chosen MPNs; values follow ARCHITECTURE \u00a76"
+ ]
+}

@@ -41,6 +41,24 @@ def bed_from_profile(prof: dict) -> tuple[float, float, float]:
     return (max(xs) - min(xs), max(ys) - min(ys), float(prof.get("max_print_height", 210)))
 
 
+PRINTER_CLASS = "Prusa i3 MK3S-class FDM printer"  # its published build volume is 250 x 210 x 210 mm, as in slice.ini
+
+
+def printer_profile(prof: dict | None = None) -> dict:
+    """MIN-12: the named target printer the bed-fit check and the guide use (bed and nozzle from slice.ini)."""
+    prof = prof if prof is not None else read_profile()
+    bed = bed_from_profile(prof)
+    return {"name": f"{PRINTER_CLASS}, {bed[0]:.0f} x {bed[1]:.0f} x {bed[2]:.0f} mm build volume, {prof.get('nozzle_diameter', '0.4')} mm nozzle",
+            "class": PRINTER_CLASS, "build_volume_mm": list(bed), "nozzle_mm": float(prof.get("nozzle_diameter", 0.4)),
+            "profile_file": "print/slice.ini"}
+
+
+def profile_material(prof: dict | None = None) -> str:
+    """The one print material every part is sliced, priced and described with (slice.ini filament_type)."""
+    prof = prof if prof is not None else read_profile()
+    return str(prof.get("filament_type") or "PETG")
+
+
 def profile_summary(prof: dict) -> str:
     return (f"{prof.get('nozzle_diameter', '?')} mm nozzle, {prof.get('layer_height', '?')} mm layers, "
             f"{prof.get('perimeters', '?')} perimeters, {prof.get('fill_density', '?')} {prof.get('fill_pattern', '')}, "

@@ -8,6 +8,7 @@ import { bytes } from "../../lib/format";
 import type { Build, FileEntry } from "../../lib/types";
 import { Spinner } from "../ui";
 import type { TabProps } from "./RightPanel";
+import { StoryAudio } from "./StoryAudio";
 
 const TEXT_EXT = /\.(cpp|cc|c|h|hpp|ino|py|json|ini|md|txt|csv|toml|ya?ml|svg|kicad_pro|kicad_sch|kicad_pcb|net|sh|cfg|log|xml|html|css|js|ts|gbr|drl|step|stp)$/i;
 const NO_HL_LIMIT = 200_000;
@@ -124,6 +125,7 @@ export default function CodeTab({ version }: TabProps) {
         ) : (
           <span className="muted small">No firmware block in build.json.</span>
         )}
+        <StoryAudio version={version} compact />
         <div className="grow" />
         {files?.some((f) => f.path === "firmware/firmware.bin") ? (
           <a className="btn sm" href={fileUrl(ctx, version.n, "firmware/firmware.bin", true)}>

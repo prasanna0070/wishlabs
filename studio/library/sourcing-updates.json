@@ -1,0 +1,371 @@
+{
+ "schema": "gadget-sourcing-updates/1",
+ "about": "Dated corrections and additions to library sourcing, applied by tools/merge_modules.py after the library agents' rows (those files stay verbatim). Every 'set' names the snapshot it was read from (library/references/index.json has its sha256).",
+ "updates": [
+  {
+   "module": "CABLE_JSTPH_4P_300MM",
+   "match": {
+    "vendor": "Evelta"
+   },
+   "set": {
+    "sku": "083-4P-2mm-F-Wire",
+    "sku_kind": "vendor_sku",
+    "price_inr_seen": 15.0,
+    "gst": "excl",
+    "stock": "in_stock",
+    "stock_qty": 293,
+    "checked_at": "2026-11-01T13:24:00Z",
+    "status": "page_read",
+    "snapshot": "references/listings/evelta-2-3-4-pin-2mm-female-connector-wire-30cm.html",
+    "notes": "Variant '4 Pin' (sku 083-4P-2mm-F-Wire): Rs 15.00 excl. GST (Rs 17.70 incl.), 293 available to sell; 30 cm; open other end. Read from the page's variant data on 2026-11-01; the earlier note's single Rs 9 price is the 2-pin variant."
+   }
+  },
+  {
+   "module": "CABLE_JSTPH_3P_300MM",
+   "match": {
+    "vendor": "Evelta"
+   },
+   "set": {
+    "sku": "083-3P-2mm-F-Wire",
+    "sku_kind": "vendor_sku",
+    "price_inr_seen": 12.0,
+    "gst": "excl",
+    "stock": "in_stock",
+    "stock_qty": 358,
+    "checked_at": "2026-11-01T13:24:00Z",
+    "status": "page_read",
+    "snapshot": "references/listings/evelta-2-3-4-pin-2mm-female-connector-wire-30cm.html",
+    "notes": "Variant '3 Pin' (sku 083-3P-2mm-F-Wire): Rs 12.00 excl. GST (Rs 14.16 incl.), 358 available to sell; 30 cm; open other end. Read from the page's variant data on 2026-11-01; the earlier note's single Rs 9 price is the 2-pin variant."
+   }
+  },
+  {
+   "module": "INSERT_HEATSET_M2_5X4_STD",
+   "match": {
+    "vendor": "ThinkRobotics"
+   },
+   "set": {
+    "same_part": false,
+    "sku": "MEC8005-M2.5",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:29:26Z",
+    "pack_size": 10,
+    "snapshot": "references/listings/thinkrobotics-brass-heat-set-inserts-for-plastic.js",
+    "notes": "DIFFERENT part from the CNC Kitchen reference: the vendor drawing shows 3.5 mm OD x 4.00 mm (title says 4.5 mm), pack of 10. It is its own library row, INSERT_HEATSET_M2_5X4_MEC8005, which is what normalize buys."
+   }
+  },
+  {
+   "module": "SCREW_SET_M2_M2_5_SHCS_A2",
+   "match": {
+    "vendor": "ThinkRobotics"
+   },
+   "set": {
+    "sku": "MEC7001-M2.5/8",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:29:21Z",
+    "pack_size": 10,
+    "snapshot": "references/listings/thinkrobotics-18-8-stainless-steel-socket-head-screws-metric.js",
+    "notes": "Rs 79.99 is the M2.5 x 8 variant (MEC7001-M2.5/8), pack of 10. This set row is the CAD geometry reference only; normalize buys one row per length (SCREW_M2_5X5/X8/X12_SHCS_A2, SCREW_M2X6_SHCS_A2)."
+   }
+  },
+  {
+   "module": "USBC_RECEPTACLE_GCT_USB4105",
+   "match": {
+    "vendor": "DigiKey India"
+   },
+   "set": {
+    "vendor": "DigiKey (US site)",
+    "notes": "DigiKey listing (digikey.com): 24 positions (16+8 dummy), 5 A rating, 20,000 mating cycles, -40 to 85 C; INR price not seen. Vendor renamed from 'DigiKey India' because the link is the US site (REVIEW-1 MIN-25)."
+   }
+  },
+  {
+   "module": "MIC_INMP441_I2S",
+   "match": {
+    "vendor": "Robocraze"
+   },
+   "set": {
+    "sku": "TIFSS0259",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:34:37Z",
+    "price_inr_seen": 179.0,
+    "status": "page_read",
+    "snapshot": "references/listings/robocraze-inmp441-mems-high-precision-omnidirectional-microphone-module-i2s.js"
+   }
+  },
+  {
+   "module": "AMP_MAX98357A_I2S",
+   "match": {
+    "vendor": "Robocraze"
+   },
+   "set": {
+    "sku": "TIFCC0264",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:34:41Z",
+    "price_inr_seen": 195.0,
+    "status": "page_read",
+    "snapshot": "references/listings/robocraze-smartelex-max98357a-i2s-audio-breakout-amplifier.js"
+   }
+  },
+  {
+   "module": "CORE_ESP32S3_DEVKITC1_N8R8",
+   "match": {
+    "vendor": "Robocraze"
+   },
+   "set": {
+    "sku": "TIFDC0074",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:34:45Z",
+    "price_inr_seen": 949.0,
+    "status": "page_read",
+    "same_part": false,
+    "snapshot": "references/listings/robocraze-7semi-esp32-s3-dev-boardc-1-n8r8.js"
+   }
+  },
+  {
+   "module": "CORE_ESP32S3_DEVKITC1_N8R8",
+   "match": {
+    "vendor": "Electropi"
+   },
+   "set": {
+    "sku": "EPI27962",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "stock_qty": 51,
+    "checked_at": "2026-11-01T13:35:11Z",
+    "snapshot": "references/listings/electropi-espressif-esp32-s3-devkitc-1-n8r8.html"
+   }
+  },
+  {
+   "module": "CORE_ESP32S3_DEVKITC1_N8R8",
+   "match": {
+    "vendor": "Robo Bazar"
+   },
+   "set": {
+    "same_part": false
+   }
+  },
+  {
+   "module": "LED_RING_12_WS2812_50MM",
+   "match": {
+    "vendor": "Robocraze"
+   },
+   "set": {
+    "sku": "TIFEC0043",
+    "sku_kind": "vendor_sku",
+    "stock": "out_of_stock",
+    "checked_at": "2026-11-01T13:34:50Z",
+    "snapshot": "references/listings/robocraze-ws2812-12-bit-rgb-led-round.js"
+   }
+  },
+  {
+   "module": "LED_RING_12_WS2812_50MM",
+   "match": {
+    "vendor": "Probots"
+   },
+   "set": {
+    "sku": "PRO4077",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:35:19Z",
+    "snapshot": "references/listings/probots-rgb-led-12-bit-ws2812-circular-development-board.html"
+   }
+  },
+  {
+   "module": "OLED_130_SH1106_I2C",
+   "match": {
+    "vendor": "Probots"
+   },
+   "set": {
+    "sku": "PRO1243",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:35:15Z",
+    "snapshot": "references/listings/probots-1-3-inch-128x64-oled-blue-display-sh1106-i2c.html"
+   }
+  },
+  {
+   "module": "MICROSD_SPI_MODULE_5V",
+   "match": {
+    "vendor": "Probots"
+   },
+   "set": {
+    "sku": "PRO1129",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:35:23Z",
+    "snapshot": "references/listings/probots-micro-sd-card-adapter-module-spi.html"
+   }
+  },
+  {
+   "module": "CABLE_USBC_C2C_1M",
+   "match": {
+    "vendor": "Probots"
+   },
+   "set": {
+    "sku": "PRO3795",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:35:27Z",
+    "snapshot": "references/listings/probots-usb-c-to-c-cable-1-meter.html"
+   }
+  },
+  {
+   "module": "STRAIN_TIE_NYLON66_100X2_5",
+   "match": {
+    "vendor": "Quartz Components"
+   },
+   "set": {
+    "sku": "CBL-QC1667",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "pack_size": 100,
+    "checked_at": "2026-11-01T13:34:58Z",
+    "snapshot": "references/listings/quartzcomponents-tie-100x2-2-100-pc-in-each.js",
+    "notes": "Shopify product JSON: 'Nylon Cable Tie / Wire Tag 100X2.5mm (pack of 100)', sku CBL-QC1667, Rs 44, available true"
+   }
+  },
+  {
+   "module": "SPK_GASKET_FOAM_25X3_ADH",
+   "match": {
+    "url": "25mm-x-3mm-x-10-meter-length"
+   },
+   "set": {
+    "sku": "BCL-QC6219",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:35:02Z",
+    "snapshot": "references/listings/quartzcomponents-gasket-25mm-x-3mm-x-10-meter.js"
+   }
+  }
+ ],
+ "drop": [
+  {
+   "module": "CORE_ESP32S3_DEVKITC1_N8R8",
+   "match": {
+    "vendor": "Robu.in"
+   },
+   "why": "the URL is Espressif's retailer list (espressif.com), not a Robu listing, and no price was seen; robu.in blocks fetches (REVIEW-1 MIN-25 host lint)"
+  },
+  {
+   "module": "SPK_40MM_4R_3W",
+   "match": {
+    "vendor": "Robocomp"
+   },
+   "why": "DIFFERENT generic speaker, 40 x 23 mm: deeper than the 17.5 mm envelope the CAD keep-out is built from (REVIEW-1 MIN-23); out of stock"
+  },
+  {
+   "module": "SPK_40MM_4R_3W",
+   "match": {
+    "vendor": "Pimoroni"
+   },
+   "why": "COM1606 is 40 x 40 x 20 mm per the seller: deeper than the 17.5 mm keep-out and a different body (REVIEW-1 MIN-23); ships from the UK"
+  },
+  {
+   "module": "LABEL_QR_POLYESTER_50X25_PACK",
+   "match": {
+    "vendor": "IndiaMART"
+   },
+   "why": "REVIEW-1 MIN-25 (integration, 2026-11-01): a B2B search snippet for a plain label roll of unconfirmed size, not a retail listing; the per-device label is printed by our factory (factory_make), so no retail row is chosen"
+  }
+ ],
+ "add": [
+  {
+   "module": "OLED_130_SH1106_I2C",
+   "row": {
+    "vendor": "Robocraze",
+    "url": "https://robocraze.com/products/1-3in-oled-display",
+    "price_inr_seen": 339.0,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "sku": "TIFDP0002",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:34:54Z",
+    "gst": null,
+    "snapshot": "references/listings/robocraze-1-3in-oled-display.js",
+    "notes": "Shopify product JSON: '1.3 Inch I2C OLED Display Module 128x64 4-Pin Blue', Rs 339, available true; the description lists the four connections as 'VCC, GND, SCL, and SDA' and discusses SH1106 vs SSD1306; physical pin order and outline not drawn: check the silkscreen matches VCC, GND, SCL, SDA before using it with the GS-H-PH4-D1X4-X2143 harness"
+   }
+  },
+  {
+   "module": "OLED_130_SH1106_I2C",
+   "row": {
+    "vendor": "Quartz Components",
+    "url": "https://quartzcomponents.com/products/oled-display-1-3-inch-i2c-interface-4-pin-white-sh1106",
+    "price_inr_seen": 263.0,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "sku": "MOD-QC2834",
+    "sku_kind": "vendor_sku",
+    "stock": "out_of_stock",
+    "checked_at": "2026-11-01T13:35:06Z",
+    "gst": null,
+    "snapshot": "references/listings/quartzcomponents-oled-display-1-3-inch-i2c-sh1106.js",
+    "notes": "Shopify product JSON: 'OLED Display 1.3 Inch I2C Interface / 4 Pin Blue SH1106', sku MOD-QC2834, Rs 263, available false"
+   }
+  }
+ ],
+ "module_fields": [
+  {
+   "module": "MICROSD_SPI_MODULE_5V",
+   "why": "REVIEW-1 BLK-5: the card is its own purchased row; the module's range is the module alone",
+   "set": {
+    "requires": [
+     {
+      "module": "STORAGE_MICROSD_32GB_A1",
+      "qty": 1,
+      "why": "the story pack and saved clips live on a FAT32 microSD card (SOFTWARE_SETUP.md); the module ships without one"
+     }
+    ],
+    "price_inr_planning": [
+     41,
+     49
+    ],
+    "price_inr_planning_basis": "module alone: seen retail prices Rs 41 (Robocraze, search snippet) and Rs 49 (Probots page, incl. GST) on 2026-11-01; the blueprint row-37 range 120-380 included the storage card"
+   }
+  },
+  {
+   "module": "SPK_40MM_4R_3W",
+   "why": "REVIEW-1 MIN-23: keep-out vs the deepest allowed alternative",
+   "set": {
+    "rejected_sources": [
+     {
+      "vendor": "Robocomp",
+      "url": "https://robocomp.in/?p=12264",
+      "why": "generic 40 x 23 mm: 23 mm deep vs the 17.5 mm keep-out"
+     },
+     {
+      "vendor": "Pimoroni (UK)",
+      "url": "https://shop.pimoroni.com/products/mini-speaker-4-3w-with-jst-ph-connector",
+      "why": "40 x 40 x 20 mm: 20 mm deep vs the 17.5 mm keep-out"
+     }
+    ],
+    "depth_basis": "17.5 mm overall depth of the PUI AS04004PR-WR-R (library row 22); every allowed source is that part"
+   }
+  },
+  {
+   "module": "LABEL_QR_POLYESTER_50X25_PACK",
+   "why": "REVIEW-1 MAJ-24 / MIN-25 (integration, 2026-11-01): the QR + serial label is unique per device, so the factory prints and applies it and packs the device; it is a factory make-to-drawing row, priced from the blueprint planning range (no label stock or printer has been chosen)",
+   "set": {
+    "sku": "GS-LBL-QR-50X25",
+    "sku_kind": "drawing",
+    "factory_make": {
+     "drawing": "GS-LBL-QR-50X25",
+     "by": "factory",
+     "what": "Print the device ID label (serial + QR to the device record) on 50 x 25 mm thermal-transfer polyester stock, apply it in the base recess and pack the device.",
+     "steps": [
+      "read the serial provisioned into flash at factory test",
+      "print serial + QR on 50 x 25 mm thermal-transfer polyester label stock (resin ribbon)",
+      "apply the label in the printed recess on the base",
+      "pack the device (bag, box, insert, quick-start card)"
+     ],
+     "test": "scan the QR and check it reads the same serial as the device's factory self-test line",
+     "price_basis": "blueprint catalog row 50 planning range INR 30-150 (label stock, ribbon and packing kit not yet chosen; not a quote)"
+    }
+   }
+  }
+ ]
+}

@@ -95,9 +95,9 @@ def pcb_svg(pcb: Path, out: Path, layers: list[str], mirror: bool = False) -> Pa
 
 
 def render(pcb: Path, out: Path, side: str, width: int = 1800, height: int = 1300, zoom: float = 1.0,
-           quality: str = "high") -> Path:
+           quality: str = "high", timeout: float = 300.0) -> Path:
     run(["pcb", "render", "--side", side, "--width", str(width), "--height", str(height), "--quality", quality,
-         "--background", "opaque", "--zoom", str(zoom), "--floor", "-o", str(out), str(pcb)], timeout=300)
+         "--background", "opaque", "--zoom", str(zoom), "--floor", "-o", str(out), str(pcb)], timeout=timeout)
     return out
 
 

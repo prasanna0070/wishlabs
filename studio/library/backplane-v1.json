@@ -1047,6 +1047,13 @@
     "why": "header + mated plug + wire bend zone (estimate)"
    },
    "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+   "silk": {
+    "label": "J_SPK",
+    "pin_labels": [
+     "SPK+",
+     "SPK-"
+    ]
+   },
    "note": "Both pins are amplifier outputs (BTL): never connect SPK- to GND."
   },
   {
@@ -1177,7 +1184,9 @@
    "cable": {
     "family": "JST-PH 2.0",
     "pins": 6,
-    "type": "PHR-6 to Dupont 1x6 female, by label"
+    "type": "PHR-6 to 2 x Dupont 1x3 female (INMP441 rows L/R-WS-SCK and SD-VDD-GND), made to drawing",
+    "module_end_family": "dupont_2.54",
+    "cable_rows": "CABLE_JSTPH_6P_DUPONT2X1X3_<len>"
    },
    "accepts_roles": [
     "mic"
@@ -1292,6 +1301,17 @@
     "why": "header + mated plug + wire bend zone (estimate)"
    },
    "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+   "silk": {
+    "label": "J_MIC",
+    "pin_labels": [
+     "GND",
+     "3V3",
+     "SCK",
+     "WS",
+     "SD",
+     "LR"
+    ]
+   },
    "note": "LR (pin 6) is tied to GND on the board: the mic sends on the left channel."
   },
   {
@@ -1468,6 +1488,19 @@
     "why": "header + mated plug + wire bend zone (estimate)"
    },
    "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+   "silk": {
+    "label": "J_DISP",
+    "pin_labels": [
+     "VCC",
+     "GND",
+     "DIN",
+     "CLK",
+     "CS",
+     "DC",
+     "RST",
+     "BL"
+    ]
+   },
    "note": "Pin order VCC, GND, DIN, CLK, CS, DC, RST, BL equals the Waveshare 2inch LCD PH2.0 socket, so a straight 1:1 cable works. This replaces the ARCHITECTURE \u00a76 draft order (GND first) on purpose."
   },
   {
@@ -1498,7 +1531,8 @@
    "cable": {
     "family": "JST-PH 2.0",
     "pins": 4,
-    "type": "PHR-4 to Dupont 1x4 female (by label) or PH-SH for STEMMA QT"
+    "type": "PHR-4 to Dupont 1x4 female; made to drawing when the module's pin order differs from GND, 3V3, SDA, SCL (CABLE_JSTPH_4P_DUPONT1X4_<len>[_X<order>])",
+    "module_end_family": "dupont_2.54"
    },
    "accepts_roles": [
     "display",
@@ -1587,6 +1621,15 @@
     "why": "header + mated plug + wire bend zone (estimate)"
    },
    "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+   "silk": {
+    "label": "J_I2C1",
+    "pin_labels": [
+     "GND",
+     "3V3",
+     "SDA",
+     "SCL"
+    ]
+   },
    "note": "Shared I2C bus (SDA GPIO8, SCL GPIO9) with 4.7 k pull-ups R4/R5 on the board."
   },
   {
@@ -1617,7 +1660,8 @@
    "cable": {
     "family": "JST-PH 2.0",
     "pins": 4,
-    "type": "PHR-4 to Dupont 1x4 female (by label) or PH-SH for STEMMA QT"
+    "type": "PHR-4 to Dupont 1x4 female; made to drawing when the module's pin order differs from GND, 3V3, SDA, SCL (CABLE_JSTPH_4P_DUPONT1X4_<len>[_X<order>])",
+    "module_end_family": "dupont_2.54"
    },
    "accepts_roles": [
     "display",
@@ -1705,7 +1749,16 @@
     "above_board_top": 20.0,
     "why": "header + mated plug + wire bend zone (estimate)"
    },
-   "plug_access": "vertical from above; keep the plan courtyard free of modules above it"
+   "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+   "silk": {
+    "label": "J_I2C2",
+    "pin_labels": [
+     "GND",
+     "3V3",
+     "SDA",
+     "SCL"
+    ]
+   }
   },
   {
    "id": "J_IO1",
@@ -1735,7 +1788,7 @@
    "cable": {
     "family": "JST-PH 2.0",
     "pins": 3,
-    "type": "PHR-3 to Dupont/spade by label"
+    "type": "PHR-3 to Dupont 1x3 female (CABLE_JSTPH_3P_DUPONT1X3_<len>[_X<order>]) or to 2.8 mm female spades (CABLE_JSTPH_3P_SPADE28_<len>)"
    },
    "accepts_roles": [
     "button",
@@ -1816,6 +1869,14 @@
     "why": "header + mated plug + wire bend zone (estimate)"
    },
    "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+   "silk": {
+    "label": "J_IO1",
+    "pin_labels": [
+     "GND",
+     "3V3",
+     "SIG"
+    ]
+   },
    "note": "GPIO4 (ADC1 + touch capable). 3.3 V logic and 3.3 V supply only."
   },
   {
@@ -1846,7 +1907,7 @@
    "cable": {
     "family": "JST-PH 2.0",
     "pins": 3,
-    "type": "PHR-3 to Dupont/spade by label"
+    "type": "PHR-3 to Dupont 1x3 female (CABLE_JSTPH_3P_DUPONT1X3_<len>[_X<order>]) or to 2.8 mm female spades (CABLE_JSTPH_3P_SPADE28_<len>)"
    },
    "accepts_roles": [
     "button",
@@ -1927,6 +1988,14 @@
     "why": "header + mated plug + wire bend zone (estimate)"
    },
    "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+   "silk": {
+    "label": "J_IO2",
+    "pin_labels": [
+     "GND",
+     "3V3",
+     "SIG"
+    ]
+   },
    "note": "GPIO5 (ADC1 + touch capable). 3.3 V logic and 3.3 V supply only."
   },
   {
@@ -1957,7 +2026,7 @@
    "cable": {
     "family": "JST-PH 2.0",
     "pins": 3,
-    "type": "PHR-3 to Dupont/spade by label"
+    "type": "PHR-3 to Dupont 1x3 female (CABLE_JSTPH_3P_DUPONT1X3_<len>[_X<order>]) or to 2.8 mm female spades (CABLE_JSTPH_3P_SPADE28_<len>)"
    },
    "accepts_roles": [
     "button",
@@ -2038,37 +2107,45 @@
     "why": "header + mated plug + wire bend zone (estimate)"
    },
    "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+   "silk": {
+    "label": "J_IO3",
+    "pin_labels": [
+     "GND",
+     "3V3",
+     "SIG"
+    ]
+   },
    "note": "GPIO6 (ADC1 + touch capable). 3.3 V logic and 3.3 V supply only."
   },
   {
    "id": "J_LED",
    "kind": "port",
    "title": "Addressable LED or servo (5 V supply, 5 V data via level shifter)",
-   "footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+   "footprint": "Connector_JST:JST_XH_B3B-XH-A_1x03_P2.50mm_Vertical",
    "at": [
     41.0,
-    3.8
+    4.0
    ],
    "rotation_deg": 0,
    "kicad": {
     "x": 41.0,
-    "y": 74.8,
+    "y": 74.6,
     "rot": 0
    },
    "courtyard": [
-    38.55,
-    47.45,
-    0.5,
-    6.0
+    38.05,
+    48.95,
+    0.1,
+    6.85
    ],
    "facing": "up",
-   "connector": "JST-PH 2.0",
+   "connector": "JST-XH 2.5",
    "pins_count": 3,
    "supply": "+5V",
    "cable": {
-    "family": "JST-PH 2.0",
+    "family": "JST-XH 2.5",
     "pins": 3,
-    "type": "PHR-3; port and cable labelled LED 5V"
+    "type": "XHP-3; port and lead labelled LED 5V"
    },
    "accepts_roles": [
     "led",
@@ -2090,7 +2167,7 @@
      ],
      "at": [
       41.0,
-      3.8
+      4.0
      ]
     },
     {
@@ -2109,8 +2186,8 @@
       "+5V"
      ],
      "at": [
-      43.0,
-      3.8
+      43.5,
+      4.0
      ]
     },
     {
@@ -2131,8 +2208,8 @@
      "source_gpio": 2,
      "via": "U3 74AHCT1G125 (3.3 V -> 5 V) + R3 330 ohm",
      "at": [
-      45.0,
-      3.8
+      46.0,
+      4.0
      ]
     }
    ],
@@ -2141,7 +2218,15 @@
     "why": "header + mated plug + wire bend zone (estimate)"
    },
    "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
-   "note": "DIN is driven by U3 (74AHCT1G125 at 5 V) through R3 330 ohm from GPIO2. Same 3-pin PH family as J_IO: a mis-plugged 3-pin IO module from this library sees 5 V (all of them accept 3.3-5 V) and its output meets the buffer, never a GPIO; an LED plugged into J_IO just gets 3.3 V. Silkscreen 'LED 5V' and a red housing mark."
+   "silk": {
+    "label": "LED 5V",
+    "pin_labels": [
+     "G",
+     "5V",
+     "DIN"
+    ]
+   },
+   "note": "DIN is driven by U3 (74AHCT1G125 at 5 V) through R3 330 ohm from GPIO2. JST-XH 2.5 mm (B3B-XH-A), not PH: the 3V3 PH IO leads (J_IO1..3) cannot mate it and the LED's XHP-3 lead cannot mate a PH port. Silkscreen 'LED 5V' with pin labels G / 5V / DIN."
   },
   {
    "id": "J_PWR",
@@ -2324,7 +2409,8 @@
    "cable": {
     "family": "JST-PH 2.0",
     "pins": 4,
-    "type": "PHR-4 to Dupont 1x4 female (by label) or PH-SH for STEMMA QT"
+    "type": "PHR-4 to Dupont 1x4 female; made to drawing when the module's pin order differs from GND, 3V3, SDA, SCL (CABLE_JSTPH_4P_DUPONT1X4_<len>[_X<order>])",
+    "module_end_family": "dupont_2.54"
    },
    "accepts_roles": [
     "display",
@@ -2412,7 +2498,16 @@
     "above_board_top": 20.0,
     "why": "header + mated plug + wire bend zone (estimate)"
    },
-   "plug_access": "vertical from above; keep the plan courtyard free of modules above it"
+   "plug_access": "vertical from above; keep the plan courtyard free of modules above it",
+   "silk": {
+    "label": "J_I2C3",
+    "pin_labels": [
+     "GND",
+     "3V3",
+     "SDA",
+     "SCL"
+    ]
+   }
   }
  ],
  "parts": [
@@ -2744,23 +2839,23 @@
   },
   {
    "ref": "J_LED",
-   "footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+   "footprint": "Connector_JST:JST_XH_B3B-XH-A_1x03_P2.50mm_Vertical",
    "at": [
     41.0,
-    3.8
+    4.0
    ],
    "rotation_deg": 0,
    "side": "top",
    "kicad": {
     "x": 41.0,
-    "y": 74.8,
+    "y": 74.6,
     "rot": 0
    },
    "courtyard": [
-    38.55,
-    47.45,
-    0.5,
-    6.0
+    38.05,
+    48.95,
+    0.1,
+    6.85
    ],
    "role": "port",
    "slot": "J_LED"
@@ -3216,7 +3311,7 @@
     54.27,
     55.73
    ],
-   "value": "100 k (AMP_SD pull-down: amp stays off until firmware enables it)",
+   "value": "10 k (AMP_SD pull-down: amp stays shut down until firmware drives GPIO39 high; REVIEW-1 MIN-1, see gstudio.pcb.rules.amp_sd_voltage)",
    "role": "support",
    "note": "suggested position; keep inside under_devkit_zone or near its slot",
    "group": "audio",
@@ -4026,10 +4121,10 @@
    {
     "id": "J_LED",
     "plan": [
-     38.55,
-     47.45,
-     0.5,
-     6.0
+     38.05,
+     48.95,
+     0.1,
+     6.85
     ],
     "z_above_board_top": [
      0.0,
@@ -4129,7 +4224,8 @@
    "no top courtyard overlaps",
    "screw heads clear parts",
    "ports not under elevated modules or the devkit",
-   "elevated modules do not collide"
+   "elevated modules do not collide",
+   "ports with the same connector family and pin count carry the same supply"
   ]
  },
  "drc_waivers": [
@@ -4157,6 +4253,7 @@
   "USB-C receptacle: board-edge position follows the KiCad footprint's own PCB Edge line; GCT drawing not read",
   "USB D+/D- stub shared with the DevKitC's own USB connector: works at full speed in principle; physical check still needed",
   "antenna keep-out distance 15 mm comes from secondary sources",
-  "PTC/TVS/ESD/level-shifter parts are classes, not chosen MPNs; values follow ARCHITECTURE \u00a76"
+  "PTC/TVS/ESD/level-shifter parts are classes, not chosen MPNs; values follow ARCHITECTURE \u00a76",
+  "J_LED moved to JST-XH B3B-XH-A (REVIEW-1 MAJ-3); the XH courtyard was taken from the KiCad 9.0.9 footprint read on the VM"
  ]
 }

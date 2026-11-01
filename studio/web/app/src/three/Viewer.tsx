@@ -1,11 +1,12 @@
 // The GLB viewer used by Preview, Build (assembly + wiring), PCB 3D and concept previews.
 // Scene units are millimetres, +Y up (glTF). Gadget coordinates (mm, +Z up, front -Y) map to the scene as
 // (x, y, z) -> (x, z, -y). GLBs in metres (glTF standard) are detected by size and scaled by 1000.
-import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { ContactShadows, Environment, Grid, Html, Lightformer, OrbitControls, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import type { CableRoute, Camera } from "../lib/types";
+import { placeLabels, type Rect } from "../lib/place";
 
 export interface ViewerHandle {
   zoom: (factor: number) => void;
@@ -48,6 +49,10 @@ export interface ViewerProps {
   labels?: Label[] | null;
   partLabels?: boolean;
   partLabel?: (name: string) => { title: string; sub?: string };
+  labelParts?: string[] | null; // which highlighted parts get a callout (default: all highlighted, at most maxLabels)
+  maxLabels?: number;
+  avoid?: string; // CSS selector (searched in the viewer's parent) of overlays the callouts must stay clear of
+  viewShift?: number; // px: move the scene right, e.g. to centre it in the space beside an overlay card
   cables?: (CableRoute & { highlight?: boolean })[] | null;
   selectable?: boolean;
   selected?: string | null;
@@ -63,6 +68,20 @@ export interface ViewerProps {
 }
 
 const KIND_RE = /^(PRINT|PURCHASE|REFERENCE|TEST)_/;
+// REVIEW-1 MAJ-35: decor pick meshes are child nodes named PRINT_Shell#decor[i] (GLTFLoader drops the brackets)
+const DECOR_RE = /#decor\[?(\d+)/;
+
+/** "PRINT_Shell#decor1_2" (as GLTFLoader names it) -> "PRINT_Shell#decor[1]" (components.json decor[].name). */
+export function decorName(nodeName: string): string | null {
+  const m = DECOR_RE.exec(nodeName);
+  if (!m) return null;
+  return `${nodeName.slice(0, m.index)}#decor[${m[1]}]`;
+}
+
+/** The selected component's own node name: a decor selection highlights its shell. */
+export function baseName(name: string | null | undefined): string | null {
+  return name ? name.split("#decor")[0] : null;
+}
 const PRIMARY = new THREE.Color("#3046D9");
 const GHOST = new THREE.Color("#C9C6BE");
 const WHITE = new THREE.Color("#FFFFFF");
@@ -111,6 +130,11 @@ function prepare(scene: THREE.Object3D, autoFlat: boolean): Prepared {
       };
       m.material = Array.isArray(m.material) ? m.material.map(clone) : clone(m.material);
       if (m.geometry && !m.geometry.attributes.normal) m.geometry.computeVertexNormals();
+      // decor pick meshes (PRINT_Shell#decor[i]) repeat the shell's own faces in the body colour: keep them for raycasting
+      // only, or they cover the coloured eyes, mouth and cheeks underneath (z-fighting)
+      let a: THREE.Object3D | null = o;
+      while (a && !DECOR_RE.test(a.name)) a = a.parent;
+      if (a) (Array.isArray(m.material) ? m.material : [m.material]).forEach((mm) => (mm.visible = false));
     }
   });
   const root = new THREE.Group();
@@ -222,7 +246,8 @@ function Model(props: ViewerProps & { onPrepared: (p: Prepared) => void; onExten
       const hiddenKind = props.hideKinds?.includes(c.kind);
       c.node.visible = !props.hidden?.has(c.name) && !hiddenKind && !(props.separate && c.kind === "REFERENCE");
       const state = hl ? (hl.has(c.name) ? "hl" : "ghost") : "normal";
-      const selected = props.selected === c.name || (props.selectable && hover === c.name);
+      const selName = baseName(props.selected);
+      const selected = selName === c.name || (props.selectable && hover === c.name);
       for (const m of c.meshes) {
         forEachMat(m, (mat) => {
           const b = mat.userData.base;
@@ -249,7 +274,7 @@ function Model(props: ViewerProps & { onPrepared: (p: Prepared) => void; onExten
           mat.transparent = transparent;
           mat.depthWrite = depthWrite;
           if (mat.emissive) {
-            if (selected) mat.emissive.copy(PRIMARY).multiplyScalar(props.selected === c.name ? 0.07 : 0.04);
+            if (selected) mat.emissive.copy(PRIMARY).multiplyScalar(selName === c.name ? 0.07 : 0.04);
             else if (state === "hl" && hl && hl.size < prep.comps.length) mat.emissive.copy(PRIMARY).multiplyScalar(0.06);
             else if (b.emissive) mat.emissive.copy(b.emissive);
           }
@@ -314,7 +339,7 @@ function Model(props: ViewerProps & { onPrepared: (p: Prepared) => void; onExten
     }
     if (moving) invalidate();
     if (selBox.current) {
-      const name = props.selected;
+      const name = baseName(props.selected);
       const comp = name ? prep.comps.find((c) => c.name === name) : null;
       if (comp) {
         selBox.current.visible = true;
@@ -341,7 +366,23 @@ function Model(props: ViewerProps & { onPrepared: (p: Prepared) => void; onExten
             ? (e: ThreeEvent<MouseEvent>) => {
                 e.stopPropagation();
                 const c = compOf(e.object);
-                if (c && c.node.visible) props.onSelect?.(c.name === props.selected ? null : c.name);
+                if (!c || !c.node.visible) return;
+                // a hit on a decor region (ears, face plate...) selects that decor item; coincident shell faces tie, so
+                // look through every intersection within 0.6 mm of the nearest one
+                const near = e.intersections?.[0]?.distance;
+                let decor: string | null = null;
+                for (const it of e.intersections || []) {
+                  if (near != null && it.distance - near > 0.6) break;
+                  let o: THREE.Object3D | null = it.object;
+                  while (o && !decor) {
+                    decor = decorName(o.name);
+                    if (o === c.node) break;
+                    o = o.parent;
+                  }
+                  if (decor) break;
+                }
+                const pick = decor && decor.startsWith(c.name) ? decor : c.name;
+                props.onSelect?.(pick === props.selected ? null : pick);
               }
             : undefined
         }
@@ -365,8 +406,15 @@ function Model(props: ViewerProps & { onPrepared: (p: Prepared) => void; onExten
         }
       />
       <box3Helper ref={selBox as any} args={[new THREE.Box3(), new THREE.Color("#3046D9")]} visible={false} />
-      {props.partLabels && hl ? <PartCallouts prep={prep} names={[...hl]} partLabel={props.partLabel} /> : null}
-      {props.labels?.length ? <Callouts labels={props.labels} offset={prep.offset} /> : null}
+      {(props.partLabels && hl) || props.labels?.length ? (
+        <AnchorProjector
+          prep={prep}
+          names={props.partLabels && hl ? (props.labelParts || [...hl]).filter((n) => hl.has(n)).slice(0, props.maxLabels ?? 12) : []}
+          partLabel={props.partLabel}
+          labels={props.labels || null}
+          bus={(props as any).bus}
+        />
+      ) : null}
       {props.cables?.length ? <Cables routes={props.cables} offset={prep.offset} dim={!!hl} /> : null}
       {props.showBox ? <DimBox prep={prep} hidden={props.hidden} /> : null}
       {props.sizeRef && props.sizeRef !== "none" ? <SizeReference box={prep.box} kind={props.sizeRef} /> : null}
@@ -406,54 +454,157 @@ function layout(comps: Comp[], maxDim: number): Map<string, THREE.Vector3> {
 
 // ---------------------------------------------------------------- overlays
 
-function Callouts({ labels, offset }: { labels: Label[]; offset: THREE.Vector3 }) {
-  return (
-    <>
-      {labels.map((l, i) => (
-        <Html key={l.id} position={g2s(l.at, offset)} zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
-          <Callout title={l.title} sub={l.sub} side={i % 2 ? "left" : "right"} rise={28 + (i % 3) * 22} />
-        </Html>
-      ))}
-    </>
-  );
+// Callouts are placed in screen space (MIN-44): the projector below reports each anchor's pixel position whenever a
+// frame renders, and the LabelLayer (plain DOM over the canvas) places the cards with lib/place.ts so no card
+// overlaps another card, an anchor dot, the viewer edge or an overlay such as the build step card.
+
+export interface ScreenAnchor {
+  id: string;
+  title: string;
+  sub?: string;
+  x: number;
+  y: number;
+  visible: boolean;
 }
 
-function PartCallouts({ prep, names, partLabel }: { prep: Prepared; names: string[]; partLabel?: (n: string) => { title: string; sub?: string } }) {
-  const comps = prep.comps.filter((c) => names.includes(c.name)).slice(0, 8);
-  const [, force] = useState(0);
-  const moving = useRef(false);
-  useFrame(() => {
-    // keep anchors following parts while they animate (and once more when they stop)
-    const m = comps.some((c) => !c.node.position.equals(c.target));
-    if (m || moving.current) force((v) => v + 1);
-    moving.current = m;
+type Bus = { emit: (a: ScreenAnchor[]) => void; on: (fn: (a: ScreenAnchor[]) => void) => () => void };
+
+function makeBus(): Bus {
+  const subs = new Set<(a: ScreenAnchor[]) => void>();
+  let last: ScreenAnchor[] = [];
+  return {
+    emit: (a) => {
+      last = a;
+      subs.forEach((f) => f(a));
+    },
+    on: (fn) => {
+      subs.add(fn);
+      fn(last);
+      return () => subs.delete(fn);
+    },
+  };
+}
+
+function AnchorProjector({ prep, names, partLabel, labels, bus }: { prep: Prepared; names: string[]; partLabel?: (n: string) => { title: string; sub?: string }; labels: Label[] | null; bus?: Bus }) {
+  const invalidate = useThree((s) => s.invalidate);
+  const items = useMemo(() => {
+    const out: { id: string; title: string; sub?: string; world: () => THREE.Vector3 }[] = [];
+    for (const n of names) {
+      const c = prep.comps.find((x) => x.name === n);
+      if (!c) continue;
+      const lab = partLabel ? partLabel(c.name) : { title: c.name };
+      const box = new THREE.Box3();
+      out.push({
+        id: `part:${c.name}`,
+        title: lab.title,
+        sub: lab.sub,
+        world: () => {
+          // top centre of the part, following it while it animates
+          box.setFromObject(c.node);
+          const at = box.getCenter(new THREE.Vector3());
+          at.y = box.max.y;
+          return at;
+        },
+      });
+    }
+    for (const l of labels || []) {
+      const at = g2s(l.at, prep.offset);
+      out.push({ id: `label:${l.id}`, title: l.title, sub: l.sub, world: () => at });
+    }
+    return out;
+  }, [prep, names.join("|"), partLabel, labels]);
+  const last = useRef("");
+  useEffect(() => {
+    last.current = "";
+    invalidate();
+    return () => bus?.emit([]);
+  }, [items, invalidate, bus]);
+  useFrame(({ camera, size }) => {
+    if (!bus) return;
+    camera.updateMatrixWorld();
+    const v = new THREE.Vector3();
+    const out: ScreenAnchor[] = items.map((it) => {
+      v.copy(it.world()).project(camera);
+      return { id: it.id, title: it.title, sub: it.sub, x: ((v.x + 1) / 2) * size.width, y: ((1 - v.y) / 2) * size.height, visible: v.z < 1 && v.z > -1 };
+    });
+    const key = out.map((a) => `${a.id}:${Math.round(a.x)}:${Math.round(a.y)}:${a.visible ? 1 : 0}`).join("|");
+    if (key !== last.current) {
+      last.current = key;
+      bus.emit(out);
+      invalidate(); // one more frame: the camera may still be settling after this one
+    }
   });
+  return null;
+}
+
+function LabelLayer({ bus, host, avoid }: { bus: Bus; host: React.RefObject<HTMLDivElement>; avoid?: string }) {
+  const [anchors, setAnchors] = useState<ScreenAnchor[]>([]);
+  const sizes = useRef(new Map<string, { w: number; h: number }>());
+  const meas = useRef<HTMLDivElement>(null);
+  const [tick, setTick] = useState(0);
+  useEffect(() => bus.on(setAnchors), [bus]);
+  // overlays (the step card) change size between steps: re-place when the viewer's parent re-lays out
+  useEffect(() => {
+    const el = host.current?.parentElement;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setTick((t) => t + 1));
+    ro.observe(el);
+    el.querySelectorAll(avoid || "__none__").forEach((x) => ro.observe(x));
+    return () => ro.disconnect();
+  }, [host, avoid, anchors.length]);
+  const keyOf = (a: { title: string; sub?: string }) => `${a.title}\u0000${a.sub || ""}`;
+  const unmeasured = anchors.filter((a) => !sizes.current.has(keyOf(a)));
+  useLayoutEffect(() => {
+    if (!meas.current || !unmeasured.length) return;
+    meas.current.querySelectorAll<HTMLElement>("[data-k]").forEach((el) => sizes.current.set(el.dataset.k!, { w: el.offsetWidth, h: el.offsetHeight }));
+    setTick((t) => t + 1);
+  });
+  const el = host.current;
+  let placed: ReturnType<typeof placeLabels> | null = null;
+  if (el && anchors.length) {
+    const r0 = el.getBoundingClientRect();
+    const obstacles: Rect[] = [];
+    if (avoid && el.parentElement)
+      el.parentElement.querySelectorAll<HTMLElement>(avoid).forEach((o) => {
+        const r = o.getBoundingClientRect();
+        if (r.width && r.height) obstacles.push({ x: r.left - r0.left, y: r.top - r0.top, w: r.width, h: r.height });
+      });
+    const ins = anchors
+      .filter((a) => a.visible && sizes.current.has(keyOf(a)))
+      .map((a) => ({ id: a.id, ax: a.x, ay: a.y, ...sizes.current.get(keyOf(a))! }));
+    placed = placeLabels(ins, { x: 0, y: 0, w: r0.width, h: r0.height }, obstacles);
+  }
+  void tick;
+  const byId = new Map(anchors.map((a) => [a.id, a]));
   return (
-    <>
-      {comps.map((c, i) => {
-        const b = new THREE.Box3().setFromObject(c.node);
-        const at = b.getCenter(new THREE.Vector3());
-        at.y = b.max.y;
-        const lab = partLabel ? partLabel(c.name) : { title: c.name };
+    <div className="lab-layer" aria-hidden="true">
+      <div ref={meas} className="lab-measure">
+        {unmeasured.map((a) => (
+          <div key={a.id} data-k={keyOf(a)} className="lab-card">
+            <div className="t">{a.title}</div>
+            {a.sub ? <div className="s">{a.sub}</div> : null}
+          </div>
+        ))}
+      </div>
+      {placed?.placed.length ? (
+        <svg className="lab-lines" width="100%" height="100%">
+          {placed.placed.map((p) => (
+            <g key={p.id}>
+              <line x1={p.ax} y1={p.ay} x2={p.lx} y2={p.ly} />
+              <circle cx={p.ax} cy={p.ay} r={4} />
+            </g>
+          ))}
+        </svg>
+      ) : null}
+      {placed?.placed.map((p) => {
+        const a = byId.get(p.id)!;
         return (
-          <Html key={c.name} position={at} zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
-            <Callout title={lab.title} sub={lab.sub} side={i % 2 ? "left" : "right"} rise={30 + (i % 3) * 26} />
-          </Html>
+          <div key={p.id} className="lab-card placed" data-label-id={p.id} style={{ left: p.rect.x, top: p.rect.y }}>
+            <div className="t">{a.title}</div>
+            {a.sub ? <div className="s">{a.sub}</div> : null}
+          </div>
         );
       })}
-    </>
-  );
-}
-
-export function Callout({ title, sub, side, rise }: { title: string; sub?: string; side: "left" | "right"; rise: number }) {
-  return (
-    <div className={`callout3d ${side}`} style={{ ["--rise" as any]: `${rise}px` }}>
-      <span className="dot" />
-      <span className="leader" />
-      <div className="card3d">
-        <div className="t">{title}</div>
-        {sub ? <div className="s">{sub}</div> : null}
-      </div>
     </div>
   );
 }
@@ -595,8 +746,16 @@ function Person() {
 
 // ---------------------------------------------------------------- camera
 
-function CameraRig({ prep, camera, handle, sizeRef, extent }: { prep: Prepared | null; camera?: Camera | null; handle?: React.MutableRefObject<ViewerHandle | null>; sizeRef?: SizeRef; extent?: THREE.Box3 | null }) {
-  const { camera: cam, controls, invalidate } = useThree() as any;
+function CameraRig({ prep, camera, handle, sizeRef, extent, shift = 0 }: { prep: Prepared | null; camera?: Camera | null; handle?: React.MutableRefObject<ViewerHandle | null>; sizeRef?: SizeRef; extent?: THREE.Box3 | null; shift?: number }) {
+  const { camera: cam, controls, invalidate, size } = useThree() as any;
+  // centre the scene in the free space beside an overlay card (the build step card) instead of under it
+  useEffect(() => {
+    const pc = cam as THREE.PerspectiveCamera;
+    if (shift > 0 && size.width > 0) pc.setViewOffset(size.width, size.height, -shift, 0, size.width, size.height);
+    else if (pc.view) pc.clearViewOffset();
+    pc.updateProjectionMatrix();
+    invalidate();
+  }, [cam, shift, size.width, size.height, invalidate]);
   const goal = useRef<{ pos: THREE.Vector3; target: THREE.Vector3; t: number } | null>(null);
   const home = useRef<{ pos: THREE.Vector3; target: THREE.Vector3 } | null>(null);
 
@@ -723,6 +882,8 @@ function Studio({ floorY = 0, extent = 400, shadow = true, floor = "grid" }: { f
 }
 
 export function Viewer(props: ViewerProps) {
+  const bus = useMemo(() => makeBus(), []);
+  const host = useRef<HTMLDivElement>(null);
   const [prep, setPrep] = useState<Prepared | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -740,7 +901,7 @@ export function Viewer(props: ViewerProps) {
   }, [props.url]);
   const size = prep ? Math.max(...prep.box.getSize(new THREE.Vector3()).toArray(), 60) : 200;
   return (
-    <div className={`viewer ${props.className || ""}`} data-ready={ready ? "1" : "0"}>
+    <div ref={host} className={`viewer ${props.className || ""}`} data-ready={ready ? "1" : "0"}>
       {props.url ? (
         <Canvas
           frameloop="demand"
@@ -756,6 +917,7 @@ export function Viewer(props: ViewerProps) {
             <Suspense fallback={null}>
               <Model
                 {...props}
+                {...({ bus } as any)}
                 onExtent={setExtent}
                 onPrepared={(p) => {
                   setPrep(p);
@@ -765,9 +927,10 @@ export function Viewer(props: ViewerProps) {
             </Suspense>
           </Boundary>
           <OrbitControls makeDefault enableDamping dampingFactor={0.12} minDistance={5} maxDistance={40000} maxPolarAngle={Math.PI * 0.495} />
-          <CameraRig prep={prep} camera={props.camera} handle={props.handle} sizeRef={props.sizeRef} extent={extent} />
+          <CameraRig prep={prep} camera={props.camera} handle={props.handle} sizeRef={props.sizeRef} extent={extent} shift={props.viewShift} />
         </Canvas>
       ) : null}
+      {props.url && ((props.partLabels && props.highlight?.length) || props.labels?.length) ? <LabelLayer bus={bus} host={host} avoid={props.avoid} /> : null}
       {props.url && !ready && !error ? (
         <div className="viewer-status">
           <span className="spinner" /> Loading model…

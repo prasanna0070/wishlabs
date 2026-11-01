@@ -35,7 +35,8 @@ class Part:
     pads: dict[str, str] = field(default_factory=dict)       # pad number -> net ("" = not connected)
     pin_names: dict[str, str] = field(default_factory=dict)  # pad number -> function name
     block: str = "core"                # schematic block: power | core | audio | storage | ports | test | mech
-    label: str | None = None           # silkscreen port label
+    label: str | None = None           # silkscreen name: the reference designator the build guide uses (J_MIC, A1, ...)
+    sub_label: str | None = None       # silkscreen function line under the name ("LED 5V", "USB-C"), when useful
     slot: str | None = None            # backplane slot this part realises
     facing: str = ""                   # front | rear | left | right | up
     anchor: str | None = None          # auto placement: ref to sit next to (None = fixed position)
@@ -150,55 +151,58 @@ def slot_pin_pads(bp: dict, sid: str) -> list[dict]:
 ALWAYS = "always"
 
 SUPPORT: dict[str, dict] = {
+    # `part` keys parts.json (pinned maker, MPN and LCSC id, read on the listed page). Values are the fitted part.
     # USB-C sink + protection (always fitted: J_PWR and U1 are in every design)
     "R1": {"symbol": "Device:R", "value": "5.1k 1%", "pads": {"1": "CC1", "2": "GND"}, "block": "power", "when": ALWAYS,
-           "bom": {"description": "Resistor 5.1 kOhm 1% 0603 (USB-C CC1 sink pull-down)", "mpn": "generic 0603 5.1k 1%"}},
+           "part": "RES_0603_5K1_1PCT", "bom": {"description": "Resistor 5.1 kOhm 1% 0603 (USB-C CC1 sink pull-down)"}},
     "R2": {"symbol": "Device:R", "value": "5.1k 1%", "pads": {"1": "CC2", "2": "GND"}, "block": "power", "when": ALWAYS,
-           "bom": {"description": "Resistor 5.1 kOhm 1% 0603 (USB-C CC2 sink pull-down)", "mpn": "generic 0603 5.1k 1%"}},
+           "part": "RES_0603_5K1_1PCT", "bom": {"description": "Resistor 5.1 kOhm 1% 0603 (USB-C CC2 sink pull-down)"}},
     "F1": {"symbol": "Device:Polyfuse", "value": "PTC 1.5A hold", "pads": {"1": "VBUS", "2": "+5V"}, "block": "power",
-           "when": ALWAYS, "bom": {"description": "Resettable PTC fuse 1812, I_hold 1.5 A, V_max >= 6 V",
-                                   "mpn": "class only (backplane-v1: PTC 1.5 A hold, >= 6 V); choose MPN"}},
+           "when": ALWAYS, "part": "PTC_1812_1A5_16V",
+           "bom": {"description": "Resettable PTC fuse 1812, I_hold 1.5 A, I_trip 3 A, 16 V (backplane-v1 asks >= 6 V)"}},
     "D1": {"symbol": "Diode:SMAJ5.0A", "value": "SMAJ5.0A", "pads": {"1": "+5V", "2": "GND"}, "block": "power",
-           "when": ALWAYS, "bom": {"description": "TVS 5.0 V standoff, unidirectional, SMA (cathode to +5V)",
-                                   "mpn": "SMAJ5.0A class (backplane-v1); choose maker"}},
+           "when": ALWAYS, "part": "TVS_SMAJ5V0A",
+           "bom": {"description": "TVS 5.0 V standoff, unidirectional, SMA (cathode to +5V)"}},
     "C1": {"symbol": "Device:C", "value": "10uF 25V", "pads": {"1": "+5V", "2": "GND"}, "block": "power", "when": ALWAYS,
-           "bom": {"description": "MLCC 10 uF 25 V X5R 0805 (+5V bulk)", "mpn": "generic 0805 10uF 25V X5R"}},
+           "part": "CAP_0805_10U_25V_X5R", "bom": {"description": "MLCC 10 uF 25 V X5R 0805 (+5V bulk)"}},
     "C2": {"symbol": "Device:C", "value": "100nF", "pads": {"1": "+5V", "2": "GND"}, "block": "power", "when": ALWAYS,
-           "bom": {"description": "MLCC 100 nF 50 V X7R 0603", "mpn": "generic 0603 100nF 50V X7R"}},
+           "part": "CAP_0603_100N_50V_X7R", "bom": {"description": "MLCC 100 nF 50 V X7R 0603"}},
     "U2": {"symbol": "Power_Protection:USBLC6-2SC6", "value": "USBLC6-2SC6",
            "pads": {"1": "USB_DP", "6": "USB_DP", "3": "USB_DN", "4": "USB_DN", "5": "+5V", "2": "GND"},
-           "block": "power", "when": ALWAYS,
-           "bom": {"description": "USB 2.0 ESD array, 2 lines, SOT-23-6 (flow-through I/O1 = pins 1/6, I/O2 = 3/4)",
-                   "mpn": "USBLC6-2SC6"}},
+           "block": "power", "when": ALWAYS, "part": "ESD_USBLC6_2SC6",
+           "bom": {"description": "USB 2.0 ESD array, 2 lines, SOT-23-6 (flow-through I/O1 = pins 1/6, I/O2 = 3/4)"}},
     # LED port: 3.3 V -> 5 V data buffer
     "U3": {"symbol": "74xGxx:74AHCT1G125", "value": "74AHCT1G125",
            "pads": {"1": "GND", "2": "LED_DIN_3V3", "3": "GND", "4": "LED_DIN_BUF", "5": "+5V"}, "block": "ports",
-           "when": {"J_LED"}, "bom": {"description": "Single bus buffer, TTL input, 5 V, SOT-23-5 (OE tied low)",
-                                      "mpn": "74AHCT1G125 (e.g. SN74AHCT1G125DBVR)"}},
+           "when": {"J_LED"}, "part": "BUF_74AHCT1G125",
+           "bom": {"description": "Single bus buffer, TTL input, 5 V, SOT-23-5 (OE tied low)"}},
     "R3": {"symbol": "Device:R", "value": "330R", "pads": {"1": "LED_DIN_BUF", "2": "LED_DIN_5V"}, "block": "ports",
-           "when": {"J_LED"}, "bom": {"description": "Resistor 330 Ohm 0603 (LED data series)", "mpn": "generic 0603 330R"}},
+           "when": {"J_LED"}, "part": "RES_0603_330R_1PCT", "bom": {"description": "Resistor 330 Ohm 1% 0603 (LED data series)"}},
     "C5": {"symbol": "Device:C", "value": "100nF", "pads": {"1": "+5V", "2": "GND"}, "block": "ports", "when": {"J_LED"},
-           "bom": {"description": "MLCC 100 nF 0603 (U3 decoupling)", "mpn": "generic 0603 100nF X7R"}},
-    "C4": {"symbol": "Device:C", "value": "22uF 10V", "pads": {"1": "+5V", "2": "GND"}, "block": "ports",
-           "when": {"J_LED", "J_SRV"}, "bom": {"description": "MLCC 22 uF 10 V X5R 1206 (J_LED / J_SRV 5 V bulk)",
-                                               "mpn": "generic 1206 22uF 10V X5R"}},
+           "part": "CAP_0603_100N_50V_X7R", "bom": {"description": "MLCC 100 nF 50 V X7R 0603 (U3 decoupling)"}},
+    "C4": {"symbol": "Device:C", "value": "22uF 25V", "pads": {"1": "+5V", "2": "GND"}, "block": "ports",
+           "when": {"J_LED", "J_SRV"}, "part": "CAP_1206_22U_25V_X5R",
+           "bom": {"description": "MLCC 22 uF 25 V X5R 1206 ({ports} 5 V bulk; backplane-v1 asks >= 10 V)"}},
     # I2C pull-ups (any I2C port)
     "R4": {"symbol": "Device:R", "value": "4.7k", "pads": {"1": "I2C_SDA", "2": "+3V3"}, "block": "ports",
-           "when": {"J_I2C1", "J_I2C2", "J_I2C3"}, "bom": {"description": "Resistor 4.7 kOhm 0603 (I2C SDA pull-up)",
-                                                          "mpn": "generic 0603 4.7k"}},
+           "when": {"J_I2C1", "J_I2C2", "J_I2C3"}, "part": "RES_0603_4K7_1PCT",
+           "bom": {"description": "Resistor 4.7 kOhm 1% 0603 (I2C SDA pull-up)"}},
     "R5": {"symbol": "Device:R", "value": "4.7k", "pads": {"1": "I2C_SCL", "2": "+3V3"}, "block": "ports",
-           "when": {"J_I2C1", "J_I2C2", "J_I2C3"}, "bom": {"description": "Resistor 4.7 kOhm 0603 (I2C SCL pull-up)",
-                                                          "mpn": "generic 0603 4.7k"}},
-    # servo signal series resistor: splits SRV_SIG (GPIO side) from the port pin
+           "when": {"J_I2C1", "J_I2C2", "J_I2C3"}, "part": "RES_0603_4K7_1PCT",
+           "bom": {"description": "Resistor 4.7 kOhm 1% 0603 (I2C SCL pull-up)"}},
+    # servo signal series resistor: splits SRV_SIG (GPIO side) from the port pin (no J_SRV slot in backplane-v1 today)
     "R6": {"symbol": "Device:R", "value": "1k", "pads": {"1": "SRV_SIG", "2": "SRV_SIG_PORT"}, "block": "ports",
            "when": {"J_SRV"}, "split": {("J_SRV", "3"): "SRV_SIG_PORT"},
-           "bom": {"description": "Resistor 1 kOhm 0603 (servo signal series)", "mpn": "generic 0603 1k"}},
-    # amp
-    "R7": {"symbol": "Device:R", "value": "100k", "pads": {"1": "AMP_SD", "2": "GND"}, "block": "audio", "when": {"A1"},
-           "bom": {"description": "Resistor 100 kOhm 0603 (AMP_SD pull-down: amp off until firmware enables it)",
-                   "mpn": "generic 0603 100k"}},
-    "C3": {"symbol": "Device:C", "value": "22uF 10V", "pads": {"1": "+5V", "2": "GND"}, "block": "audio", "when": {"A1"},
-           "bom": {"description": "MLCC 22 uF 10 V X5R 1206 (A1 VIN bulk)", "mpn": "generic 1206 22uF 10V X5R"}},
+           "bom": {"description": "Resistor 1 kOhm 0603 (servo signal series)"}},
+    # amp. R7 is 10k, not backplane-v1's 100 k (REVIEW-1 MIN-1): with the breakout's 1 MOhm SD-to-VIN pull-up and the
+    # chip's internal 100 kOhm, 100 k leaves SD at ~0.24 V (amp on while GPIO39 floats); 10k gives ~0.05 V (< 0.16 V).
+    "R7": {"symbol": "Device:R", "value": "10k", "pads": {"1": "AMP_SD", "2": "GND"}, "block": "audio", "when": {"A1"},
+           "part": "RES_0603_10K_1PCT",
+           "bom": {"description": "Resistor 10 kOhm 1% 0603 (AMP_SD pull-down: amp stays shut down until firmware "
+                                  "drives GPIO39 high)"}},
+    "C3": {"symbol": "Device:C", "value": "22uF 25V", "pads": {"1": "+5V", "2": "GND"}, "block": "audio", "when": {"A1"},
+           "part": "CAP_1206_22U_25V_X5R",
+           "bom": {"description": "MLCC 22 uF 25 V X5R 1206 (A1 VIN bulk; backplane-v1 asks >= 10 V)"}},
 }
 
 # Footprint swaps are applied only when backplane-v1 and the module library disagree (none today: both say HRO).
@@ -213,9 +217,24 @@ GEN_SYMBOLS = {
     "J_A1N": ("MAX98357A_VO_Minus_Socket", "Amp VO- pin", "left"),
     "J_S1": ("MicroSD_Module_Socket", "microSD SPI module (1x6)", "left"),
 }
-PORT_LABELS = {"J_PWR": "USB-C", "J_SPK": "SPK", "J_MIC": "MIC", "J_DISP": "DISP", "J_I2C1": "I2C1", "J_I2C2": "I2C2",
-               "J_I2C3": "I2C3", "J_IO1": "IO1", "J_IO2": "IO2", "J_IO3": "IO3", "J_LED": "LED", "J_SRV": "SERVO",
-               "J_S1": "SD", "J_A1": "AMP"}
+# Silkscreen name block per part: (reference designator the build guide uses, function line or None). REVIEW-1 MAJ-16:
+# the silk carries the designators (U1, A1, S1, J_*); MAJ-3: the 5 V LED port also says "LED 5V".
+SILK_NAMES = {"J_PWR": ("J_PWR", "USB-C"), "J_A1": ("A1", "AMP"), "J_S1": ("S1", "SD"), "J_LED": ("J_LED", "LED 5V"),
+              "J_SRV": ("J_SRV", "SERVO 5V")}
+
+
+def silk_name(ref: str) -> tuple[str, str | None] | None:
+    if ref in SILK_NAMES:
+        return SILK_NAMES[ref]
+    if ref.startswith("J_") and not ref.startswith(("J_U1", "J_A1", "J_S1")):
+        return ref, None
+    return None
+
+
+def connector_text(footprint: str, fallback: str = "JST") -> str:
+    """'JST-XH 2.50' for an XH footprint, 'JST-PH 2.00' for PH (read from the footprint, not the slot text)."""
+    m = re.search(r"JST_([A-Z]+)_.*_P(\d+\.\d+)mm", footprint)
+    return f"JST-{m.group(1)} {m.group(2)}" if m else fallback
 
 
 def _pin_display_name(p: dict) -> str:
@@ -273,11 +292,39 @@ def resolve_node(node: str, bp: dict) -> tuple[str, str] | None:
 
 # ----------------------------------------------------------------------------- build the design
 
-def design_id(bp: dict, electrical: dict, meta: dict) -> str:
+def design_id(bp: dict, electrical: dict, meta: dict | None = None) -> str:
+    """Electrical identity of the board: backplane-v1 content + populated slots + nets. No project name, slug, version or
+    date, so a colour or shape edit keeps the id (and the silk revision printed from it). REVIEW-1 MIN-36."""
     blob = json.dumps({"bp": bp["raw"].get("version"), "bp_hash": hashlib.sha256(json.dumps(bp["raw"], sort_keys=True).encode()).hexdigest(),
-                       "used": sorted(electrical.get("slots_used") or []), "nets": electrical_nets(electrical),
-                       "slug": meta.get("slug")}, sort_keys=True)
+                       "used": sorted(electrical.get("slots_used") or []),
+                       "nets": {k: sorted(v) for k, v in electrical_nets(electrical).items()}}, sort_keys=True)
     return hashlib.sha256(blob.encode()).hexdigest()[:12]
+
+
+def board_revision(did: str) -> str:
+    """Silk/title-block revision: the first 6 hex digits of the design id (same electrical design, same revision)."""
+    return did[:6].upper()
+
+
+def _bp_identity(bpp: dict) -> dict:
+    """backplane-v1 parts[] may pin its own maker/MPN/LCSC id; those win over gstudio/pcb/parts.json."""
+    out = {}
+    for k in ("mpn", "lcsc", "maker", "url", "checked_on"):
+        if bpp.get(k):
+            out[f"bp_{k}"] = bpp[k]
+    return out
+
+
+def _value_deviation(ref: str, value: str, bpp: dict, deviations: list[str]) -> None:
+    from .rules import parse_ohms
+
+    bv = str(bpp.get("value") or "")
+    if not ref.startswith("R") or not bv:
+        return
+    a, b = parse_ohms(value), parse_ohms(bv)
+    if a and b and abs(a - b) > 1e-6 * max(a, b):
+        deviations.append(f"{ref}: fitted {value} instead of backplane-v1 '{bv.split(' (')[0]}'"
+                          + (" (REVIEW-1 MIN-1: holds the amp's SD_MODE under 0.16 V at boot)" if ref == "R7" else ""))
 
 
 def _support_needed(when, used: set[str]) -> bool:
@@ -343,25 +390,30 @@ def build_design(bp: dict, electrical: dict, meta: dict, lib_footprints: dict | 
                        "pins": sorted(((p["pad"], _pin_display_name(p)) for p in mine), key=lambda t: _natkey(t[0]))}
                 symbol = f"gstudio:{nm}"
                 value = title
-                bom = {"description": f"Female socket 1x{len(mine):02d} 2.54 mm for {title}",
-                       "mpn": f"generic 1x{len(mine):02d} 2.54 mm female header, 8.5 mm"}
+                bom = {"description": f"Female socket 1x{len(mine):02d} 2.54 mm, 8.5 mm high, for {title}"}
             elif s["kind"] == "power_in":
                 symbol, value = "Connector:USB_C_Receptacle_USB2.0_16P", "USB-C 16P"
-                bom = {"description": "USB Type-C receptacle 16P, top mount, horizontal (power + USB 2.0 data)",
-                       "mpn": "GCT USB4105-GF-A" if "GCT" in fp else "HRO TYPE-C-31-M-12"}
+                bom = {"description": "USB Type-C receptacle 16P, top mount, horizontal (power + USB 2.0 data)"}
             else:
                 n = int(s.get("pins_count") or len(mine))
-                fam = (s.get("connector") or "JST").split()[0]
+                conn = connector_text(fp, s.get("connector") or "JST")
                 symbol = f"Connector_Generic:Conn_01x{n:02d}"
-                value = f"{s.get('connector', 'JST')} {n}p {PORT_LABELS.get(ref, ref)}"
-                hdr = "B{n}B-PH-K-S" if "PH" in fp else "B{n}B-XH-A"
-                bom = {"description": f"{fam} {s.get('connector', '')} {n}-pin vertical header ({s.get('title', '')})",
-                       "mpn": "JST " + hdr.format(n=n)}
+                value = f"{conn} {n}p {ref}"
+                bom = {"description": f"{conn} mm {n}-pin vertical header ({s.get('title', '')})"}
+            bom.update(_bp_identity(bpp))
+            sn = silk_name(ref)
+            # backplane-v1 `slots[].silk` (label, pin_labels) is the source of truth for silk text when present
+            hint = s.get("silk") or {}
+            if hint.get("pin_labels") and len(hint["pin_labels"]) == len(mine) and len(_slot_parts(bp, sid)) == 1:
+                names = {pp["pad"]: str(lab) for pp, lab in zip(mine, hint["pin_labels"])}
+            if sn and hint.get("label") and hint["label"] != sn[0]:
+                sn = (sn[0], str(hint["label"]))
             p = Part(ref=ref, value=value, symbol=symbol, footprint=fp, at=_xy(bpp["at"]),
                      rot=float(bpp.get("rotation_deg", 0.0)), side=bpp.get("side", "top"), pads=pads, pin_names=names,
-                     block=BLOCK_OF_SLOT.get(sid, "ports"), label=PORT_LABELS.get(ref), slot=sid,
+                     block=BLOCK_OF_SLOT.get(sid, "ports"), label=sn[0] if sn else None,
+                     sub_label=sn[1] if sn else None, slot=sid,
                      facing=str(s.get("facing", "")).split()[0] if s.get("facing") else "", bom=bom,
-                     exclude_pos=s["kind"] != "power_in", gen_symbol=gen)
+                     exclude_pos=False, gen_symbol=gen)  # THT parts too: the fab's manual assembly reads the CPL
             parts.append(p)
             by_ref[ref] = p
 
@@ -384,6 +436,13 @@ def build_design(bp: dict, electrical: dict, meta: dict, lib_footprints: dict | 
         symbol = sp.get("symbol") or _generic_symbol(bpp["footprint"])
         value = sp.get("value") or str(bpp.get("value", ref)).split(" (")[0]
         bom = dict(sp.get("bom") or {"description": str(bpp.get("value", ""))}, backplane_value=bpp.get("value", ""))
+        if "{ports}" in bom.get("description", ""):  # name only the fitted slots this part serves (no J_SRV text)
+            served = sorted(set(sp.get("when") or ()) & used_set) if sp.get("when") != ALWAYS else []
+            bom["description"] = bom["description"].replace("{ports}", " / ".join(served) or ref)
+        if sp.get("part"):
+            bom["part_key"] = sp["part"]
+        bom.update(_bp_identity(bpp))
+        _value_deviation(ref, value, bpp, deviations)
         p = Part(ref=ref, value=value, symbol=symbol, footprint=bpp["footprint"], at=_xy(bpp["at"]),
                  rot=float(bpp.get("rotation_deg", 0.0)), side=bpp.get("side", "top"), pads=pads,
                  block=sp.get("block") or GROUP_BLOCK.get(grp or "", "ports"), bom=bom)
@@ -430,7 +489,8 @@ def build_design(bp: dict, electrical: dict, meta: dict, lib_footprints: dict | 
     W, H = bp["width"], bp["height"]
     for i, (x, y) in enumerate(((7.5, 1.6), (W - 7.5, 1.6), (7.5, H - 1.6))):
         parts.append(Part(ref=f"FID{i+1}", value="Fiducial", symbol="", footprint="Fiducial:Fiducial_1mm_Mask2mm",
-                          at=(x, y), block="mech", in_bom=False, board_only=True, anchor="@board", offset=(x, y)))
+                          at=(x, y), block="mech", in_bom=False, board_only=True, exclude_pos=True, anchor="@board",
+                          offset=(x, y)))
 
     # nets that reach only one pad on this board are left unconnected (no-connect), except power rails
     counts: dict[str, int] = {}
@@ -453,7 +513,7 @@ def build_design(bp: dict, electrical: dict, meta: dict, lib_footprints: dict | 
               "usb_end_x": u1.get("usb_end_x")}
     did = design_id(bp, electrical, meta)
     notes = honest_notes(bp, used, omitted, meta, splits, deviations)
-    return Design(name=meta.get("name", "Gadget"), slug=meta.get("slug", "gadget"), revision=meta.get("revision", "A"),
+    return Design(name=meta.get("name", "Gadget"), slug=meta.get("slug", "gadget"), revision=board_revision(did),
                   date=meta.get("date", ""), engine_version=meta.get("engine_version", ""), backplane_id=bp["id"],
                   backplane_version=bp["version"], width=W, height=H, thickness=bp["thickness"],
                   corner_radius=bp["corner_radius"], parts=parts, keepouts=keepouts, notes=notes, omitted_slots=omitted,
@@ -473,7 +533,8 @@ def honest_notes(bp: dict, used: list[str], omitted: list[str], meta: dict, spli
         "Amp output: VO+/VO- reach J_SPK through J_A1P/J_A1N (2.54 mm pins fitted in the amp's terminal pads; untested).",
         "Antenna: the devkit module antenna overhangs the board's -X edge; a copper keep-out covers the board strip under it.",
         "ERC/DRC/parity are digital checks only. No board has been fabricated or tested. Physical checks still needed.",
-        "BOM part numbers marked 'class' or 'generic' still need an MPN; prices are estimates.",
+        "BOM: every line has a pinned maker part number and LCSC id (gstudio/pcb/parts.json, read 2026-11-01); stock "
+        "and prices were not read, so pcba.json prices are planning estimates.",
     ]
     for k, v in sorted(splits.items()):
         notes.append(f"{k} is on {v}: a series part sits between it and the GPIO (backplane-v1 lists one net name for both).")

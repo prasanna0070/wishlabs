@@ -12,6 +12,7 @@ from ..usage import record_from_response
 from .history import build_contents
 from .prompt import PromptBuilder
 from .tools import TERMINAL, declarations
+from .voice import lint
 
 log = logging.getLogger("gstudio.gemini")
 
@@ -69,7 +70,7 @@ class GeminiBrain:
             turn.record_usage(record_from_response(model, last, "text", time.time() - t0))
         msg = None
         if msg_id and text.strip():
-            msg = {**make_message("assistant", "text", text.strip()), "id": msg_id}
+            msg = {**make_message("assistant", "text", lint(text)), "id": msg_id}
         return parts, calls, msg
 
     async def _call_with_retry(self, turn, model: str, contents, config):

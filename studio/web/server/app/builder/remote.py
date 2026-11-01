@@ -37,6 +37,7 @@ class IdTokens:
 
 class RemoteBuilder:
     kind = "remote"
+    supports_seed = False         # the builder starts from an empty temp dir; partial builds become full builds
 
     def __init__(self, settings: Settings, bridge: EngineBridge):
         if not settings.builder_url:
@@ -85,7 +86,13 @@ class RemoteBuilder:
     async def build(self, pid: str, n: int, spec: dict, brief: dict | None, options: dict) -> dict:
         """Blocks until the builder finishes (it mirrors files + status.json to GCS as it goes). A 429 means every
         builder slot is busy: wait and retry for up to ~15 minutes."""
-        body = {"project_id": pid, "version": n, "spec": spec, "brief": brief, "options": options}
+        opts = {k: v for k, v in (options or {}).items() if k != "only"}   # no seeded files on the builder
+        body = {"project_id": pid, "version": n, "spec": spec, "brief": brief, "options": opts}
+        if brief:
+            if brief.get("version") is not None:
+                body["brief_version"] = brief["version"]
+            if brief.get("concept_id"):
+                body["concept_id"] = brief["concept_id"]
         for attempt in range(60):
             res = await self._post("/build", body, self.settings.build_timeout_s)
             if (res.get("error") or {}).get("code") == "rate_limited":

@@ -6,6 +6,8 @@
 
 Options read from ctx.options:
     stories_audio      bool   synthesise story audio with Gemini TTS on Vertex (default False)
+    speech_roundtrip   bool   with story audio: parse every WAV with the firmware's wav_parse and transcribe it
+                              with Gemini (firmware/speech-roundtrip.json, MAJ-18) (default True)
     firmware_compile   bool   compile and test (default True)
     ota_signing_key    path   PEM ECDSA P-256 private key: embeds its public key and signs firmware.bin
     tts_voice          str    override the voice (default from settings.voice)
@@ -78,7 +80,8 @@ def generate(spec: Any, electrical: dict, out: Path, *, lib: Any = None, ota_pub
     beh = sp.get("behaviour") or {}
     template = beh.get("template")
     child = bool((sp.get("audience") or {}).get("child_directed"))
-    settings, errors = validate_settings(template, beh.get("settings") or {}, child_directed=child)
+    flags = list((sp.get("safety") or {}).get("flags") or [])
+    settings, errors = validate_settings(template, beh.get("settings") or {}, child_directed=child, safety_flags=flags)
     if errors:
         raise StageError("behaviour settings are invalid", {"errors": errors})
     binding = bind(electrical, sp, library_lookup(lib))
@@ -114,6 +117,32 @@ def _sign(key: Any, binp: Path) -> Path:
     out = binp.with_suffix(".sig")
     out.write_text(base64.b64encode(sig).decode() + "\n")
     return out
+
+
+def _speech_checks(fw: Path, warnings: list[str]) -> dict:
+    """MAJ-18: parse every card WAV with the firmware's wav_parse, then the TTS-to-STT round trip."""
+    from .build import shared_dir
+    from .speech import STT_MODEL, GeminiStt, check_card, roundtrip, write_report
+
+    sd = fw / "sdcard"
+    card = check_card(sd, fw / "lib" / "gs_core" / "src", shared_dir() / "tools")
+    if not card["ok"]:
+        warnings.append(f"{card['failed']} of {card['files']} card WAVs failed the firmware's wav_parse check; see firmware/speech-roundtrip.json")
+    trip, err = None, None
+    try:
+        stt = GeminiStt(cache=shared_dir() / "stt-cache")
+        trip = roundtrip(sd, stt, STT_MODEL, card["rows"])
+    except Exception as e:  # no credentials or model: the report says so and the check fails
+        err = f"speech round trip did not run: {str(e)[:200]}"
+        warnings.append(err)
+    rep = write_report(fw, card, trip, err)
+    if trip and not trip["ok"]:
+        bad = [r["file"] for r in trip["rows"] if not r.get("ok")]
+        warnings.append(f"speech round trip: {len(bad)} card files above the limit or unreadable: {', '.join(bad[:5])}")
+    return {"file": "firmware/speech-roundtrip.json", "ok": rep["ok"], "scope": rep.get("scope"),
+            "segments": f"{rep.get('segments_passed', 0)}/{rep.get('segments_total', 0)}",
+            "worst_segment_wer": rep.get("worst_segment_wer"), "names_exact": rep.get("names_exact"),
+            "wav_files_ok": f"{card['files'] - card['failed']}/{card['files']}"}
 
 
 def run(ctx) -> dict:
@@ -154,6 +183,13 @@ def run(ctx) -> dict:
         timings["story_pack_s"] = round(time.monotonic() - ts, 1)
         if story.get("missing"):
             warnings.append(f"{len(story['missing'])} story audio files failed to synthesise; the card lists them")
+        if story.get("audio") and ctx.options.get("speech_roundtrip", True):
+            ts = time.monotonic()
+            prog("Checking the story audio (parse and transcribe)", 96)
+            story["speech"] = _speech_checks(fw, warnings)
+            timings["speech_check_s"] = round(time.monotonic() - ts, 1)
+        elif (fw / "speech-roundtrip.json").exists():
+            (fw / "speech-roundtrip.json").unlink()  # a stale report from an earlier run of this version
 
     result: dict[str, Any] = {"compiled": False, "tests_passed": None, "tests_total": None}
     if ctx.options.get("firmware_compile", True):
@@ -194,7 +230,29 @@ def run(ctx) -> dict:
                      "merged_bin_bytes": result.get("merged_bytes"), "sha256": result.get("sha256"),
                      "merged_sha256": result.get("merged_sha256")})
         (fw / "size.json").write_text(json.dumps(size, indent=1) + "\n")
-    from .project import PLATFORM
+    from .project import APP_FLASH_MODE, PLATFORM
+
+    flash = dict(result.get("flash") or {})
+    if flash:
+        flash["app_flash_mode"] = APP_FLASH_MODE
+        flash["note"] = (f"esptool and the image header use {flash.get('flash_mode')}; the bootloader then runs the flash in "
+                         f"{APP_FLASH_MODE} (platformio.ini board_build.flash_mode)")
+    suites = result.get("test_suites") or {}
+    caps = {"volume_max": settings.get("volume_max"), "led_max_percent": settings.get("led_max_percent"),
+            "night_light_max_percent": settings.get("night_light_max_percent") if template == "story_player" else None,
+            "night_light_effective_max_percent": (round(settings["night_light_max_percent"] * settings["led_max_percent"] / 100, 1)
+                                                  if template == "story_player" else None),
+            "config_h": ["GS_CFG_VOLUME_MAX", "GS_CFG_LED_CAP", "GS_CFG_NIGHT_LEVEL_MAX", "GS_CFG_NIGHT_DUTY_MAX_PERMILLE"]}
+    privacy = {"network": settings.get("network"),
+               "setup_hotspot": ("WPA2, opens only after a 5 s button hold at power-up; first PIN needs a tap on the device"
+                                 if settings.get("network") == "parent_page" else "none: no Wi-Fi in this build"),
+               "pin_digits": "6 to 8", "pin_guard": "per address (5 tries) and device-wide (20), kept across restarts"}
+    if template == "story_player":
+        voice = settings.get("capture_mode") == "child_voice_clip"
+        privacy.update({"capture_mode": settings.get("capture_mode"), "voice_clip_consent": settings.get("voice_clip_consent"),
+                        "voice_stored": voice,
+                        "clips": ("AES-256-CTR on the card, key in the device's NVS; zeroed before delete; erase destroys the key; "
+                                  f"deleted after {settings.get('clip_retention_days')} powered-on days") if voice else "none recorded"})
 
     fwfacts = {"framework": "arduino", "board": "esp32-s3-devkitc-1", "platform": PLATFORM,
                "compiled": bool(result.get("compiled")), "size": size,
@@ -202,7 +260,10 @@ def run(ctx) -> dict:
                "binary": "firmware/firmware.bin" if result.get("compiled") else None,
                "merged_binary": "firmware/firmware-merged.bin" if result.get("merged") else None,
                "sha256": result.get("sha256"), "merged_sha256": result.get("merged_sha256"),
-               "flash": result.get("flash"), "version": facts["version"], "template": template,
+               "flash": flash or None, "version": facts["version"], "template": template,
+               "tests_product": suites.get("product"), "tests_shared": suites.get("shared"),
+               "production_profile": {"env": "s3-production", "sdkconfig": "firmware/sdkconfig.production.defaults",
+                                      "flash_encryption": "release mode", "built": False},
                "ota_signed": bool(sig), "web_flasher_manifest": "firmware/web-flasher-manifest.json" if result.get("merged") else None}
     from .setup_doc import SELFTEST_PROTOCOL, setup_markdown
 
@@ -218,6 +279,12 @@ def run(ctx) -> dict:
         "tests_passed": fwfacts["tests_passed"],
         "tests_total": fwfacts["tests_total"],
         "tests_ok": result.get("tests_ok"),
+        "tests_product": suites.get("product"),
+        "tests_shared": suites.get("shared"),
+        "test_suites": suites.get("suites"),
+        "caps": caps,
+        "privacy": privacy,
+        "speech_roundtrip": (story or {}).get("speech"),
         "warnings": warnings,
         "firmware": fwfacts,
         "settings": settings,
@@ -227,7 +294,9 @@ def run(ctx) -> dict:
         "lib_deps": b.lib_deps,
         "selftest_protocol": SELFTEST_PROTOCOL,
         "api": {"state": "GET /api/state", "action": "POST /api/action {action, ...}", "auth_header": "X-GS-PIN",
-                "info": "GET /api/info (no PIN)", "clip": "GET /api/clip?id=N", "ota": "POST /api/ota (multipart, X-GS-Signature)"},
+                "info": "GET /api/info (no PIN)", "clip": "GET /api/clip?id=N",
+                "name_clip": "POST /api/name_clip?id=N (multipart, 16-bit mono WAV <= 64 KB)",
+                "ota": "POST /api/ota (multipart, X-GS-Signature)", "enabled": settings.get("network") == "parent_page"},
         "files": ["firmware/" + f for f in facts["files"]],
         "timings": timings,
         "platformio": result.get("platformio"),

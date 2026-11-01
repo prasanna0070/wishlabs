@@ -7,6 +7,8 @@ import { ChatPanel } from "../components/chat/ChatPanel";
 import { RightPanel, TABS, type TabId } from "../components/panel/RightPanel";
 import { Spinner } from "../components/ui";
 import { clamp } from "../lib/format";
+import { behindLatest } from "../lib/versions";
+import { History } from "lucide-react";
 
 export function ProjectPage({ shared = false }: { shared?: boolean }) {
   const { pid, token, tab } = useParams();
@@ -91,6 +93,7 @@ export function ProjectPage({ shared = false }: { shared?: boolean }) {
   return (
     <div className="workspace">
       <Header onTab={setTab} />
+      <BehindBanner />
       <div
         className={`ws-body${split ? " split" : ""}${!showChat ? " no-chat" : ""}${!showPanel ? " no-panel" : ""}`}
         style={{ ["--chat-w" as any]: `${clamp(chatWidth, 360, 900)}px` }}
@@ -112,6 +115,29 @@ export function ProjectPage({ shared = false }: { shared?: boolean }) {
         ) : null}
         {showPanel ? <RightPanel tab={active} onTab={setTab} /> : null}
       </div>
+    </div>
+  );
+}
+
+/** MAJ-39: an edit starts from the current version, so say so when that is not the newest one. */
+function BehindBanner() {
+  const project = useProject((s) => s.project);
+  const readOnly = useProject((s) => s.readOnly);
+  const setCurrent = useProject((s) => s.setCurrent);
+  const b = behindLatest(project);
+  if (!b || readOnly) return null;
+  const latest = project!.versions.find((v) => v.n === b.latest);
+  return (
+    <div className="behind-banner" role="status">
+      <History size={15} />
+      <span className="grow">
+        You are on v{b.cur}. Edits start from v{b.cur}; the latest is v{b.latest}.
+      </span>
+      {latest && latest.state !== "error" ? (
+        <button className="btn sm" onClick={() => void setCurrent(b.latest)}>
+          Go to v{b.latest}
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -1,0 +1,9 @@
+{
+ "_about": "Inbound shipping from each parts vendor to the factory (MIN-26). Every figure is an ASSUMPTION until the vendor's own shipping page is checked; add a vendor under 'vendors' with its checked values and a dated basis.",
+ "default": {
+  "flat_fee_inr": {"low": 50, "mode": 80, "high": 150},
+  "free_above_inr": 500,
+  "basis": "ASSUMPTION: a typical Indian electronics web store charges a flat courier fee below a free-shipping threshold; neither the fee nor the threshold has been checked for any vendor"
+ },
+ "vendors": {}
+}

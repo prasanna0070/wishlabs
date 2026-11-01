@@ -298,6 +298,8 @@ export interface ComponentInfo {
   color?: string | number[];
   bbox?: number[];
   volume_mm3?: number;
+  /** REVIEW-1 MAJ-35: decor regions of the shell (ears, face plate...), each pickable as `<name>` in assembly.glb */
+  decor?: { name?: string; spec_path?: string; label?: string; style?: string; type?: string }[];
 }
 
 export type Components = Record<string, ComponentInfo>;

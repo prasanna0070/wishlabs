@@ -9,6 +9,7 @@ from .engine_bridge import EngineBridge
 from .imagegen import ImageGen
 from .projects import ProjectRepo
 from .store import make_store
+from .tts import NameVoice
 
 
 class Services:
@@ -25,4 +26,5 @@ class Services:
         else:
             self.imagegen = ImageGen(settings)
         self.builds = BuildManager(self)
+        self.names = NameVoice(settings)
         self.brain = brain if brain is not None else make_brain(self)

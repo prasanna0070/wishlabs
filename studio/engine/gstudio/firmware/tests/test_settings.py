@@ -16,11 +16,42 @@ def test_defaults_are_valid_and_child_safe(template):
 
 def test_story_player_defaults():
     norm, _ = validate_settings("story_player", {})
-    assert norm["capture_mode"] == "child_voice_clip"
-    assert norm["clip_seconds"] == 2.0
+    assert norm["capture_mode"] == "parent_web"  # MAJ-1: no voice recording by default
+    assert norm["voice_clip_consent"] is False
+    assert norm["clip_seconds"] == 3.0  # MIN-38
+    assert norm["night_light_max_percent"] == 30 and norm["night_light_brightness"] <= 30  # MAJ-29 cap
     assert norm["keep_window_seconds"] == 10
     assert norm["night_light_brightness"] <= 20
     assert norm["language"] == "en-IN"
+
+
+def test_child_voice_clip_needs_consent_and_the_flag():
+    st = {"capture_mode": "child_voice_clip"}
+    _, errors = validate_settings("story_player", st, child_directed=True, safety_flags=["CHILD_DIRECTED"])
+    assert any("voice_clip_consent" in e for e in errors) and any("CHILD_VOICE_STORED" in e for e in errors)
+    _, errors = validate_settings("story_player", dict(st, voice_clip_consent=True), child_directed=True,
+                                  safety_flags=["CHILD_DIRECTED"])
+    assert errors == ["safety.flags: child_voice_clip needs the CHILD_VOICE_STORED flag, else use capture_mode parent_web"]
+    norm, errors = validate_settings("story_player", dict(st, voice_clip_consent=True), child_directed=True,
+                                     safety_flags=["CHILD_DIRECTED", "CHILD_VOICE_STORED"])
+    assert errors == [] and norm["capture_mode"] == "child_voice_clip"
+    # Without the flags (callers that do not know them) only the settings themselves are checked.
+    assert validate_settings("story_player", st)[1] == []
+
+
+def test_network_defaults_off_for_a_child():
+    # MAJ-2: a child-directed design has no Wi-Fi unless the design turns it on.
+    assert validate_settings("story_player", {}, child_directed=True)[0]["network"] == "off"
+    assert validate_settings("story_player", {}, child_directed=False)[0]["network"] == "parent_page"
+    assert validate_settings("story_player", {"network": "parent_page"}, child_directed=True)[0]["network"] == "parent_page"
+    assert validate_settings("notifier_clock", {}, child_directed=True)[0]["network"] == "parent_page"
+    _, errors = validate_settings("notifier_clock", {"network": "off"})
+    assert errors and "notifier_clock" in errors[0]
+
+
+def test_night_brightness_cannot_exceed_its_cap():
+    _, errors = validate_settings("story_player", {"night_light_brightness": 40})
+    assert errors and "night_light_max_percent" in errors[0]
 
 
 def test_unknown_key_is_rejected_with_its_path():

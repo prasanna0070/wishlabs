@@ -1,0 +1,80 @@
+$ pio test -e native -v
+# PlatformIO Core, version 6.2.0
+Collected 1 tests (test_core)
+
+Processing test_core in native environment
+--------------------------------------------------------------------------------
+Building...
+
+
+Testing...
+test/test_core/test_main.cpp:107:test_tap_is_press_then_tap:PASS
+test/test_core/test_main.cpp:108:test_long_press_fires_once_at_threshold:PASS
+test/test_core/test_main.cpp:109:test_contact_bounce_gives_one_press:PASS
+test/test_core/test_main.cpp:110:test_short_glitch_is_ignored:PASS
+test/test_core/test_main.cpp:111:test_held_at_boot_is_not_a_press:PASS
+test/test_core/test_main.cpp:112:test_timer_wraparound:PASS
+test/test_core/test_main.cpp:113:test_configurable_long_press:PASS
+test/test_core/test_main.cpp:236:test_crc32_known_vector:PASS
+test/test_core/test_main.cpp:237:test_empty_backend_loads_defaults:PASS
+test/test_core/test_main.cpp:238:test_saved_name_survives_restart:PASS
+test/test_core/test_main.cpp:239:test_capacity_and_case_insensitive_duplicates:PASS
+test/test_core/test_main.cpp:240:test_bad_names_rejected_and_nothing_written:PASS
+test/test_core/test_main.cpp:241:test_power_cut_mid_write_keeps_previous_record:PASS
+test/test_core/test_main.cpp:242:test_failed_write_changes_nothing:PASS
+test/test_core/test_main.cpp:243:test_corrupt_memory_is_refused_not_overwritten:PASS
+test/test_core/test_main.cpp:244:test_single_flipped_bit_is_detected:PASS
+test/test_core/test_main.cpp:245:test_slots_alternate_and_newest_wins:PASS
+test/test_core/test_main.cpp:246:test_sequence_wraparound:PASS
+test/test_core/test_main.cpp:247:test_volume_limits:PASS
+test/test_core/test_main.cpp:248:test_clip_favourites_and_erase:PASS
+test/test_core/test_main.cpp:249:test_ids_are_not_reused_while_in_use:PASS
+test/test_core/test_main.cpp:250:test_unreadable_storage_refuses_writes:PASS
+test/test_core/test_main.cpp:160:test_shuffle_never_repeats_back_to_back:PASS
+test/test_core/test_main.cpp:161:test_sequential_order_wraps:PASS
+test/test_core/test_main.cpp:162:test_catalog_rejects_bad_entries:PASS
+test/test_core/test_main.cpp:163:test_playlist_inserts_child_clip_between_segments:PASS
+test/test_core/test_main.cpp:164:test_missing_clip_falls_back_to_default_then_chime:PASS
+test/test_core/test_main.cpp:165:test_parent_web_uses_pack_name_clip:PASS
+test/test_core/test_main.cpp:166:test_hero_avoids_last_hero:PASS
+test/test_core/test_main.cpp:167:test_no_favourites_means_no_hero:PASS
+test/test_core/test_main.cpp:168:test_name_cleaning_and_slugs:PASS
+test/test_core/test_main.cpp:270:test_tap_plays_and_tap_during_story_stops:PASS
+test/test_core/test_main.cpp:271:test_story_end_returns_to_idle:PASS
+test/test_core/test_main.cpp:272:test_hold_records_listens_blue_plays_back_and_tap_keeps:PASS
+test/test_core/test_main.cpp:273:test_no_tap_within_window_discards:PASS
+test/test_core/test_main.cpp:274:test_tap_that_interrupts_playback_does_not_keep:PASS
+test/test_core/test_main.cpp:275:test_too_short_or_failed_recording_is_discarded:PASS
+test/test_core/test_main.cpp:276:test_parent_web_mode_never_opens_the_mic:PASS
+test/test_core/test_main.cpp:277:test_full_memory_refuses_to_record:PASS
+test/test_core/test_main.cpp:278:test_hold_during_keep_window_records_again:PASS
+test/test_core/test_main.cpp:279:test_hold_during_story_stops_then_records:PASS
+test/test_core/test_main.cpp:280:test_recorder_watchdog_closes_mic:PASS
+test/test_core/test_main.cpp:281:test_parent_stop_discards_a_take:PASS
+test/test_core/test_main.cpp:282:test_button_fsm_drives_controller:PASS
+test/test_core/test_main.cpp:124:test_night_light_fades_in_holds_and_fades_out:PASS
+test/test_core/test_main.cpp:125:test_night_light_restart_does_not_flash:PASS
+test/test_core/test_main.cpp:126:test_indicator_colours:PASS
+test/test_core/test_main.cpp:127:test_wav_header_round_trip_and_extra_chunks:PASS
+test/test_core/test_main.cpp:128:test_volume_curve_is_capped_and_monotonic:PASS
+test/test_core/test_main.cpp:129:test_mic_conversion_and_levels:PASS
+test/test_core/test_main.cpp:130:test_pin_guard_locks_and_backs_off:PASS
+test/test_core/test_main.cpp:138:test_face_blinks_reacts_and_sleeps:PASS
+test/test_core/test_main.cpp:139:test_clap_detector_single_and_double:PASS
+test/test_core/test_main.cpp:140:test_clap_detector_ignores_sustained_sound:PASS
+test/test_core/test_main.cpp:141:test_notice_queue_priority_expiry_and_ack:PASS
+test/test_core/test_main.cpp:142:test_quiet_hours_and_clock_format:PASS
+test/test_core/test_main.cpp:143:test_scenes_and_auto_dim:PASS
+test/test_core/test_main.cpp:144:test_trend_and_threshold:PASS
+
+-----------------------
+58 Tests 0 Failures 0 Ignored 
+OK
+
+----------------- native:test_core [PASSED] Took 0.39 seconds -----------------
+
+=================================== SUMMARY ===================================
+Environment    Test       Status    Duration
+-------------  ---------  --------  ------------
+native         test_core  PASSED    00:00:00.388
+================= 58 test cases: 58 succeeded in 00:00:00.388 =================

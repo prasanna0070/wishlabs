@@ -91,7 +91,7 @@ async def serve_concept_file(request: Request, p: dict, cid: str, name: str) -> 
 
 def shared_view(p: dict) -> dict:
     token = (p.get("share") or {}).get("token")
-    q = {k: v for k, v in p.items() if k not in ("order_requests", "share", "turn")}
+    q = {k: v for k, v in p.items() if k not in ("order_requests", "share", "turn", "device")}
     q["read_only"] = True
     raw = json.dumps(q, ensure_ascii=False).replace(f"/api/projects/{p['id']}/", f"/api/share/{token}/")
     return json.loads(raw)

@@ -1,0 +1,177 @@
+{
+ "spec": {
+  "region": "IN",
+  "features": [
+   {
+    "module": "SPK_40MM_4R_3W",
+    "at": [
+     0,
+     56
+    ],
+    "face": "front",
+    "label": "Story speaker",
+    "id": "speaker",
+    "grille": {
+     "w": 36,
+     "pattern": "dots_ellipse",
+     "h": 36,
+     "hole": 2.4,
+     "pitch": 4.4
+    }
+   },
+   {
+    "label": "Story and listening button",
+    "face": "top",
+    "at": [
+     0,
+     -10
+    ],
+    "module": "BUTTON_ARCADE_30MM_SNAPIN",
+    "id": "story_button"
+   },
+   {
+    "label": "Animated sleepy eyes",
+    "face": "front",
+    "at": [
+     0,
+     120
+    ],
+    "id": "eyes",
+    "module": "OLED_130_SH1106_I2C"
+   },
+   {
+    "module": "LED_WS2812B_1PX_MODULE",
+    "id": "status_light",
+    "label": "Night light",
+    "at": [
+     0,
+     85
+    ],
+    "face": "front"
+   },
+   {
+    "at": [
+     30,
+     85
+    ],
+    "label": "Voice microphone",
+    "module": "MIC_INMP441_I2S",
+    "id": "mic",
+    "face": "front"
+   }
+  ],
+  "colors": {
+   "detail_name": "night indigo",
+   "detail": "#2F2A52",
+   "body": "#B9B3E8",
+   "accent": "#FFF6EA",
+   "accent_name": "warm cream",
+   "body_name": "dusk lavender"
+  },
+  "safety": {
+   "flags": [
+    "CHILD_DIRECTED",
+    "LOCAL_VOICE_CAPTURE",
+    "NIGHT_USE"
+   ],
+   "notes": "Adult assembly required. Microphone only active when button is held."
+  },
+  "decor": [
+   {
+    "type": "face_plate",
+    "at": [
+     0,
+     120
+    ],
+    "depth": 1.2,
+    "shape": "ellipse",
+    "relief": "engrave",
+    "size": [
+     112,
+     58
+    ]
+   },
+   {
+    "type": "ear",
+    "tilt": 0,
+    "at": [
+     45,
+     155
+    ],
+    "style": "bear",
+    "size": [
+     32,
+     32
+    ],
+    "side": "both"
+   }
+  ],
+  "electronics": {
+   "extra_modules": [],
+   "power": {
+    "input": "usb_c_5v",
+    "adapter_in_box": false
+   },
+   "core": "CORE_ESP32S3_DEVKITC1_N8R8"
+  },
+  "body": {
+   "edge_round": 16,
+   "feet": 4,
+   "depth": 110,
+   "family": "silhouette",
+   "outline": [
+    [
+     -60,
+     0
+    ],
+    [
+     60,
+     0
+    ],
+    [
+     70,
+     40
+    ],
+    [
+     65,
+     110
+    ],
+    [
+     50,
+     150
+    ],
+    [
+     0,
+     165
+    ],
+    [
+     -50,
+     150
+    ],
+    [
+     -65,
+     110
+    ],
+    [
+     -70,
+     40
+    ]
+   ],
+   "split": "rear_cover"
+  },
+  "audience": {
+   "age_years": 5,
+   "child_directed": true
+  },
+  "schema": "gadget-spec/1",
+  "slug": "sleepy-bear",
+  "name": "Sleepy Bear",
+  "tagline": "A gentle bear that tells stories about her favorite friends.",
+  "behaviour": {
+   "template": "story_player",
+   "summary": "Tap the top button for a bedtime story. Hold it down and tell the bear your new favorite character; it will remember for next time. The tummy light glows warmly during stories and turns blue when listening.",
+   "settings": {}
+  }
+ },
+ "label": "Edit main shell: Larger face and rounder ears"
+}

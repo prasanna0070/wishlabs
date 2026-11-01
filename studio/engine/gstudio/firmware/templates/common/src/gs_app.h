@@ -23,6 +23,17 @@ class GsApp {
   virtual bool healthy() { return true; }
   // Parent "erase everything": the template deletes what it stores (for example voice clips).
   virtual bool erase_user_data() { return true; }
+  // microSD path for a favourite's spoken name clip (/names/<slug>.wav), or "" (story_player).
+  virtual String name_clip_path(uint8_t fav_id) {
+    (void)fav_id;
+    return String("");
+  }
+  // The microphone just opened (true) or closed (false). Return true when the template shows that
+  // itself; otherwise the shared listening light and face are used (gs_listen.cpp).
+  virtual bool show_listening(bool on) {
+    (void)on;
+    return false;
+  }
 };
 
 // Defined by the template's app file.

@@ -5,10 +5,10 @@ from pathlib import Path
 
 from .util import Bundle, exists, inr, link, size_from_components, table
 
-STAGE_ORDER = ("normalize", "electrical", "cad", "pcb", "firmware", "order", "manual", "checks", "docs", "package")
+STAGE_ORDER = ("normalize", "electrical", "cad", "pcb", "firmware", "order", "manual", "checks", "finalize", "docs", "package")
 STAGE_NAMES = {"normalize": "Design check", "electrical": "Wiring and pin map", "cad": "Shell and CAD", "pcb": "Backplane PCB",
                "firmware": "Firmware", "order": "Slicing and price", "manual": "Build manual", "checks": "Digital checks",
-               "docs": "Project documents", "package": "Package and export"}
+               "finalize": "Final guide checks", "docs": "Project documents", "package": "Package and export"}
 
 
 def _count(out: Path, pattern: str) -> int:
@@ -21,6 +21,31 @@ def _electrical_note(b: Bundle) -> str:
         return f"{b.state('electrical')}: {b.message('electrical')}"
     slots = s.get("slots_used") or []
     return f"{s.get('instances', '?')} module instances on {len(slots)} backplane slots, {s.get('nets', '?')} nets"
+
+
+def power_text(b: Bundle, pw: dict) -> str:
+    """MAJ-5: the supply by rating (5 V 3 A), whether it ships in the box, and the BIS CRS requirement; the current
+    figures with the limit they are compared with."""
+    rows = b.build.get("purchased") or []
+    psu = next((r for r in rows if str(r.get("role") or "") == "adapter" and r.get("in_box")), None)
+    pb = next((c for c in (b.digital or {}).get("checks") or [] if c.get("id") == "power-budget"), None)
+    rv = next((c for c in (b.digital or {}).get("checks") or [] if c.get("id") == "rail-voltage"), None)
+    d = (pb or {}).get("data") or {}
+    supply = (f"a 5 V 3 A USB-C adapter ships in the box ({psu['name']})" if psu else
+              "the buyer supplies a 5 V 3 A USB-C adapter (none in the box)")
+    cap = pw.get("total_ma_max_capped", pw.get("total_ma_max"))
+    unc = pw.get("total_ma_max") if "total_ma_max_capped" in pw else None
+    lim = d.get("limit_ma", pw.get("limit_ma"))
+    basis = d.get("basis") or "the PTC fuse budget"
+    t = (f"Power: 5 V USB-C input; {supply}. A mains adapter sold in India must carry BIS CRS registration (an R-number on its "
+         "label); check the label, the listing does not show one. "
+         f"Worst-case current {cap} mA with the firmware caps" + (f" ({unc} mA without them)" if unc is not None else "")
+         + f" against {lim} mA, the {basis} ({'within' if (pb or {}).get('status') == 'passed' or (pb is None and pw.get('ok')) else 'NOT within'} budget).")
+    if rv and (rv.get("data") or {}).get("rail_min_v") is not None:
+        r = rv["data"]
+        t += (f" The +5V rail is calculated at {r['rail_min_v']} V at that peak against {r.get('required_min_v')} V needed by "
+              f"{r.get('required_by')} ({rv.get('status')}).")
+    return t + " These figures are calculated from module data and assumptions, not measured. A computer USB port is not a substitute."
 
 
 def render(b: Bundle) -> str:
@@ -49,6 +74,14 @@ def render(b: Bundle) -> str:
     beh = sp.get("behaviour") or {}
     if beh.get("summary"):
         L += ["", f"Behaviour (`{beh.get('template')}` template): {beh['summary']}"]
+    rep = pj.get("auto_repair")
+    if isinstance(rep, dict):
+        L += ["", f"Automatic repair in this build: {rep.get('why')}. `spec.json` is the repaired design; "
+                  f"{'the collision check passes after it' if not rep.get('after') else 'collisions remain after it'}."]
+    gate = (b.digital or {}) and next((c for c in (b.digital or {}).get("checks") or [] if c.get("id") in ("collisions", "cad-collisions")), None)
+    if gate and gate.get("status") == "failed":
+        L += ["", f"**Not buildable yet.** The CAD shows parts colliding ({gate.get('detail')}). Do not print or order this version; "
+                  "the quote is held until the design is revised."]
 
     # ---- deliverables
     L += ["", "## What this version contains", ""]
@@ -109,8 +142,7 @@ def render(b: Bundle) -> str:
             L.append(table(["Signal", "ESP32-S3 GPIO"], [[k, v] for k, v in gpio.items()]))
         pw = (b.electrical or {}).get("power") or {}
         if pw:
-            L += ["", f"Power: 5 V USB-C input. Worst-case current {pw.get('total_ma_max', '?')} mA against a {pw.get('limit_ma', '?')} mA limit "
-                      f"({'within' if pw.get('ok') else 'NOT within'} budget). These are calculated from module data, not measured."]
+            L += ["", power_text(b, pw)]
 
     # ---- rebuild
     L += ["", "## Rebuild commands", "", "Run from the folder that holds this file. The full pipeline needs the Gadget Studio engine "
@@ -142,13 +174,25 @@ def render(b: Bundle) -> str:
     # ---- price
     q = b.quote
     L += ["", "## Price and lead time", ""]
-    if q:
+    if q and q.get("status") == "HELD":
+        L.append(f"**{q.get('status_label')}.** No price is offered for this version: "
+                 + "; ".join(q.get("reasons") or []) + ".")
+        pt = q.get("parts_total_inr") or {}
+        if pt.get("one_off") is not None:
+            L += ["", f"Parts alone would be about {inr(pt['one_off'])} for one unit ({pt.get('basis', '')})."]
+    elif q:
         dp, lt = q["delivered_price_inr"], q["lead_time_days"]
         L.append(f"**{q['status_label']}.** Delivered price including GST: **{inr(dp['pilot_one_off'])}** for a one-off pilot unit today, "
                  f"**{inr(dp['steady_state'])}** at a steady 100+ units a month. Lead time estimate {lt['low']}-{lt['high']} days for the one-off "
                  f"({lt['steady_state']['low']}-{lt['steady_state']['high']} days at steady state). Status `{q['status']}`, never binding:")
         L.append("")
         L += [f"- {r}" for r in q.get("reasons") or []]
+        pt = q.get("parts_total_inr") or {}
+        inb = q.get("inbound_shipping") or {}
+        if pt.get("one_off") is not None:
+            L += ["", f"Parts total for one unit: {inr(pt['one_off'])} (the same figure as `PARTS_EVIDENCE.md` and the Parts tab)"
+                      + (f"; inbound shipping from {inb.get('vendor_count')} vendor(s) adds about {inr(inb.get('one_off_inr'))} to the one-off "
+                         "(assumed fees)" if inb.get("vendor_count") else "") + "."]
         L += ["", "All four scenarios, p5/p50/p95 costs and every assumption are in `order/quote.json`; part prices are in `PARTS_EVIDENCE.md`."]
     else:
         L.append(f"Not quoted in this version: {b.message('order') or 'the order stage did not run'}.")

@@ -86,25 +86,94 @@ def part_primitives(part, face_colors: Optional[dict] = None, tol: Optional[floa
     return prims
 
 
+def idle_face_png(kind: str = "oled", px=(128, 64), scale: int = 4, color=(255, 255, 255)) -> bytes:
+    """The firmware's idle ("Neutral") face as a PNG: the same geometry as gsdisp::draw_face in
+    firmware/templates/common/src/gs_display.cpp (eye w = W/5, h = H*11/20, gap = W/6, corner = ew/3, on black).
+    Pixel colour is illustrative: the library does not say whether the OLED glows white or blue."""
+    from io import BytesIO
+
+    from PIL import Image, ImageDraw
+
+    w, h = px
+    ew, eh, gap = w // 5, h * 11 // 20, w // 6
+    cx, cy = w // 2, h // 2
+    lx, rx, top = cx - gap // 2 - ew, cx + gap // 2, cy - eh // 2
+    img = Image.new("RGB", (w * scale, h * scale), (0, 0, 0))
+    d = ImageDraw.Draw(img)
+    r = (ew // 3) * scale
+    for x0 in (lx, rx):
+        d.rounded_rectangle([x0 * scale, top * scale, (x0 + ew) * scale - 1, (top + eh) * scale - 1], radius=r, fill=tuple(color))
+    b = BytesIO()
+    img.save(b, format="PNG", optimize=True)
+    return b.getvalue()
+
+
+def screen_quad(sc: dict) -> dict:
+    """Textured quad prim for one info.screens entry (gadget mm), slightly in front of the glass."""
+    c, u, v, n = (np.asarray(sc[k], float) for k in ("c", "u", "v", "n"))
+    w, h = float(sc.get("aa_w") or sc["w"]), float(sc.get("aa_h") or sc["h"])
+    cc = c + n * 0.05
+    P = np.array([cc - u * w / 2 - v * h / 2, cc + u * w / 2 - v * h / 2, cc + u * w / 2 + v * h / 2, cc - u * w / 2 + v * h / 2])
+    N = np.tile(n, (4, 1))
+    UV = np.array([[0, 1], [1, 1], [1, 0], [0, 0]], float)
+    T = np.array([[0, 1, 2], [0, 2, 3]], np.int64)
+    px = (128, 64) if sc.get("kind") != "lcd" else (320, 240)
+    return {"sub": "Screen", "verts": P, "normals": N, "tris": T, "uv": UV, "png": idle_face_png(sc.get("kind", "oled"), px),
+            "color": (0.0, 0.0, 0.0), "emissive": True}
+
+
 def write_glb(path: Path, nodes: list, generator: str = "Gadget Studio CAD") -> dict:
-    """nodes: [(node_name, [(subname, verts, normals, tris, color)], alpha)] -> binary glTF 2.0."""
+    """nodes: [(node_name, [(subname, verts, normals, tris, color) | textured dict], alpha[, children])] -> binary glTF 2.0.
+    children: [(child_name, prims, alpha)] become child nodes (e.g. PRINT_Shell#decor[1] pick meshes, a display's
+    emissive idle-face screen PURCHASE_Display#screen); the parent keeps its full mesh."""
     bin_chunks = []
     offset = 0
     accessors, views, meshes, materials, gnodes = [], [], [], [], []
+    images, textures = [], []
     mat_index = {}
 
-    def add_view(data: bytes, target: int) -> int:
+    def add_view(data: bytes, target) -> int:
         nonlocal offset
         pad = (-len(data)) % 4
         bin_chunks.append(data + b"\x00" * pad)
-        views.append({"buffer": 0, "byteOffset": offset, "byteLength": len(data), "target": target})
+        v = {"buffer": 0, "byteOffset": offset, "byteLength": len(data)}
+        if target:
+            v["target"] = target
+        views.append(v)
         offset += len(data) + pad
         return len(views) - 1
 
     tri_total = 0
-    for name, prims, alpha in nodes:
+
+    def mesh_of(name, prims, alpha):
+        nonlocal tri_total
         gprims = []
-        for sub, v, n, t, col in prims:
+        for pr in prims:
+            if isinstance(pr, dict):  # textured emissive quad
+                vv = np.asarray(pr["verts"], float)
+                nn = np.asarray(pr["normals"], float)
+                P = np.stack([vv[:, 0], vv[:, 2], -vv[:, 1]], 1).astype(np.float32) / 1000.0
+                N = np.stack([nn[:, 0], nn[:, 2], -nn[:, 1]], 1).astype(np.float32)
+                UV = np.asarray(pr["uv"], np.float32)
+                I = np.asarray(pr["tris"], np.uint32).ravel()
+                pa = len(accessors)
+                accessors.append({"bufferView": add_view(P.tobytes(), 34962), "componentType": 5126, "count": len(P), "type": "VEC3",
+                                  "min": P.min(0).tolist(), "max": P.max(0).tolist()})
+                accessors.append({"bufferView": add_view(N.tobytes(), 34962), "componentType": 5126, "count": len(N), "type": "VEC3"})
+                accessors.append({"bufferView": add_view(UV.tobytes(), 34962), "componentType": 5126, "count": len(UV), "type": "VEC2"})
+                accessors.append({"bufferView": add_view(I.tobytes(), 34963), "componentType": 5125, "count": len(I), "type": "SCALAR"})
+                img_view = add_view(pr["png"], None)
+                images.append({"bufferView": img_view, "mimeType": "image/png", "name": f"{name}/{pr['sub']}"})
+                textures.append({"sampler": 0, "source": len(images) - 1})
+                ti = len(textures) - 1
+                materials.append({"name": f"{name}/{pr['sub']}", "pbrMetallicRoughness": {"baseColorFactor": [0.0, 0.0, 0.0, 1.0],
+                                  "baseColorTexture": {"index": ti}, "metallicFactor": 0.0, "roughnessFactor": 0.25},
+                                  "emissiveTexture": {"index": ti}, "emissiveFactor": [1.0, 1.0, 1.0], "doubleSided": False})
+                gprims.append({"attributes": {"POSITION": pa, "NORMAL": pa + 1, "TEXCOORD_0": pa + 2}, "indices": pa + 3,
+                               "material": len(materials) - 1, "mode": 4})
+                tri_total += len(I) // 3
+                continue
+            sub, v, n, t, col = pr
             used = np.unique(t)
             remap = -np.ones(len(v), dtype=np.int64)
             remap[used] = np.arange(len(used))
@@ -132,13 +201,39 @@ def write_glb(path: Path, nodes: list, generator: str = "Gadget Studio CAD") -> 
             gprims.append({"attributes": {"POSITION": pa, "NORMAL": na}, "indices": ia, "material": mat_index[key], "mode": 4})
             tri_total += len(tt)
         if not gprims:
-            continue
+            return None
         meshes.append({"name": name, "primitives": gprims})
-        gnodes.append({"name": name, "mesh": len(meshes) - 1})
+        return len(meshes) - 1
+
+    roots = []
+    for item in nodes:
+        name, prims, alpha = item[0], item[1], item[2]
+        children = item[3] if len(item) > 3 else []
+        mi = mesh_of(name, prims, alpha)
+        kids = []
+        for cname, cprims, calpha in children or []:
+            ci = mesh_of(cname, cprims, calpha)
+            if ci is None:
+                continue
+            gnodes.append({"name": cname, "mesh": ci})
+            kids.append(len(gnodes) - 1)
+        if mi is None and not kids:
+            continue
+        nd = {"name": name}
+        if mi is not None:
+            nd["mesh"] = mi
+        if kids:
+            nd["children"] = kids
+        gnodes.append(nd)
+        roots.append(len(gnodes) - 1)
     blob = b"".join(bin_chunks)
     doc = {"asset": {"version": "2.0", "generator": generator, "extras": {"units": "metres; gadget mm x/1000, z up -> +Y"}},
-           "scene": 0, "scenes": [{"name": "gadget", "nodes": list(range(len(gnodes)))}], "nodes": gnodes, "meshes": meshes,
+           "scene": 0, "scenes": [{"name": "gadget", "nodes": roots}], "nodes": gnodes, "meshes": meshes,
            "materials": materials, "accessors": accessors, "bufferViews": views, "buffers": [{"byteLength": len(blob)}]}
+    if images:
+        doc["images"] = images
+        doc["textures"] = textures
+        doc["samplers"] = [{"magFilter": 9729, "minFilter": 9729, "wrapS": 33071, "wrapT": 33071}]
     js = json.dumps(doc, separators=(",", ":")).encode()
     js += b" " * ((-len(js)) % 4)
     out = struct.pack("<III", 0x46546C67, 2, 12 + 8 + len(js) + 8 + len(blob))
@@ -176,7 +271,7 @@ def glb_items(path: Path) -> list:
 
     out = []
     for nd in g.nodes:
-        if nd.mesh is None:
+        if nd.mesh is None or "#" in (nd.name or ""):  # child pick meshes and screen quads: not separate components
             continue
         for k, pr in enumerate(g.meshes[nd.mesh].primitives):
             P = acc(pr.attributes.POSITION, 3).astype(float) * 1000.0
@@ -201,8 +296,63 @@ def model_primitives(model) -> list:
     return cache
 
 
+def decor_pick_prims(model) -> list:
+    """Child meshes of PRINT_Shell, one per decor region (PRINT_Shell#decor[i]): the shell's own faces in that region,
+    so a viewer raycast can tell the ears or the face plate from the rest of the shell (REVIEW-1 MAJ-35)."""
+    regions = getattr(model, "face_regions", None) or {}
+    sh = model.part("PRINT_Shell")
+    if not regions or sh is None or len(sh.subparts) != 1:
+        return []
+    _, shape, col = sh.subparts[0]
+    dt, da = display_tol(sh, shape)
+    v, n, t, ranges = tessellate(shape, dt, da, fresh=False)  # reuse the GLB triangulation just made
+    by: dict = {}
+    for fi, name in regions.items():
+        if fi < len(ranges):
+            a, b = ranges[fi]
+            by.setdefault(name, []).append(t[a:b])
+    out = []
+    for name, tl in sorted(by.items()):
+        tt = np.vstack(tl) if tl else np.zeros((0, 3), np.int64)
+        if len(tt):
+            out.append((name, [("Decor", v, n, tt, col)], 1.0))
+    return out
+
+
+def screen_children(model) -> dict:
+    """{component name: [(PURCHASE_Display#screen, [textured quad], 1.0)]} from info.screens (REVIEW-1 MAJ-32)."""
+    out: dict = {}
+    for sc in model.info.get("screens") or []:
+        comp = sc.get("component") or "PURCHASE_Display"
+        out.setdefault(comp, []).append((f"{comp}#screen", [screen_quad(sc)], 1.0))
+    return out
+
+
 def model_glb(path: Path, model) -> dict:
-    return write_glb(path, model_primitives(model))
+    kids = screen_children(model)
+    picks = decor_pick_prims(model)
+    nodes = []
+    for name, prims, alpha in model_primitives(model):
+        ch = list(kids.get(name, []))
+        if name == "PRINT_Shell":
+            ch += picks
+        nodes.append((name, prims, alpha, ch))
+    return write_glb(path, nodes)
+
+
+def write_screen_pngs(cad_dir: Path, model) -> list:
+    """cad/screens/<REF>-idle.png: the idle face image used on the GLB screen quads (for the manual renders too)."""
+    out = []
+    d = Path(cad_dir) / "screens"
+    for sc in model.info.get("screens") or []:
+        ref = sc.get("ref") or "DISP1"
+        d.mkdir(parents=True, exist_ok=True)
+        f = d / f"{ref}-idle.png"
+        px = (128, 64) if sc.get("kind") != "lcd" else (320, 240)
+        f.write_bytes(idle_face_png(sc.get("kind", "oled"), px))
+        sc["texture"] = f"cad/screens/{f.name}"
+        out.append(str(f))
+    return out
 
 
 # ------------------------------------------------------------------------------------------------ STEP / BREP
@@ -295,7 +445,7 @@ def write_stls(dirp: Path, model) -> dict:
         vol = accurate_volume(s)
         p.extra["_volume"] = vol
         out[p.name] = {"file": f"print/{f.name}", "orientation_note": reason, "brep_volume_mm3": vol,
-                       "material": (p.print_info or {}).get("material", "PLA")}
+                       "material": (p.print_info or {}).get("material") or ((model.params or {}).get("print_material") or {}).get("name", "PLA")}
     for name, c in model.coupons.items():
         s = c["shape"]
         b = s.BoundingBox()
@@ -331,7 +481,8 @@ def components_json(model, prints: dict) -> dict:
             vol_occ = 0.0
         vol = float(p.extra.get("_volume", vol_occ))
         entry = {
-            "kind": p.kind, "label": p.label, "ref": p.ref, "module_id": p.module_id, "feature_id": p.feature_id,
+            "kind": p.kind, "label": p.label, "ref": p.ref, "host_ref": p.host_ref, "role": p.role, "module_id": p.module_id,
+            "feature_id": p.feature_id,
             "spec_path": p.spec_path, "color": [round(float(x), 4) for x in p.color[:3]], "color_hex": _hex(p.color),
             "bbox": [round(float(x), 3) for x in (_mesh_bbox(model, p.name) or bbox(s))], "volume_mm3": round(vol, 2), "valid": bool(s.isValid()),
             "solids": len(s.Solids()), "step": "assembly", "subparts": [n for n, _, _ in p.subparts],
@@ -345,7 +496,8 @@ def components_json(model, prints: dict) -> dict:
             entry["notes"] = p.notes
         entry.update({k: v for k, v in (p.extra or {}).items() if not k.startswith("_")})
         if p.name == "PRINT_Shell" and model.info.get("decor_regions"):
-            entry["decor"] = model.info["decor_regions"]  # click a region -> its spec_paths (e.g. decor[3])
+            # click a region -> its spec_path (e.g. decor[3]); GLB child node of the same name (REVIEW-1 MAJ-35)
+            entry["decor"] = model.info["decor_regions"]
         if p.kind == "PRINT":
             entry["volume_method"] = "fine tessellation (0.01 mm)"
             entry["volume_occ_gprop_mm3"] = round(vol_occ, 2)
@@ -370,7 +522,7 @@ def write_json(path: Path, obj) -> None:
 
 # ------------------------------------------------------------------------------------------------ standalone source
 VENDOR = ["geom.py", "shapes2d.py", "probe.py", "body.py", "decor.py", "modules.py", "refs_provisional.py", "parts.py",
-          "features.py", "internals.py", "enclosure.py", "build.py", "cables.py", "export.py", "checks.py"]
+          "footprint.py", "features.py", "internals.py", "enclosure.py", "build.py", "cables.py", "export.py", "checks.py"]
 
 SCRIPT = '''#!/usr/bin/env python3
 """{name}: editable parametric CAD source (generated by Gadget Studio, engine {engine}).
@@ -383,7 +535,8 @@ feature positions, resolved module dimensions, backplane layout and fastener siz
     python cad/gadget_cad.py --no-checks  # skip the digital checks
 
 The geometry code is vendored in cad/gadget_cad/ (no Gadget Studio install needed).
-Requirements: cadquery==2.8.*, numpy, shapely>=2, trimesh, manifold3d, scipy, pyvista (cable routing), rtree.
+Requirements: cad/requirements.txt pins every package it imports, with hashes (Python 3.12, Linux x86_64 wheels):
+    python3.12 -m venv .venv && .venv/bin/pip install --require-hashes -r cad/requirements.txt
 Units: mm. +Z up, front faces -Y, +X is the viewer's right; the gadget stands on its feet at z = 0.
 """
 import argparse
@@ -434,7 +587,13 @@ def vendor_source(cad_dir: Path, name: str, engine: str) -> None:
             shutil.copy2(src / f, dst / f)
     (dst / "__init__.py").write_text('"""Vendored Gadget Studio CAD modules (see ../gadget_cad.py)."""\n')
     (cad_dir / "gadget_cad.py").write_text(SCRIPT.format(name=name, engine=engine))
-    (cad_dir / "requirements.txt").write_text("cadquery==2.8.0\nnumpy\nshapely>=2.0\ntrimesh>=4\nmanifold3d\nscipy\npyvista\nrtree\n")
+    lock = src / "requirements.lock"
+    if lock.exists():  # every import of cad/gadget_cad/ and its dependencies, == pinned with sha256 hashes (REVIEW-1 MAJ-26)
+        shutil.copy2(lock, cad_dir / "requirements.txt")
+    else:
+        from .regen import DIRECT
+
+        (cad_dir / "requirements.txt").write_text("# direct pins only (requirements.lock missing)\n" + "\n".join(DIRECT) + "\n")
 
 
 def write_all(model, cad_dir: Path, print_dir: Path, vendor: bool = True, engine: str = "0.1.0",
@@ -446,6 +605,10 @@ def write_all(model, cad_dir: Path, print_dir: Path, vendor: bool = True, engine
     files = {}
     tm = {}
     t = _t.time()
+    try:
+        files["screens"] = write_screen_pngs(cad_dir, model)
+    except Exception as e:  # pragma: no cover - PIL missing
+        model.warnings.append(f"screen images skipped: {e}")
     if glb:  # first: the display mesh is coarse and must not inherit the fine STL triangulation
         files["glb"] = model_glb(cad_dir / "assembly.glb", model)
     tm["glb"] = round(_t.time() - t, 1)
@@ -460,7 +623,17 @@ def write_all(model, cad_dir: Path, print_dir: Path, vendor: bool = True, engine
     comps = components_json(model, prints)
     write_json(cad_dir / "components.json", comps)
     files["components"] = comps
-    write_json(cad_dir / "anchors.json", {k: [round(float(x), 3) for x in v] for k, v in sorted(model.anchors.items())})
+    anchors = dict(model.anchors)
+    seen_d: dict = {}
+    for r in model.info.get("decor_regions") or []:  # PRINT_Shell#decor[i] -> centre of its region (MAJ-35)
+        if r.get("name"):
+            b = r["bbox"]
+            seen_d.setdefault(r["name"], []).append([(b[0] + b[1]) / 2, b[2], (b[4] + b[5]) / 2])
+    for nm, pts in seen_d.items():
+        anchors[nm] = pts[0] if len(pts) == 1 else [float(np.mean([p[0] for p in pts])), float(min(p[1] for p in pts)), float(np.mean([p[2] for p in pts]))]
+        for k_, p_ in enumerate(pts if len(pts) > 1 else []):
+            anchors[f"{nm}.{k_ + 1}"] = p_
+    write_json(cad_dir / "anchors.json", {k: [round(float(x), 3) for x in v] for k, v in sorted(anchors.items())})
     write_json(cad_dir / "cable-routes.json", model.cables)
     tm["json"] = round(_t.time() - t, 1)
     t = _t.time()

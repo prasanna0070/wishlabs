@@ -1,0 +1,698 @@
+{
+  "ok": false,
+  "say": "Built the enclosure: 28 named parts, 7 printed parts plus 3 fit coupons; 16 of 18 CAD checks passed.",
+  "components": 28,
+  "files": {
+    "step": "cad/assembly.step",
+    "glb": "cad/assembly.glb",
+    "components": "cad/components.json",
+    "anchors": "cad/anchors.json",
+    "cable_routes": "cad/cable-routes.json",
+    "params": "cad/params.json",
+    "source": "cad/gadget_cad.py",
+    "draft": "cad/draft.glb",
+    "renders": {
+      "hero": "cad/renders/hero.png"
+    }
+  },
+  "print": {
+    "PRINT_Shell": {
+      "file": "print/PRINT_Shell.stl",
+      "orientation_note": "upright on its flat base: face and decor print on vertical walls; tree supports for the domed top and the inside of the head",
+      "material": "PLA"
+    },
+    "PRINT_RearCover": {
+      "file": "print/PRINT_RearCover.stl",
+      "orientation_note": "outer back face on the bed, lip and tubes up; no supports",
+      "material": "PLA"
+    },
+    "PRINT_SpeakerRing": {
+      "file": "print/PRINT_SpeakerRing.stl",
+      "orientation_note": "ring face on the bed, presser tube up; no supports",
+      "material": "PLA"
+    },
+    "PRINT_DisplayClip": {
+      "file": "print/PRINT_DisplayClip.stl",
+      "orientation_note": "flat strap face on the bed, fingers up; no supports",
+      "material": "PLA"
+    },
+    "PRINT_LedDiffuser": {
+      "file": "print/PRINT_LedDiffuser.stl",
+      "orientation_note": "outer face on the bed (smooth light face); print in natural PETG",
+      "material": "PETG natural"
+    },
+    "PRINT_LedClip": {
+      "file": "print/PRINT_LedClip.stl",
+      "orientation_note": "flat strap face on the bed, fingers up; no supports",
+      "material": "PLA"
+    },
+    "PRINT_MicClip": {
+      "file": "print/PRINT_MicClip.stl",
+      "orientation_note": "flat strap face on the bed, fingers up; no supports",
+      "material": "PLA"
+    },
+    "TEST_FitCoupon": {
+      "file": "print/TEST_FitCoupon.stl",
+      "orientation_note": "flat on the bed as generated",
+      "material": "PLA",
+      "tests": [
+        "snap-in button hole 30.3 mm in a 3 mm panel",
+        "M2.5 heat-set insert holes (x2, hole 4 mm, boss 7.2 mm)",
+        "cable-tie slot",
+        "USB-C plug overmold opening 13 x 7 mm",
+        "microphone port 1.5 mm"
+      ],
+      "note": "print first in the same material and settings; check the button snap, insert melt-in, tie slot and USB-C plug before printing the shell"
+    },
+    "TEST_SeamShell": {
+      "file": "print/TEST_SeamShell.stl",
+      "orientation_note": "flat on the bed as generated",
+      "material": "PLA",
+      "tests": [
+        "cover screw boss with M2.5 heat-set insert",
+        "seam face and wall section"
+      ],
+      "note": "shell corner with one cover boss"
+    },
+    "TEST_SeamMate": {
+      "file": "print/TEST_SeamMate.stl",
+      "orientation_note": "flat on the bed as generated",
+      "material": "PLA",
+      "tests": [
+        "cover locating lip, 0.25 mm gap to the shell wall",
+        "screw clearance hole 2.8 mm and head counterbore"
+      ],
+      "note": "matching cover corner: print with TEST_SeamShell; the parts must close and the screw must reach the insert"
+    }
+  },
+  "rebuild": "python cad/gadget_cad.py",
+  "checks": [
+    {
+      "id": "occ_validity",
+      "title": "Every component is a valid OpenCascade shape",
+      "status": "passed",
+      "detail": "28 components, 0 invalid",
+      "qb": "QB-07",
+      "artifact": "cad/digital-checks.json"
+    },
+    {
+      "id": "print_single_solid",
+      "title": "Each printed part is exactly one solid",
+      "status": "passed",
+      "detail": "all printed parts are one solid",
+      "qb": "QB-07",
+      "artifact": "cad/digital-checks.json"
+    },
+    {
+      "id": "role_prefix",
+      "title": "Role prefixes and purchase links",
+      "status": "passed",
+      "detail": "16 purchased components all carry module_id or ref",
+      "qb": "QB-06",
+      "artifact": "cad/digital-checks.json"
+    },
+    {
+      "id": "print_watertight",
+      "title": "Print STLs are watertight with one connected component",
+      "status": "passed",
+      "detail": "10 STL files; all watertight, 1 component each",
+      "qb": "QB-07",
+      "artifact": "cad/digital-checks.json"
+    },
+    {
+      "id": "brep_vs_stl_volume",
+      "title": "B-rep volume and STL volume agree within 1 %",
+      "status": "passed",
+      "detail": "max difference 0.028 %",
+      "qb": "QB-16",
+      "artifact": "cad/digital-checks.json"
+    },
+    {
+      "id": "bed_fit",
+      "title": "Each print lies on z=0 in its stated orientation and fits a 250 x 210 x 210 mm bed",
+      "status": "passed",
+      "detail": "all fit",
+      "qb": "QB-10",
+      "artifact": "cad/digital-checks.json"
+    },
+    {
+      "id": "frame_zmin",
+      "title": "mm, +Z up, front -Y, assembly rests on z = 0",
+      "status": "passed",
+      "detail": "zmin = 0.000 mm; size 141.9 x 110.5 x 187.9 mm",
+      "qb": "QB-05",
+      "artifact": "cad/digital-checks.json"
+    },
+    {
+      "id": "step_valid",
+      "title": "STEP re-imports as a valid shape",
+      "status": "passed",
+      "detail": "10.5 MB, valid=True",
+      "qb": "QB-04",
+      "artifact": "cad/digital-checks.json"
+    },
+    {
+      "id": "collisions",
+      "title": "Full pair matrix of rigid components: no unintended intersection",
+      "status": "failed",
+      "detail": "23 rigid components, 253 pairs, 64 with overlapping boxes checked by boolean, 6 unintended intersections, 13 allowed by rule",
+      "qb": "QB-08",
+      "artifact": "cad/digital-checks.json"
+    },
+    {
+      "id": "clearances",
+      "title": "Clearance from each purchased part to its printed neighbours (contact = intended seat)",
+      "status": "passed",
+      "detail": "12 purchased/printed pairs within 3 mm; 11 seated contacts; 0 gaps under 0.2 mm",
+      "qb": "QB-09",
+      "artifact": "cad/digital-checks.json"
+    },
+    {
+      "id": "cartridge_clearance",
+      "title": "Core cartridge clears the shell and the feature modules",
+      "status": "passed",
+      "detail": "3 neighbours within 10 mm; min gap to a non-mount neighbour 99.0 mm",
+      "artifact": "cad/digital-checks.json"
+    },
+    {
+      "id": "feature_module_clearance",
+      "title": "Feature modules clear each other and the cartridge (>= 0.5 mm)",
+      "status": "failed",
+      "detail": "4 module neighbour pairs within 5 mm; 1 under 0.5 mm",
+      "artifact": "cad/digital-checks.json"
+    },
+    {
+      "id": "min_wall",
+      "title": "Wall thickness sampling (rule: >= 1.2 mm at the 1st percentile)",
+      "status": "warning",
+      "detail": "PRINT_Shell: min 1.08 / p1 1.18 / median 2.38 mm; PRINT_RearCover: min 0.95 / p1 1.86 / median 2.38 mm",
+      "qb": "QB-11",
+      "artifact": "cad/digital-checks.json"
+    },
+    {
+      "id": "fastener_engagement",
+      "title": "Every screw engages >= 3 mm of its insert and does not bottom out",
+      "status": "passed",
+      "detail": "17 screws; 0 problems",
+      "qb": "QB-14",
+      "artifact": "cad/digital-checks.json"
+    },
+    {
+      "id": "tool_access",
+      "title": "A 6 mm driver reaches every cartridge, cover and plate screw along its axis",
+      "status": "passed",
+      "detail": "8 screws; 0 blocked",
+      "artifact": "cad/digital-checks.json"
+    },
+    {
+      "id": "cable_routes",
+      "title": "Cable routes named after their cable, length within the harness, clear of walls",
+      "status": "passed",
+      "detail": "5 of 5 cables routed; 0 too long; 0 touch a wall",
+      "qb": "QB-15",
+      "artifact": "cad/digital-checks.json"
+    },
+    {
+      "id": "fit_coupon",
+      "title": "Fit coupons cover every tight interface",
+      "status": "passed",
+      "detail": "3 coupons; covers ['boss_insert', 'button_hole_d', 'insert_holes', 'lip_gap_mm', 'mic_port_d', 'panel_thickness_mm', 'screw_clearance', 'tie_slot', 'usb_c_opening']",
+      "qb": "QB-13",
+      "artifact": "cad/digital-checks.json"
+    },
+    {
+      "id": "tip_over",
+      "title": "Static tip-over angle from CAD centre of gravity (>= 15 deg)",
+      "status": "passed",
+      "detail": "mass 407.6 g (estimate), CoG [0.48, -3.1, 82.51] mm, minimum tip angle 20.3 deg on feet",
+      "artifact": "cad/digital-checks.json"
+    }
+  ],
+  "limits": [
+    "Purchased parts are simplified envelopes from the library's dimensions; connector internals, pins, clips and cable bends are not modelled.",
+    "Cable routes are display-only occupied-space envelopes; real bend radii and pinching are not checked.",
+    "Fastener threads are simplified; heat-set insert interference with its printed boss is by design.",
+    "Masses of printed parts assume solid PLA at 1.24 g/cm3; purchased masses are library values or estimates.",
+    "No physical print, fit, acoustic, thermal, stability or drop test has been performed. Physical checks still needed."
+  ],
+  "info": {
+    "fragments_dropped": {
+      "PRINT_Shell": 0,
+      "PRINT_RearCover": 4
+    },
+    "decor_regions": [
+      {
+        "spec_paths": [
+          "decor[0]"
+        ],
+        "type": "face_plate",
+        "label": "",
+        "bbox": [
+          -56.0,
+          56.0,
+          -55.0,
+          -50.63,
+          92.6,
+          150.6
+        ]
+      },
+      {
+        "spec_paths": [
+          "decor[1]"
+        ],
+        "type": "ear",
+        "label": "bear",
+        "bbox": [
+          29.0,
+          61.0,
+          -9.93,
+          9.93,
+          141.47,
+          187.96
+        ]
+      },
+      {
+        "spec_paths": [
+          "decor[1]"
+        ],
+        "type": "ear",
+        "label": "bear",
+        "bbox": [
+          -61.0,
+          -29.0,
+          -9.93,
+          9.93,
+          141.47,
+          187.96
+        ]
+      }
+    ],
+    "family": "silhouette",
+    "split": "rear_cover",
+    "body": {
+      "edge_round_requested": 16.0,
+      "edge_round_front": 16.0,
+      "edge_round_rear": 6.0,
+      "depth": 110.0
+    },
+    "wall": 2.4,
+    "skin_front": 2.4,
+    "ears": [
+      {
+        "style": "bear",
+        "x": 45.0,
+        "z_base": 154.4,
+        "idx": 1,
+        "bbox": [
+          29.0,
+          61.0,
+          -9.93,
+          9.93,
+          139.87,
+          186.36
+        ]
+      },
+      {
+        "style": "bear",
+        "x": -45.0,
+        "z_base": 154.4,
+        "idx": 1,
+        "bbox": [
+          -61.0,
+          -29.0,
+          -9.93,
+          9.93,
+          139.87,
+          186.36
+        ]
+      }
+    ],
+    "decor_items": 1,
+    "seam_y": 47.62,
+    "lift": 1.6,
+    "cartridge": {
+      "board_origin": [
+        -31.4,
+        -32.0,
+        8.8
+      ],
+      "floor_z": 2.4,
+      "board_top_z": 10.4,
+      "board_size": [
+        62.8,
+        78.6
+      ],
+      "keepout_box": [
+        -36.75,
+        33.4,
+        -32.0,
+        47.11,
+        2.4,
+        34.4
+      ],
+      "clearance_mm": 3.0
+    },
+    "split_info": {
+      "vent_slots": 5,
+      "seam_y": 47.62,
+      "cover_screws": 4,
+      "lip_segments": 4,
+      "lip_gap_mm": 0.25,
+      "lip_thickness_mm": 1.6,
+      "lip_depth_mm": 3.0
+    },
+    "feet": [
+      [
+        -53.67,
+        -33.9
+      ],
+      [
+        53.67,
+        -33.22
+      ],
+      [
+        53.66,
+        37.27
+      ],
+      [
+        -53.67,
+        36.6
+      ]
+    ],
+    "tie_anchors": 2,
+    "screens": [
+      {
+        "c": [
+          1.7763568394002505e-15,
+          -52.01999999999995,
+          123.64999999999999
+        ],
+        "u": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "v": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "n": [
+          -0.0,
+          -1.0,
+          -0.0
+        ],
+        "w": 31.42,
+        "h": 16.7,
+        "kind": "oled"
+      }
+    ],
+    "usb_c": {
+      "receptacle_face": [
+        0.0,
+        47.11,
+        12.0
+      ],
+      "opening": {
+        "center_board_x": 31.4,
+        "center_above_board_top": 1.6,
+        "w": 13.0,
+        "h": 7.0,
+        "corner_r": 2.5
+      }
+    }
+  },
+  "kits": {
+    "speaker": {
+      "kind": "speaker",
+      "ref": "SPK1",
+      "grille_holes": 39,
+      "grille_open_area_pct": 17.6,
+      "mount_face_z": -2.4,
+      "flange_front_z": -3.6,
+      "grille_pattern": "dots_ellipse",
+      "frame": {
+        "o": [
+          0.0,
+          -55.0,
+          56.0
+        ],
+        "u": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "v": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "n": [
+          -0.0,
+          -1.0,
+          -0.0
+        ]
+      }
+    },
+    "story_button": {
+      "kind": "snap_button",
+      "ref": "BTN1",
+      "grille_holes": 0,
+      "panel_thickness": 3.0,
+      "hole_d": 30.3,
+      "spot_face": -1.11,
+      "frame": {
+        "o": [
+          0.0,
+          -10.0,
+          164.9764
+        ],
+        "u": [
+          1.0,
+          -0.0,
+          0.0
+        ],
+        "v": [
+          0.0,
+          1.0,
+          0.0
+        ],
+        "n": [
+          -0.0,
+          -0.0,
+          1.0
+        ]
+      }
+    },
+    "eyes": {
+      "kind": "display",
+      "ref": "DISP1",
+      "grille_holes": 0,
+      "clamp": {
+        "axis": "u",
+        "offset": 8.38,
+        "strap_front_z": -11.4,
+        "post_len": 7.3,
+        "fingers": [
+          [
+            -16.1,
+            8.38
+          ],
+          [
+            16.1,
+            8.38
+          ]
+        ],
+        "screw": "M2.5x8",
+        "insert_hole_depth": 6.1
+      },
+      "window_mm": [
+        32.02,
+        17.3
+      ],
+      "glass_front_z": -1.8,
+      "spot_face": 0.0,
+      "screen": {
+        "c": [
+          1.7763568394002505e-15,
+          -52.01999999999995,
+          123.64999999999999
+        ],
+        "u": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "v": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "n": [
+          -0.0,
+          -1.0,
+          -0.0
+        ],
+        "w": 31.42,
+        "h": 16.7,
+        "kind": "oled"
+      },
+      "frame": {
+        "o": [
+          0.0,
+          -53.8,
+          120.0
+        ],
+        "u": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "v": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "n": [
+          -0.0,
+          -1.0,
+          -0.0
+        ]
+      }
+    },
+    "status_light": {
+      "kind": "led",
+      "ref": "LED1",
+      "grille_holes": 0,
+      "clamp": {
+        "axis": "u",
+        "offset": 0.0,
+        "strap_front_z": -12.8,
+        "post_len": 10.4,
+        "fingers": [
+          [
+            -3.4,
+            2.0
+          ],
+          [
+            3.4,
+            2.0
+          ]
+        ],
+        "screw": "M2.5x8",
+        "insert_hole_depth": 6.1
+      },
+      "window_d": 8.0,
+      "diffuser_gap": 3.0,
+      "frame": {
+        "o": [
+          0.0,
+          -55.0,
+          85.0
+        ],
+        "u": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "v": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "n": [
+          -0.0,
+          -1.0,
+          -0.0
+        ]
+      }
+    },
+    "mic": {
+      "kind": "mic",
+      "ref": "MIC1",
+      "grille_holes": 0,
+      "clamp": {
+        "axis": "v",
+        "offset": 0.0,
+        "strap_front_z": -9.7,
+        "post_len": 7.3,
+        "fingers": [
+          [
+            0.0,
+            -5.4
+          ],
+          [
+            0.0,
+            5.4
+          ]
+        ],
+        "screw": "M2.5x8",
+        "insert_hole_depth": 6.1
+      },
+      "port_d": 1.5,
+      "frame": {
+        "o": [
+          30.0,
+          -55.0,
+          85.0
+        ],
+        "u": [
+          1.0,
+          0.0,
+          0.0
+        ],
+        "v": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "n": [
+          -0.0,
+          -1.0,
+          -0.0
+        ]
+      }
+    }
+  },
+  "warnings": [],
+  "glb": {
+    "nodes": 28,
+    "triangles": 297612,
+    "bytes": 7830936
+  },
+  "timings": {
+    "build": 50.3,
+    "export": 31.8,
+    "render": 6.3,
+    "checks": 6.7,
+    "total": 95.1,
+    "geometry": {
+      "body_decor": 13.22,
+      "body_decor.body": 0.58,
+      "body_decor.ears": 9.36,
+      "body_decor.relief": 3.11,
+      "draft": 0.97,
+      "probes": 0.28,
+      "features": 0.94,
+      "cartridge": 0.26,
+      "split_prep": 0.75,
+      "shell_bool.cavity_minus_adds": 0.68,
+      "shell_bool.outer_minus_cavity": 3.38,
+      "shell_bool.cuts": 4.55,
+      "shell_bool.clean": 0.22,
+      "shell_bool": 0.0,
+      "split_bool": 14.13,
+      "components": 1.31,
+      "cables": 8.33,
+      "coupons_lift": 1.3
+    },
+    "export_steps": {
+      "glb": 14.5,
+      "stl": 15.5,
+      "brep": 0.6,
+      "json": 0.7,
+      "step": 0.5
+    },
+    "checks_seconds": 6.7
+  }
+}

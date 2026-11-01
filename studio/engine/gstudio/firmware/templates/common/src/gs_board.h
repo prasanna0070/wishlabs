@@ -31,6 +31,13 @@ bool sd_exists(const char* path);
 bool sd_remove(const char* path);
 bool sd_rename(const char* from, const char* to);
 bool sd_mkdirs(const char* dir);
+// Overwrites the file with zeros, then deletes it (MAJ-1/MAJ-17). True when the file is gone or was
+// never there. SD cards remap blocks internally, so the overwrite is best effort; clips are also
+// encrypted with a key that "erase all" destroys.
+bool sd_wipe(const char* path);
+// Calls fn for every plain file directly inside dir (names only, no cap). False if dir is missing.
+typedef void (*SdListFn)(const char* name, void* ctx);
+bool sd_list(const char* dir, SdListFn fn, void* ctx);
 
 // I2C bus.
 bool i2c_ok();

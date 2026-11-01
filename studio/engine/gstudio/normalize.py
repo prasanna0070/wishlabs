@@ -42,6 +42,12 @@ LENGTH_CLASSES = (100, 150, 200, 300)
 BASE_PLATE_T = 3.5  # CAD base plate thickness (gstudio.cad.build t_bp)
 SEAM_BOSS_MARGIN = 3.6 + 0.8  # rear cartridge boss radius + gap to the rear-cover seam (gstudio.cad.enclosure.place_cartridge)
 FACES = ("front", "rear", "left", "right", "top")
+NIGHT_LIGHT_RING = "LED_RING_12_WS2812_50MM"  # REVIEW-1 MAJ-29: NIGHT_USE needs a diffused light >= 40 mm across
+NIGHT_LIGHT_MIN_MM = 40.0
+KIT_MARGIN = 0.5  # mm between kit footprints (gstudio.cad.footprint.layout_conflicts default)
+SPEAKER_KIT_FALLBACK = 6.0  # mm around a speaker envelope when gstudio.cad.footprint cannot be imported (cad's fallback)
+ROUTE_FACTOR = 1.0  # CAD cable routes measured 0.50-0.96 x the Manhattan estimate (v3 benchmark + r1 example, 10 routes)
+ROUTE_SLACK = 40.0  # plug ends + service loop
 
 
 # =============================================================================================== geometry
@@ -316,6 +322,23 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
             continue
         extra_mods.append((k, m))
 
+    # ---------------------------------------------------------------- NIGHT_USE: a diffused light >= 40 mm (REVIEW-1 MAJ-29)
+    night: list[int] = []
+    if "NIGHT_USE" in set(sp.safety.flags) and lib.has(NIGHT_LIGHT_RING):
+        leds = [(k, f) for k, f in enumerate(sp.features) if (feat_mods.get(f.id) or {}).get("role") == "led"]
+        for k, f in leds:
+            m = feat_mods[f.id]
+            if min(float(x or 0) for x in (m.get("face_mm") or [0, 0])) >= NIGHT_LIGHT_MIN_MM:
+                continue
+            old_mod = f.module
+            sp.features[k].module = NIGHT_LIGHT_RING
+            feat_mods[f.id] = lib.get(NIGHT_LIGHT_RING)
+            night.append(k)
+            added.append(f"features[{k}].module: {old_mod} -> {NIGHT_LIGHT_RING} (NIGHT_USE needs a diffused light at least "
+                         f"{NIGHT_LIGHT_MIN_MM:g} mm across; the firmware caps its brightness)")
+        if not leds:
+            warnings.append(f"NIGHT_USE: no light feature; add a {NIGHT_LIGHT_RING} feature (a diffused night light at least "
+                            f"{NIGHT_LIGHT_MIN_MM:g} mm across)")
     roles_present = [m.get("role") for m in feat_mods.values()] + [m.get("role") for _, m in extra_mods]
 
     # ---------------------------------------------------------------- template rules
@@ -346,10 +369,13 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
         vfn = None
     if callable(vfn):
         try:
-            try:
-                res = vfn(tmpl, settings, child_directed=sp.audience.child_directed)
+            try:  # safety_flags: the consent gate (voice_clip_consent + CHILD_VOICE_STORED) is reported here, not first at firmware
+                res = vfn(tmpl, settings, child_directed=sp.audience.child_directed, safety_flags=list(sp.safety.flags))
             except TypeError:
-                res = vfn(tmpl, settings)
+                try:
+                    res = vfn(tmpl, settings, child_directed=sp.audience.child_directed)
+                except TypeError:
+                    res = vfn(tmpl, settings)
             if isinstance(res, tuple) and len(res) == 2:
                 new_settings, serrs = res
                 if isinstance(new_settings, dict):
@@ -436,11 +462,27 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
     for k, m in extra_mods:
         inst.append({"ref": ref_for(m.get("ref_prefix") or "M"), "module": m["id"], "role": m.get("role"), "name": m.get("name", ""),
                      "source": "extra", "path": f"electronics.extra_modules[{k}]"})
+    # parts a module needs bought with it (library `requires`, REVIEW-1 BLK-5: the microSD card for SD1)
+    for i in list(inst):
+        for req in (lib.get(i["module"]).get("requires") or []):
+            if not isinstance(req, dict) or not req.get("module") or not lib.has(req["module"]):
+                if isinstance(req, dict) and req.get("module"):
+                    warnings.append(f"{i['ref']}: required part {req['module']} is not in the library")
+                continue
+            rm = lib.get(req["module"])
+            for _ in range(int(req.get("qty") or 1)):
+                inst.append({"ref": ref_for(rm.get("ref_prefix") or "M"), "module": rm["id"], "role": rm.get("role"), "name": rm.get("name", ""),
+                             "source": "implied", "required_by": i["ref"],
+                             "reason": f"required by {i['ref']} ({i['module']}): {req.get('why') or 'library requires'}"})
+                added.append(f"{inst[-1]['ref']}: {rm['id']} (required by {i['ref']})")
     # in the box
     cbl = next(iter(lib.by_role("usb_cable")), None)
     if cbl:
         inst.append({"ref": "CBL1", "module": cbl["id"], "role": "usb_cable", "name": cbl.get("name", ""), "source": "implied",
                      "reason": "USB-C cable in the box"})
+    if sp.audience.child_directed and not sp.electronics.power.adapter_in_box:
+        sp.electronics.power.adapter_in_box = True
+        added.append("electronics.power.adapter_in_box: true (child-directed products ship with a certified 5 V USB-C adapter; REVIEW-1 MAJ-5)")
     if sp.electronics.power.adapter_in_box:
         psu = next(iter(lib.by_role("adapter")), None)
         if psu:
@@ -450,7 +492,8 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
     # ---------------------------------------------------------------- slots
     from .electrical import assign_slots
 
-    cand = [i for i in inst if i["source"] in ("feature", "implied", "extra") and i["role"] not in ("backplane", "usb_cable", "adapter", "power_in")]
+    cand = [i for i in inst if i["source"] in ("feature", "implied", "extra")
+            and i["role"] not in ("backplane", "usb_cable", "adapter", "power_in", "storage_card")]
     smap, serr = assign_slots(cand, lib)
     errors += serr
     for i in inst:
@@ -560,10 +603,26 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
     fboxes: dict[str, tuple] = {}
     frects: dict[str, tuple] = {}
     positions: dict[str, tuple] = {}
-    for k, f in enumerate(sp.features):
+    order = [k for k in range(len(sp.features)) if k not in night] + night
+    for k in order:
+        f = sp.features[k]
         m = feat_mods.get(f.id)
         if m is None:
             continue
+        if f.face == "rear" and sp.body.split == "rear_cover" and _rear_kit_crosses_seam(geom, sp, f, m, W, floor):
+            # integration (e2e r1): the rear wall is the cover; a rear kit deeper than the cover is cut by the seam and its inner
+            # half is dropped as loose fragments (print_single_solid) with no fit coupon. Until the CAD mounts kits on the
+            # cover, such a module goes on another face.
+            _err(errors, f"features[{k}].face",
+                 f"{f.id}: a module on the rear face of a rear_cover design sits on the removable cover, which the CAD does not "
+                 "mount modules on yet (the kit would be cut by the cover seam)",
+                 f"put {f.id} on the front, left, right or top face, or use body.split base_plate", "rear_cover_face")
+            continue
+        if k in night:
+            moved = _place_night_light(sp, k, geom, m, lib, fboxes, frects, cart_box, errors, added)
+            if moved is False:
+                continue
+            f = sp.features[k]
         res = _place_feature(geom, f, m, k, errors, warnings)
         if res is None:
             continue
@@ -576,15 +635,31 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
                  f"collides with the core cartridge (z up to {cart_box[5]:.0f}, y {cart_box[2]:.0f}-{cart_box[3]:.0f})",
                  f"move it up to z >= {cart_box[5] + (box[5] - box[4]) / 2 + 2:.0f} or toward the front", "feature_cartridge")
     ids = list(fboxes)
+    clashed: set = set()
     for a in range(len(ids)):
         for b in range(a + 1, len(ids)):
             fa, fb = sp.feature(ids[a]), sp.feature(ids[b])
             if fa.face == fb.face and _overlap2(frects[ids[a]], frects[ids[b]], APERTURE_MARGIN):
                 _err(errors, f"features[{sp.features.index(fb)}].at", f"{fb.id} opening overlaps {fa.id} (need {APERTURE_MARGIN:g} mm between openings)",
                      "move one of them apart", "feature_overlap")
+                clashed.add(frozenset((fa.id, fb.id)))
             elif _overlap3(fboxes[ids[a]], fboxes[ids[b]], 1.0):
                 _err(errors, f"features[{sp.features.index(fb)}].at", f"{fb.id} module collides with the {fa.id} module behind the wall",
                      "move one of them apart or onto another face", "feature_overlap")
+                clashed.add(frozenset((fa.id, fb.id)))
+    # kit footprints (retainer, bosses, clip strap, speaker clamp ring and tabs), REVIEW-1 MAJ-8
+    placed = [sp.features[k] for k in range(len(sp.features)) if sp.features[k].id in fboxes]
+    nudges = kit_conflicts(sp, lib, placed, fboxes)
+    for c in kit_shell_conflicts(sp, lib, geom, placed):
+        _err(errors, f"features[{sp.features.index(sp.feature(c['feature']))}].at", c["msg"], c["fix"], "kit_shell")
+    for c in nudges:
+        if frozenset((c["a"], c["b"])) in clashed:
+            continue
+        fb = sp.feature(c["b"])
+        _err(errors, f"features[{sp.features.index(fb)}].at",
+             f"{c['b']} kit ({c['b_what']}) {'touches' if c['gap_mm'] >= 0 else 'overlaps'} the {c['a']} kit ({c['a_what']})"
+             + (f" by {-c['gap_mm']:.1f} mm" if c["gap_mm"] < 0 else f" ({c['gap_mm']:.1f} mm apart, need {KIT_MARGIN:g})"),
+             c["nudge"], "kit_overlap")
     # decor cut-outs vs front openings
     for dk, d in enumerate(sp.decor):
         if d.type in ("face_plate", "ear"):
@@ -637,8 +712,9 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
         start = board_pos.get(slot_id)
         end = i.get("position")
         if start and end:
-            # Manhattan routing over the board edge with 25% slack and 40 mm for plug ends and service loop
-            dist = (abs(start[0] - end[0]) + abs(start[1] - end[1]) + abs(start[2] - end[2])) * 1.25 + 40.0
+            # REVIEW-1 MIN-6: the CAD's routed cables measured up to 0.96 x the Manhattan distance, so the estimate is
+            # 1.0 x Manhattan + 40 mm for plug ends and a service loop (was 1.25 x + 40); the class is the shortest stocked one above
+            dist = (abs(start[0] - end[0]) + abs(start[1] - end[1]) + abs(start[2] - end[2])) * ROUTE_FACTOR + ROUTE_SLACK
         else:
             dist = 150.0
         cls = next((c for c in LENGTH_CLASSES if c >= dist), None)
@@ -646,13 +722,22 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
             _err(errors, i.get("path", "features"), f"{i['ref']} is about {dist:.0f} mm of cable from {slot_id}; the longest harness is 300 mm",
                  "move the feature closer to the bottom rear of the body", "harness_length")
             cls = LENGTH_CLASSES[-1]
-        hmod = f"CABLE_JSTPH_{slot['pins_count']}P_{cls}"
-        if not lib.has(hmod):
-            warnings.append(f"{i['ref']}: no library harness module {hmod}")
-            hmod = None
-        harness.append(DHarness(id=f"H{hid}", ref=i["ref"], slot=slot_id, kind="speaker_lead" if slot_id == "J_SPK" else "jst_ph",
+        from .electrical import select_cable
+
+        mm = lib.get(i["module"])
+        sel = select_cable(lib, mm, slot, cls)
+        hmod = sel["module"]
+        if hmod is None:
+            warnings.append(f"{i['ref']}: no library harness module for {slot_id} at {cls} mm")
+        elif sel["match"] == "fallback":
+            warnings.append(f"{i['ref']} ({i['module']}): {sel['why']}")
+        kind = "speaker_lead" if slot_id == "J_SPK" else ("jst_xh" if str(slot.get("connector", "")).startswith("JST-XH") else "jst_ph")
+        harness.append(DHarness(id=f"H{hid}", ref=i["ref"], slot=slot_id, kind=kind,
                                 cable=f"{slot['connector']} {slot['pins_count']}p {cls} mm", pins=slot["pins_count"], length_mm=cls,
-                                distance_mm=_r(dist), module=hmod, module_end=_module_end(lib.get(i["module"]))))
+                                distance_mm=_r(dist), module=hmod, module_end=_module_end(mm),
+                                module_end_family=sel["module_end_family"], sku=sel["sku"], drawing=sel["drawing"],
+                                made_to_drawing=sel["made_to_drawing"], crossed=sel["crossed"], match=sel["match"],
+                                module_end_order=sel["module_end_order"]))
         i["harness"] = f"H{hid}"
 
     # ---------------------------------------------------------------- hardware kit (planned; CAD counts win)
@@ -674,7 +759,8 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
     for i in inst:
         dinst.append(DInstance(ref=i["ref"], module=i["module"], role=i["role"] or "", name=i.get("name", ""), source=i["source"],
                                feature=i.get("feature"), slot=i.get("slot"), face=i.get("face"),
-                               position=i.get("position"), qty=1, reason=i.get("reason", ""), harness=i.get("harness")))
+                               position=i.get("position"), qty=1, reason=i.get("reason", ""), harness=i.get("harness"),
+                               required_by=i.get("required_by")))
     sp.derived = Derived(
         engine_version=ENGINE_VERSION,
         size_mm=tuple(_r(v) for v in size),
@@ -685,12 +771,88 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
         cartridge=derived_cart,
         warnings=warnings,
     )
-    report = {"ok": not errors, "errors": errors, "warnings": warnings, "added": added,
+    # MAJ-5 rule (pipeline adapter_policy): ship the adapter when the uncapped draw is over 80% of the +5V limit
+    if not sp.electronics.power.adapter_in_box and not errors:
+        try:
+            from .electrical import power_budget
+
+            pb = power_budget(sp, lib)
+            if pb["total_ma_max"] > 0.8 * pb["limit_ma"]:
+                psu = next(iter(lib.by_role("adapter")), None)
+                if psu:
+                    sp.electronics.power.adapter_in_box = True
+                    sp.derived.instances.append(DInstance(ref="PSU1", module=psu["id"], role="adapter", name=psu.get("name", ""),
+                                                          source="implied", reason="adapter_in_box (uncapped draw over 80% of the +5V limit)"))
+                    added.append(f"electronics.power.adapter_in_box: true (uncapped draw {pb['total_ma_max']:.0f} mA is over 80% of "
+                                 f"the {pb['limit_ma']} mA +5V limit; REVIEW-1 MAJ-5)")
+        except Exception as exc:  # never crash normalize
+            warnings.append(f"adapter rule not evaluated: {exc}")
+    # REVIEW-1 MIN-2 / MAJ-29 (integration): the +5V drop budget must hold at the capped peak. A 12-pixel night-light ring
+    # at the default LED cap pulls the rail under the SD1 minimum, so lower the global LED cap (firmware led_max_percent,
+    # emitted as GS_CFG_LED_MAX_PERCENT in config.h) in 5 % steps, never below 10 %, until the budget holds.
+    if not errors:
+        try:
+            cap_note = _cap_leds_for_rail(sp, lib)
+            if cap_note:
+                added.append(cap_note)
+        except Exception as exc:  # never crash normalize
+            warnings.append(f"LED cap for the +5V drop budget not evaluated: {exc}")
+    report = {"ok": not errors, "errors": errors, "warnings": warnings, "added": added, "nudges": nudges,
               "size_mm": [_r(v) for v in size], "instances": [i["ref"] for i in inst],
               "slots": {i["ref"]: i.get("slot") for i in inst if i.get("slot")}}
     if raise_on_error and errors:
         raise SpecError(errors)
     return sp, report
+
+
+def _cap_leds_for_rail(sp: Spec, lib, floor_pct: int = 10, step: int = 5) -> Optional[str]:
+    """Lower behaviour.settings.led_max_percent until the pipeline's +5V drop budget (gstudio.order.power.drop_budget,
+    the same function electrical.py stores in electrical.json) holds at the capped peak. Returns a note, or None when
+    nothing changed (budget already holds, no LED, or no cap value low enough)."""
+    from .electrical import effective_caps, power_budget
+    from .order.power import drop_budget
+
+    insts = list(sp.derived.instances or [])
+    if not any(i.role == "led" for i in insts):
+        return None
+    adapter_row = next((lib.get(i.module) for i in insts if i.role == "adapter" and lib.has(i.module)), None)
+    rows = [{"ref": i.ref, "module": i.module} for i in insts]
+
+    def budget() -> dict:
+        return drop_budget(power_budget(sp, lib), lib.backplane, lambda mid: lib.get(mid) if lib.has(mid) else None, rows,
+                           adapter_row)
+
+    db = budget()
+    if db.get("ok") is not False:
+        return None
+    start = effective_caps(sp).get("led_max_percent")
+    if start is None:
+        return None
+    st = dict(sp.behaviour.settings or {})
+    old = int(start)
+    pct = old
+    while pct > floor_pct:
+        pct = max(floor_pct, pct - step)
+        sp.behaviour.settings = {**st, "led_max_percent": pct}
+        db = budget()
+        if db.get("ok"):
+            return (f"behaviour.settings.led_max_percent: {old} -> {pct} (the +5V drop budget failed at {old} %: "
+                    f"{db.get('equation')}; REVIEW-1 MIN-2 / MAJ-29)")
+    sp.behaviour.settings = st  # no cap low enough: keep the setting; the rail-voltage check reports the failure
+    return None
+
+
+def _rear_kit_crosses_seam(geom: "ShellGeometry", sp: Spec, f: Feature, m: dict, W: float, floor: float) -> bool:
+    """A rear-face kit (wall + module depth + 3 mm for its pad and posts, a design estimate) reaching past the rear-cover seam."""
+    try:
+        t = geom.surface_depth("rear", float(f.at[0]), float(f.at[1]))
+        if t is None:
+            return False
+        outer_y = 400.0 - t
+        depth = float(m.get("depth_mm") or (m.get("dims_mm") or {}).get("z") or 10.0)
+        return outer_y - (geom.wall + depth + 3.0) < seam_y(geom, W, floor)
+    except Exception:  # never crash normalize on this guard
+        return False
 
 
 def _module_end(m: dict) -> str:
@@ -700,9 +862,11 @@ def _module_end(m: dict) -> str:
     t, loc = str(mc.get("type", "")), str(mc.get("location", "")).lower()
     if t == "jst_ph_2.0":
         return "jst_ph"
+    if t == "jst_xh_2.5":
+        return "jst_xh"
     if t == "header_2.54":
         return "dupont_2.54"
-    if "spade" in loc or "spade" in str((m.get("backplane_harness") or {})).lower():
+    if t == "spade_2.8" or "spade" in loc or "spade" in str((m.get("backplane_harness") or {})).lower():
         return "spade_2.8"
     return "solder"
 
@@ -713,7 +877,15 @@ def _module_end(m: dict) -> str:
 #   per feature: speaker ring 3, snap-in button 0, touch pad 0 (adhesive), every other board-clamped module 2 posts.
 # All screws are M2.5 into M2.5 heat-set inserts. The S1 support posts take 2 x M2 screws into printed pilot holes
 # (CAD models the posts, not those screws yet). These are PLANNED counts: components.json qty from CAD is authoritative.
+# REVIEW-1 MAJ-12: one purchased row per screw length (library SCREW_<thread>X<len>_SHCS_A2, each with its own SKU) and the
+# insert that is actually bought (INSERT_HEATSET_M2_5X4_MEC8005, pack of 10). `id` is the CAD fastener group name, so the
+# parts list joins PURCHASE_<group> by name; `module` is the library row that is bought.
 MODULE_POSTS = {"speaker": 3, "touch": 0}
+# planned lengths: cartridge from backplane-v1 (boss.screw_length_mm); cover and module clamp lengths are what the CAD's
+# pick_screw rule chose on the benchmark shells (12 and 8); the CAD picks per design and its components.json size wins
+PLANNED_SCREW_LEN = {"CoverScrews": 12, "PlateScrews": 12, "ModuleScrews": 8, "SupportPostScrews": 6}
+PURCHASED_INSERT = "INSERT_HEATSET_M2_5X4_MEC8005"
+PURCHASED_FEET = "FEET_RUBBER_8X2_5_SUNROM_4436"  # REVIEW-1 MIN-25 (integration): Indian retail feet (Sunrom 4436) replace the IndiaMART-only 3M row
 
 
 def module_posts(m: dict) -> int:
@@ -725,6 +897,14 @@ def module_posts(m: dict) -> int:
     return 2
 
 
+def screw_module(lib, thread: str, length: float) -> Optional[str]:
+    """Library screw row for a thread and length under the head (e.g. 'M2.5', 8 -> SCREW_M2_5X8_SHCS_A2), else None."""
+    for m in lib.by_role("screws"):
+        if str(m.get("thread") or "") == thread and m.get("length_mm") is not None and float(m["length_mm"]) == float(length):
+            return m["id"]
+    return None
+
+
 def planned_hardware(sp: Spec, lib, feat_mods: dict, inst: list, harness: list, has_speaker: bool) -> list[DHardware]:
     hw: list[DHardware] = []
 
@@ -732,44 +912,50 @@ def planned_hardware(sp: Spec, lib, feat_mods: dict, inst: list, harness: list, 
         xs = [m for m in lib.by_role(role) if pred is None or pred(m)]
         return xs[0] if xs else None
 
-    screws = first("screws")
-    ins = first("inserts", lambda m: "M2_5" in m["id"]) or first("inserts")
+    set_row = first("screws", lambda m: m["id"] == "SCREW_SET_M2_M2_5_SHCS_A2") or first("screws")
+    ins = (lib.get(PURCHASED_INSERT) if lib.has(PURCHASED_INSERT) else None) or first("inserts", lambda m: "M2_5" in m["id"]) or first("inserts")
     n_cart, n_cover = 4, 4
     n_mod = sum(module_posts(m) for m in feat_mods.values())
     cover = "CoverScrews" if sp.body.split == "rear_cover" else "PlateScrews"
-    if screws:
-        sid, row = screws["id"], screws.get("catalog_row")
-        hw.append(DHardware(id=sid, name="M2.5 socket head screw", qty=n_cart, size="M2.5", group="CartridgeScrews",
-                            use="backplane to the 4 cartridge bosses", module=sid, catalog_row=row))
-        hw.append(DHardware(id=sid, name="M2.5 socket head screw", qty=n_cover, size="M2.5", group=cover,
-                            use="rear cover" if cover == "CoverScrews" else "base plate", module=sid, catalog_row=row))
+    cart_len = float(((lib.backplane.get("cartridge") or {}).get("boss") or {}).get("screw_length_mm") or 5)
+
+    def screw(group, thread, length, qty, use):
+        mid = screw_module(lib, thread, length)
+        m = lib.get(mid) if mid else set_row
+        if m is None:
+            return
+        hw.append(DHardware(id=group, name=f"{thread} x {length:g} mm socket head screw", qty=qty, size=f"{thread}x{length:g}",
+                            group=group, use=use, module=m["id"], catalog_row=m.get("catalog_row"), length_mm=float(length)))
+
+    if set_row:
+        screw("CartridgeScrews", "M2.5", cart_len, n_cart, "backplane to the 4 cartridge bosses")
+        screw(cover, "M2.5", PLANNED_SCREW_LEN[cover], n_cover, "rear cover" if cover == "CoverScrews" else "base plate")
         if n_mod:
-            hw.append(DHardware(id=sid, name="M2.5 socket head screw", qty=n_mod, size="M2.5", group="ModuleScrews",
-                                use="module clamp straps and the speaker ring", module=sid, catalog_row=row))
+            screw("ModuleScrews", "M2.5", PLANNED_SCREW_LEN["ModuleScrews"], n_mod, "module clamp straps and the speaker ring")
         if any(i.get("slot") == "S1" for i in inst):
-            hw.append(DHardware(id=sid, name="M2 socket head screw", qty=2, size="M2", group="SupportPostScrews",
-                                use="microSD module corners into the 2 printed support posts (1.8 mm pilot holes)",
-                                module=sid, catalog_row=row))
+            screw("SupportPostScrews", "M2", PLANNED_SCREW_LEN["SupportPostScrews"], 2,
+                  "microSD module corners into the 2 printed support posts (1.8 mm pilot holes)")
     if ins:
-        hw.append(DHardware(id=ins["id"], name="M2.5 heat-set insert", qty=n_cart + n_cover + n_mod, size="M2.5", group="HeatSetInserts",
+        hw.append(DHardware(id="HeatSetInserts", name="M2.5 heat-set insert", qty=n_cart + n_cover + n_mod, size="M2.5", group="HeatSetInserts",
                             use=f"{n_cart} cartridge + {n_cover} {'cover' if cover == 'CoverScrews' else 'plate'} + {n_mod} module bosses",
-                            module=ins["id"], catalog_row=ins.get("catalog_row")))
-    feet = first("feet")
+                            module=ins["id"], catalog_row=ins.get("catalog_row"), length_mm=ins.get("length_mm")))
+    feet = (lib.get(PURCHASED_FEET) if lib.has(PURCHASED_FEET) else None) or first("feet")
     if feet and sp.body.feet:
-        hw.append(DHardware(id=feet["id"], name="adhesive bumper foot", qty=sp.body.feet, group="Feet", use="underside",
+        hw.append(DHardware(id="Feet", name="adhesive bumper foot", qty=sp.body.feet, group="Feet", use="underside",
                             module=feet["id"], catalog_row=feet.get("catalog_row")))
     ties = first("ties")
     if ties and harness:
-        hw.append(DHardware(id=ties["id"], name="cable tie 100 x 2.5 mm", qty=max(3, len(harness) + 1), group="CableTies",
-                            use="harness retention at printed anchors", module=ties["id"], catalog_row=ties.get("catalog_row")))
+        hw.append(DHardware(id="CableTies", name="cable tie 100 x 2.5 mm", qty=max(3, len(harness) + 1) + 1, group="CableTies",
+                            use="harness retention at printed anchors + 1 for the USB-C cord tie bridge (REVIEW-1 MIN-3)",
+                            module=ties["id"], catalog_row=ties.get("catalog_row")))
     if has_speaker:
         g = first("gasket")
         if g:
-            hw.append(DHardware(id=g["id"], name="speaker foam gasket strip", qty=1, group="SpeakerGasket",
+            hw.append(DHardware(id="SpeakerGasket", name="speaker foam gasket strip", qty=1, group="SpeakerGasket",
                                 use="seal the speaker to the baffle", module=g["id"], catalog_row=g.get("catalog_row")))
     lab = first("label")
     if lab:
-        hw.append(DHardware(id=lab["id"], name="device ID label + packing kit", qty=1, group="Label",
+        hw.append(DHardware(id="Label", name="device ID label + packing kit", qty=1, group="Label",
                             use="serial/QR label and packing", module=lab["id"], catalog_row=lab.get("catalog_row")))
     return hw
 
@@ -951,4 +1137,213 @@ def _place_feature(geom: ShellGeometry, f: Feature, m: dict, k: int, errors, war
     return box, rect, c
 
 
-__all__ = ["normalize", "ShellGeometry", "TEMPLATE_RULES"]
+# =============================================================================================== kit footprints (MAJ-8)
+def _footprint_module():
+    """gstudio.cad.footprint (pure Python, cad-owned) or None when it cannot be imported."""
+    try:
+        from .cad import footprint as FP  # noqa: N812
+
+        return FP
+    except Exception:  # pragma: no cover - cad package missing or broken
+        return None
+
+
+def kit_conflicts(sp: Spec, lib, features: list, fboxes: dict) -> list[dict]:
+    """Same-face kit-vs-kit conflicts with a nudge: cad's footprint.layout_conflicts (retainer, bosses, clip strap, speaker
+    clamp ring and tabs at the rotation CAD will choose); fallback = the bare module envelopes plus 6 mm around speakers."""
+    FP = _footprint_module()
+    if FP is not None:
+        try:
+            out = FP.layout_conflicts(features, margin=KIT_MARGIN, skin=sp.body.wall, lib_get=lib.get)
+            for c in out:
+                c["source"] = "gstudio.cad.footprint"
+            return out
+        except Exception as exc:  # the footprint module must never crash normalize
+            sp_warn = f"kit footprint check fell back to envelopes: {exc}"
+            if sp.derived is not None:
+                sp.derived.warnings.append(sp_warn)
+    out = []
+    grown = {}
+    for f in features:
+        box = fboxes.get(f.id)
+        if box is None:
+            continue
+        g = SPEAKER_KIT_FALLBACK if (lib.get(f.module).get("role") == "speaker") else 0.0
+        grown[f.id] = tuple(box[i] - g if i % 2 == 0 else box[i] + g for i in range(6))
+    ids = list(grown)
+    for i in range(len(ids)):
+        for j in range(i + 1, len(ids)):
+            fa, fb = sp.feature(ids[i]), sp.feature(ids[j])
+            if fa.face != fb.face or not _overlap3(grown[ids[i]], grown[ids[j]], 0.0):
+                continue
+            a, b = grown[ids[i]], grown[ids[j]]
+            up = fb.at[1] >= fa.at[1]
+            dv = (a[5] - b[4]) if up else (b[5] - a[4])
+            out.append({"a": fa.id, "b": fb.id, "a_part": None, "a_what": "envelope", "b_part": None, "b_what": "envelope",
+                        "gap_mm": -round(dv, 2), "overlap_v_mm": round(dv, 2), "source": "fallback envelope",
+                        "nudge": f"{fb.id} touches the {fa.id} envelope: move {fb.id} {'up' if up else 'down'} {math.ceil(dv + 1):.0f} mm or more"})
+    return out
+
+
+def kit_shell_conflicts(sp: Spec, lib, geom: "ShellGeometry", features: list, tol: float = 1.0) -> list[dict]:
+    """Separate kit parts (module, clamp ring, tabs, screws, strap; not the shell's own bosses/pads/cup walls) whose box
+    reaches into the shell wall or floor where the face curves (REVIEW-1 MAJ-8: the 20-layout CAD sweep found speaker
+    rings cutting the rounded bottom edge). Probes each box's centre and edge midpoints at both depths: the probe must lie
+    in the cavity (outer SDF <= -(wall - tol)) and above the inner floor. Needs gstudio.cad.footprint; [] without it."""
+    FP = _footprint_module()
+    if FP is None:
+        return []
+    out = []
+    for f in features:
+        flat = isinstance(sp.body, SilhouetteBody) and f.face in ("front", "rear")
+        try:
+            boxes = FP.kit_footprint(f, None, others=features, skin=sp.body.wall, lib_get=lib.get)
+        except Exception:
+            continue
+        t = geom.surface_depth(f.face, f.at[0], f.at[1])
+        if t is None:
+            continue
+        o, d = geom._ray(f.face, f.at[0], f.at[1], 400.0)
+        s_surf = (o[0] + d[0] * t, o[1] + d[1] * t, o[2] + d[2] * t)[{"front": 1, "rear": 1, "left": 0, "right": 0, "top": 2}[f.face]]
+        worst = None
+        for b in boxes:
+            if b.get("part") == "PRINT_Shell" or b.get("kind") in ("pad", "boss", "clearance"):
+                continue
+            if float(b["depth"][0]) < sp.body.wall + 0.1:
+                continue  # sits in the opening by design (window glass, bezel, gasket): only parts behind the wall are probed
+            x0, x1, y0, y1, z0, z1 = FP.to_world(b, s_surf)
+            xm, ym, zm = (x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2
+            probes = [(xm, ym, zm), (x0, ym, zm), (x1, ym, zm), (xm, y0, zm), (xm, y1, zm), (xm, ym, z0), (xm, ym, z1)]
+            for px, py, pz in probes:
+                # the wall probe is exact only where the kit's depth is measured from a flat face (silhouette front/rear);
+                # on curved faces CAD seats the kit on a flattened mounting plane this probe does not model
+                depth_in = (geom.outer_sdf(px, py, pz) + geom.wall) if flat else -1.0  # > 0: in the wall or outside
+                below = geom.floor_z - pz  # > 0: under the inner floor
+                bad = max(depth_in - tol, below - tol)
+                if bad > 0 and (worst is None or bad > worst[0]):
+                    worst = (bad, b, (px, py, pz))
+        if worst:
+            bad, b, (px, py, pz) = worst
+            out.append({"feature": f.id, "what": b.get("what"), "mm": round(bad, 1),
+                        "msg": f"{f.id}: its kit ({b.get('what')}) reaches {bad:.1f} mm into the shell wall or floor near "
+                               f"x {px:.0f}, y {py:.0f}, z {pz:.0f}",
+                        "fix": f"move {f.id} toward the middle of the {f.face} face, away from the rounded edge "
+                               f"(by {math.ceil(bad + 2):.0f} mm or more)"})
+    return out
+
+
+def _place_night_light(sp: Spec, k: int, geom: "ShellGeometry", m: dict, lib, fboxes: dict, frects: dict, cart_box, errors: list,
+                       added: list):
+    """Keep the upgraded night-light ring where the spec put it if it fits, else move it to the nearest spot on the same
+    face whose kit clears every other kit (cad's footprint.find_clear_at with normalize's surface/depth/opening tests).
+    Returns True (placed / moved) or False (no place: an error was added)."""
+    f = sp.features[k]
+
+    def fits(at) -> bool:
+        f2 = f.model_copy(update={"at": (float(at[0]), float(at[1]))})
+        tmp_e, tmp_w = [], []
+        res = _place_feature(geom, f2, m, k, tmp_e, tmp_w)
+        if res is None or tmp_e:
+            return False
+        box, rect, _ = res
+        if cart_box is not None and _overlap3(box, cart_box, 1.0):
+            return False
+        for fid, rr in frects.items():
+            o = sp.feature(fid)
+            if o.face == f2.face and _overlap2(rr, rect, APERTURE_MARGIN):
+                return False
+            if _overlap3(fboxes[fid], box, 1.0):
+                return False
+        if f2.face == "front":
+            for d in sp.decor:
+                if d.type in ("face_plate", "ear"):
+                    continue
+                w, h = (d.size if hasattr(d, "size") else (len(getattr(d, "text", "")) * d.height * 0.7, d.height))
+                rcs = [(d.at[0] - w / 2, d.at[0] + w / 2, d.at[1] - h / 2, d.at[1] + h / 2)]
+                if getattr(d, "side", None) == "both":
+                    rcs.append((-d.at[0] - w / 2, -d.at[0] + w / 2, d.at[1] - h / 2, d.at[1] + h / 2))
+                if any(_overlap2(rc, rect, APERTURE_MARGIN) for rc in rcs):
+                    return False
+        return True
+
+    others = [o for o in sp.features if o.id != f.id and o.id in fboxes]
+    FP = _footprint_module()
+    clear_here = fits(f.at) and not [c for c in kit_conflicts_for(sp, lib, f, others, FP) if c]
+    if clear_here:
+        return True
+    found = None
+    if FP is not None:
+        try:
+            found = FP.find_clear_at(f, others, fits=fits, margin=3.0, skin=sp.body.wall, lib_get=lib.get, step=2.0, search_radius=90.0)
+        except Exception:
+            found = None
+    else:  # fallback: ring search on the face, envelopes only
+        u0, v0 = f.at
+        for r in [2.0 * i for i in range(1, 46)]:
+            n = max(8, int(2 * math.pi * r / 2.0))
+            ring = sorted(((u0 + r * math.cos(2 * math.pi * i / n), v0 + r * math.sin(2 * math.pi * i / n)) for i in range(n)),
+                          key=lambda p: (abs(p[0] - u0), -p[1]))
+            hit = next((p for p in ring if fits(p)), None)
+            if hit:
+                found = {"at": [round(hit[0], 1), round(hit[1], 1)], "moved_mm": round(r, 1)}
+                break
+    if not found:
+        _err(errors, f"features[{k}].at", f"{f.id}: the {NIGHT_LIGHT_RING} night light ({NIGHT_LIGHT_MIN_MM:g} mm+ diffused ring, "
+             f"NIGHT_USE) has no clear place on the {f.face} face near {list(f.at)}",
+             f"the 50 mm ring and its kit need a clear band about 60 mm tall across the {f.face} face: move the speaker lower "
+             "and the eyes higher (examples/bedtime-robot: speaker z 36, ring z 88, eyes z 148) or enlarge the body",
+             "night_light_fit")
+        return False
+    old = list(f.at)
+    sp.features[k].at = (float(found["at"][0]), float(found["at"][1]))
+    added.append(f"features[{k}].at: {old} -> {list(sp.features[k].at)} ({found.get('moved_mm')} mm) so the {NIGHT_LIGHT_RING} "
+                 "night light clears every other kit")
+    return True
+
+
+def kit_conflicts_for(sp: Spec, lib, f, others: list, FP) -> list[dict]:
+    """Conflicts between one feature's kit and the others' (same face), via cad's footprint module when present."""
+    if FP is None:
+        return []
+    try:
+        return [c for c in FP.layout_conflicts([f] + list(others), margin=3.0, skin=sp.body.wall, lib_get=lib.get)
+                if f.id in (c["a"], c["b"])]
+    except Exception:
+        return []
+
+
+def nudges_from_cad(spec: Spec, components: dict, digital_checks: dict) -> list[dict]:
+    """Nudges for a built version (REVIEW-1 MAJ-8): every failing CAD collision or feature_module_clearance pair between
+    two different features, with the move along the face's v axis that would clear the two components' bboxes by 1 mm.
+    `components` = cad/components.json, `digital_checks` = cad/digital-checks.json (or checks/digital-checks.json)."""
+    checks = digital_checks.get("checks", digital_checks) if isinstance(digital_checks, dict) else digital_checks
+    pairs = []
+    for c in checks or []:
+        if c.get("id") == "collisions" and c.get("status") == "failed":
+            pairs += [tuple(x["parts"]) for x in (c.get("data") or {}).get("intersections", [])]
+        if c.get("id") == "feature_module_clearance" and c.get("status") == "failed":
+            pairs += [tuple(x["parts"]) for x in (c.get("data") or {}).get("pairs", []) if float(x.get("gap_mm", 1)) < 0.5]
+    out, seen = [], set()
+    for a, b in pairs:
+        ca, cb = components.get(a) or {}, components.get(b) or {}
+        fa, fb = ca.get("feature_id"), cb.get("feature_id")
+        if not fa or not fb or fa == fb or frozenset((fa, fb)) in seen:
+            continue
+        seen.add(frozenset((fa, fb)))
+        sa, sb = spec.feature(fa), spec.feature(fb)
+        if sa is None or sb is None:
+            continue
+        mover, fixed, cm, cf = (sb, sa, cb, ca) if sb.at[1] >= sa.at[1] else (sa, sb, ca, cb)
+        vaxis = 5 if mover.face in ("front", "rear", "left", "right") else 3
+        lo = 4 if vaxis == 5 else 2
+        dv = cf["bbox"][vaxis] - cm["bbox"][lo] + 1.0
+        label_m, label_f = (mover.label or mover.id), (fixed.label or fixed.id)
+        out.append({"a": fixed.id, "b": mover.id, "a_part": a if cf is ca else b, "b_part": b if cm is cb else a,
+                    "move": {"feature": mover.id, "axis": "v", "by_mm": math.ceil(max(dv, 1.0))},
+                    "to_at": [mover.at[0], round(mover.at[1] + math.ceil(max(dv, 1.0)), 1)],
+                    "nudge": f"{label_m} touches the {label_f} ({cf.get('label') or (a if cf is ca else b)}): move {mover.id} "
+                             f"{'up' if vaxis == 5 else 'back'} {math.ceil(max(dv, 1.0)):.0f} mm or more"})
+    return out
+
+
+__all__ = ["normalize", "ShellGeometry", "TEMPLATE_RULES", "kit_conflicts", "kit_shell_conflicts", "nudges_from_cad", "screw_module", "NIGHT_LIGHT_RING"]

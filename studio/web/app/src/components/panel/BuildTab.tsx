@@ -1,9 +1,10 @@
-import { useMemo, useRef, useState } from "react";
-import { BookOpen, Cable, ChevronLeft, ChevronRight, Download, Tags, Wrench } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { BookOpen, Cable, ChevronDown, ChevronLeft, ChevronRight, Download, Tags, Wrench } from "lucide-react";
 import { useProject } from "../../store/project";
 import { useFileIndex, useVersionFile } from "../../lib/hooks";
 import { fileUrl, resolveDocUrl } from "../../lib/urls";
 import { humanPart, softBreaks } from "../../lib/format";
+import { groupUse, splitUse, type UseItem } from "../../lib/steps";
 import type { Build, BuildStep, CableRoute, Components } from "../../lib/types";
 import { Viewer, ViewerControls, type Label, type ViewerHandle } from "../../three/Viewer";
 import { Dialog, Lightbox, Markdown, Ring, Spinner, ZoomPan } from "../ui";
@@ -91,6 +92,25 @@ function StepStage({ track, steps, build, comps, versionN }: { track: Track; ste
   const idx = useFileIndex(ctx, versionN);
 
   const hl = step ? (step.highlight?.length ? step.highlight : step.parts?.length ? step.parts : null) : null;
+  // callouts only for the parts this step uses (highlight can include context parts that are only shown)
+  const labelParts = step?.highlight?.length && step?.parts?.length ? step.highlight.filter((h) => step.parts!.includes(h)) : hl;
+  const card = useRef<HTMLDivElement>(null);
+  const [shift, setShift] = useState(0);
+  useEffect(() => {
+    const el = card.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const upd = () => {
+      const host = el.parentElement;
+      const right = el.offsetLeft + el.offsetWidth;
+      // centre the model in the space right of the card, unless the card fills the view (narrow screens)
+      setShift(host && right < host.clientWidth * 0.6 ? Math.round(right / 2) : 0);
+    };
+    upd();
+    const ro = new ResizeObserver(upd);
+    ro.observe(el);
+    if (el.parentElement) ro.observe(el.parentElement);
+    return () => ro.disconnect();
+  }, [!!step]);
   const wiringParts = build.wiring?.parts || [];
   const connsAll = build.wiring?.connections || [];
   const slotRef = new Map<string, string>(((elec.data?.instances as any[]) || []).filter((x) => x.slot).map((x) => [String(x.slot), String(x.ref)]));
@@ -139,6 +159,10 @@ function StepStage({ track, steps, build, comps, versionN }: { track: Track; ste
         isolate={track === "assembly"}
         partLabels={labelsOn && track === "assembly"}
         partLabel={label}
+        labelParts={labelParts}
+        maxLabels={10}
+        avoid=".step-card, .viewer-ctl, .stage-pill, .step-parts"
+        viewShift={shift}
         labels={labels}
         cables={cables}
         hideKinds={track === "wiring" && cables?.length ? ["REFERENCE"] : undefined}
@@ -155,14 +179,14 @@ function StepStage({ track, steps, build, comps, versionN }: { track: Track; ste
         </ViewerControls>
       </Viewer>
       {step ? (
-        <div className="step-card" aria-live="polite">
+        <div className="step-card" aria-live="polite" ref={card}>
           <div className="muted small">
             Step {i + 1} of {steps.length}
             {checks[step.id] ? <span className="badge success" style={{ marginLeft: 8 }}>done</span> : null}
           </div>
           <h3>{step.title}</h3>
           <div className="step-card-body">
-            <Markdown text={softBreaks(step.instruction || step.text || "")} className="compact" />
+            <StepText key={step.id} md={step.instruction || step.text || ""} build={build} />
             {step.expected ? (
               <p className="done-when">
                 <strong>Done when:</strong> {step.expected}
@@ -192,12 +216,55 @@ function StepStage({ track, steps, build, comps, versionN }: { track: Track; ste
         </div>
       ) : null}
       {hl && comps && track === "assembly" ? (
-        <div className="step-parts small muted">
+        <div className="step-parts small muted" style={shift ? { left: shift * 2 + 12, maxWidth: `calc(100% - ${shift * 2 + 28}px)` } : undefined}>
           Shown: {hl.slice(0, 6).map((n) => comps[n]?.label || humanPart(n)).join(", ")}
           {hl.length > 6 ? ` +${hl.length - 6}` : ""}
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** Step text with a long "Use:" list shown grouped by role with counts; the full list is behind "Show all parts". */
+export function StepText({ md, build }: { md: string; build: Build | null }) {
+  const [all, setAll] = useState(false);
+  const split = useMemo(() => splitUse(md, build), [md, build]);
+  if (!split || split.items.length <= 4) return <Markdown text={softBreaks(md)} className="compact" />;
+  const groups = groupUse(split.items);
+  const pieces = split.items.reduce((a, i) => a + i.qty, 0);
+  return (
+    <>
+      <div className="use-list" data-testid="use-list">
+        <div className="use-head">
+          <strong>Use:</strong>
+          {groups.map((g) => (
+            <span key={g.role} className="use-chip" title={g.items.map((i) => `${i.qty} × ${i.name}`).join("\n")}>
+              {g.label} <b>{g.pieces}</b>
+            </span>
+          ))}
+        </div>
+        <button className="linkish small use-toggle" onClick={() => setAll(!all)} aria-expanded={all}>
+          <ChevronDown size={13} className={all ? "rot180" : ""} /> {all ? "Hide the parts" : `Show all parts (${split.items.length} lines, ${pieces} pieces)`}
+        </button>
+        {all ? (
+          <div className="use-all">
+            {groups.map((g) => (
+              <div key={g.role}>
+                <div className="muted small">{g.label}</div>
+                <ul>
+                  {g.items.map((i: UseItem, k: number) => (
+                    <li key={k}>
+                      {i.qty} × {i.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      <Markdown text={softBreaks(split.rest)} className="compact" />
+    </>
   );
 }
 

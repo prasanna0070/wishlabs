@@ -27,6 +27,13 @@ def physical_tests(data: ManualData, A: Assembly) -> list[dict]:
     settings = beh.get("settings") or {}
     child = bool((data.spec.get("audience") or {}).get("child_directed")) or "CHILD_DIRECTED" in ((data.spec.get("safety") or {}).get("flags") or [])
     t: list[dict] = []
+    if A.backplane or A.core:
+        t.append(_t("Bench self-test on the table",
+                    "Before the shell is printed, with every module plugged into the cartridge on the table, the self-test "
+                    "summary line shows \"ok\":true and \"failed\":0, and the whole line is written down (checklist step bench-test)."))
+    if (data.firmware_dir / "sdcard").is_dir():
+        t.append(_t("Story card prepared",
+                    "The microSD card is FAT32, holds the contents of firmware/sdcard/ at its root, and its stories.json says \"audio\": true (checklist step prepare-card)."))
     t.append(_t("Power-on and self-test",
                 "On USB-C power the gadget starts, and every module passes its self-test as described in SOFTWARE_SETUP.md: "
                 + ", ".join(ROLE_NOUN.get(r, r) for r in sorted(roles)) + "."))

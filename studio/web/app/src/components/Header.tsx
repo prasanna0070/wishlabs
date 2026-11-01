@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Check, ChevronDown, Copy, Download, FileText, History, Link2, Redo2, RotateCcw, Undo2, Eye, AlertCircle } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Copy, Download, FileText, History, Link2, Redo2, RotateCcw, Undo2, Eye, AlertCircle, TriangleAlert } from "lucide-react";
 import { useProject, currentVersion, isBuilding } from "../store/project";
 import { api } from "../lib/api";
 import { exportUrl } from "../lib/urls";
 import { dateTime, timeAgo } from "../lib/format";
-import type { Version } from "../lib/types";
+import { briefFor, designChangedSinceBrief, originText } from "../lib/versions";
+import type { Brief, Version } from "../lib/types";
 import { Dialog, Dropdown, Spinner, Toast } from "./ui";
 import { BriefView } from "./BriefView";
+import { VersionDialog } from "./VersionDialog";
 import type { TabId } from "./panel/RightPanel";
 
 export function Header({ onTab: _onTab }: { onTab: (t: TabId) => void }) {
@@ -23,6 +25,7 @@ export function Header({ onTab: _onTab }: { onTab: (t: TabId) => void }) {
   const [name, setName] = useState(project.name);
   const [briefOpen, setBriefOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [viewN, setViewN] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
 
@@ -116,7 +119,7 @@ export function Header({ onTab: _onTab }: { onTab: (t: TabId) => void }) {
         </div>
       ) : null}
 
-      <VersionMenu versions={project.versions} current={project.current_version ?? null} readOnly={readOnly} onToast={setToast} />
+      <VersionMenu versions={project.versions} current={project.current_version ?? null} readOnly={readOnly} onToast={setToast} onView={setViewN} />
 
       {building || turn?.running ? (
         <span className="taking-shape">
@@ -146,6 +149,7 @@ export function Header({ onTab: _onTab }: { onTab: (t: TabId) => void }) {
 
       <BriefSheet open={briefOpen} onClose={() => setBriefOpen(false)} />
       {shareOpen ? <ShareDialog onClose={() => setShareOpen(false)} /> : null}
+      {viewN != null ? <VersionDialog key={viewN} n={viewN} onClose={() => setViewN(null)} onToast={setToast} /> : null}
       <Toast text={toast} onDone={() => setToast(null)} />
     </header>
   );
@@ -157,8 +161,8 @@ function stateChip(v: Version) {
   return <span className="badge primary">{v.state === "queued" ? "Queued" : "Building"}</span>;
 }
 
-function VersionMenu({ versions, current, readOnly, onToast }: { versions: Version[]; current: number | null; readOnly: boolean; onToast: (s: string) => void }) {
-  const { setCurrent, restore } = useProject.getState();
+function VersionMenu({ versions, current, readOnly, onToast, onView }: { versions: Version[]; current: number | null; readOnly: boolean; onToast: (s: string) => void; onView: (n: number) => void }) {
+  const { restore } = useProject.getState();
   const [busy, setBusy] = useState<number | null>(null);
   const list = [...versions].reverse();
   return (
@@ -177,7 +181,7 @@ function VersionMenu({ versions, current, readOnly, onToast }: { versions: Versi
         <div className="ver-menu">
           <div className="ver-head">
             <strong>Version history</strong>
-            <span className="muted small">Every build, edit, tweak and restore is a new version.</span>
+            <span className="muted small">Every build, edit, tweak and restore is a new version. Open one to look at it; your project stays on v{current ?? "?"}.</span>
           </div>
           {list.length === 0 ? (
             <div className="muted small" style={{ padding: "12px 10px" }}>
@@ -189,15 +193,10 @@ function VersionMenu({ versions, current, readOnly, onToast }: { versions: Versi
                 <div key={v.n} className={`ver-row${v.n === current ? " on" : ""}`}>
                   <button
                     className="ver-main"
-                    onClick={async () => {
-                      if (v.n === current) return close();
-                      setBusy(v.n);
-                      try {
-                        await setCurrent(v.n);
-                        close();
-                      } finally {
-                        setBusy(null);
-                      }
+                    title={`Open v${v.n}: model, files and download (read-only)`}
+                    onClick={() => {
+                      close();
+                      onView(v.n);
                     }}
                   >
                     <span className="ver-n">v{v.n}</span>
@@ -205,6 +204,7 @@ function VersionMenu({ versions, current, readOnly, onToast }: { versions: Versi
                       <span className="ver-label">{v.label || `Version ${v.n}`}</span>
                       <span className="ver-sub">
                         {dateTime(v.created)} · {timeAgo(v.created)}
+                        {originText(v) ? ` · ${originText(v)}` : ""}
                         {v.summary ? ` · ${v.summary}` : ""}
                       </span>
                     </span>
@@ -244,21 +244,45 @@ function VersionMenu({ versions, current, readOnly, onToast }: { versions: Versi
 
 function BriefSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const project = useProject((s) => s.project)!;
-  const brief = project.brief;
+  const cur = currentVersion(project);
+  const history = briefHistory(project.brief_history, project.brief);
+  const [pick, setPick] = useState<number | null>(null);
+  const defaultBrief = briefFor(project, cur);
+  const brief = (pick != null ? history.find((b) => b.version === pick) : null) || defaultBrief;
+  const changed = !!brief && !!cur && cur.state !== "error" && designChangedSinceBrief(brief, cur, project.versions);
   return (
     <Dialog open={open} onClose={onClose} title="Project brief" sub={project.name} variant="sheet">
       {brief ? (
         <>
           <div className="row" style={{ marginBottom: 12, flexWrap: "wrap" }}>
-            <span className="pill">Brief v{brief.version}</span>
+            {history.length > 1 ? (
+              <select className="select sm" value={brief.version} onChange={(e) => setPick(Number(e.target.value))} aria-label="Brief version">
+                {history.map((b) => (
+                  <option key={b.version} value={b.version}>
+                    Brief v{b.version}
+                    {b.created ? ` · ${dateTime(b.created)}` : ""}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <span className="pill">Brief v{brief.version}</span>
+            )}
             {brief.approved ? (
               <span className="pill success">
                 <Check size={13} /> Approved {brief.approved_at ? timeAgo(brief.approved_at) : ""}
               </span>
-            ) : (
+            ) : project.brief?.version === brief.version ? (
               <span className="pill warning">Waiting for your approval</span>
-            )}
+            ) : null}
           </div>
+          {changed && cur ? (
+            <div className="callout warning row brief-changed" role="status" style={{ marginBottom: 12, alignItems: "flex-start" }}>
+              <TriangleAlert size={15} style={{ flex: "none", marginTop: 2 }} />
+              <span>
+                <strong>The design changed since this brief.</strong> v{cur.n} ({cur.label || `Version ${cur.n}`}) is not the design brief v{brief.version} describes, so sizes and parts below may be out of date.
+              </span>
+            </div>
+          ) : null}
           <BriefView brief={brief} />
         </>
       ) : (
@@ -275,6 +299,12 @@ function BriefSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
       )}
     </Dialog>
   );
+}
+
+function briefHistory(history: Brief[] | undefined, latest: Brief | null | undefined): Brief[] {
+  const all = [...(history || [])];
+  if (latest && !all.some((b) => b.version === latest.version)) all.push(latest);
+  return all.sort((a, b) => b.version - a.version);
 }
 
 function ShareDialog({ onClose }: { onClose: () => void }) {

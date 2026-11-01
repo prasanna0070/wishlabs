@@ -1,8 +1,10 @@
 // Interactive cards docked above the composer: clarifying questions, concept tiers, brief review.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Check, Hammer, RefreshCw } from "lucide-react";
 import { useProject } from "../../store/project";
 import { rewriteShareUrl } from "../../lib/urls";
+import { groupConcepts } from "../../lib/concepts";
+import { buildEstimate, waitText } from "../../lib/estimate";
 import type { Brief, ChatMessage, Concept, Question } from "../../lib/types";
 import { BriefView } from "../BriefView";
 import { Spinner } from "../ui";
@@ -95,12 +97,6 @@ export function ChoicesDock({ m, onOther: _onOther }: { m: ChatMessage; onOther?
   );
 }
 
-const TIERS: { id: string; label: string }[] = [
-  { id: "expected", label: "Expected" },
-  { id: "different", label: "Different ideas" },
-  { id: "wildcard", label: "Wildcards" },
-];
-
 export function ConceptsDock({ m, onOther }: { m: ChatMessage; onOther?: () => void }) {
   const project = useProject((s) => s.project)!;
   const ctx = useProject((s) => s.ctx);
@@ -108,14 +104,8 @@ export function ConceptsDock({ m, onOther }: { m: ChatMessage; onOther?: () => v
   const turn = useProject((s) => s.turn);
   const ids: string[] = m.payload?.concept_ids || project.concepts.map((c) => c.id);
   const list = ids.map((id) => project.concepts.find((c) => c.id === id)).filter(Boolean) as Concept[];
-  const tierMap: Record<string, string[]> | undefined = m.payload?.tiers;
-  const tiered = !!tierMap || list.some((c) => c.tier);
-  const inTier = (c: Concept, t: string) => (tierMap ? (tierMap[t] || []).includes(c.id) : (c.tier || "expected") === t);
-  const groups = tiered
-    ? TIERS.map((t) => ({ ...t, items: list.filter((c) => inTier(c, t.id)) })).filter((g) => g.items.length)
-    : [{ id: "all", label: "", items: list }];
-  const leftover = tiered ? list.filter((c) => !TIERS.some((t) => inTier(c, t.id))) : [];
-  if (leftover.length) groups.push({ id: "other", label: "More", items: leftover });
+  const groups = groupConcepts(list, m.payload?.tiers);
+  const tiered = groups.length > 1 || !!groups[0]?.label;
   let k = 0;
   const [picked, setPicked] = useState<string | null>(null);
   const notes = [...new Set(list.map((c) => c.photo_note).filter(Boolean))];
@@ -198,6 +188,9 @@ export function ConceptsDock({ m, onOther }: { m: ChatMessage; onOther?: () => v
 export function BriefDock({ brief, onChange }: { brief: Brief; onChange: () => void }) {
   const send = useProject((s) => s.send);
   const turn = useProject((s) => s.turn);
+  const versions = useProject((s) => s.project?.versions);
+  const pid = useProject((s) => s.project?.id);
+  const wait = useMemo(() => buildEstimate(versions, pid), [versions, pid]);
   const body = useRef<HTMLDivElement>(null);
   const [read, setRead] = useState(false);
   const check = () => {
@@ -215,8 +208,8 @@ export function BriefDock({ brief, onChange }: { brief: Brief; onChange: () => v
         <BriefView brief={brief} compact />
       </div>
       <div className="brief-dock-note">
-        A build makes the printed shell and print files, a routed backplane PCB, compiled firmware, the parts list, an illustrated build manual and an India delivered price. It usually takes 10 to 40
-        minutes and keeps working if you leave.
+        A build makes the printed shell and print files, a routed backplane PCB, compiled firmware, the parts list, an illustrated build manual and an India delivered price. It usually takes {waitText(wait)}
+        {wait ? ` (measured on ${wait.n === 1 ? "the last build" : `the last ${wait.n} builds`})` : ""} and keeps working if you leave.
       </div>
       <div className="dock-foot">
         <button className="btn" onClick={onChange}>

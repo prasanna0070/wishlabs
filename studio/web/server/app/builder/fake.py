@@ -40,6 +40,7 @@ FAKE_LINES = {
 
 class FakeBuilder(BridgeValidateMixin):
     kind = "fake"
+    supports_seed = True
 
     def __init__(self, settings: Settings, bridge: EngineBridge, store):
         self.settings = settings
@@ -100,7 +101,8 @@ class FakeBuilder(BridgeValidateMixin):
             note = "placeholder outputs (fake builder; no example output exists yet)"
         msgs.append({"text": "Packaging finished (development builder: placeholder outputs).", "ts": now_iso(),
                      "stage": "package"})
-        final = status_doc("done", stages, percent=100, fake=True, note=note, messages=msgs)
+        final = status_doc("done", stages, percent=100, fake=True, note=note, messages=msgs,
+                           options={k: v for k, v in (options or {}).items() if k != "brief"})
         await asyncio.to_thread(self.store.write_json, skey, final)
         return {"ok": True, "state": "done", "note": note}
 

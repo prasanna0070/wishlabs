@@ -255,6 +255,35 @@ def xray(items, path: Path, size=(1400, 1400), ss=2, **_) -> Path:
     return _finish(pl, path, size, ss)
 
 
+def thin(items, path: Path, size=(1400, 1400), ss=2, points=None, **_) -> Path:
+    """Wall-thickness overlay (REVIEW-1 MIN-9): shells translucent, every sample under the 1.2 mm rule as a red dot
+    (bigger = thinner), seen from the front three-quarter and with the worst spot labelled."""
+    pv = _pv()
+    pl = _plotter(size, ss)
+    sel = _sel(items, skip=("REFERENCE_",))
+    bb = _bbox_items(items, SHELLS)
+    c, R = _camera(pl, bb, (0.62, -1.0, 0.55), zoom=1.0)
+    _lights(pl, c, R)
+    for name, sub, m, col, alpha in sel:
+        if name in SHELLS:
+            _add(pl, m, tuple(0.85 * x for x in col[:3]), opacity=0.35, spec=0.05)
+        else:
+            _add(pl, m, tuple(0.6 + 0.4 * x for x in col[:3]), opacity=0.25, spec=0.05)
+    pts = [p for p in (points or []) if len(p) >= 4]
+    for p in pts:
+        r = 1.2 + 2.2 * max(0.0, min(1.0, (1.2 - float(p[3])) / 1.2))
+        pl.add_mesh(pv.Sphere(radius=r, center=tuple(p[:3])), color=(0.86, 0.12, 0.10), lighting=False, show_scalar_bar=False)
+    if pts:
+        w = min(pts, key=lambda q: q[3])
+        pl.add_point_labels([w[:3]], [f"thinnest {w[3]:.2f} mm"], font_size=28 * ss // 2, point_size=1, text_color="black",
+                            shape_opacity=0.6, always_visible=True)
+    try:
+        pl.enable_depth_peeling(number_of_peels=6)
+    except Exception:
+        pass
+    return _finish(pl, path, size, ss)
+
+
 def render_all(model_or_items, out_dir: Path, size=(1400, 1400), ss=2, split: str = None, ssao=True, screens=None) -> dict:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

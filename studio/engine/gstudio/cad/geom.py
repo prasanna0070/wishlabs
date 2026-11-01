@@ -238,6 +238,24 @@ def single_solid(shape: cq.Shape, min_frac: float = 0.0) -> tuple[cq.Shape, int]
     return big, len(sols) - 1
 
 
+def split_fragments(shape: cq.Shape) -> tuple[cq.Shape, list]:
+    """Largest solid plus a record {volume_mm3, centroid, bbox} for every dropped fragment (REVIEW-1 MIN-10)."""
+    sols = solids_of(shape)
+    if len(sols) <= 1:
+        return (sols[0] if sols else shape), []
+    sols = sorted(sols, key=lambda s: -s.Volume())
+    frags = []
+    for s in sols[1:]:
+        try:
+            c = s.Center()
+            b = s.BoundingBox()
+            frags.append({"volume_mm3": round(float(s.Volume()), 4), "centroid": [round(c.x, 2), round(c.y, 2), round(c.z, 2)],
+                          "bbox": [round(v, 2) for v in (b.xmin, b.xmax, b.ymin, b.ymax, b.zmin, b.zmax)]})
+        except Exception:
+            frags.append({"volume_mm3": None, "centroid": None})
+    return sols[0], frags
+
+
 def halfspace_y(y: float, keep: str) -> cq.Solid:
     """Big box keeping y <= y (keep='below') or y >= y (keep='above')."""
     if keep == "below":

@@ -269,6 +269,8 @@ class Ear(_DecorBase):
     size: Size2
     thickness: Optional[float] = Field(None, ge=4, le=80, description="ear depth along Y; default 40% of body depth")
     tilt: float = Field(0, ge=-45, le=45, description="degrees, positive leans outward")
+    roundness: Optional[float] = Field(None, ge=0, le=1, description="0 = pointy .. 1 = round tip/outline; None = the style default "
+                                       "(cat 0.25, bear 0.6, bunny 0.5, owl_tuft 0.2); read by the CAD ear outline")
 
 
 class Text(_DecorBase):
@@ -339,7 +341,7 @@ class Safety(_M):
     flags: list[Annotated[str, Field(pattern=r"^[A-Z][A-Z0-9_]{2,40}$")]] = Field(
         default_factory=list,
         max_length=16,
-        description="e.g. CHILD_DIRECTED, CHILD_DATA, LOCAL_VOICE_CAPTURE, CLOUD_AI, NIGHT_USE, SMALL_PARTS",
+        description="e.g. CHILD_DIRECTED, CHILD_DATA, LOCAL_VOICE_CAPTURE, CHILD_VOICE_STORED (the parent consented to storing the child's voice clips; required with capture_mode child_voice_clip), CLOUD_AI, NIGHT_USE, SMALL_PARTS",
     )
     notes: str = Field("", max_length=1200)
 
@@ -361,6 +363,7 @@ class DInstance(_D):
     position: Optional[tuple[float, float, float]] = None  # approx world centre of the module (mm)
     qty: int = 1
     reason: str = ""
+    required_by: Optional[str] = None  # ref of the instance whose library row `requires` this part (e.g. CARD1 <- SD1)
 
 
 class DHarness(_D):
@@ -372,8 +375,15 @@ class DHarness(_D):
     pins: int = 0
     length_mm: int = 0  # length class 100/150/200/300
     distance_mm: float = 0.0  # estimated routed distance
-    module: Optional[str] = None  # library harness module, e.g. CABLE_JSTPH_4P_150
-    module_end: Optional[str] = None  # jst_ph | dupont_2.54 | spade_2.8 | solder (the far end, set by the module's connector)
+    module: Optional[str] = None  # library harness row, e.g. CABLE_JSTPH_4P_DUPONT1X4_150_X2143 (gstudio.electrical.select_cable)
+    module_end: Optional[str] = None  # factory_prewired | jst_ph | jst_xh | dupont_2.54 | spade_2.8 | solder (the module's connector)
+    module_end_family: Optional[str] = None  # the chosen row's module-end family (factory_prewired for pre-wired modules)
+    sku: Optional[str] = None  # the chosen row's sku (a GS-H-... drawing number for factory-made harnesses)
+    drawing: Optional[str] = None  # harness drawing id
+    made_to_drawing: bool = False  # not a straight-through lead: the factory makes it to the drawing's position table
+    crossed: bool = False  # the module's pin order differs from the port order (REVIEW-1 MAJ-4)
+    match: str = "exact"  # exact | fallback (no library row with this module end: made to drawing from the base lead)
+    module_end_order: list[str] = Field(default_factory=list)  # module_connector.pin_order
 
 
 class DHardware(_D):
@@ -386,6 +396,7 @@ class DHardware(_D):
     group: Optional[str] = None  # CAD fastener group name (HeatSetInserts, CartridgeScrews, CoverScrews, ...)
     size: Optional[str] = None  # e.g. "M2.5"
     qty_basis: str = "planned"  # "planned" = pre-CAD estimate; the CAD stage's components.json qty is the source of truth
+    length_mm: Optional[float] = None  # screw length under the head / insert length (planned; the CAD's components.json size wins)
 
 
 class DCartridge(_D):

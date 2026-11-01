@@ -1,0 +1,1044 @@
+[
+ {
+  "id": "c_izebmb583d",
+  "title": "Sleepy Bear",
+  "tier": "expected",
+  "blurb": "A soft, cuddly bear shape with sleepy animated eyes and a tummy button.",
+  "spec": {
+   "electronics": {
+    "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "extra_modules": [],
+    "power": {
+     "input": "usb_c_5v",
+     "adapter_in_box": false
+    }
+   },
+   "tagline": "A gentle bear that tells stories about her favorite friends.",
+   "body": {
+    "split": "rear_cover",
+    "wall": 2.4,
+    "outline": [
+     [
+      -60,
+      0
+     ],
+     [
+      60,
+      0
+     ],
+     [
+      70,
+      40
+     ],
+     [
+      65,
+      110
+     ],
+     [
+      50,
+      150
+     ],
+     [
+      0,
+      165
+     ],
+     [
+      -50,
+      150
+     ],
+     [
+      -65,
+      110
+     ],
+     [
+      -70,
+      40
+     ]
+    ],
+    "depth": 110,
+    "family": "silhouette",
+    "edge_round": 12,
+    "feet": 4
+   },
+   "safety": {
+    "flags": [
+     "CHILD_DIRECTED",
+     "LOCAL_VOICE_CAPTURE",
+     "NIGHT_USE"
+    ],
+    "notes": "Adult assembly required. Microphone only active when button is held."
+   },
+   "features": [
+    {
+     "module": "SPK_40MM_4R_3W",
+     "id": "speaker",
+     "grille": {
+      "hole": 2.4,
+      "w": 36,
+      "h": 36,
+      "pitch": 4.4,
+      "pattern": "dots_ellipse"
+     },
+     "label": "Story speaker",
+     "face": "front",
+     "at": [
+      0,
+      56
+     ]
+    },
+    {
+     "id": "story_button",
+     "label": "Story and listening button",
+     "at": [
+      0,
+      -10
+     ],
+     "face": "top",
+     "module": "BUTTON_ARCADE_30MM_SNAPIN"
+    },
+    {
+     "module": "OLED_130_SH1106_I2C",
+     "at": [
+      0,
+      120
+     ],
+     "face": "front",
+     "id": "eyes",
+     "label": "Animated sleepy eyes"
+    },
+    {
+     "label": "Night light",
+     "at": [
+      0,
+      85
+     ],
+     "module": "LED_WS2812B_1PX_MODULE",
+     "face": "front",
+     "id": "status_light"
+    },
+    {
+     "module": "MIC_INMP441_I2S",
+     "id": "mic",
+     "face": "front",
+     "at": [
+      30,
+      85
+     ],
+     "label": "Voice microphone"
+    }
+   ],
+   "region": "IN",
+   "slug": "sleepy-bear",
+   "decor": [
+    {
+     "at": [
+      0,
+      120
+     ],
+     "relief": "engrave",
+     "type": "face_plate",
+     "size": [
+      100,
+      50
+     ],
+     "shape": "ellipse",
+     "depth": 1.2
+    },
+    {
+     "style": "bear",
+     "tilt": 0,
+     "side": "both",
+     "at": [
+      45,
+      155
+     ],
+     "size": [
+      25,
+      25
+     ],
+     "type": "ear"
+    }
+   ],
+   "audience": {
+    "age_years": 5,
+    "child_directed": true
+   },
+   "colors": {
+    "body_name": "dusk lavender",
+    "accent_name": "warm cream",
+    "body": "#B9B3E8",
+    "accent": "#FFF6EA",
+    "detail": "#2F2A52",
+    "detail_name": "night indigo"
+   },
+   "behaviour": {
+    "template": "story_player",
+    "summary": "Tap the top button for a bedtime story. Hold it down and tell the bear your new favorite character; it will remember for next time. The tummy light glows warmly during stories and turns blue when listening.",
+    "settings": {}
+   },
+   "schema": "gadget-spec/1",
+   "name": "Sleepy Bear"
+  }
+ },
+ {
+  "id": "c_7zu9uh5dck",
+  "title": "Little Cloud",
+  "tier": "expected",
+  "blurb": "A bumpy, soft cloud shape with a calming night light and flush cheeks.",
+  "spec": {
+   "electronics": {
+    "power": {
+     "input": "usb_c_5v",
+     "adapter_in_box": false
+    },
+    "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "extra_modules": []
+   },
+   "colors": {
+    "body_name": "soft sky",
+    "body": "#AEE2FF",
+    "detail": "#1B4965",
+    "accent_name": "cloud white",
+    "accent": "#FFFFFF",
+    "detail_name": "deep blue"
+   },
+   "region": "IN",
+   "behaviour": {
+    "template": "story_player",
+    "settings": {},
+    "summary": "Tap the cloud's top button for a soothing story. Hold it to whisper a new favorite character. The light glows like a sunset while playing and twinkles when listening."
+   },
+   "slug": "little-cloud",
+   "schema": "gadget-spec/1",
+   "body": {
+    "feet": 4,
+    "split": "rear_cover",
+    "edge_round": 12,
+    "family": "silhouette",
+    "outline": [
+     [
+      -75,
+      0
+     ],
+     [
+      75,
+      0
+     ],
+     [
+      85,
+      30
+     ],
+     [
+      70,
+      60
+     ],
+     [
+      80,
+      90
+     ],
+     [
+      65,
+      120
+     ],
+     [
+      30,
+      150
+     ],
+     [
+      0,
+      155
+     ],
+     [
+      -30,
+      150
+     ],
+     [
+      -65,
+      120
+     ],
+     [
+      -80,
+      90
+     ],
+     [
+      -70,
+      60
+     ],
+     [
+      -85,
+      30
+     ]
+    ],
+    "wall": 2.4,
+    "depth": 110
+   },
+   "name": "Little Cloud",
+   "audience": {
+    "age_years": 5,
+    "child_directed": true
+   },
+   "features": [
+    {
+     "id": "speaker",
+     "module": "SPK_40MM_4R_3W",
+     "label": "Story speaker",
+     "at": [
+      0,
+      56
+     ],
+     "grille": {
+      "pitch": 4,
+      "h": 36,
+      "hole": 2.4,
+      "pattern": "concentric",
+      "w": 36
+     },
+     "face": "front"
+    },
+    {
+     "label": "Story and listening button",
+     "face": "top",
+     "id": "story_button",
+     "module": "BUTTON_ARCADE_30MM_SNAPIN",
+     "at": [
+      0,
+      -5
+     ]
+    },
+    {
+     "id": "eyes",
+     "at": [
+      0,
+      120
+     ],
+     "face": "front",
+     "label": "Animated eyes",
+     "module": "OLED_130_SH1106_I2C"
+    },
+    {
+     "label": "Night light",
+     "id": "status_light",
+     "face": "front",
+     "module": "LED_WS2812B_1PX_MODULE",
+     "at": [
+      0,
+      84
+     ]
+    },
+    {
+     "label": "Voice microphone",
+     "face": "front",
+     "module": "MIC_INMP441_I2S",
+     "id": "mic",
+     "at": [
+      35,
+      84
+     ]
+    }
+   ],
+   "safety": {
+    "flags": [
+     "CHILD_DIRECTED",
+     "LOCAL_VOICE_CAPTURE",
+     "NIGHT_USE"
+    ],
+    "notes": "Adult assembly required. Microphone only active when button is held."
+   },
+   "tagline": "A floating cloud friend full of magical stories.",
+   "decor": [
+    {
+     "relief": "emboss",
+     "side": "both",
+     "depth": 0.6,
+     "type": "blush",
+     "at": [
+      45,
+      100
+     ],
+     "size": [
+      15,
+      10
+     ]
+    },
+    {
+     "depth": 0.8,
+     "at": [
+      0,
+      96
+     ],
+     "type": "mouth",
+     "size": [
+      10,
+      6
+     ],
+     "style": "small_o",
+     "relief": "engrave"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c_wkng39fyfp",
+  "title": "Bedtime Owl",
+  "tier": "different",
+  "blurb": "A classic bedside owl with cute ear tufts and large, expressive screen eyes.",
+  "spec": {
+   "region": "IN",
+   "electronics": {
+    "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "power": {
+     "adapter_in_box": false,
+     "input": "usb_c_5v"
+    },
+    "extra_modules": []
+   },
+   "safety": {
+    "flags": [
+     "CHILD_DIRECTED",
+     "LOCAL_VOICE_CAPTURE",
+     "NIGHT_USE"
+    ],
+    "notes": "Adult assembly required. Microphone only active when button is held."
+   },
+   "behaviour": {
+    "template": "story_player",
+    "summary": "Press the tummy button for a story. Hold it to tell the owl who should be in the next adventure. The chest light glows softly through the night.",
+    "settings": {}
+   },
+   "audience": {
+    "age_years": 5,
+    "child_directed": true
+   },
+   "name": "Bedtime Owl",
+   "body": {
+    "squash_y": 0.9,
+    "family": "revolve",
+    "profile": [
+     [
+      0,
+      0
+     ],
+     [
+      65,
+      0
+     ],
+     [
+      70,
+      20
+     ],
+     [
+      75,
+      50
+     ],
+     [
+      72,
+      90
+     ],
+     [
+      65,
+      140
+     ],
+     [
+      40,
+      160
+     ],
+     [
+      0,
+      170
+     ]
+    ],
+    "wall": 2.4,
+    "edge_round": 8,
+    "split": "base_plate",
+    "feet": 4
+   },
+   "colors": {
+    "body_name": "mint green",
+    "detail_name": "dark green",
+    "accent": "#FCF3CF",
+    "detail": "#0E6251",
+    "body": "#A3E4D7",
+    "accent_name": "pale yellow"
+   },
+   "tagline": "A wise little owl that loves bedtime stories.",
+   "schema": "gadget-spec/1",
+   "decor": [
+    {
+     "at": [
+      40,
+      160
+     ],
+     "tilt": 10,
+     "type": "ear",
+     "size": [
+      20,
+      25
+     ],
+     "style": "owl_tuft",
+     "side": "both"
+    }
+   ],
+   "slug": "bedtime-owl",
+   "features": [
+    {
+     "module": "SPK_40MM_4R_3W",
+     "id": "speaker",
+     "label": "Story speaker",
+     "face": "front",
+     "at": [
+      0,
+      95
+     ],
+     "grille": {
+      "pitch": 4.4,
+      "pattern": "slots",
+      "hole": 2.6,
+      "w": 36,
+      "h": 36
+     }
+    },
+    {
+     "at": [
+      0,
+      55
+     ],
+     "face": "front",
+     "id": "story_button",
+     "module": "BUTTON_ARCADE_30MM_SNAPIN",
+     "label": "Story button"
+    },
+    {
+     "face": "front",
+     "at": [
+      0,
+      145
+     ],
+     "label": "Big owl eyes",
+     "module": "OLED_096_SSD1306_I2C",
+     "id": "eyes"
+    },
+    {
+     "face": "front",
+     "label": "Night light",
+     "at": [
+      0,
+      122
+     ],
+     "module": "LED_WS2812B_1PX_MODULE",
+     "id": "status_light"
+    },
+    {
+     "label": "Voice microphone",
+     "module": "MIC_INMP441_I2S",
+     "at": [
+      30,
+      122
+     ],
+     "face": "front",
+     "id": "mic"
+    }
+   ]
+  }
+ },
+ {
+  "id": "c_vh95znmtqx",
+  "title": "Story Mushroom",
+  "tier": "different",
+  "blurb": "A whimsical mushroom with the controls on the stem and a wide, friendly cap.",
+  "spec": {
+   "decor": [],
+   "behaviour": {
+    "template": "story_player",
+    "summary": "Press the button on the stem for a story. Hold it to whisper a secret character to the mushroom. The top of the cap twinkles while listening.",
+    "settings": {}
+   },
+   "tagline": "A magical forest friend for bedtime.",
+   "body": {
+    "feet": 4,
+    "squash_y": 1,
+    "wall": 2.4,
+    "split": "base_plate",
+    "edge_round": 8,
+    "family": "revolve",
+    "profile": [
+     [
+      0,
+      0
+     ],
+     [
+      65,
+      0
+     ],
+     [
+      62,
+      40
+     ],
+     [
+      55,
+      60
+     ],
+     [
+      50,
+      80
+     ],
+     [
+      85,
+      85
+     ],
+     [
+      85,
+      110
+     ],
+     [
+      70,
+      150
+     ],
+     [
+      40,
+      170
+     ],
+     [
+      0,
+      180
+     ]
+    ]
+   },
+   "electronics": {
+    "power": {
+     "input": "usb_c_5v",
+     "adapter_in_box": false
+    },
+    "extra_modules": [],
+    "core": "CORE_ESP32S3_DEVKITC1_N8R8"
+   },
+   "region": "IN",
+   "name": "Story Mushroom",
+   "colors": {
+    "accent": "#FEF9E7",
+    "body_name": "blush pink",
+    "detail_name": "deep red",
+    "body": "#F5B7B1",
+    "accent_name": "cream",
+    "detail": "#78281F"
+   },
+   "slug": "story-mushroom",
+   "features": [
+    {
+     "module": "SPK_40MM_4R_3W",
+     "face": "front",
+     "at": [
+      0,
+      105
+     ],
+     "id": "speaker",
+     "label": "Story speaker",
+     "grille": {
+      "w": 36,
+      "hole": 2.4,
+      "pattern": "dots_ellipse",
+      "pitch": 4.4,
+      "h": 36
+     }
+    },
+    {
+     "at": [
+      0,
+      55
+     ],
+     "id": "story_button",
+     "module": "BUTTON_ARCADE_30MM_SNAPIN",
+     "label": "Story button",
+     "face": "front"
+    },
+    {
+     "face": "front",
+     "label": "Animated eyes",
+     "id": "eyes",
+     "module": "OLED_096_SSD1306_I2C",
+     "at": [
+      0,
+      142
+     ]
+    },
+    {
+     "face": "front",
+     "module": "LED_WS2812B_1PX_MODULE",
+     "label": "Night light",
+     "at": [
+      0,
+      166
+     ],
+     "id": "status_light"
+    },
+    {
+     "at": [
+      30,
+      60
+     ],
+     "id": "mic",
+     "label": "Voice microphone",
+     "module": "MIC_INMP441_I2S",
+     "face": "front"
+    }
+   ],
+   "audience": {
+    "age_years": 5,
+    "child_directed": true
+   },
+   "safety": {
+    "flags": [
+     "CHILD_DIRECTED",
+     "LOCAL_VOICE_CAPTURE",
+     "NIGHT_USE"
+    ],
+    "notes": "Adult assembly required. Microphone only active when button is held."
+   },
+   "schema": "gadget-spec/1"
+  }
+ },
+ {
+  "id": "c_a4p4ty9mqy",
+  "title": "Magic Lantern",
+  "tier": "wildcard",
+  "blurb": "A glowing lantern shape, keeping magical character stories inside its dome.",
+  "spec": {
+   "name": "Magic Lantern",
+   "electronics": {
+    "extra_modules": [],
+    "power": {
+     "adapter_in_box": false,
+     "input": "usb_c_5v"
+    },
+    "core": "CORE_ESP32S3_DEVKITC1_N8R8"
+   },
+   "tagline": "A magical lantern that glows with bedtime tales.",
+   "schema": "gadget-spec/1",
+   "audience": {
+    "age_years": 5,
+    "child_directed": true
+   },
+   "colors": {
+    "body": "#F4D03F",
+    "detail_name": "midnight",
+    "body_name": "star gold",
+    "accent_name": "soft white",
+    "detail": "#2C3E50",
+    "accent": "#FDFEFE"
+   },
+   "slug": "magic-lantern",
+   "safety": {
+    "notes": "Adult assembly required. Microphone only active when button is held.",
+    "flags": [
+     "CHILD_DIRECTED",
+     "LOCAL_VOICE_CAPTURE",
+     "NIGHT_USE"
+    ]
+   },
+   "behaviour": {
+    "template": "story_player",
+    "settings": {},
+    "summary": "Push the main button to release a story from the lantern. Hold it down to trap a new character inside. A warm light glows continuously at night."
+   },
+   "region": "IN",
+   "decor": [],
+   "features": [
+    {
+     "id": "speaker",
+     "label": "Story speaker",
+     "grille": {
+      "w": 36,
+      "h": 36,
+      "pitch": 4.4,
+      "hole": 2.6,
+      "pattern": "hex_holes"
+     },
+     "at": [
+      0,
+      60
+     ],
+     "face": "front",
+     "module": "SPK_40MM_4R_3W"
+    },
+    {
+     "id": "story_button",
+     "module": "BUTTON_ARCADE_30MM_SNAPIN",
+     "at": [
+      0,
+      100
+     ],
+     "label": "Story button",
+     "face": "front"
+    },
+    {
+     "face": "front",
+     "label": "Character display",
+     "id": "eyes",
+     "module": "OLED_096_SSD1306_I2C",
+     "at": [
+      0,
+      138
+     ]
+    },
+    {
+     "at": [
+      0,
+      165
+     ],
+     "face": "front",
+     "label": "Lantern glow",
+     "id": "status_light",
+     "module": "LED_WS2812B_1PX_MODULE"
+    },
+    {
+     "module": "MIC_INMP441_I2S",
+     "at": [
+      30,
+      138
+     ],
+     "label": "Voice microphone",
+     "id": "mic",
+     "face": "front"
+    }
+   ],
+   "body": {
+    "edge_round": 10,
+    "feet": 4,
+    "family": "revolve",
+    "squash_y": 1,
+    "wall": 2.4,
+    "profile": [
+     [
+      0,
+      0
+     ],
+     [
+      60,
+      0
+     ],
+     [
+      65,
+      20
+     ],
+     [
+      65,
+      110
+     ],
+     [
+      50,
+      140
+     ],
+     [
+      30,
+      160
+     ],
+     [
+      25,
+      180
+     ],
+     [
+      0,
+      180
+     ]
+    ],
+    "split": "base_plate"
+   }
+  }
+ },
+ {
+  "id": "c_szpt3n94aq",
+  "title": "Story Acorn",
+  "tier": "wildcard",
+  "blurb": "An upside-down acorn character with a broad, stable base and a little top stem.",
+  "spec": {
+   "slug": "story-acorn",
+   "region": "IN",
+   "colors": {
+    "accent": "#A9DFBF",
+    "detail_name": "dark brown",
+    "body": "#E59866",
+    "detail": "#5D4037",
+    "accent_name": "leaf green",
+    "body_name": "warm wood"
+   },
+   "decor": [
+    {
+     "style": "antenna",
+     "size": [
+      12,
+      20
+     ],
+     "type": "ear",
+     "at": [
+      0,
+      175
+     ],
+     "side": "left",
+     "tilt": 0
+    },
+    {
+     "depth": 0.6,
+     "size": [
+      12,
+      8
+     ],
+     "type": "blush",
+     "relief": "emboss",
+     "side": "both",
+     "at": [
+      35,
+      130
+     ]
+    }
+   ],
+   "safety": {
+    "flags": [
+     "CHILD_DIRECTED",
+     "LOCAL_VOICE_CAPTURE",
+     "NIGHT_USE"
+    ],
+    "notes": "Adult assembly required. Microphone only active when button is held."
+   },
+   "behaviour": {
+    "template": "story_player",
+    "settings": {},
+    "summary": "Press the acorn's big belly for a story. Hold it to add a new favorite character. The light above its eyes shows when it's listening."
+   },
+   "electronics": {
+    "power": {
+     "adapter_in_box": false,
+     "input": "usb_c_5v"
+    },
+    "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "extra_modules": []
+   },
+   "tagline": "A forest friend full of big stories.",
+   "schema": "gadget-spec/1",
+   "features": [
+    {
+     "grille": {
+      "hole": 2.4,
+      "w": 36,
+      "pitch": 4.4,
+      "h": 36,
+      "pattern": "dots_ellipse"
+     },
+     "at": [
+      0,
+      60
+     ],
+     "id": "speaker",
+     "face": "front",
+     "module": "SPK_40MM_4R_3W",
+     "label": "Story speaker"
+    },
+    {
+     "face": "front",
+     "module": "BUTTON_ARCADE_30MM_SNAPIN",
+     "at": [
+      0,
+      100
+     ],
+     "label": "Story button",
+     "id": "story_button"
+    },
+    {
+     "label": "Animated eyes",
+     "face": "front",
+     "at": [
+      0,
+      150
+     ],
+     "id": "eyes",
+     "module": "OLED_130_SH1106_I2C"
+    },
+    {
+     "id": "status_light",
+     "at": [
+      0,
+      125
+     ],
+     "module": "LED_WS2812B_1PX_MODULE",
+     "label": "Night light",
+     "face": "front"
+    },
+    {
+     "module": "MIC_INMP441_I2S",
+     "id": "mic",
+     "at": [
+      30,
+      85
+     ],
+     "face": "front",
+     "label": "Voice microphone"
+    }
+   ],
+   "name": "Story Acorn",
+   "audience": {
+    "age_years": 5,
+    "child_directed": true
+   },
+   "body": {
+    "wall": 2.4,
+    "outline": [
+     [
+      -55,
+      0
+     ],
+     [
+      55,
+      0
+     ],
+     [
+      75,
+      30
+     ],
+     [
+      80,
+      70
+     ],
+     [
+      82,
+      90
+     ],
+     [
+      65,
+      130
+     ],
+     [
+      30,
+      165
+     ],
+     [
+      0,
+      180
+     ],
+     [
+      -30,
+      165
+     ],
+     [
+      -65,
+      130
+     ],
+     [
+      -82,
+      90
+     ],
+     [
+      -80,
+      70
+     ],
+     [
+      -75,
+      30
+     ]
+    ],
+    "family": "silhouette",
+    "split": "rear_cover",
+    "depth": 110,
+    "feet": 4,
+    "edge_round": 16
+   }
+  }
+ }
+]

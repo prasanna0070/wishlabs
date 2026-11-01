@@ -3,7 +3,7 @@
 #include <set>
 #include <string>
 
-#include "fake_kv.h"
+#include "../test_core/fake_kv.h"
 #include "gs_story.h"
 
 using gs::CaptureMode;
@@ -68,7 +68,7 @@ static void test_playlist_inserts_child_clip_between_segments() {
   card.files.insert("/fav/f007.wav");
   gs::Memory m = memory_with_clip(7);
   PlayItem items[gs::kMaxPlayItems];
-  const size_t n = gs::build_playlist(*cat.get(0), m, 7, CaptureMode::ChildVoiceClip, card_exists, &card, items,
+  const size_t n = gs::build_playlist(*cat.get(0), m, 7, 0, CaptureMode::ChildVoiceClip, card_exists, &card, items,
                                       gs::kMaxPlayItems);
   TEST_ASSERT_EQUAL(5, n);
   TEST_ASSERT_EQUAL_STRING("/stories/monsoon_cloud/s00.wav", items[0].path);
@@ -86,12 +86,12 @@ static void test_missing_clip_falls_back_to_default_then_chime() {
   PlayItem items[gs::kMaxPlayItems];
   FakeCard card;
   card.files.insert("/names/_default.wav");
-  size_t n = gs::build_playlist(*cat.get(0), m, 3, CaptureMode::ChildVoiceClip, card_exists, &card, items, 8);
+  size_t n = gs::build_playlist(*cat.get(0), m, 3, 0, CaptureMode::ChildVoiceClip, card_exists, &card, items, 8);
   TEST_ASSERT_EQUAL(3, n);
   TEST_ASSERT_EQUAL(PlayKind::Name, items[1].kind);
   TEST_ASSERT_EQUAL_STRING("/names/_default.wav", items[1].path);
   FakeCard empty;
-  n = gs::build_playlist(*cat.get(0), m, 3, CaptureMode::ChildVoiceClip, card_exists, &empty, items, 8);
+  n = gs::build_playlist(*cat.get(0), m, 3, 0, CaptureMode::ChildVoiceClip, card_exists, &empty, items, 8);
   TEST_ASSERT_EQUAL(PlayKind::Chime, items[1].kind);
   TEST_ASSERT_EQUAL_STRING("", items[1].path);
 }
@@ -110,7 +110,7 @@ static void test_parent_web_uses_pack_name_clip() {
   gs::Rng rng(5);
   const uint8_t hero = gs::pick_hero(st.mem(), CaptureMode::ParentWeb, card_exists, &card, rng);
   TEST_ASSERT_EQUAL(id, hero);
-  const size_t n = gs::build_playlist(*cat.get(0), st.mem(), hero, CaptureMode::ParentWeb, card_exists, &card, items, 8);
+  const size_t n = gs::build_playlist(*cat.get(0), st.mem(), hero, 0, CaptureMode::ParentWeb, card_exists, &card, items, 8);
   TEST_ASSERT_EQUAL(3, n);
   TEST_ASSERT_EQUAL_STRING("/names/anya_rao.wav", items[1].path);
 }
@@ -156,6 +156,56 @@ static void test_name_cleaning_and_slugs() {
   TEST_ASSERT_EQUAL_STRING("/names/little_star.wav", path);
 }
 
+static void test_hero_and_friend_both_play_their_name_clips() {
+  // MAJ-33: names typed on the parent page, with spoken clips, star as hero AND friend.
+  gs::StoryCatalog cat;
+  cat.add("mango_tree", "The Mango Tree That Hummed", 4, 0x2);  // slots: FAV, FRIEND, FAV
+  FakeKv kv;
+  gs::MemoryStore st(kv, gs::MemoryLimits(), gs::Memory());
+  st.load();
+  uint8_t anya = 0, kabir = 0;
+  st.add_name("Anya", &anya);
+  st.add_name("Kabir", &kabir);
+  FakeCard card;
+  card.files.insert("/names/anya.wav");
+  card.files.insert("/names/kabir.wav");
+  gs::Rng rng(11);
+  const uint8_t hero = gs::pick_hero(st.mem(), CaptureMode::ParentWeb, card_exists, &card, rng);
+  const uint8_t pal = gs::pick_friend(st.mem(), CaptureMode::ParentWeb, card_exists, &card, rng, hero);
+  TEST_ASSERT_TRUE(hero == anya || hero == kabir);
+  TEST_ASSERT_TRUE(pal != 0 && pal != hero);
+  PlayItem items[gs::kMaxPlayItems];
+  const size_t n = gs::build_playlist(*cat.get(0), st.mem(), hero, pal, CaptureMode::ParentWeb, card_exists, &card, items,
+                                      gs::kMaxPlayItems);
+  TEST_ASSERT_EQUAL(7, n);
+  const char* hero_clip = hero == anya ? "/names/anya.wav" : "/names/kabir.wav";
+  const char* pal_clip = hero == anya ? "/names/kabir.wav" : "/names/anya.wav";
+  TEST_ASSERT_EQUAL_STRING(hero_clip, items[1].path);
+  TEST_ASSERT_EQUAL_STRING(pal_clip, items[3].path);
+  TEST_ASSERT_EQUAL_STRING(hero_clip, items[5].path);
+}
+
+static void test_friend_falls_back_to_default_friend_then_hero() {
+  gs::StoryCatalog cat;
+  cat.add("night_train", "The Night Train", 3, 0x2);  // FAV, FRIEND
+  FakeKv kv;
+  gs::MemoryStore st(kv, gs::MemoryLimits(), gs::Memory());
+  st.load();
+  uint8_t anya = 0;
+  st.add_name("Anya", &anya);
+  FakeCard card;
+  card.files.insert("/names/anya.wav");
+  gs::Rng rng(2);
+  TEST_ASSERT_EQUAL(0, gs::pick_friend(st.mem(), CaptureMode::ParentWeb, card_exists, &card, rng, anya));
+  PlayItem items[8];
+  gs::build_playlist(*cat.get(0), st.mem(), anya, 0, CaptureMode::ParentWeb, card_exists, &card, items, 8);
+  TEST_ASSERT_EQUAL_STRING("/names/anya.wav", items[3].path);  // no friend clip at all: the hero again
+  card.files.insert("/names/_friend.wav");
+  gs::build_playlist(*cat.get(0), st.mem(), anya, 0, CaptureMode::ParentWeb, card_exists, &card, items, 8);
+  TEST_ASSERT_EQUAL_STRING("/names/anya.wav", items[1].path);
+  TEST_ASSERT_EQUAL_STRING("/names/_friend.wav", items[3].path);
+}
+
 void register_story_tests() {
   RUN_TEST(test_shuffle_never_repeats_back_to_back);
   RUN_TEST(test_sequential_order_wraps);
@@ -166,4 +216,6 @@ void register_story_tests() {
   RUN_TEST(test_hero_avoids_last_hero);
   RUN_TEST(test_no_favourites_means_no_hero);
   RUN_TEST(test_name_cleaning_and_slugs);
+  RUN_TEST(test_hero_and_friend_both_play_their_name_clips);
+  RUN_TEST(test_friend_falls_back_to_default_friend_then_hero);
 }

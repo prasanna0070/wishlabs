@@ -20,10 +20,16 @@ def test_generate_writes_the_project(design, tmp_path):
     fw = tmp_path / "firmware"
     for rel in ("platformio.ini", "partitions.csv", "include/pins.h", "include/hardware.h", "include/config.h",
                 "include/parent_page.h", "src/main.cpp", f"src/app_{template}.cpp", "lib/gs_core/src/gs_store.cpp",
-                "test/test_core/test_main.cpp", "data/parent.html", "scripts/prebuild.py"):
+                "test/test_core/test_main.cpp", "test/test_net/test_main.cpp", "test/shims/Arduino.h",
+                f"test/test_{template}/test_main.cpp", "data/parent.html", "scripts/prebuild.py",
+                "sdkconfig.production.defaults"):
         assert (fw / rel).exists(), rel
     other = [p.name for p in (fw / "src").glob("app_*.cpp")]
     assert other == [f"app_{template}.cpp"]  # exactly one behaviour compiled in
+    # MIN-18: only this template's product suites, plus the shared ones.
+    suites = sorted(p.name for p in (fw / "test").iterdir() if p.is_dir() and p.name.startswith("test_"))
+    assert {"test_core", "test_net"} <= set(suites)
+    assert all(n in ("test_core", "test_net") or n.startswith(f"test_{template}") for n in suites), suites
     assert facts["version"].startswith("0.") and "+" in facts["version"]
 
 
@@ -57,6 +63,58 @@ def test_partition_table_fits_8mb_with_two_ota_slots():
     a0 = next(r for r in rows if r[0] == "app0")
     a1 = next(r for r in rows if r[0] == "app1")
     assert a0[4] == a1[4]  # equal slots so any update fits either
+
+
+def test_production_profile_turns_on_flash_encryption(tmp_path):
+    spec, elec = load_fixture("story_player")
+    generate(spec, elec, tmp_path)
+    fw = tmp_path / "firmware"
+    sdk = (fw / "sdkconfig.production.defaults").read_text()
+    assert "CONFIG_SECURE_FLASH_ENC_ENABLED=y" in sdk and "CONFIG_SECURE_FLASH_ENCRYPTION_MODE_RELEASE=y" in sdk
+    ini = (fw / "platformio.ini").read_text()
+    assert "[env:s3-production]" in ini and "sdkconfig.production.defaults" in ini
+    assert "default_envs = s3\n" in ini  # the standard build does not touch the production profile
+
+
+def test_flash_mode_is_explained_the_same_everywhere(tmp_path):
+    # MIN-19: platformio.ini runs qio; esptool / the header use dio; the setup text says both.
+    from gstudio.firmware.project import APP_FLASH_MODE, HEADER_FLASH_MODE
+    from gstudio.firmware.setup_doc import setup_markdown
+
+    spec, elec = load_fixture("story_player")
+    facts = generate(spec, elec, tmp_path)
+    ini = (tmp_path / "firmware" / "platformio.ini").read_text()
+    assert f"board_build.flash_mode = {APP_FLASH_MODE}" in ini and "use DIO" in ini
+    fw = {"flash": {"flash_mode": HEADER_FLASH_MODE, "flash_freq": "80m", "flash_size": "8MB", "app_flash_mode": APP_FLASH_MODE}}
+    md = setup_markdown(spec, "story_player", facts["settings"], fw, None)
+    assert f"--flash-mode {HEADER_FLASH_MODE}" in md and f"`board_build.flash_mode = {APP_FLASH_MODE}`" in md
+
+
+def test_child_directed_design_builds_with_the_network_off(tmp_path):
+    spec, elec = load_fixture("story_player")
+    assert spec["audience"]["child_directed"]
+    facts = generate(spec, elec, tmp_path)
+    cfg = (tmp_path / "firmware" / "include" / "config.h").read_text()
+    assert facts["settings"]["network"] == "off"
+    assert "#define GS_CFG_NETWORK 0" in cfg
+    assert "#define GS_CFG_CAPTURE_MODE 2" in cfg  # parent_web
+    assert "#define GS_CFG_CLIP_MS 3000" in cfg
+    assert "#define GS_CFG_NIGHT_LEVEL_MAX 30" in cfg and "#define GS_CFG_NIGHT_DUTY_MAX_PERMILLE 135" in cfg
+
+
+def test_unconsented_voice_recording_is_refused(tmp_path):
+    from gstudio.errors import StageError
+
+    spec, elec = load_fixture("story_player")
+    spec["behaviour"]["settings"] = {"capture_mode": "child_voice_clip"}
+    with pytest.raises(StageError) as e:
+        generate(spec, elec, tmp_path)
+    assert "voice_clip_consent" in json.dumps(e.value.details)
+    spec["behaviour"]["settings"] = {"capture_mode": "child_voice_clip", "voice_clip_consent": True}
+    spec["safety"] = {"flags": ["CHILD_DIRECTED", "LOCAL_VOICE_CAPTURE", "CHILD_VOICE_STORED"]}
+    facts = generate(spec, elec, tmp_path)
+    assert "#define GS_CFG_CAPTURE_MODE 1" in (tmp_path / "firmware" / "include" / "config.h").read_text()
+    assert facts["settings"]["clip_retention_days"] == 90
 
 
 def test_config_h_carries_the_settings(tmp_path):
@@ -121,6 +179,13 @@ def test_run_without_compile_returns_summary(tmp_path):
     assert "## 1. Put the firmware on the board" in s["setup_markdown"]
     assert s["software_setup_md"] == s["setup_markdown"]
     assert "no audio yet" in s["setup_markdown"]
+    assert "records no voice" in s["setup_markdown"]  # MAJ-1: the parent_web rule
+    assert "Wi-Fi: off in this build" in s["setup_markdown"]  # MAJ-2: child-directed default
+    assert s["privacy"]["voice_stored"] is False and s["privacy"]["network"] == "off"
+    assert s["caps"]["night_light_max_percent"] == 30
+    heads = [l for l in s["setup_markdown"].splitlines() if l.startswith("## ")]
+    assert len(heads) == len(set(heads)), heads  # MIN-19: no repeated sections
+    assert not any("checked" in h.lower() for h in heads)  # the docs stage owns "What was checked"
     assert s["selftest_protocol"]["command"] == "selftest\\n"
     assert (tmp_path / "firmware" / "sdcard" / "stories.json").exists()
     assert any("compile skipped" in w for w in s["warnings"])

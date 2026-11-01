@@ -1,0 +1,202 @@
+{
+ "decor": [
+  {
+   "depth": 1.2,
+   "size": [
+    80,
+    50
+   ],
+   "shape": "rounded_rect",
+   "type": "face_plate",
+   "relief": "engrave",
+   "at": [
+    0,
+    130
+   ]
+  },
+  {
+   "size": [
+    12,
+    12
+   ],
+   "style": "heart",
+   "relief": "engrave",
+   "depth": 0.8,
+   "at": [
+    -20,
+    135
+   ],
+   "type": "eye"
+  },
+  {
+   "depth": 0.8,
+   "at": [
+    20,
+    135
+   ],
+   "size": [
+    12,
+    12
+   ],
+   "relief": "engrave",
+   "style": "heart",
+   "type": "eye"
+  },
+  {
+   "size": [
+    16,
+    6
+   ],
+   "depth": 0.8,
+   "relief": "engrave",
+   "style": "smile",
+   "type": "mouth",
+   "at": [
+    0,
+    118
+   ]
+  },
+  {
+   "size": [
+    12,
+    22
+   ],
+   "at": [
+    55,
+    160
+   ],
+   "style": "antenna",
+   "type": "ear",
+   "side": "both"
+  }
+ ],
+ "region": "IN",
+ "features": [
+  {
+   "label": "Night light",
+   "at": [
+    0,
+    65
+   ],
+   "id": "light",
+   "module": "LED_RING_12_WS2812_50MM",
+   "face": "front"
+  },
+  {
+   "id": "speaker",
+   "module": "SPK_28MM_8R_2W",
+   "at": [
+    0,
+    65
+   ],
+   "face": "rear",
+   "label": "Story speaker",
+   "grille": {
+    "pattern": "hex_holes",
+    "w": 26,
+    "pitch": 4,
+    "h": 26,
+    "hole": 2
+   }
+  },
+  {
+   "id": "mic",
+   "module": "MIC_INMP441_I2S",
+   "label": "Microphone hole",
+   "at": [
+    -40,
+    90
+   ],
+   "face": "front"
+  },
+  {
+   "face": "top",
+   "module": "BUTTON_ARCADE_30MM_SNAPIN",
+   "at": [
+    0,
+    -10
+   ],
+   "label": "Hold to record a favorite",
+   "id": "button"
+  }
+ ],
+ "behaviour": {
+  "settings": {
+   "voice_clip_consent": true,
+   "capture_mode": "child_voice_clip"
+  },
+  "template": "story_player",
+  "summary": "Hold the top button to securely save a voice clip of her favorite character. The robot tells a customized bedtime story and glows softly."
+ },
+ "audience": {
+  "child_directed": true,
+  "age_years": 5
+ },
+ "slug": "story-box",
+ "electronics": {
+  "power": {
+   "input": "usb_c_5v",
+   "adapter_in_box": true
+  },
+  "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+  "extra_modules": []
+ },
+ "colors": {
+  "body": "#A3BE8C",
+  "accent": "#ECEFF4",
+  "body_name": "sage green",
+  "detail_name": "slate",
+  "detail": "#434C5E",
+  "accent_name": "white"
+ },
+ "name": "Story Box",
+ "safety": {
+  "notes": "The parent opted in to storing the child's voice (voice_clip_consent): the microphone opens only while the button is held, with the listening light on; each kept clip (3 s at most) is stored AES-256 encrypted on the microSD card, deleted after 90 powered-on days or on request, and never uploaded. Network off by default (child-directed). Adult assembly; the certified 5 V USB-C adapter ships in the box.",
+  "flags": [
+   "CHILD_DIRECTED",
+   "LOCAL_VOICE_CAPTURE",
+   "CHILD_VOICE_STORED",
+   "NIGHT_USE"
+  ]
+ },
+ "body": {
+  "feet": 4,
+  "split": "rear_cover",
+  "depth": 100,
+  "wall": 2.4,
+  "edge_round": 10,
+  "outline": [
+   [
+    -65,
+    0
+   ],
+   [
+    65,
+    0
+   ],
+   [
+    65,
+    120
+   ],
+   [
+    50,
+    160
+   ],
+   [
+    0,
+    170
+   ],
+   [
+    -50,
+    160
+   ],
+   [
+    -65,
+    120
+   ]
+  ],
+  "family": "silhouette"
+ },
+ "tagline": "A retro TV-shaped robot stacked with personality.",
+ "schema": "gadget-spec/1"
+}

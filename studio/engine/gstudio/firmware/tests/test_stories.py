@@ -4,7 +4,8 @@ import json
 import re
 import wave
 
-from gstudio.firmware.stories import MAX_WORDS, MIN_WORDS, load_stories, name_slug, segments, word_count, write_pack
+from gstudio.firmware.stories import (MAX_WORDS, MIN_WORDS, PROMPTS, load_stories, name_slug, segments, slots, word_count,
+                                      write_pack)
 
 
 def test_six_original_stories_of_the_right_length():
@@ -14,6 +15,8 @@ def test_six_original_stories_of_the_right_length():
     for s in stories:
         assert MIN_WORDS <= word_count(s) <= MAX_WORDS, (s["id"], word_count(s))
         assert s["text"].count("{FAV}") >= 2
+        assert s["text"].count("{FRIEND}") >= 1  # MAJ-33: a hero and a friend
+        assert len(slots(s)) == len(segments(s)) - 1
         assert re.fullmatch(r"[a-z0-9_\-]{1,23}", s["id"])  # firmware StoryCatalog rule
         assert all(c.isascii() for c in s["text"])
 
@@ -44,7 +47,7 @@ def test_text_only_pack_is_deterministic_and_honest(tmp_path):
     idx = json.loads(ja)
     assert idx["audio"] is False and a["audio"] is False
     assert idx["stories"][0]["files"][0] == f"stories/{idx['stories'][0]['id']}/s00.wav"
-    assert idx["names"] == [{"name": "Anya", "file": "names/anya.wav"}]
+    assert idx["names"] == [{"name": "Anya", "file": "names/anya.wav", "name_audio": False}]
     readme = (tmp_path / "a" / "README.txt").read_text()
     assert "NO AUDIO yet" in readme and "Generate story audio" in readme
 
@@ -65,7 +68,27 @@ def test_audio_pack_writes_one_wav_per_segment(tmp_path):
         for f in st["files"]:
             assert (tmp_path / f).exists(), f
     assert (tmp_path / "names" / "_default.wav").exists()
+    assert (tmp_path / "names" / "_friend.wav").exists()
+    assert idx["default_name"]["name_audio"] and idx["default_friend"]["name_audio"]
     assert "computer voice" in (tmp_path / "README.txt").read_text()
+    # MIN-38: the four spoken prompts of the voice-clip flow (and hello), each a WAV the firmware parses.
+    from gstudio.firmware.speech import wav_check_python
+
+    for p in ("hold_to_tell", "tap_to_keep", "saved", "try_again", "hello"):
+        f = tmp_path / "prompts" / f"{p}.wav"
+        assert f.exists(), p
+        assert wav_check_python(f)["ok"], p
+    assert [p["id"] for p in idx["prompts"]] == list(PROMPTS)
+
+
+def test_index_carries_slot_kinds_for_the_firmware():
+    from gstudio.firmware.stories import build_index
+
+    idx = build_index({"capture_mode": "parent_web"}, False, None, None)
+    for st in idx["stories"]:
+        assert st["slots"] and set(st["slots"]) == {"FAV", "FRIEND"}
+        assert len(st["slots"]) == st["segments"] - 1
+    assert idx["default_friend"] == {"name": "little bunny", "file": "names/_friend.wav", "name_audio": False}
 
 
 def test_failed_audio_is_reported_not_hidden(tmp_path):

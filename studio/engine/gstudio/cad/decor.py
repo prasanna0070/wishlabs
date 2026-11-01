@@ -44,6 +44,8 @@ class DecorResult:
     pads: list = field(default_factory=list)
     warnings: list = field(default_factory=list)
     ears: list = field(default_factory=list)
+    adjustments: list = field(default_factory=list)  # decor changed to fit the flat face: {spec_path, requested, built, why}
+    solids: list = field(default_factory=list)  # [(decor index, placed solid)] for ears (GLB pick nodes)
 
 
 # ------------------------------------------------------------------------------------------------ 2D footprints
@@ -190,9 +192,70 @@ def _layer_tool(outer, poly: Polygon, d: dict, ys, extra_back: float):
 DEFAULT_COLOR = {"face_plate": None, "eye": "detail", "mouth": "detail", "blush": "blush", "text": "detail", "ear": None}
 
 
-def apply_relief(outer: cq.Shape, decor: list, probe, cavity_pads: bool, wall: float) -> DecorResult:
+def _fit_scale(poly: Polygon, region: Polygon, lo: float = 0.3) -> float:
+    """Largest uniform scale <= 1 (about the polygon's centroid) that keeps poly inside region; 0 if none >= lo."""
+    c = poly.centroid
+    if region.contains(poly):
+        return 1.0
+    if not region.contains(c):
+        return 0.0
+    a, b = lo, 1.0
+    if not region.contains(affinity.scale(poly, a, a, origin=c)):
+        return 0.0
+    for _ in range(24):
+        m = (a + b) / 2
+        if region.contains(affinity.scale(poly, m, m, origin=c)):
+            a = m
+        else:
+            b = m
+    return a
+
+
+def _fit_flat(res, d: dict, poly: Polygon, flat: Polygon):
+    """Keep a relief footprint on the flat front face (REVIEW-1 MAJ-31). Face plates and text are scaled down about
+    their centre; small items are clipped. Returns (d, poly) or (None, None) when the item cannot stay on the face."""
+    if flat is None or flat.contains(poly):
+        return d, poly
+    sp = f"decor[{d['_idx']}]" if "_idx" in d else None
+    t = d["type"]
+    if t in ("face_plate", "text"):
+        k = _fit_scale(poly, flat)
+        if k <= 0.0:
+            res.warnings.append(f"{t} at {list(d['at'])} does not fit on the flat front face; skipped")
+            res.adjustments.append({"spec_path": sp, "type": t, "action": "skipped", "why": "outside the flat front face"})
+            return None, None
+        c = poly.centroid
+        poly = affinity.scale(poly, k, k, origin=c)
+        if t == "face_plate":
+            req = [float(d["size"][0]), float(d["size"][1])]
+            d = {**d, "size": [round(req[0] * k, 1), round(req[1] * k, 1)]}
+            res.adjustments.append({"spec_path": sp, "type": t, "action": "scaled", "requested_mm": req, "built_mm": d["size"],
+                                    "scale": round(k, 3), "why": "kept on the flat front face (outline inset by the edge round + 2 mm)"})
+            res.warnings.append(f"face plate {req[0]:g} x {req[1]:g} mm scaled to {d['size'][0]:g} x {d['size'][1]:g} mm to stay on the flat front face")
+        else:
+            req = float(d.get("height", 8))
+            d = {**d, "height": round(req * k, 2)}
+            res.adjustments.append({"spec_path": sp, "type": t, "action": "scaled", "requested_height_mm": req, "built_height_mm": d["height"],
+                                    "scale": round(k, 3), "why": "kept on the flat front face"})
+            res.warnings.append(f"text '{d.get('text', '')}' scaled to {d['height']:g} mm high to stay on the flat front face")
+        return d, poly
+    q = poly.intersection(flat)
+    if q.is_empty or q.area < 0.5 * poly.area:
+        res.warnings.append(f"{t} at {list(d['at'])} runs off the flat front face; skipped")
+        res.adjustments.append({"spec_path": sp, "type": t, "action": "skipped", "why": "mostly outside the flat front face"})
+        return None, None
+    from .probe import largest
+
+    q = largest(q)
+    res.adjustments.append({"spec_path": sp, "type": t, "action": "clipped", "kept_fraction": round(q.area / poly.area, 3),
+                            "why": "clipped to the flat front face"})
+    return d, q
+
+
+def apply_relief(outer: cq.Shape, decor: list, probe, cavity_pads: bool, wall: float, flat_region: Optional[Polygon] = None) -> DecorResult:
     """Face plates first (one by one: relief inside them reads their floor), then every other item grouped by
-    (relief, depth, plate depth, colour) so each group costs one layer computation and one boolean."""
+    (relief, depth, plate depth, colour) so each group costs one layer computation and one boolean.
+    flat_region (silhouette bodies): every footprint is kept inside it, so no relief rides the edge round."""
     from shapely.ops import unary_union
 
     res = DecorResult(outer=outer)
@@ -204,6 +267,9 @@ def apply_relief(outer: cq.Shape, decor: list, probe, cavity_pads: bool, wall: f
     for k, d in enumerate(order):
         poly = _text_poly(d) if d["type"] == "text" else footprint(d)
         if poly is None or poly.is_empty:
+            continue
+        d, poly = _fit_flat(res, d, poly, flat_region)
+        if d is None:
             continue
         ys = _front_hits(probe, poly)
         if len(ys) < 3:
@@ -288,47 +354,187 @@ def _ear_positions(d: dict) -> list[float]:
     return [-abs(x)]
 
 
+def silhouette_poly(probe) -> Polygon:
+    """Front-view body silhouette (x, z): the body's section at y = 0 (exact for silhouette bodies)."""
+    from .probe import largest
+
+    return largest(probe.section("y", 0.0))
+
+
+def half_width(sil: Polygon, z: float) -> Optional[float]:
+    from shapely.geometry import LineString
+
+    inter = sil.intersection(LineString([(-1e4, z), (1e4, z)]))
+    return None if inter.is_empty else float(inter.bounds[2])
+
+
+def side_top(sil: Polygon) -> float:
+    """Height where the right side wall ends: above it the outline turns more horizontal than 45 deg (the top)."""
+    minx, minz, maxx, maxz = sil.bounds
+    zs = np.arange(max(minz + 2.0, 1.0), maxz, 1.0)
+    W = [half_width(sil, z) for z in zs]
+    zt = float(zs[0]) if len(zs) else maxz
+    for z, a, b in zip(zs[:-1], W[:-1], W[1:]):
+        if a is None or b is None:
+            break
+        if b - a < -1.0 and z > minz + 0.3 * (maxz - minz):
+            return float(z)
+        zt = float(z)
+    return zt
+
+
+def ear_envelope(sil: Polygon, z_side: float, margin: float = 2.0):
+    """E(z): the largest |x| an ear may reach at height z = outline_x(min(z, side_top)) - margin (REVIEW-1 MAJ-30)."""
+    w_top = half_width(sil, z_side) or 0.0
+
+    def E(z):
+        w = half_width(sil, z) if z <= z_side else w_top
+        return (w if w is not None else w_top) - margin
+
+    return E
+
+
+def _surface_normal_at(probe, x: float):
+    """Top-surface point above x and its front-view outward normal (nx, nz) from neighbouring rays."""
+    xs = [x - 1.5, x, x + 1.5]
+    hit, _, _ = probe.hits([[xx, 0.0, 1000.0] for xx in xs], [[0, 0, -1.0]])
+    if not np.isfinite(hit[1, 2]):
+        return None, None
+    zs = hit[:, 2]
+    if np.isfinite(zs[0]) and np.isfinite(zs[2]):
+        slope = (zs[2] - zs[0]) / 3.0
+    else:
+        slope = 0.0
+    n = np.array([-slope, 1.0])
+    n /= np.linalg.norm(n)
+    return float(zs[1]), n
+
+
+def _placed_poly(poly: Polygon, phi: float, x: float, z: float, sink: float, n) -> Polygon:
+    q = affinity.rotate(poly, phi, origin=(0, 0))
+    return affinity.translate(q, x - n[0] * sink, z - n[1] * sink)
+
+
+def _sink_depth(probe, x, z, n, w) -> float:
+    """How far the ear base line (perpendicular to n at the foot) must sink so its ends are inside the body."""
+    t = np.array([n[1], -n[0]])  # tangent
+    worst = 0.0
+    for a in (-0.45 * w, -0.3 * w, 0.3 * w, 0.45 * w):
+        p = np.array([x, z]) + t * a
+        o = [[p[0] + n[0] * 30.0, 0.0, p[1] + n[1] * 30.0]]
+        hit, _, dist = probe.hits(o, [[-n[0], 0.0, -n[1]]])
+        if np.isfinite(dist[0]):
+            worst = max(worst, float(dist[0]) - 30.0)
+    return worst + 0.8
+
+
 def apply_ears(outer: cq.Shape, decor: list, probe, depth_hint: float) -> DecorResult:
+    """Ears sit on the top surface tilted to the outline normal at their foot; only the visible part (v >= 0 of the
+    ear outline, sunk until its base is inside the body) is added, so no stem or neck can poke out of the side wall.
+    The ear's x is moved inward until its outboard edge stays inside outline_x(z) - 2 mm (ear_envelope)."""
     res = DecorResult(outer=outer)
     adds = []
+    sil = silhouette_poly(probe)
+    z_side = side_top(sil) if not sil.is_empty else 0.0
+    E = ear_envelope(sil, z_side) if not sil.is_empty else None
+    res.silhouette = sil
     for d in decor:
         if d["type"] != "ear":
             continue
         w, h = float(d["size"][0]), float(d["size"][1])
         style = d.get("style", "cat")
-        # default thickness follows the ear, not the body: chunky but rounded, never a slab
+        rnd = d.get("roundness")
         th = float(d.get("thickness") or float(np.clip(0.6 * w, 8.0, min(0.4 * depth_hint, 30.0))))
-        for x in _ear_positions(d):
-            hit, _, _ = probe.hits([[x, 0.0, 1000.0]], [[0, 0, -1.0]])
-            if not np.isfinite(hit[0, 2]):
-                res.warnings.append(f"ear at x={x:g} misses the top of the body; skipped")
+        vis0 = shapes2d.ear_visible(style, w, h, rnd)
+        if style == "antenna":  # the 3D antenna: ball + rod (rod_r) + base disc (2.4 rod_r, 2 mm above the base line)
+            rod_r = max(2.4, min(w * 0.24, 3.6))
+            ball = Point(0.0, h - w / 2).buffer(w / 2 + 0.2, quad_segs=32)
+            rod = Polygon([(-rod_r - 0.2, 0.0), (rod_r + 0.2, 0.0), (rod_r + 0.2, h - w / 2), (-rod_r - 0.2, h - w / 2)])
+            base_d = Polygon([(-2.4 * rod_r - 0.2, 0.0), (2.4 * rod_r + 0.2, 0.0), (2.4 * rod_r + 0.2, 2.2), (-2.4 * rod_r - 0.2, 2.2)])
+            vis0 = ball.union(rod).union(base_d)
+        for x_req in _ear_positions(d):
+            sign = 1.0 if x_req >= 0 else -1.0
+            vis_l = vis0 if sign > 0 else affinity.scale(vis0, -1, 1, origin=(0, 0))
+            user_tilt = -sign * float(d.get("tilt", 0.0))
+            best = None
+            x_min = 0.0 if abs(x_req) < 1e-6 else (w / 2 + 1.0)
+            xs = [x_req] if abs(x_req) < 1e-6 else [sign * xx for xx in np.arange(abs(x_req), x_min - 1e-6, -1.0)]
+            for x in xs:
+                zs, n = _surface_normal_at(probe, x)
+                if zs is None:
+                    continue
+                phi = -math.degrees(math.atan2(n[0], n[1])) + user_tilt
+                sink = _sink_depth(probe, x, zs, n, w)
+                P = _placed_poly(vis_l, phi, x, zs, sink, n)
+                excess = 0.0
+                if E is not None:
+                    minx, minz, maxx, maxz = P.bounds
+                    for z in np.arange(minz, maxz + 0.5, 1.0):
+                        seg = P.intersection(Polygon([(-1e4, z - 0.25), (1e4, z - 0.25), (1e4, z + 0.25), (-1e4, z + 0.25)]))
+                        if seg.is_empty:
+                            continue
+                        reach = max(abs(seg.bounds[0]), abs(seg.bounds[2]))
+                        excess = max(excess, reach - E(z))
+                cand = {"x": x, "z": zs, "n": n, "phi": phi, "sink": sink, "poly": P, "excess": excess}
+                if best is None or excess < best["excess"] - 1e-9:
+                    best = cand
+                if excess <= 0.0:
+                    best = cand
+                    break
+            if best is None:
+                res.warnings.append(f"ear at x={x_req:g} misses the top of the body; skipped")
                 continue
-            zs = float(hit[0, 2])
-            if abs(zs - float(d["at"][1])) > 5:
-                res.warnings.append(f"ear at x={x:g} moved from z={float(d['at'][1]):g} to the top surface z={zs:.0f}")
-            sign = 1.0 if x >= 0 else -1.0
-            tilt = -sign * float(d.get("tilt", 0.0))
+            if best["excess"] > 0.0:
+                res.warnings.append(f"ear at x={x_req:g}: could not keep it inside the side outline (sticks out {best['excess']:.1f} mm)")
+            elif abs(best["x"] - x_req) > 0.5:
+                res.warnings.append(f"ear at x={x_req:g} moved to x={best['x']:g} so it stays inside the body outline (2 mm margin)")
+            x, zs, n, phi, sink = best["x"], best["z"], best["n"], best["phi"], best["sink"]
             if style == "antenna":
                 solid = _antenna(w, h)
             else:
-                poly = shapes2d.ear(style, w, h)
+                poly = shapes2d.ear(style, w, h, rnd)
                 if sign < 0:
                     poly = affinity.scale(poly, -1, 1, origin=(0, 0))
-                f = poly_face(poly)
-                solid = prism(f, -th / 2, th / 2)
+                solid = prism(poly_face(poly), -th / 2, th / 2)
                 r = min(th / 2 - 0.3, 0.35 * w, 9.0)
                 edges = [e for e in solid.Edges() if abs(abs(e.Center().z) - th / 2) < 1e-3]
                 solid, _ = try_fillet(solid, edges, r, min_r=0.8)
-            if tilt:
-                solid = solid.rotate(V(0, 0, 0), V(0, 0, 1), tilt)
-            pl = cq.Plane(origin=V(x, 0.0, zs), xDir=V(1, 0, 0), normal=V(0, -1, 0))
+            # keep only the visible part (v >= 0); its base is sunk into the body below
+            keep = cq.Solid.makeBox(8 * w + 40, 8 * h + 40, 4 * th + 40, V(-4 * w - 20, 0.0, -2 * th - 20))
+            solid = solid.intersect(keep)
+            solid = largest_solid(solid) if len(solid.Solids()) > 1 else solid
+            if phi:
+                solid = solid.rotate(V(0, 0, 0), V(0, 0, 1), phi)
+            pl = cq.Plane(origin=V(x - n[0] * sink, 0.0, zs - n[1] * sink), xDir=V(1, 0, 0), normal=V(0, -1, 0))
             placed = solid.moved(cq.Location(pl))
             adds.append(placed)
+            res.solids.append((d.get("_idx"), placed))
             eb = placed.BoundingBox()
-            res.ears.append({"style": style, "x": round(x, 1), "z_base": round(zs, 1), "idx": d.get("_idx"),
+            res.ears.append({"style": style, "x": round(x, 1), "x_requested": round(x_req, 1), "z_base": round(zs, 1), "idx": d.get("_idx"),
+                             "tilt_deg": round(-phi * sign, 1), "sink_mm": round(sink, 2), "roundness": shapes2d.ear_roundness(style, rnd),
+                             "outboard_excess_mm": round(best["excess"], 2),
+                             "visible_xz": [[round(a, 2), round(b, 2)] for a, b in np.asarray(best["poly"].exterior.coords)[::2]],
                              "bbox": [round(v, 2) for v in (eb.xmin, eb.xmax, eb.ymin, eb.ymax, eb.zmin, eb.zmax)]})
     if adds:
-        res.outer = largest_solid(outer.fuse(*adds))
+        from .body import _fuse_blend
+
+        cur = outer
+        blends = []
+        for a in adds:
+            try:
+                out, used = _fuse_blend(cur, a, 3.0, factors=(1.0, 0.7))
+                if out is None or not out.isValid():
+                    raise ValueError("invalid blend")
+                cur, used = out, used
+            except Exception:
+                cur, used = cur.fuse(a).clean(), 0.0
+            blends.append(round(used, 2))
+        res.outer = largest_solid(cur)
+        for e, b in zip(res.ears, blends):
+            e["blend_r"] = b
+        if any(b < 3.0 for b in blends):
+            res.warnings.append(f"ear root blend radius reduced to {min(blends):g} mm (OpenCascade fillet limit)")
+    res.side_top_z = z_side
     return res
 
 

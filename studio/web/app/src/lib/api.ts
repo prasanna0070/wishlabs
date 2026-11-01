@@ -66,6 +66,8 @@ export const api = {
   redo: (pid: string) => request<Project>("POST", `/api/projects/${pid}/redo`),
   setCurrent: (pid: string, n: number) => request<Project>("PUT", `/api/projects/${pid}/current`, { n }),
   restore: (pid: string, n: number) => request<Version>("POST", `/api/projects/${pid}/versions/${n}/restore`),
+  /** BLK-4: rerun only the firmware stage of version n with stories_audio=true; answers with the new version. */
+  storyAudio: (pid: string, n: number) => request<any>("POST", `/api/projects/${pid}/versions/${n}/story-audio`),
 
   tweak: (pid: string, body: any) => request<any>("POST", `/api/projects/${pid}/tweak`, body),
   preview: (pid: string, body: any) => request<any>("POST", `/api/projects/${pid}/preview`, body),

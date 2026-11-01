@@ -377,9 +377,7 @@ class MeshStore:
         if name not in self.solid_boxes:
             b = self.brep(name)
             try:
-                from .data import solid_bboxes
-
-                self.solid_boxes[name] = solid_bboxes(b) if b else []
+                self.solid_boxes[name] = brep_solid_bboxes(b) if b else []
             except Exception:
                 self.solid_boxes[name] = []
         return self.solid_boxes[name]
@@ -439,6 +437,10 @@ class MeshStore:
 
     def stl(self, path: str):
         key = f"stl:{path}"
+        if str(path).startswith("glyph:"):
+            if key not in self._pd:
+                self._pd[key] = _prep(glyph_polydata(str(path).split(":")[1]))
+            return self._pd[key]
         if key not in self._pd:
             import vtk
 
@@ -465,6 +467,76 @@ class MeshStore:
             fe.Update()
             self._edges[key] = fe.GetOutput()
         return self._edges[key]
+
+
+def brep_solid_bboxes(brep: Path) -> list[tuple]:
+    """Bounding box of every solid in a BREP file (OCP). Lives here so the shipped renderer needs no other module."""
+    from OCP.Bnd import Bnd_Box
+    from OCP.BRep import BRep_Builder
+    from OCP.BRepBndLib import BRepBndLib
+    from OCP.BRepTools import BRepTools
+    from OCP.TopAbs import TopAbs_SOLID
+    from OCP.TopExp import TopExp_Explorer
+    from OCP.TopoDS import TopoDS_Shape
+
+    shape = TopoDS_Shape()
+    if not BRepTools.Read_s(shape, str(brep), BRep_Builder()):
+        return []
+    out = []
+    ex = TopExp_Explorer(shape, TopAbs_SOLID)
+    while ex.More():
+        bb = Bnd_Box()
+        BRepBndLib.Add_s(ex.Current(), bb)
+        x0, y0, z0, x1, y1, z1 = bb.Get()
+        out.append((x0, x1, y0, y1, z0, z1))
+        ex.Next()
+    return out
+
+
+def glyph_polydata(kind: str):
+    """A generic placeholder shape for a purchased item with no CAD model (parts-kit figure, MIN-35). Not to scale:
+    coil = a cable, tie = a cable tie, label = a flat label, card = a memory card, strip = a foam strip, box = other."""
+    import vtk
+
+    def box(x, y, z):
+        s = vtk.vtkCubeSource()
+        s.SetXLength(x)
+        s.SetYLength(y)
+        s.SetZLength(z)
+        s.SetCenter(0, 0, z / 2)
+        s.Update()
+        return s.GetOutput()
+
+    if kind == "coil":
+        t = vtk.vtkParametricTorus()
+        t.SetRingRadius(14.0)
+        t.SetCrossSectionRadius(1.6)
+        f = vtk.vtkParametricFunctionSource()
+        f.SetParametricFunction(t)
+        f.SetUResolution(64)
+        f.SetVResolution(12)
+        f.Update()
+        pd = f.GetOutput()
+        app = vtk.vtkAppendPolyData()
+        for k in range(3):  # three loops stacked: a coiled lead
+            tf = vtk.vtkTransform()
+            tf.Translate(k * 2.4, 0, 1.6 + k * 0.6)
+            tp = vtk.vtkTransformPolyDataFilter()
+            tp.SetInputData(pd)
+            tp.SetTransform(tf)
+            tp.Update()
+            app.AddInputData(tp.GetOutput())
+        app.Update()
+        return app.GetOutput()
+    if kind == "tie":
+        return box(60.0, 2.5, 1.0)
+    if kind == "label":
+        return box(30.0, 15.0, 0.4)
+    if kind == "card":
+        return box(11.0, 15.0, 1.0)
+    if kind == "strip":
+        return box(40.0, 12.0, 3.0)
+    return box(16.0, 12.0, 8.0)
 
 
 def _to_polydata(P: np.ndarray, T: np.ndarray, S: np.ndarray, colors: Optional[np.ndarray] = None):
@@ -518,6 +590,7 @@ class ItemSpec:
     mode: str  # solid | focus | ghost | context
     offset: tuple[float, float, float] = (0.0, 0.0, 0.0)
     edges: object = None
+    texture: Optional[str] = None  # PNG drawn unlit on pd (a screen quad, MAJ-32); hidden from the ID pass
 
 
 @dataclass
@@ -694,6 +767,17 @@ class Renderer:
                 col = _mix(it.color, (1, 1, 1), 0.45)
                 a = self._actor(it.pd, col, opacity=0.17, offset=it.offset, ambient=0.45, diffuse=0.55, specular=0.0)
                 e = self._actor(it.edges, _mix(it.color, (0.1, 0.12, 0.14), 0.55), opacity=0.45, offset=it.offset, lines=True, lw=1.0 * ss) if it.edges is not None else None
+            elif it.texture:
+                rd = vtk.vtkPNGReader()
+                rd.SetFileName(str(it.texture))
+                rd.Update()
+                tex = vtk.vtkTexture()
+                tex.SetInputConnection(rd.GetOutputPort())
+                tex.InterpolateOn()
+                a = self._actor(it.pd, (1.0, 1.0, 1.0), offset=it.offset, ambient=1.0, diffuse=0.0, specular=0.0)
+                a.GetProperty().LightingOff()
+                a.SetTexture(tex)
+                e = None
             else:
                 col = it.color if it.mode in ("focus", "solid") else _mix(it.color, (1, 1, 1), 0.3)
                 a = self._actor(it.pd, col, offset=it.offset)
@@ -740,7 +824,7 @@ class Renderer:
         for i, (it, a, e) in enumerate(actors):
             if e is not None:
                 e.VisibilityOff()
-            if it.mode == "ghost":
+            if it.mode == "ghost" or it.texture:
                 a.VisibilityOff()
                 continue
             keys.append(it.key)
@@ -842,3 +926,21 @@ def ray_hit(pd, offset, origin, direction) -> Optional[tuple[float, float, float
 def angle_deg(a, b) -> float:
     a, b = np.array(a, float), np.array(b, float)
     return math.degrees(math.acos(max(-1.0, min(1.0, float(a @ b / (np.linalg.norm(a) * np.linalg.norm(b) or 1))))))
+
+
+def screen_quad(scr: dict, lift: float = 0.08):
+    """A textured quad over a display's active area (cad-summary info.screens entry), lifted along its normal."""
+    import vtk
+
+    c, u, v = (np.array(scr[k], float) for k in ("c", "u", "v"))
+    n = np.array(scr.get("n") or np.cross(u, v), float)
+    nn = np.linalg.norm(n)
+    n = n / nn if nn else n
+    w, h = float(scr.get("aa_w") or scr.get("w") or 10.0), float(scr.get("aa_h") or scr.get("h") or 10.0)
+    o = c - u * w / 2 - v * h / 2 + n * lift
+    src = vtk.vtkPlaneSource()
+    src.SetOrigin(*o)
+    src.SetPoint1(*(o + u * w))
+    src.SetPoint2(*(o + v * h))
+    src.Update()
+    return src.GetOutput()

@@ -24,13 +24,14 @@ static bool valid_story_id(const char* id) {
   return true;
 }
 
-bool StoryCatalog::add(const char* id, const char* title, uint8_t segments) {
+bool StoryCatalog::add(const char* id, const char* title, uint8_t segments, uint16_t friend_mask) {
   if (count_ >= kMaxStories || !valid_story_id(id) || segments == 0 || segments > kMaxSegments) return false;
   if (index_of(id) >= 0) return false;
   StoryInfo& s = items_[count_];
   copy_str(s.id, sizeof(s.id), id);
   copy_str(s.title, sizeof(s.title), title ? title : id);
   s.segments = segments;
+  s.friend_mask = uint16_t(friend_mask & ((1u << (segments - 1)) - 1u));
   ++count_;
   return true;
 }
@@ -103,30 +104,42 @@ uint8_t pick_hero(const Memory& mem, CaptureMode mode, FileExistsFn exists, void
   return pool[rng.below(m)];
 }
 
-size_t build_playlist(const StoryInfo& story, const Memory& mem, uint8_t hero_id, CaptureMode mode,
+uint8_t pick_friend(const Memory& mem, CaptureMode mode, FileExistsFn exists, void* ctx, Rng& rng, uint8_t hero_id) {
+  uint8_t usable[kMaxFavourites];
+  uint8_t n = 0;
+  char tmp[kPathMax];
+  for (uint8_t i = 0; i < mem.count && i < kMaxFavourites; ++i) {
+    if (mem.fav[i].id == hero_id) continue;
+    if (favourite_insert_path(mem.fav[i], mode, exists, ctx, tmp, sizeof(tmp))) usable[n++] = mem.fav[i].id;
+  }
+  return n ? usable[rng.below(n)] : 0;
+}
+
+static bool insert_for(const Memory& mem, uint8_t id, CaptureMode mode, FileExistsFn exists, void* ctx, char* out,
+                       size_t cap) {
+  for (uint8_t i = 0; i < mem.count && id; ++i)
+    if (mem.fav[i].id == id) return favourite_insert_path(mem.fav[i], mode, exists, ctx, out, cap);
+  return false;
+}
+
+size_t build_playlist(const StoryInfo& story, const Memory& mem, uint8_t hero_id, uint8_t friend_id, CaptureMode mode,
                       FileExistsFn exists, void* ctx, PlayItem* out, size_t cap) {
-  char insert[kPathMax];
-  insert[0] = '\0';
-  bool have_insert = false;
-  for (uint8_t i = 0; i < mem.count && hero_id; ++i) {
-    if (mem.fav[i].id == hero_id) {
-      have_insert = favourite_insert_path(mem.fav[i], mode, exists, ctx, insert, sizeof(insert));
-      break;
-    }
-  }
-  if (!have_insert) {
-    const char* def = "/names/_default.wav";
-    if (exists && exists(def, ctx)) {
-      have_insert = copy_str(insert, sizeof(insert), def);
-    }
-  }
+  char hero[kPathMax];
+  char pal[kPathMax];
+  hero[0] = pal[0] = '\0';
+  bool have_hero = insert_for(mem, hero_id, mode, exists, ctx, hero, sizeof(hero));
+  if (!have_hero && exists && exists(kDefaultHeroClip, ctx)) have_hero = copy_str(hero, sizeof(hero), kDefaultHeroClip);
+  bool have_friend = friend_id != hero_id && insert_for(mem, friend_id, mode, exists, ctx, pal, sizeof(pal));
+  if (!have_friend && exists && exists(kDefaultFriendClip, ctx)) have_friend = copy_str(pal, sizeof(pal), kDefaultFriendClip);
   size_t n = 0;
   for (uint8_t seg = 0; seg < story.segments && n < cap; ++seg) {
     if (seg > 0 && n < cap) {
+      const bool is_friend = (story.friend_mask >> (seg - 1)) & 1u;
+      const char* name = is_friend ? (have_friend ? pal : (have_hero ? hero : nullptr)) : (have_hero ? hero : nullptr);
       PlayItem& slot = out[n++];
-      if (have_insert) {
+      if (name) {
         slot.kind = PlayKind::Name;
-        copy_str(slot.path, sizeof(slot.path), insert);
+        copy_str(slot.path, sizeof(slot.path), name);
       } else {
         slot.kind = PlayKind::Chime;
         slot.path[0] = '\0';

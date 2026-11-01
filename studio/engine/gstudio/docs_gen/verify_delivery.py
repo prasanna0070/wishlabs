@@ -7,11 +7,18 @@ Checks
   1. every file in manifest.json exists with the listed bytes and sha256, and no delivered file is unlisted (QB-44);
   2. build.json joins: unique purchased names, wiring parts are purchased items (QB-18), step parts and modelPart
      names exist in cad/components.json (QB-06, QB-29), every step visual exists (QB-34);
-  3. checks/delivery-checks.json counts equal the files present now (QB-45).
+  3. checks/delivery-checks.json counts equal the files present now (QB-45);
+  4. the guide's "Final checks to record" bullets name exactly the build.json tests[] titles, and manual-summary.json
+     counts them (MAJ-19); PROJECT.md marks no shipped file "(not produced)" (MAJ-21);
+  5. every digital check names its artifact and no detail is a Python list (MIN-28);
+  6. every "seen" price's saved listing snapshot hashes to the sha256 in its receipt (MAJ-25), and a story card that
+     says it has audio lists only files that ship (BLK-4).
 Exit code 0 when everything holds, 1 otherwise. This proves the files are intact and consistent, nothing physical.
 """
+import gzip
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -48,6 +55,10 @@ def delivered():
         if not p.is_file() or any(part in SKIP_DIRS or part.startswith(".") for part in rel.parts):
             continue
         if (len(rel.parts) == 1 and rel.name in SKIP_TOP) or rel.as_posix() in SKIP_REL or rel.name.endswith((".pyc", ".tmp")):
+            continue
+        # not delivered (package.delivered_files, MAJ-38): cable-route envelopes and the duplicate app image
+        if (rel.parent.as_posix() == "cad/components" and rel.name.startswith("REFERENCE_") and rel.suffix == ".brep") \
+                or rel.as_posix() == "firmware/flash/firmware.bin":
             continue
         out.append(rel.as_posix())
     return out
@@ -89,6 +100,57 @@ if dc:
            if (ROOT / "manual").exists() else 0}
     diff = [f"{k}: file says {dc.get(k)}, found {v}" for k, v in now.items() if k in dc and dc.get(k) != v]
     ok(not diff, "delivery-checks.json counts match the files", "; ".join(diff))
+
+# 4. guide final checks <-> tests[] (both ways), manual-summary count, stale "(not produced)" labels
+guide_p = ROOT / "BUILD_GUIDE.md"
+tests = [t for t in b.get("tests", []) if isinstance(t, dict)]
+if guide_p.exists() and tests:
+    g = guide_p.read_text(encoding="utf-8", errors="replace")
+    m = re.search(r"^## Final checks to record\s*$(.*?)(?=^## |\Z)", g, re.M | re.S)
+    if m:
+        bullets = {re.sub(r"\s+", " ", x).strip() for x in re.findall(r"^\s*[-*] \*\*(.+?)(?::\*\*|\*\*:)", m.group(1), re.M)}
+        titles = {re.sub(r"\s+", " ", str(t.get("title"))).strip() for t in tests}
+        ok(titles <= bullets, "every tests[] record is in the guide's final checks", "; ".join(sorted(titles - bullets)[:10]))
+        ok(bullets <= titles, "every final-check bullet is a tests[] record", "; ".join(sorted(bullets - titles)[:10]))
+    else:
+        ok(False, "the guide has a 'Final checks to record' section")
+ms = load("manual/manual-summary.json", {}) or {}
+if tests and isinstance(ms.get("tests"), int):
+    ok(ms["tests"] == len(tests), "manual-summary tests count equals build.json tests[]", f"{ms['tests']} vs {len(tests)}")
+pj = ROOT / "PROJECT.md"
+if pj.exists():
+    stale = sorted(set(re.findall(r"`([^`]+)` \(not produced\)", pj.read_text(encoding="utf-8", errors="replace"))) & (set(listed) | {"manifest.json"}))
+    ok(not stale, "PROJECT.md marks no shipped file '(not produced)'", ", ".join(stale))
+
+# 5. digital check records
+dg = load("checks/digital-checks.json", {}) or {}
+if dg.get("checks"):
+    noart = [c.get("id") for c in dg["checks"] if not c.get("artifact")]
+    ok(not noart, "every digital check names its artifact", ", ".join(str(x) for x in noart[:10]))
+    pyl = [c.get("id") for c in dg["checks"] if re.search(r"\['[^']*'(, '[^']*')*\]", str(c.get("detail") or ""))]
+    ok(not pyl, "no digital check detail is a Python list", ", ".join(str(x) for x in pyl[:10]))
+
+# 6. listing snapshots and the story card
+badsnap = []
+for r in b.get("purchased", []):
+    lst = r.get("listing") or {}
+    if r.get("evidence_tier") != "seen":
+        continue
+    rel, want = lst.get("snapshot"), lst.get("snapshot_sha256")
+    rc = (lst.get("receipt") or {}).get("payload") or {}
+    try:
+        raw = gzip.decompress((ROOT / rel).read_bytes()) if rel else None
+    except (OSError, EOFError):
+        raw = None
+    if raw is None or hashlib.sha256(raw).hexdigest() != want or rc.get("snapshot_sha256") != want or rc.get("price") != r.get("price_inr_seen"):
+        badsnap.append(str(r.get("name")))
+ok(not badsnap, "every seen price has its listing snapshot, and the receipt names it and the price", ", ".join(badsnap[:10]))
+sj = load("firmware/sdcard/stories.json")
+if isinstance(sj, dict) and sj.get("audio"):
+    sd = ROOT / "firmware" / "sdcard"
+    files = [f for st in sj.get("stories", []) for f in st.get("files", [])] + [(sj.get("default_name") or {}).get("file")]
+    miss = [f for f in files if f and not (sd / f).is_file()]
+    ok(not miss, "every story audio file the card lists ships", ", ".join(miss[:10]))
 
 for line in passed:
     print("ok    " + line)

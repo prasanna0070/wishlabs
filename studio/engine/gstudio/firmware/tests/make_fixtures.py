@@ -16,7 +16,7 @@ SLOTS = {s["id"]: s for s in BP["slots"]}
 DESIGNS = {
     "story_player": {
         "name": "Luna Owl", "slug": "luna-owl", "child": True,
-        "settings": {"capture_mode": "child_voice_clip", "names_for_audio": ["Anya"]},
+        "settings": {"names_for_audio": ["Anya"]},
         "parts": [("BTN1", "BUTTON_ARCADE_30MM_SNAPIN", "story_button", "J_IO1", "Story button"),
                   ("LED1", "LED_WS2812B_1PX_MODULE", "night_light", "J_LED", "Night light and listening light"),
                   ("SPK1", "SPK_40MM_4R_3W", "speaker", "J_SPK", "Speaker"),

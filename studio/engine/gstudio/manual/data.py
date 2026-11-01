@@ -22,6 +22,9 @@ from typing import Any, Iterable, Optional
 STUDIO_ROOT = Path(__file__).resolve().parents[3]
 
 KINDS = ("PRINT", "PURCHASE", "REFERENCE", "TEST")
+# library roles of purchased parts that are never "the module" of an electrical ref
+ACCESSORY_ROLES = {"gasket", "harness", "mechanical", "screws", "inserts", "feet", "ties", "label", "fasteners",
+                   "standoffs", "packing", "usb_cable", "adapter", "storage_media", "consumable"}
 
 
 # --------------------------------------------------------------------------------------------- helpers
@@ -119,6 +122,7 @@ class Comp:
     solids: int = 1
     qty: Optional[int] = None
     raw: dict = field(default_factory=dict)
+    host_ref: Optional[str] = None  # an accessory's host module (gasket rings carry no ref of their own, MIN-7)
 
     @property
     def center(self) -> tuple[float, float, float]:
@@ -186,6 +190,7 @@ def load_components(path: Path) -> dict[str, Comp]:
             solids=int(first(r, "solids", default=1) or 1),
             qty=int(qty) if isinstance(qty, (int, float)) else None,
             raw=r,
+            host_ref=first(r, "host_ref", "for_ref"),
         )
     return comps
 
@@ -258,6 +263,8 @@ class Pin:
     net: Optional[str] = None
     gpio: Optional[int] = None
     at: Optional[tuple[float, float]] = None  # pad centre in board coordinates, when the slot map gives it
+    via: Optional[str] = None  # buffer between the GPIO and this pin (e.g. "U3 74AHCT1G125 ..."), when the slot data says so
+    source_gpio: Optional[int] = None  # the GPIO that drives a buffered pin
 
 
 @dataclass
@@ -360,8 +367,10 @@ def parse_backplane(raw: Any, source: str = "") -> Optional[Backplane]:
                     g = int(g) if g is not None and str(g).lstrip("-").isdigit() else None
                 except (TypeError, ValueError):
                     g = None
+                sg = p.get("source_gpio")
                 pins.append(Pin(n=n, name=str(first(p, "name", "signal", "devkit_label", "net", default=f"P{n}")),
-                                net=first(p, "net"), gpio=g, at=_xy(first(p, "at"))))
+                                net=first(p, "net"), gpio=g, at=_xy(first(p, "at")), via=p.get("via"),
+                                source_gpio=int(sg) if isinstance(sg, (int, float)) else None))
             elif isinstance(p, str):
                 pins.append(Pin(n=j + 1, name=p, net=p))
         pos = _xy(first(s, "pos", "position", "at", "xy", "center", "centre", "origin", "module_frame_origin", "devkit_origin"))
@@ -516,23 +525,50 @@ class ManualData:
                 return i
         return {}
 
+    def is_accessory(self, c: Comp) -> bool:
+        """A purchased part that shares a module's ref but is not that module: a gasket, pad, harness or other
+        mechanical item (library role, a library connector of type none, or a module_id that differs from the
+        electrical instance's module)."""
+        if c.kind != "PURCHASE":
+            return False
+        m = self.lib.get(c.module_id) if c.module_id else {}
+        role = str((m or {}).get("role") or "").lower()
+        if role in ACCESSORY_ROLES:
+            return True
+        if c.host_ref and not c.ref:
+            return True
+        inst_mod = self.instance(c.ref).get("module") if c.ref else None
+        if inst_mod and c.module_id and c.module_id != inst_mod:
+            return True
+        conn = (m or {}).get("module_connector")
+        ctype = str(conn.get("type") or "").lower() if isinstance(conn, dict) else ""
+        return bool(ctype == "none" and inst_mod and c.module_id != inst_mod)
+
     def comp_for_ref(self, ref: Optional[str]) -> Optional[Comp]:
-        """The module component for an electrical ref (prefers the one with a library module_id)."""
+        """The module component for an electrical ref: the purchased component carrying the instance's own library
+        module_id. Never a gasket, harness or other accessory that happens to share the ref (BLK-6)."""
         if not ref:
             return None
-        hits = [c for c in self.comps.values() if c.ref == ref and c.kind == "PURCHASE"] or \
-            [c for c in self.comps.values() if c.ref == ref]
-        hits.sort(key=lambda c: (not c.module_id, c.kind != "PURCHASE"))
-        return hits[0] if hits else None
+        inst_mod = self.instance(ref).get("module")
+        pur = [c for c in self.comps.values() if c.ref == ref and c.kind == "PURCHASE"]
+        exact = [c for c in pur if inst_mod and c.module_id == inst_mod]
+        if exact:
+            return exact[0]
+        cands = [c for c in pur if not self.is_accessory(c)]
+        cands.sort(key=lambda c: not c.module_id)
+        return cands[0] if cands else None
+
+    def accessories_for_ref(self, ref: Optional[str]) -> list[Comp]:
+        return [c for c in self.comps.values() if ref and c.ref == ref and self.is_accessory(c)]
 
     def module_name(self, ref_or_comp: Any) -> str:
         """Human name of a purchased module: library name > instance name > component label."""
         c = ref_or_comp if isinstance(ref_or_comp, Comp) else self.comp_for_ref(ref_or_comp)
-        if c is not None and c.ref and not c.module_id and c.label and isinstance(ref_or_comp, Comp):
-            return c.label  # an accessory that shares its module's ref (e.g. a gasket): its own CAD label
+        if c is not None and isinstance(ref_or_comp, Comp) and self.is_accessory(c) and c.label:
+            return c.label  # an accessory that shares its module's ref (e.g. a gasket ring): its own CAD label
         ref = c.ref if c else ref_or_comp
         inst = self.instance(ref) if ref else {}
-        mid = (c.module_id if c else None) or inst.get("module")
+        mid = inst.get("module") or (c.module_id if c else None)
         nm = self.lib.name(mid) if mid else ""
         if nm and nm != mid:
             return nm
@@ -541,6 +577,37 @@ class ManualData:
         if c:
             return c.label
         return str(ref)
+
+    def purchased_row(self, *, model_part: Optional[str] = None, module_id: Optional[str] = None,
+                      ref: Optional[str] = None) -> Optional[dict]:
+        for p in self.purchased():
+            if model_part and p.get("modelPart") == model_part:
+                return p
+        for p in self.purchased():
+            if module_id and p.get("module_id") == module_id:
+                return p
+        for p in self.purchased():
+            if ref and ref in (p.get("refs") or []) and p.get("kind") == "module":
+                return p
+        return None
+
+    def prewire(self, ref: Optional[str]) -> Optional[dict]:
+        """The factory pre-wiring record of a module instance (build.json purchased[].prewire or factory_work)."""
+        if not ref:
+            return None
+        # MIN-6: factory_work first: the pipeline rewrites its lead from electrical.json harness.length_mm (one length source)
+        for f in self.factory_work():
+            if ref in (f.get("refs") or []) and isinstance(f.get("prewire"), dict) and f["prewire"].get("by", "factory") == "factory":
+                return f["prewire"]
+        for p in self.purchased():
+            pw = p.get("prewire")
+            if ref in (p.get("refs") or []) and isinstance(pw, dict) and pw.get("by") == "factory":
+                return pw
+        return None
+
+    def factory_work(self) -> list[dict]:
+        fw = self.build_existing.get("factory_work") if isinstance(self.build_existing, dict) else None
+        return [f for f in (fw or []) if isinstance(f, dict)]
 
     def purchased(self) -> list[dict]:
         return list(self.build_existing.get("purchased") or [])
@@ -572,29 +639,139 @@ class ManualData:
                 return f
         return {}
 
+    # ---- other stages' saved outputs (all optional; None / empty when the file is absent)
+    def digital_checks(self) -> list[dict]:
+        """checks/digital-checks.json rows (checks stage), each with the `data` of its source check merged back in
+        from the stage's own file (e.g. cad/digital-checks.json carries the colliding pairs)."""
+        doc = read_json(self.out / "checks" / "digital-checks.json", {}) or {}
+        rows = [dict(c) for c in (doc.get("checks") or []) if isinstance(c, dict)]
+        src_cache: dict[str, dict] = {}
+        for r in rows:
+            art = r.get("artifact")
+            if r.get("data") is not None or not art or not str(art).endswith(".json"):
+                continue
+            if art not in src_cache:
+                d = read_json(self.out / art, {}) or {}
+                src_cache[art] = {c.get("id"): c for c in (d.get("checks") or []) if isinstance(c, dict)} if isinstance(d, dict) else {}
+            src = src_cache[art].get(r.get("id"))
+            if src and src.get("data") is not None:
+                r["data"] = src["data"]
+        return rows
+
+    def cad_checks(self) -> list[dict]:
+        d = read_json(self.out / "cad" / "digital-checks.json", {}) or {}
+        return [c for c in (d.get("checks") or []) if isinstance(c, dict)] if isinstance(d, dict) else []
+
+    def cad_summary(self) -> dict:
+        return read_json(self.out / "cad" / "cad-summary.json", {}) or {}
+
+    def slice_profile(self) -> dict[str, str]:
+        """print/slice.ini (the PrusaSlicer profile the order stage sliced with) as key -> raw value."""
+        p = self.out / "print" / "slice.ini"
+        out: dict[str, str] = {}
+        if p.is_file():
+            for ln in p.read_text(errors="ignore").splitlines():
+                if "=" in ln and not ln.lstrip().startswith(("#", ";")):
+                    k, v = ln.split("=", 1)
+                    out[k.strip()] = v.strip()
+        return out
+
+    def slice_stats(self) -> dict:
+        return read_json(self.out / "print" / "slice-stats.json", {}) or {}
+
+    def populated_refs(self) -> Optional[set[str]]:
+        """Footprint references placed on the routed board (pcb/backplane.kicad_pcb), or None without a board."""
+        p = self.out / "pcb" / "backplane.kicad_pcb"
+        if not p.is_file():
+            return None
+        txt = p.read_text(errors="ignore")
+        refs = set(re.findall(r'\(property\s+"Reference"\s+"([^"]+)"', txt)) | set(re.findall(r'\(fp_text\s+reference\s+"?([^"\s)]+)', txt))
+        return refs or None
+
+    def selftest(self) -> dict:
+        """What the delivered firmware prints for `selftest` (read from its source, not invented)."""
+        fw = self.firmware_dir
+        info: dict[str, Any] = {}
+        src = fw / "src" / "gs_selftest.cpp"
+        if src.is_file():
+            txt = src.read_text(errors="ignore")
+            if 'Serial.print("GS-SELFTEST ")' in txt or "GS-SELFTEST " in txt:
+                info["summary_prefix"] = "GS-SELFTEST"
+                info["keys"] = list(dict.fromkeys(re.findall(r'sum\["(\w+)"\]', txt)))
+            m = re.search(r'strcmp\(\s*s_line\s*,\s*"(\w+)"\s*\)', txt)
+            info["command"] = m.group(1) if m else ("selftest" if "selftest" in txt else None)
+            info["per_check_prefix"] = "GS-TEST" if "GS-TEST " in txt else None
+        man = read_json(fw / "web-flasher-manifest.json", {}) or {}
+        if man.get("version"):
+            info["version"] = man["version"]
+        ini = fw / "platformio.ini"
+        if ini.is_file():
+            m = re.search(r"^\s*monitor_speed\s*=\s*(\d+)", ini.read_text(errors="ignore"), re.M)
+            if m:
+                info["baud"] = int(m.group(1))
+        info["merged_bin"] = (fw / "firmware-merged.bin").is_file()
+        info["sha256sums"] = (fw / "SHA256SUMS").is_file()
+        info["web_flasher"] = (fw / "web-flasher-manifest.json").is_file()
+        return info
+
+    def sdcard(self) -> dict:
+        """firmware/sdcard/ as delivered: does it exist, and does stories.json say the audio is there."""
+        d = self.firmware_dir / "sdcard"
+        st = read_json(d / "stories.json", None)
+        return {"present": d.is_dir(), "stories": isinstance(st, dict), "audio": bool(st.get("audio")) if isinstance(st, dict) else None}
+
 
 def solid_bboxes(brep: Path) -> list[tuple]:
     """Bounding box of every solid in a BREP file (OCP), used to split fastener groups among their owners."""
-    from OCP.Bnd import Bnd_Box
-    from OCP.BRep import BRep_Builder
-    from OCP.BRepBndLib import BRepBndLib
-    from OCP.BRepTools import BRepTools
-    from OCP.TopAbs import TopAbs_SOLID
-    from OCP.TopExp import TopExp_Explorer
-    from OCP.TopoDS import TopoDS_Shape
+    from .render3d import brep_solid_bboxes
 
+    return brep_solid_bboxes(brep)
+
+
+def ring_dims(brep: Path) -> Optional[dict]:
+    """Outer and inner diameter and thickness of a ring-shaped solid (a cut gasket), from its circular edges.
+
+    Reads the saved BREP with OCP: the largest and smallest circle radii are the outer and inner edge. Returns None
+    when the solid has fewer than two distinct circle radii (not a ring)."""
+    try:
+        from OCP.BRep import BRep_Builder
+        from OCP.BRepAdaptor import BRepAdaptor_Curve
+        from OCP.BRepBndLib import BRepBndLib
+        from OCP.Bnd import Bnd_Box
+        from OCP.BRepTools import BRepTools
+        from OCP.GeomAbs import GeomAbs_Circle
+        from OCP.TopAbs import TopAbs_EDGE
+        from OCP.TopExp import TopExp_Explorer
+        from OCP.TopoDS import TopoDS, TopoDS_Shape
+    except Exception:
+        return None
     shape = TopoDS_Shape()
     if not BRepTools.Read_s(shape, str(brep), BRep_Builder()):
-        return []
-    out = []
-    ex = TopExp_Explorer(shape, TopAbs_SOLID)
+        return None
+    radii = []
+    axis = None
+    ex = TopExp_Explorer(shape, TopAbs_EDGE)
     while ex.More():
-        b = Bnd_Box()
-        BRepBndLib.Add_s(ex.Current(), b)
-        x0, y0, z0, x1, y1, z1 = b.Get()
-        out.append((x0, x1, y0, y1, z0, z1))
+        try:
+            cu = BRepAdaptor_Curve(TopoDS.Edge_s(ex.Current()))
+            if cu.GetType() == GeomAbs_Circle:
+                circ = cu.Circle()
+                radii.append(round(circ.Radius(), 3))
+                d = circ.Axis().Direction()
+                axis = (d.X(), d.Y(), d.Z())
+        except Exception:
+            pass
         ex.Next()
-    return out
+    rs = sorted(set(radii))
+    if len(rs) < 2 or axis is None:
+        return None
+    b = Bnd_Box()
+    BRepBndLib.Add_s(shape, b)
+    x0, y0, z0, x1, y1, z1 = b.Get()
+    k = max(range(3), key=lambda i: abs(axis[i]))
+    t = (x1 - x0, y1 - y0, z1 - z0)[k]
+    return {"od_mm": round(2 * rs[-1], 1), "id_mm": round(2 * rs[0], 1), "thickness_mm": round(t, 1),
+            "source": f"{brep.parent.name}/{brep.name} circular edges"}
 
 
 def load(ctx: Any) -> ManualData:

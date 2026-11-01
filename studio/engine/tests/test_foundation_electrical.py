@@ -129,7 +129,7 @@ def test_power_budget(lib):
 def test_power_budget_flags_led_ring(lib):
     d = good()
     d["features"][1]["module"] = "LED_RING_12_WS2812_50MM"
-    d["features"][1]["at"] = [0, 125]
+    d["features"][1]["at"] = [0, 130]  # clear of the arcade button's mount pad (kit footprint check, REVIEW-1 MAJ-8)
     d["features"] = [f for f in d["features"] if f["id"] != "eyes"]
     d["decor"] = []
     _, el = electrical(d, lib)

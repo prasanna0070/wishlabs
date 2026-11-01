@@ -23,6 +23,10 @@ constexpr size_t kRecordMax = 512;
 
 enum FavFlags : uint8_t { kFavHasName = 1, kFavHasClip = 2 };
 
+// Memory.app[] byte the story_player uses for its pending-wipe flag (MAJ-17): set when clip files
+// could not be deleted (card absent or a remove failed); the next card mount finishes the wipe.
+constexpr size_t kAppPendingWipe = 15;
+
 struct Favourite {
   uint8_t id = 0;     // 1..255, stable for the clip file name /fav/<id>.wav
   uint8_t flags = 0;  // FavFlags
@@ -99,6 +103,9 @@ class MemoryStore {
   StoreResult set_name(uint8_t id, const char* name);  // empty name clears it (clip must remain)
   StoreResult remove(uint8_t id);
   StoreResult erase_all();
+  // Drops the clip of each listed favourite in ONE commit: a favourite that also has a typed name
+  // keeps the name; a clip-only favourite is removed. *changed = how many records changed.
+  StoreResult drop_clips(const uint8_t* ids, uint8_t n, uint8_t* changed = nullptr);
   StoreResult set_volume(uint8_t volume);
   StoreResult set_night(bool enabled, uint8_t minutes, uint8_t level);
   StoreResult note_played(int8_t story, uint8_t hero_id);

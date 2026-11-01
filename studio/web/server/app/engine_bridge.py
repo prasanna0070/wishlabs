@@ -155,6 +155,14 @@ class EngineBridge:
                             "behind the wall (module + cable)")
         if rows:
             lines.append("- Feature modules (footprint on the face, depth behind the wall):\n  " + "\n  ".join(rows))
+        ring = getattr(self.norm_mod, "NIGHT_LIGHT_RING", None) if self.norm_mod is not None else None
+        ring_row = next((m for m in self.raw_modules() if m.get("id") == ring), None) if ring else None
+        if ring_row and ring_row.get("face_mm"):
+            fw, fh = (float(v) for v in ring_row["face_mm"][:2])
+            lines.append(f"- Night light: a NIGHT_USE design gets the {ring} ring ({fw:g} x {fh:g} mm on the face, behind a "
+                         "diffuser) as its light feature (the validator swaps a small LED for it). Plan a clear band "
+                         f"about {fh + 10:g} mm tall for it across the front face, with the speaker below it and the "
+                         "eyes above it, or put it on the top; keep it clear of every other kit.")
         lines += ["- Outline points at least 1 mm apart; do not repeat the first point at the end.",
                   "- Overall size 60-260 mm on every axis, depth included."]
         return "\n".join(lines)
@@ -236,12 +244,85 @@ class EngineBridge:
         return self._validate_minimal(spec)
 
     def _validate_pipeline(self, spec: dict) -> dict:
-        """The engine's own contract: gstudio.pipeline.validate -> {ok, errors, normalized, warnings}."""
+        """The engine's own contract: gstudio.pipeline.validate -> {ok, errors, normalized, warnings, nudges?}."""
         pipeline = importlib.import_module("gstudio.pipeline")
         r = pipeline.validate(spec)
         return {"ok": bool(r.get("ok")), "errors": [str(e) for e in r.get("errors") or []],
                 "warnings": [str(w) for w in r.get("warnings") or []], "normalized": r.get("normalized"),
-                "engine": "local"}
+                "nudges": nudges_from(r), "engine": "local"}
+
+    # ------------------------------------------------------------------ partial builds (MIN-37)
+    def stage_ids(self) -> tuple[str, ...]:
+        """The engine's stage ids (gstudio.pipeline.STAGE_IDS), else the documented default list."""
+        self._load()
+        try:
+            return tuple(importlib.import_module("gstudio.pipeline").STAGE_IDS)
+        except Exception:  # noqa: BLE001
+            return DEFAULT_STAGES
+
+    def electrical_for(self, spec: dict) -> dict | None:
+        """electrical.json the engine would write for this spec (gstudio.electrical.build_electrical on the
+        normalized spec), or None when the engine is not available here."""
+        self._load()
+        if not self.complete:
+            return None
+        try:
+            el = importlib.import_module("gstudio.electrical")
+            load = getattr(self.spec_mod, "load_spec", None)
+            model = load(spec) if load else self.spec_mod.Spec.model_validate(spec)
+            res = self.norm_mod.normalize(model, self.library)
+            sp = res[0] if isinstance(res, tuple) else res
+            return el.build_electrical(sp, self.library)
+        except Exception as exc:  # noqa: BLE001
+            log.info("electrical_for unavailable: %s", exc)
+            return None
+
+    def with_defaults(self, spec: Any) -> Any:
+        """The spec with every schema default filled in (no normalize, no derived), so a key the model left out
+        is not reported as a change when its default equals the old value (MAJ-34). The input when unavailable."""
+        self._load()
+        if self.spec_mod is None or not isinstance(spec, dict):
+            return spec
+        try:
+            load = getattr(self.spec_mod, "load_spec", None)
+            model = load(spec) if load else self.spec_mod.Spec.model_validate(spec)
+            d = model.to_json_dict(include_derived=False) if hasattr(model, "to_json_dict") else _dump(model)
+            d.pop("derived", None)
+            return d
+        except Exception:  # noqa: BLE001
+            return spec
+
+    def nudges_from_cad(self, spec: dict, components: Any, cad_checks: Any) -> list | None:
+        """foundation's gstudio.normalize.nudges_from_cad for a built version (MAJ-8); None when unavailable."""
+        self._load()
+        fn = getattr(self.norm_mod, "nudges_from_cad", None) if self.norm_mod is not None else None
+        if not callable(fn) or not isinstance(components, dict) or not cad_checks:
+            return None
+        try:
+            load = getattr(self.spec_mod, "load_spec", None)
+            model = load(spec) if load else self.spec_mod.Spec.model_validate(spec)
+            return list(fn(model, components, cad_checks) or [])
+        except Exception as exc:  # noqa: BLE001
+            log.info("nudges_from_cad unavailable: %s", exc)
+            return None
+
+    def decor_fields(self) -> dict[str, set[str]]:
+        """decor type -> the field names its schema model accepts (MAJ-34: which shape words have a parameter)."""
+        self._load()
+        out: dict[str, set[str]] = {}
+        if self.spec_mod is None:
+            return out
+        for cls_name in ("FacePlate", "Eye", "Mouth", "Blush", "Ear", "Text"):
+            cls = getattr(self.spec_mod, cls_name, None)
+            fields = getattr(cls, "model_fields", None) if cls is not None else None
+            if not fields:
+                continue
+            t = fields.get("type")
+            ann = getattr(t, "annotation", None)
+            args = getattr(ann, "__args__", None) or ()
+            key = str(args[0]) if args else cls_name.lower()
+            out[key] = set(fields)
+        return out
 
     def _validate_engine(self, spec: dict) -> dict:
         """gstudio.spec.load_spec (schema + cross checks), then gstudio.normalize.normalize (library, fit rules,
@@ -276,6 +357,7 @@ class EngineBridge:
         out = _interpret_normalize_result(res, model)
         derived = (out.get("normalized") or {}).get("derived") or {}
         out["warnings"] = list(out.get("warnings") or []) + [str(w) for w in derived.get("warnings") or []]
+        out["nudges"] = nudges_from(out)
         return out
 
     def _validate_minimal(self, spec: dict) -> dict:
@@ -310,6 +392,27 @@ class EngineBridge:
         return {"ok": not errors, "errors": errors,
                 "warnings": ["engine validator not available here; minimal checks only"],
                 "normalized": spec if not errors else None, "engine": "minimal"}
+
+
+DEFAULT_STAGES = ("normalize", "electrical", "cad", "pcb", "firmware", "order", "manual", "checks", "docs", "package")
+
+
+def nudges_from(r: Any) -> list:
+    """Layout nudges from the validator (MAJ-8), wherever foundation puts them: top-level `nudges` or
+    `conflicts`, or normalized.derived.{nudges, layout_conflicts}. Each kept as given (str or dict)."""
+    if not isinstance(r, dict):
+        return []
+    out: list = []
+    for k in ("nudges", "conflicts", "layout_conflicts"):
+        v = r.get(k)
+        if isinstance(v, list):
+            out += v
+    der = ((r.get("normalized") or {}).get("derived") or {}) if isinstance(r.get("normalized"), dict) else {}
+    for k in ("nudges", "layout_conflicts"):
+        v = der.get(k)
+        if isinstance(v, list):
+            out += [x for x in v if x not in out]
+    return out
 
 
 def _dump(model: Any) -> dict:

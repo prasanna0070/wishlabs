@@ -53,7 +53,7 @@ def test_example_builds(built, name):
     comps = json.loads((out / "cad/components.json").read_text())
     for n in comps:
         assert (out / "cad/components" / f"{n}.brep").exists(), n
-    assert s["timings"]["total"] < 180, s["timings"]
+    assert s["timings"]["total"] < 300, s["timings"]  # REVIEW-1 adds fins, ear blends and checks; VM shared by 8 engineers
 
 
 @pytest.mark.parametrize("name", EXAMPLES)
@@ -106,11 +106,14 @@ def test_glb_nodes_match_components(built, name):
     out = Path(built[name]["_out"])
     comps = json.loads((out / "cad/components.json").read_text())
     g = pygltflib.GLTF2().load(str(out / "cad/assembly.glb"))
-    names = [n.name for n in g.nodes]
-    assert sorted(names) == sorted(comps), set(names) ^ set(comps)
-    assert len(names) == len(set(names))
+    roots = [g.nodes[i].name for i in g.scenes[0].nodes]
+    assert sorted(roots) == sorted(comps), set(roots) ^ set(comps)
+    assert len(roots) == len(set(roots))
     for n in g.nodes:
         assert n.mesh is not None
+        if "#" in n.name:  # REVIEW-1 children: PRINT_Shell#decor[i] pick meshes, <display>#screen quads
+            parent = next(p for p in g.nodes if p.children and g.nodes.index(n) in p.children)
+            assert n.name.split("#")[0] == parent.name
     sc = trimesh.load(str(out / "cad/assembly.glb"))
     ext = sc.bounds[1] - sc.bounds[0]
     assert 0.03 < max(ext) < 0.3, ext  # metres, +Y up

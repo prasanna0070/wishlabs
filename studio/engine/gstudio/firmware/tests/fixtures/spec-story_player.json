@@ -68,7 +68,6 @@
   "template": "story_player",
   "summary": "fixture",
   "settings": {
-   "capture_mode": "child_voice_clip",
    "names_for_audio": [
     "Anya"
    ]

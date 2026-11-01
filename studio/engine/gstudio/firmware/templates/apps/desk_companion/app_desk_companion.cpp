@@ -22,6 +22,12 @@
 class DeskCompanionApp : public GsApp {
  public:
   const char* template_name() const override { return "desk_companion"; }
+  // The face shows a microphone dot whenever the mic is open (see update_face), and the glow light
+  // stays the parent's choice, so the shared listening light is not used.
+  bool show_listening(bool on) override {
+    mic_open_ = on;
+    return true;
+  }
 
   void begin(uint32_t now) override {
     face_ = gs::FaceFsm(esp_random(), GS_CFG_SLEEP_AFTER_MS);
@@ -112,13 +118,14 @@ class DeskCompanionApp : public GsApp {
   void draw(uint32_t now) {
     const gs::Expression e = face_.expression(now);
     const uint32_t frame = e == gs::Expression::Listening ? now / 250 : 0;
-    if (e == last_ && frame == last_frame_ && clap_on_ == last_mic_) return;
+    const bool mic = clap_on_ || mic_open_;
+    if (e == last_ && frame == last_frame_ && mic == last_mic_) return;
     last_ = e;
     last_frame_ = frame;
-    last_mic_ = clap_on_;
+    last_mic_ = mic;
     const uint16_t c = gsdisp::is_color() ? gsdisp::rgb(140, 220, 255) : gsdisp::kWhite;
     gsdisp::draw_face(e, now, c);
-    if (clap_on_) {
+    if (mic) {
       gsdisp::fill_circle(gsdisp::width() - 4, 3, 2, c);  // microphone-on dot
       gsdisp::flush();
     }
@@ -130,6 +137,7 @@ class DeskCompanionApp : public GsApp {
   bool light_on_ = false;
   bool clap_on_ = false;
   bool last_mic_ = false;
+  volatile bool mic_open_ = false;
   gs::Expression last_ = gs::Expression::Blink;
   uint32_t last_frame_ = 1;
   uint32_t last_led_ = 0;

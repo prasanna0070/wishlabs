@@ -42,13 +42,13 @@ svg.spark{width:100%;height:60px}
   <div id="msg" class="msg hidden" role="status"></div>
   <section id="setup" class="card hidden">
     <h2>Set up Wi-Fi</h2>
-    <p class="note">Choose your home Wi-Fi and a parent PIN. The PIN protects this page. Nothing here goes to the internet.</p>
+    <p class="note">Choose your home Wi-Fi and a parent PIN. The PIN protects this page. Nothing here goes to the internet. The first time, you also press the button on the gadget once, so only someone at the gadget can set it up.</p>
     <label for="ssid">Home Wi-Fi network</label>
     <div class="row"><select id="ssidList" class="grow"><option value="">Scanning...</option></select><button id="rescan" type="button">Scan</button></div>
     <input id="ssid" type="text" placeholder="or type the network name" autocomplete="off">
     <label for="wpass">Wi-Fi password</label><input id="wpass" type="password" autocomplete="off">
     <div id="curPinBox" class="hidden"><label for="curpin">Current parent PIN</label><input id="curpin" type="password" inputmode="numeric" autocomplete="off"></div>
-    <label for="pin1">New parent PIN (4 to 8 digits)</label><input id="pin1" type="password" inputmode="numeric" autocomplete="off">
+    <label for="pin1">New parent PIN (6 to 8 digits)</label><input id="pin1" type="password" inputmode="numeric" autocomplete="off">
     <label for="pin2">Repeat the PIN</label><input id="pin2" type="password" inputmode="numeric" autocomplete="off">
     <div class="row" style="margin-top:14px"><button class="primary" id="saveSetup" type="button">Save and join</button></div>
     <p class="note" id="setupStatus"></p>
@@ -115,10 +115,11 @@ $("#ssidList").onchange=e=>{if(e.target.value)$("#ssid").value=e.target.value};
 $("#saveSetup").onclick=async()=>{
   const ssid=$("#ssid").value.trim(),p1=$("#pin1").value,p2=$("#pin2").value;
   if(!ssid){say("Choose your home Wi-Fi network.","bad");return}
-  if(p1||!INFO.pin_set){if(!/^\d{4,8}$/.test(p1)){say("The PIN must be 4 to 8 digits.","bad");return}if(p1!==p2){say("The two PINs do not match.","bad");return}}
+  if(p1||!INFO.pin_set){if(!/^\d{6,8}$/.test(p1)){say("The PIN must be 6 to 8 digits.","bad");return}if(p1!==p2){say("The two PINs do not match.","bad");return}}
   if(INFO.pin_set)PIN=$("#curpin").value;
   const r=await fetch("/api/setup",{method:"POST",headers:{"Content-Type":"application/json","X-GS-PIN":PIN},body:JSON.stringify({ssid,password:$("#wpass").value,pin:p1})});
-  const j=await r.json().catch(()=>({}));say(j.message||"",r.ok?"ok":"bad");
+  const j=await r.json().catch(()=>({}));say(j.message||"",r.ok?"ok":(j.need_tap?"":"bad"));
+  if(j.need_tap){$("#setupStatus").innerHTML="<b>Press the button on the gadget once</b>, then press Save and join again.";return}
   if(r.ok){if(p1){PIN=p1;sessionStorage.setItem("gspin",PIN)}waitJoin()}
 };
 function waitJoin(){
@@ -169,9 +170,10 @@ function playerCard(a){
 function favCard(a){
   const mode=a.capture_mode;const full=a.favourites.length>=a.max_favourites;
   const rows=a.favourites.map(f=>{const label=f.name||("Voice clip "+f.id);
-    const badge=f.has_clip?(f.clip_on_card===false?"<span class='chip bad'>clip missing</span>":""):(f.name_audio?"":"<span class='chip warn'>chime instead of name</span>");
-    return `<li><span class="grow">${esc(label)} ${badge}</span><span class="row">${f.has_clip?`<button data-listen="${f.id}">Listen</button>`:""}<button data-rename="${f.id}" data-name="${esc(f.name)}">${f.name?"Rename":"Add name"}</button><button class="danger" data-remove="${f.id}" data-name="${esc(label)}">Remove</button></span></li>`}).join("")||"<li><span class='note'>No favourites yet.</span></li>";
-  const how=mode==="child_voice_clip"?"To add one on the gadget: hold the button until the light turns blue, say the name, let go, then tap within "+a.keep_window_seconds+" seconds to keep it.":(mode==="parent_web"?"Type a name below. Names with a story-pack clip are spoken; others play a soft chime.":"");
+    const badge=f.has_clip?(f.clip_on_card===false?"<span class='chip bad'>clip missing</span>":""):(f.name_audio?"<span class='chip ok'>spoken</span>":"<span class='chip warn'>not spoken yet</span>");
+    const speak=(f.name&&!f.has_clip)?`<button data-speak="${f.id}" data-name="${esc(f.name)}">${f.name_audio?"Replace spoken name":"Add spoken name"}</button>`:"";
+    return `<li><span class="grow">${esc(label)} ${badge}</span><span class="row">${f.has_clip?`<button data-listen="${f.id}">Listen</button>`:""}${speak}<button data-rename="${f.id}" data-name="${esc(f.name)}">${f.name?"Rename":"Add name"}</button><button class="danger" data-remove="${f.id}" data-name="${esc(label)}">Remove</button></span></li>`}).join("")||"<li><span class='note'>No favourites yet.</span></li>";
+  const how=mode==="child_voice_clip"?"To add one on the gadget: hold the button until the light turns blue, say the name, let go, then tap within "+a.keep_window_seconds+" seconds to keep it.":(mode==="parent_web"?"Type a name below. A name is spoken in stories once it has a spoken clip (Add spoken name: a 16-bit mono WAV of 64 KB or less, such as the one the Gadget Studio app makes). Until then the story uses its default name there.":"");
   return `<section class="card"><h2>Favourites (${a.favourites.length} of ${a.max_favourites})</h2><p class="note">${esc(how)}</p><ul class="list">${rows}</ul>
   <label for="newName">Add a favourite by name</label><div class="row"><input id="newName" class="grow" type="text" maxlength="32" autocomplete="off" ${full?"disabled":""}><button class="primary" id="addName" ${full?"disabled":""}>Save</button></div>
   <div class="row" style="margin-top:12px"><button class="danger" id="eraseAll">Erase all favourites</button></div><p class="note">${esc(a.privacy||"")}</p></section>`;
@@ -197,11 +199,16 @@ function bind(){
   document.querySelectorAll("[data-play]").forEach(b=>b.onclick=()=>act("play_story",{id:b.dataset.play}));
   document.querySelectorAll("[data-scene]").forEach(b=>b.onclick=()=>act("scene",{index:+b.dataset.scene}));
   document.querySelectorAll("[data-ack]").forEach(b=>b.onclick=()=>act("notify_clear",{id:+b.dataset.ack}));
-  document.querySelectorAll("[data-remove]").forEach(b=>b.onclick=()=>{if(confirm("Remove "+b.dataset.name+"? Its voice clip is deleted too."))act("fav_remove",{id:+b.dataset.remove,confirm:true})});
+  document.querySelectorAll("[data-remove]").forEach(b=>b.onclick=()=>{if(confirm("Remove "+b.dataset.name+"? Its voice clip, if any, is deleted too."))act("fav_remove",{id:+b.dataset.remove,confirm:true})});
   document.querySelectorAll("[data-rename]").forEach(b=>b.onclick=()=>{const v=prompt("Name for this favourite",b.dataset.name||"");if(v===null)return;const t=v.trim();
     if(t&&confirm("Save the name "+t+"?"))act("fav_rename",{id:+b.dataset.rename,name:t,confirm:true})});
   document.querySelectorAll("[data-listen]").forEach(b=>b.onclick=async()=>{const r=await fetch("/api/clip?id="+b.dataset.listen,{headers:{"X-GS-PIN":PIN}});
     if(!r.ok){say("The clip could not be played.","bad");return}const url=URL.createObjectURL(await r.blob());const au=new Audio(url);au.onended=()=>URL.revokeObjectURL(url);au.play()});
+  document.querySelectorAll("[data-speak]").forEach(b=>b.onclick=()=>{const inp=document.createElement("input");inp.type="file";inp.accept=".wav,audio/wav";
+    inp.onchange=async()=>{const f=inp.files[0];if(!f)return;if(f.size>65536){say("That file is over 64 KB. Use a short 16-bit mono WAV.","bad");return}
+      const fd=new FormData();fd.append("clip",f,f.name);say("Saving the spoken name...","");
+      const r=await fetch("/api/name_clip?id="+b.dataset.speak,{method:"POST",headers:{"X-GS-PIN":PIN},body:fd});const j=await r.json().catch(()=>({}));
+      say(j.message||"",r.ok?"ok":"bad");await refresh()};inp.click()});
   const add=$("#addName");if(add)add.onclick=()=>{const v=$("#newName").value.trim();if(!v)return;if(confirm("Save "+v+" as a favourite?"))act("fav_add",{name:v,confirm:true})};
   const ea=$("#eraseAll");if(ea)ea.onclick=()=>{const v=prompt("This deletes every favourite and voice clip. Type ERASE to confirm.");if(v==="ERASE")act("fav_erase_all",{confirm:"ERASE"})};
   const vol=$("#vol");if(vol)vol.onchange=()=>act("set_volume",{volume:+vol.value});
@@ -220,7 +227,7 @@ async function ota(){
 }
 $("#identify").onclick=()=>act("identify");
 $("#restart").onclick=()=>{if(confirm("Restart the device?"))act("restart")};
-$("#forget").onclick=()=>{if(confirm("Forget the home Wi-Fi? The device restarts into its setup hotspot."))act("forget_wifi",{confirm:true})};
+$("#forget").onclick=()=>{if(confirm("Forget the home Wi-Fi? To set it up again, hold the gadget's button for 5 seconds while plugging it in."))act("forget_wifi",{confirm:true})};
 $("#reset").onclick=()=>{const v=prompt("This clears everything the device remembers: favourites, voice clips and settings. Type RESET to confirm.");if(v==="RESET")act("reset_memory",{confirm:"RESET"})};
 start();
 </script>

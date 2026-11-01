@@ -28,6 +28,8 @@ class Part:
     alpha: float = 1.0
     notes: list = field(default_factory=list)
     extra: dict = field(default_factory=dict)  # merged into components.json (qty, size, items...)
+    role: Optional[str] = None  # module | retainer | accessory | cable | shell | hardware (components.json "role")
+    host_ref: Optional[str] = None  # accessories and retainers: the module ref they belong to (their own ref is None)
 
     @property
     def shape(self) -> cq.Shape:
@@ -75,3 +77,5 @@ class Kit:
     info: dict = field(default_factory=dict)
     warnings: list = field(default_factory=list)
     grille_holes: int = 0
+    label: str = ""  # the feature's human label ("Sleepy animated eyes"), used to name clamps and gaskets
+    interfaces: list = field(default_factory=list)  # tight fits for the fit coupons: {id, name, nominal, fit, region}

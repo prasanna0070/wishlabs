@@ -51,10 +51,12 @@ class FreeSpace:
         ii = np.indices(self.n).reshape(3, -1).T
         self.pts = self.o + ii * h
         cav = _polydata([cavity], 0.3, 0.5)
+        self.cav_poly = cav
         dc = _signed(cav, self.pts)
         inside = dc < -margin
         do = np.full(len(self.pts), 1e3)
         obs = _polydata(obstacles)
+        self.obs_poly = obs
         if obs is not None and inside.any():
             do[inside] = _signed(obs, self.pts[inside])  # only points already inside the cavity
         self.clear = np.minimum(-dc, do)  # distance to the nearest wall/obstacle (positive = free)
@@ -80,6 +82,14 @@ class FreeSpace:
         cand = sub[f]
         d = np.linalg.norm(self.o + cand * self.h - p, axis=1)
         return cand[int(np.argmin(d))]
+
+    def exact_clear(self, pts) -> np.ndarray:
+        """Exact distance from points to the nearest obstacle or cavity wall (VTK implicit distance, not the voxel grid)."""
+        pts = np.atleast_2d(np.asarray(pts, float))
+        c = -_signed(self.cav_poly, pts)
+        if self.obs_poly is not None:
+            c = np.minimum(c, _signed(self.obs_poly, pts))
+        return c
 
     def segment_free(self, a, b) -> bool:
         L = np.linalg.norm(b - a)
@@ -178,6 +188,29 @@ def _smooth(pts: np.ndarray, it: int = 3) -> np.ndarray:
     return p
 
 
+def _push_clear(fs: FreeSpace, pts: np.ndarray, need: float, iters: int = 6) -> np.ndarray:
+    """Move interior route points that come closer than `need` to an obstacle along the clearance gradient."""
+    p = np.array(pts, float)
+    for _ in range(iters):
+        inner = np.arange(2, len(p) - 2)
+        if not len(inner):
+            break
+        c = fs.exact_clear(p[inner])
+        low = inner[c < need]
+        if not len(low):
+            break
+        h = 0.6
+        for i in low:
+            g = np.array([float(fs.exact_clear([p[i] + e * h])[0] - fs.exact_clear([p[i] - e * h])[0]) for e in np.eye(3)])
+            n = np.linalg.norm(g)
+            if n < 1e-6:
+                continue
+            ci = float(fs.exact_clear([p[i]])[0])
+            p[i] = p[i] + g / n * min(need - ci + 0.2, 2.0)
+        p[1:-1] = 0.5 * p[1:-1] + 0.25 * (p[:-2] + p[2:])  # keep it smooth
+    return p
+
+
 def sweep_cable(points: np.ndarray, d: float) -> cq.Shape:
     r = d / 2
     try:
@@ -198,13 +231,49 @@ def sweep_cable(points: np.ndarray, d: float) -> cq.Shape:
     return cq.Compound.makeCompound(sols)
 
 
-def route_all(M, kits, cart, params, cavity) -> tuple[list, list]:
+LOOP_R = 12.0  # slack coil radius (mm, centre of the bundle): a 24 mm hand-coiled loop
+PLUG_ALLOWANCE = 20.0  # mm of each harness kept for plug entry and gentle bends (as length_ok)
+
+
+def place_slack_loop(fs: FreeSpace, near: list, slack: float, d: float, taken: list):
+    """Flat coil holding `slack` mm of a d mm cable, lying on the nearest free spot to the points in `near`.
+    Returns (centre, z0, height, r_outer, r_inner, turns) or None."""
+    turns = slack / (2 * math.pi * LOOP_R)
+    rb = max(d / 2 * math.sqrt(max(turns, 1.0)) * 1.15, d / 2)
+    ro, ri, hh = LOOP_R + rb, max(LOOP_R - rb, 1.0), 2 * rb
+    best = None
+    pts_free = fs.pts[fs.free & (fs.clear > rb + 0.8)]
+    if not len(pts_free):
+        return None
+    for p in near:
+        p = np.asarray(p, float)
+        dd = np.linalg.norm(pts_free - p, axis=1)
+        for k in np.argsort(dd)[:400]:
+            c = pts_free[k]
+            ring = [c + np.array([rr * math.cos(a), rr * math.sin(a), dz]) for rr in (ri, LOOP_R, ro)
+                    for a in np.linspace(0, 2 * math.pi, 48, endpoint=False) for dz in (-hh / 2, 0.0, hh / 2)]
+            ok = all(fs.clear[fs.flat(fs.idx(q))] > 1.8 for q in ring)
+            if ok:  # exact distances: the voxel grid is 3 mm, a loop must not graze anything between voxels
+                ok = float(fs.exact_clear(np.array(ring)).min()) > 1.2  # sample points lie on the loop's own surface
+            if ok and all(np.linalg.norm(c[:2] - t[:2]) > ro + t[2] + 1.0 or abs(c[2] - t[3]) > hh for t in taken):
+                best = (c, float(dd[k]))
+                break
+        if best:
+            break
+    if best is None:
+        return None
+    c = best[0]
+    return c, float(c[2] - hh / 2), hh, ro, ri, turns
+
+
+def route_all(M, kits, cart, params, cavity, ties: list | None = None) -> tuple[list, list]:
     warns = []
     obstacles = [M.shapes["shell"], M.shapes["other"]] + [s for p in M.parts if p.name not in ("PRINT_Shell", "PRINT_RearCover", "PRINT_BasePlate")
                                                            for _, s, _ in p.subparts]
     fs = FreeSpace(cavity, obstacles, h=3.0, margin=2.6)
     G = _graph(fs)
     routes = []
+    taken_loops: list = []
     bpref = params.get("backplane_ref", "BP1")
     for k in kits:
         feat = next((f for f in params["features"] if f["id"] == k.feature_id), None)
@@ -237,24 +306,53 @@ def route_all(M, kits, cart, params, cavity) -> tuple[list, list]:
                 keep.append(p)
         raw = _densify(np.array(keep), 4.0)
         pts = raw
+        best_c = None
         for it in (6, 3, 1, 0):
             cand = _smooth(raw, it) if it else raw
             cand[0], cand[-1] = a_anchor, b_anchor
             s_ = np.cumsum(np.r_[0, np.linalg.norm(np.diff(cand, axis=0), axis=1)])
-            mid_ = cand[(s_ > 8) & (s_ < s_[-1] - 8)]
-            if not len(mid_) or float(fs.clear[fs.flat(fs.idx(mid_))].min()) >= d / 2 + 0.3:
-                pts = cand
+            dense = _densify(cand, 0.8)
+            sd = np.cumsum(np.r_[0, np.linalg.norm(np.diff(dense, axis=0), axis=1)])
+            mid_ = dense[(sd > 8) & (sd < sd[-1] - 8)]
+            cl = float(fs.exact_clear(mid_).min()) if len(mid_) else 99.0  # exact, not the 3 mm voxels
+            if best_c is None or cl > best_c[0]:
+                best_c = (cl, cand)
+            if cl >= d / 2 + 0.3:
                 break
-            pts = cand
+        pts = best_c[1]
+        if best_c[0] < d / 2 + 0.3:
+            pts = _push_clear(fs, pts, d / 2 + 0.5)
         length = float(np.sum(np.linalg.norm(np.diff(pts, axis=0), axis=1)))
         cable_len = float(h.get("length_mm") or 150)
         solid = sweep_cable(pts, d)
         nm = f"REFERENCE_Cable{camel(k.ref.lower())}"
-        part = Part(nm, "REFERENCE", f"{h.get('cable') or 'cable'} (display-only route)", CABLE_COLOR.get(pins, (0.2, 0.2, 0.22)),
-                    ref=k.ref, feature_id=k.feature_id, spec_path=feat.get("spec_path"))
+        part = Part(nm, "REFERENCE", f"cable route: {k.label or k.ref}, {h.get('cable') or 'cable'} (display-only)", CABLE_COLOR.get(pins, (0.2, 0.2, 0.22)),
+                    host_ref=k.ref, role="cable", feature_id=k.feature_id, spec_path=feat.get("spec_path"))
         part.add("Cable", solid)
         part.notes.append("display-only occupied-space envelope; real cable bends are not modelled")
         M.parts.append(part)
+        # slack: what the harness has beyond the route and the plug allowance, coiled flat near a tie anchor (MIN-5)
+        slack = cable_len - length - PLUG_ALLOWANCE
+        loop = None
+        if slack > 25.0:
+            near = [t for t in (ties or [])] + [pts[len(pts) // 3], pts[len(pts) // 2], a_pt]
+            pl = place_slack_loop(fs, near, slack, d, taken_loops)
+            if pl is None:
+                warns.append(f"{k.ref}: no free space for the {slack:.0f} mm slack loop; slack not modelled")
+            else:
+                cc, z0, hh, ro, ri, turns = pl
+                from .geom import ring_z
+
+                lp = Part(f"REFERENCE_SlackLoop{camel(k.ref.lower())}", "REFERENCE", f"slack loop: {k.label or k.ref}, {slack:.0f} mm coiled",
+                          CABLE_COLOR.get(pins, (0.2, 0.2, 0.22)), host_ref=k.ref, role="cable", feature_id=k.feature_id,
+                          spec_path=feat.get("spec_path"))
+                lp.add("Loop", ring_z(float(cc[0]), float(cc[1]), z0, z0 + hh, ro, ri))
+                lp.notes.append(f"occupied space of {slack:.0f} mm of spare cable coiled about {turns:.1f} turns of {2 * LOOP_R:g} mm, "
+                                "tied flat (display envelope; the real coil is not modelled)")
+                M.parts.append(lp)
+                taken_loops.append((float(cc[0]), float(cc[1]), ro, float(cc[2])))
+                loop = {"component": lp.name, "slack_mm": round(slack, 1), "centre": [round(float(v), 2) for v in cc], "turns": round(turns, 2),
+                        "outer_d_mm": round(2 * ro, 1), "height_mm": round(hh, 1)}
         # wall clearance along the centreline (excluding 8 mm at each end, where it meets the plugs)
         s = np.cumsum(np.r_[0, np.linalg.norm(np.diff(pts, axis=0), axis=1)])
         inner = pts[(s > 8) & (s < s[-1] - 8)]
@@ -265,6 +363,7 @@ def route_all(M, kits, cart, params, cavity) -> tuple[list, list]:
             "cable_length_mm": cable_len, "length_ok": length + 20.0 <= cable_len,
             "min_clearance_mm": None if clear is None else round(clear - d / 2, 2),
             "points": [[round(float(x), 3) for x in p] for p in pts],
-            "note": "display-only route; 20 mm allowance for plug entry and slack",
+            "note": "display-only route; 20 mm allowance for plug entry and bends",
+            "slack_mm": round(max(slack, 0.0), 1), "slack_loop": loop,
         })
     return routes, warns

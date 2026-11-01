@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 
 LIB = Path(__file__).resolve().parents[1]
-SRC = [LIB / "modules-a.json", LIB / "modules-b.json"]
+SRC = [LIB / "modules-a.json", LIB / "modules-b.json", LIB / "modules-foundation.json"]
 OUT = LIB / "modules.json"
 README = LIB / "README.md"
 BACKPLANE = LIB / "backplane-v1.json"
@@ -53,12 +53,16 @@ ROLE = {
     "SERVO_BRACKET_SG90_ACRYLIC": "servo_bracket", "SERVO_HORN_KIT_SG90_SUPPLIED": "servo_horn",
     "MAGNET_NDFEB_D8X5_N35": "magnet", "SHELL_PANEL_FASTENED_V0": "panel", "TEST_JIG_TAGCONNECT_TC2030_NL": "test_interface",
     "LABEL_QR_POLYESTER_50X25_PACK": "label",
+    # foundation rows (modules-foundation.json): REVIEW-1 BLK-5 card, MAJ-12 per-length screws and the purchased insert
+    "STORAGE_MICROSD_32GB_A1": "storage_card", "SCREW_M2_5X5_SHCS_A2": "screws", "SCREW_M2_5X8_SHCS_A2": "screws",
+    "SCREW_M2_5X12_SHCS_A2": "screws", "SCREW_M2X6_SHCS_A2": "screws", "INSERT_HEATSET_M2_5X4_MEC8005": "inserts",
+    "FEET_RUBBER_8X2_5_SUNROM_4436": "feet",  # integration: Indian retail feet (REVIEW-1 MIN-25)
 }
 RENAME = {"BACKPLANE_S3_V0_CUSTOM": "BACKPLANE_V1"}
 
 PREFIX = {"core": "U", "backplane": "BP", "power_in": "PWR", "adapter": "PSU", "usb_cable": "CBL", "harness": "W",
           "display": "DISP", "led": "LED", "mic": "MIC", "amp": "AMP", "speaker": "SPK", "buzzer": "BZ", "button": "BTN",
-          "storage": "SD", "encoder": "ENC", "touch": "TCH", "light_sensor": "ALS", "temp_humidity": "ENV", "pressure": "BARO",
+          "storage": "SD", "storage_card": "CARD", "encoder": "ENC", "touch": "TCH", "light_sensor": "ALS", "temp_humidity": "ENV", "pressure": "BARO",
           "distance": "TOF", "motion": "PIR", "imu": "IMU", "hall": "HAL", "rtc": "RTC", "servo": "SRV", "motor": "M",
           "motor_driver": "DRV", "endstop": "SW", "fan": "FAN"}
 
@@ -92,6 +96,8 @@ def port_for(m: dict, role: str) -> dict:
         return {"port": "socket", "slots": ["A1"], "cable": None, "supported": True}
     if role == "storage":
         return {"port": "socket", "slots": ["S1"], "cable": None, "supported": True}
+    if role == "storage_card":
+        return {"port": "card_slot", "slots": [], "cable": None, "supported": True, "why": "goes in the S1 microSD module's card slot"}
     if role == "speaker":
         return {"port": "speaker", "slots": ["J_SPK"], "cable": {"family": "JST-PH 2.0", "pins": 2}, "supported": True}
     if role == "mic":
@@ -157,21 +163,33 @@ FACE_OVERRIDE = {"PIR_AM312_MINI": ((12.0, 12.0), 27.0, "dims_mm x is the axial 
 
 
 # ---------------------------------------------------------------------------------------------- factory pre-wiring
-_LEAD_NOTE = ("The factory solders a JST-PH {n}-pin lead (stock: CABLE_JSTPH_{n}P_<len> with the module-end housing cut off; "
+_LEAD_NOTE = ("The factory solders a {fam} {n}-pin lead (stock: {stock}_<len> with the module-end housing cut off; "
               "length = the design's harness length class, 100 mm default) to the module before assembly. It plugs into {slot}. "
               "The maker never solders.")
 PREWIRE = {
     "SPK_40MM_4R_3W": {"by": "factory", "lead": "JST-PH 2.0 2p 100 mm", "pads": ["+ eyelet", "- eyelet"], "slot": "J_SPK",
-                       "note": _LEAD_NOTE.format(n=2, slot="J_SPK")},
+                       "note": _LEAD_NOTE.format(fam="JST-PH", n=2, stock="CABLE_JSTPH_2P", slot="J_SPK")},
     "SPK_28MM_8R_2W": {"by": "factory", "lead": "JST-PH 2.0 2p 100 mm", "pads": ["+", "-"], "slot": "J_SPK",
-                       "note": _LEAD_NOTE.format(n=2, slot="J_SPK")},
-    "LED_WS2812B_1PX_MODULE": {"by": "factory", "lead": "JST-PH 2.0 3p 100 mm", "pads": ["GND", "5V", "DIN"], "slot": "J_LED",
-                               "note": _LEAD_NOTE.format(n=3, slot="J_LED") + " DOUT stays unconnected."},
-    "LED_RING_12_WS2812_50MM": {"by": "factory", "lead": "JST-PH 2.0 3p 100 mm", "pads": ["GND", "5V", "DI"], "slot": "J_LED",
-                                "note": _LEAD_NOTE.format(n=3, slot="J_LED") + " DO stays unconnected."},
+                       "note": _LEAD_NOTE.format(fam="JST-PH", n=2, stock="CABLE_JSTPH_2P", slot="J_SPK")},
+    # J_LED is JST-XH 2.5 (REVIEW-1 MAJ-3): the LED lead is an XHP-3 lead, so it cannot mate a 3V3 PH IO port
+    "LED_WS2812B_1PX_MODULE": {"by": "factory", "lead": "JST-XH 2.5 3p 100 mm", "pads": ["GND", "5V", "DIN"], "slot": "J_LED",
+                               "note": _LEAD_NOTE.format(fam="JST-XH", n=3, stock="CABLE_JSTXH_3P", slot="J_LED") + " DOUT stays unconnected."},
+    "LED_RING_12_WS2812_50MM": {"by": "factory", "lead": "JST-XH 2.5 3p 100 mm", "pads": ["GND", "5V", "DI"], "slot": "J_LED",
+                                "note": _LEAD_NOTE.format(fam="JST-XH", n=3, stock="CABLE_JSTXH_3P", slot="J_LED") + " DO stays unconnected."},
     "AMP_MAX98357A_I2S": {"by": "factory", "lead": None, "pads": ["7-pin header (pins down)", "VO+ pin", "VO- pin"], "slot": "A1",
                           "note": "The factory solders the 7-pin header pins-down and two 2.54 mm pins into the VO+/VO- terminal pads "
                                   "(instead of the screw terminal) so the amp plugs straight into A1. The maker never solders."},
+}
+# module-connector corrections taken from the module's own library text (REVIEW-1 BLK-2); the source files stay verbatim
+CONNECTOR_FIX = {
+    "BUTTON_ARCADE_30MM_SNAPIN": {
+        "type": "spade_2.8",
+        "type_basis": "library row 24 pins[].notes: 'microswitch common, 2.8 mm (.110 in) spade on Sanwa-type switches' and "
+                      "location 'microswitch spade terminals at the back' (was 'wire_leads')"},
+    "MIC_INMP441_I2S": {
+        "rows": [["L/R", "WS", "SCK"], ["SD", "VDD", "GND"]],
+        "rows_basis": "REVIEW-1 BLK-2 fix: two rows of three pins on opposite edges (library row 20, Components101), housing A "
+                      "L/R, WS, SCK and housing B SD, VDD, GND. Physical positions still to confirm on a sample (physical check)."},
 }
 # real pre-wired listings found 2026-11-01; flagged when they are not the same physical part as the reference
 EXTRA_SOURCING = {
@@ -187,50 +205,506 @@ EXTRA_SOURCING = {
 
 
 # ---------------------------------------------------------------------------------------------- foundation harness cables
-HARNESS_PINS = {2: ("06b", None, ["SPK+", "SPK-"], ["J_SPK"]),
-                3: ("07", "CABLE_3PIN_A", ["GND", "3V3/5V", "SIG"], ["J_IO1", "J_IO2", "J_IO3", "J_LED"]),
-                4: ("06", "CABLE_4PIN_A", ["GND", "3V3", "SDA", "SCL"], ["J_I2C1", "J_I2C2", "J_I2C3"]),
-                6: ("06c", None, ["GND", "3V3", "SCK", "WS", "SD", "LR"], ["J_MIC"]),
-                8: ("06d", None, ["VCC", "GND", "DIN", "CLK", "CS", "DC", "RST", "BL"], ["J_DISP"])}
+# REVIEW-1 BLK-2: every design harness row names ONE module-end termination family and its exact position table.
+#   backplane end = the port's own housing (PHR-n on JST-PH ports, XHP-n on the JST-XH J_LED port)
+#   module end    = jst_ph | jst_xh | dupont_2.54 | spade_2.8, with housings[{housing, positions[{pos, port_pin, module_pin,
+#                   wire_colour}]}]
+# Rows are generated from library/backplane-v1.json ports (base rows, same housing both ends) and from the modules that bind
+# to those ports (Dupont and spade module ends, one row per distinct position table). None has a retail listing for the
+# exact double-ended harness, so each carries a `factory_make` entry (made by our factory to its drawing; sku = drawing).
 HARNESS_LENGTHS = (100, 150, 200, 300)
+CABLE_FAMILIES = ("jst_ph", "jst_xh", "dupont_2.54", "spade_2.8")
+FAMILY_OF_CONNECTOR = {"jst_ph_2.0": "jst_ph", "jst_ph": "jst_ph", "jst_xh_2.5": "jst_xh", "jst_xh": "jst_xh",
+                       "header_2.54": "dupont_2.54", "dupont_2.54": "dupont_2.54", "spade_2.8": "spade_2.8"}
+PORT_FAMILY = {"JST-PH 2.0": "jst_ph", "JST-XH 2.5": "jst_xh"}
+FAM_CODE = {"jst_ph": "JSTPH", "jst_xh": "JSTXH"}
+FAM_LABEL = {"jst_ph": "JST-PH 2.0", "jst_xh": "JST-XH 2.5"}
+PITCH_MM = {"jst_ph": 2.0, "jst_xh": 2.5}
+HOUSING = {"jst_ph": "PHR-{n} (JST PH 2.0 mm)", "jst_xh": "XHP-{n} (JST XH 2.5 mm)",
+           "dupont_2.54": "Dupont 1x{n} female housing (2.54 mm)", "spade_2.8": "2.8 mm (0.110 in) female insulated spade"}
+CRIMP = {"jst_ph": "JST SPH-002T-P0.5S-class crimp (or compatible)", "jst_xh": "JST SXH-001T-P0.6-class crimp (or compatible)",
+         "dupont_2.54": "Dupont 2.54 mm female crimp terminal", "spade_2.8": "2.8 mm female insulated spade crimp"}
+# single-ended PH pigtails in the library (open tinned other end): factory stock for Dupont / spade module ends
+PIGTAIL = {("jst_ph", 3): "CABLE_JSTPH_3P_300MM", ("jst_ph", 4): "CABLE_JSTPH_4P_300MM"}
+# wire colours by port net: the same scheme as gstudio.electrical (black GND, red 5V, orange 3V3, fixed signal colours)
+POWER_COLOUR = {"GND": "black", "+5V": "red", "+3V3": "orange"}
+FIXED_COLOUR = {"I2C_SDA": "blue", "I2C_SCL": "yellow", "SPI_SCK": "yellow", "SPI_MOSI": "blue", "DISP_CS": "white",
+                "DISP_DC": "green", "DISP_RST": "purple", "DISP_BL": "grey", "I2S_MIC_SCK": "yellow", "I2S_MIC_WS": "green",
+                "I2S_MIC_SD": "blue", "LED_DIN_5V": "green", "IO1_SIG": "white", "IO2_SIG": "white", "IO3_SIG": "white",
+                "SPK_P": "white", "SPK_N": "grey"}
+CATALOG = {("jst_ph", 2): ("06b", None), ("jst_ph", 3): ("07", "CABLE_3PIN_A"), ("jst_xh", 3): ("07", None),
+           ("jst_ph", 4): ("06", "CABLE_4PIN_A"), ("jst_ph", 6): ("06c", None), ("jst_ph", 8): ("06d", None)}
 
 
-def harness_id(pins: int, length: int) -> str:
-    return f"CABLE_JSTPH_{pins}P_{length}"
+def _norm(s: str) -> str:
+    return re.sub(r"[^A-Z0-9/+\-]", "", str(s).upper())
 
 
-def foundation_cables() -> list[dict]:
-    """Double-ended pre-crimped harnesses, one per backplane-v1 port size and length class (used by derived.harness)."""
-    out = []
-    for n, (row, cid, order, slots) in HARNESS_PINS.items():
-        for L in HARNESS_LENGTHS:
-            proposed = cid is None
-            out.append({
-                "id": harness_id(n, L), "catalog_row": row, "catalog_id": cid,
-                "role": "cable", "name": f"JST-PH 2.0 {n}-pin harness, {L} mm, pre-crimped both ends",
-                "reference_product": {"maker": "any JST-PH 2.0 compatible (PHR-%d housing + crimped wire)" % n, "mpn_or_model":
-                                      f"PHR-{n} housing at the backplane end; module end per module (PH housing, Dupont 2.54 housing or 2.8 mm spade)"},
-                "dims_mm": {"x": L, "y": round(2.0 * (n - 1) + 3.9, 2), "z": 4.5,
-                            "notes": "x = wire length (length class); y = PHR housing width 2.0 x (pins - 1) + 3.9 (estimate, same rule "
-                                     "as library rows 06/07); z = housing height estimate"},
-                "pcb_thickness_mm": None, "mount": {"type": "none", "holes": [], "hole_origin": "n/a", "notes": "tie to printed anchors"},
-                "pins": [{"name": p, "func": "wire"} for p in order],
-                "module_connector": {"type": "jst_ph_2.0", "pin_order": order, "location": "backplane end: PHR housing; module end per module"},
-                "backplane_harness": {"backplane_connector": f"JST-PH 2.0 {n}p ({'/'.join(slots)})", "wires": [], "length_mm": L},
-                "aperture": {"needs": "none", "size_mm": {"w": 0, "h": 0, "d": 0}, "notes": "internal"},
-                "electrical": {"supply_v": "n/a", "logic_v": "n/a", "current_ma_typ": 0, "current_ma_max": 0, "bus": "n/a (harness)"},
-                "firmware": {"arduino_libraries": [], "driver_notes": ""},
-                "kicad": {"backplane_footprint": "NONE", "notes": f"mates the slot header JST_PH_B{n}B-PH-K"},
-                "sourcing_in": [],
-                "price_inr_planning": [30, 100],
-                "evidence": ["blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
-                             "pin counts and order from library/backplane-v1.json slot pins"],
-                "uncertain": (["pin count not in the blueprint catalog: proposed new row " + row + "; planning price borrowed from rows 06/07"]
-                              if proposed else []) + ["no Indian listing read for this exact length; price is the planning range only",
-                                                      "housing dimensions are estimates"],
-                "slots": slots, "proposed_row": proposed,
-            })
+def wire_colour(sp: dict) -> str:
+    net = sp.get("net")
+    if sp.get("kind") == "strap":
+        return "black"
+    if sp.get("kind") == "power" or net == "GND":
+        return POWER_COLOUR.get(net, "red")
+    return FIXED_COLOUR.get(net, "white")
+
+
+def port_groups(bp: dict) -> list[dict]:
+    """backplane-v1 ports grouped by (family, pin count, pin names): one base harness per group."""
+    groups: dict[tuple, dict] = {}
+    for s in bp["slots"]:
+        if s.get("kind") != "port":
+            continue
+        fam = PORT_FAMILY[s["connector"]]
+        key = (fam, s["pins_count"], tuple(p["name"] for p in s["pins"]))
+        g = groups.setdefault(key, {"family": fam, "n": s["pins_count"], "slots": [], "pins": s["pins"]})
+        g["slots"].append(s["id"])
+    return list(groups.values())
+
+
+def map_wires(m: dict, slot: dict) -> dict:
+    """module pin -> slot pin, by name (slot pin name + `accepts`), the same greedy rule as gstudio.electrical."""
+    mc = m.get("module_connector") or {}
+    order = list(mc.get("pin_order") or [p.get("name") for p in (m.get("pins") or []) if p.get("name")])
+    lib_wires = [w.get("module_pin") for w in (m.get("backplane_harness") or {}).get("wires", []) if w.get("module_pin")]
+    out: dict[str, dict] = {}
+    taken: set = set()
+    for mp in (lib_wires or order):
+        for sp in slot["pins"]:
+            if sp["pin"] in taken:
+                continue
+            if _norm(mp) in [_norm(sp["name"])] + [_norm(a) for a in sp.get("accepts", [])]:
+                taken.add(sp["pin"])
+                out[mp] = sp
+                break
+    for sp in slot["pins"]:
+        if sp["pin"] in taken or sp.get("kind") != "strap":
+            continue
+        for mp in order:
+            if mp not in out and _norm(mp) in [_norm(a) for a in sp.get("accepts", [])]:
+                out[mp] = sp
     return out
+
+
+def module_end_layout(m: dict, slot: dict) -> tuple[str | None, list[list[tuple]]]:
+    """(family, housings) for a module on a port; each housing is [(pos, module_pin|None, slot_pin dict|None)] in physical
+    order. Dupont / PH / XH: one housing per header row, spanning the used pins; spade: one terminal per used pin."""
+    mc = m.get("module_connector") or {}
+    fam = FAMILY_OF_CONNECTOR.get(str(mc.get("type") or ""))
+    wires = map_wires(m, slot)
+    order = list(mc.get("pin_order") or [p.get("name") for p in (m.get("pins") or []) if p.get("name")])
+    housings: list[list[tuple]] = []
+    if fam == "spade_2.8":
+        for mp in order:
+            if mp in wires:
+                housings.append([(1, mp, wires[mp])])
+        return fam, housings
+    for row in (mc.get("rows") or [order]):
+        idx = [i for i, mp in enumerate(row) if mp in wires]
+        if not idx:
+            continue
+        lo, hi = min(idx), max(idx)
+        housings.append([(k - lo + 1, row[k] if row[k] in wires else None, wires.get(row[k])) for k in range(lo, hi + 1)])
+    return fam, housings
+
+
+def _positions(h: list[tuple], use_port_names: bool = False) -> list[dict]:
+    out = []
+    for pos, mp, sp in h:
+        if sp is None:
+            out.append({"pos": pos, "port_pin": None, "port_pin_name": None, "net": None, "module_pin": mp, "wire_colour": None,
+                        "empty": True})
+        else:
+            out.append({"pos": pos, "port_pin": sp["pin"], "port_pin_name": sp["name"], "net": sp.get("net"),
+                        "module_pin": sp["name"] if use_port_names else mp, "wire_colour": wire_colour(sp)})
+    return out
+
+
+def _perm(housings: list[list[dict]]) -> list[int]:
+    return [p["port_pin"] or 0 for h in housings for p in h["positions"]]
+
+
+def _cable_row(*, cid, name, fam_port, n, slots, port_pins, L, mod_family, housings, pinning, drawing, fits, row, cat_id,
+               extra_uncertain=()) -> dict:
+    flat = [p["port_pin"] for h in housings for p in h["positions"] if p.get("port_pin")]
+    crossed = flat != sorted(flat)
+    made = pinning == "drawing"
+    pig = PIGTAIL.get((fam_port, n)) if mod_family in ("dupont_2.54", "spade_2.8") else None
+    port_housing = HOUSING[fam_port].format(n=n)
+    mod_desc = "; ".join(h["housing"] for h in housings)
+    steps = ([f"take {pig} (single-ended {FAM_LABEL[fam_port]} {n}-pin pigtail, open tinned other end) and cut to {L} mm"] if pig else
+             [f"cut {sum(1 for h in housings for p in h['positions'] if p.get('port_pin'))} wires to {L} mm and crimp the {port_housing} end"])
+    steps += [f"crimp the module end ({CRIMP[mod_family]}) and seat each wire at the housing position in the table",
+              "100% continuity and pin-map test against this drawing before packing"]
+    return {
+        "id": cid, "catalog_row": row, "catalog_id": cat_id, "role": "cable", "name": name,
+        "reference_product": {"maker": "Gadget Studio factory (made to drawing)", "mpn_or_model": f"{drawing} (our harness drawing), {L} mm",
+                              "product_url": None, "datasheet_url": None},
+        "dims_mm": {"x": L, "y": round(PITCH_MM[fam_port] * (n - 1) + 3.9, 2), "z": 4.5,
+                    "notes": "x = wire length (length class); y = backplane-end housing width pitch x (pins - 1) + 3.9 (estimate, same "
+                             "rule as library rows 06/07); z = housing height estimate"},
+        "pcb_thickness_mm": None, "mount": {"type": "none", "holes": [], "hole_origin": "n/a", "notes": "tie to printed anchors"},
+        "pins": [{"name": p["name"], "func": "wire"} for p in port_pins],
+        "module_connector": {"type": "jst_xh_2.5" if fam_port == "jst_xh" else "jst_ph_2.0", "pin_order": [p["name"] for p in port_pins],
+                             "location": f"backplane end: {port_housing}; module end: {mod_desc}"},
+        "backplane_end": {"family": fam_port, "housing": port_housing, "slots": list(slots),
+                          "positions": [{"pos": p["pin"], "port_pin_name": p["name"]} for p in port_pins]},
+        "module_end": {"family": mod_family, "housings": housings},
+        "pinning": pinning, "made_to_drawing": made, "crossed": crossed, "straight_through": not made,
+        "drawing": drawing, "sku": f"{drawing}-{L}", "sku_kind": "drawing", "length_mm": L, "fits": sorted(fits),
+        "design_harness": True,
+        "backplane_harness": {"backplane_connector": f"{FAM_LABEL[fam_port]} {n}p ({'/'.join(slots)})", "wires": [], "length_mm": L},
+        "aperture": {"needs": "none", "size_mm": {"w": 0, "h": 0, "d": 0}, "notes": "internal"},
+        "electrical": {"supply_v": "n/a", "logic_v": "n/a", "current_ma_typ": 0, "current_ma_max": 0, "bus": "n/a (harness)"},
+        "firmware": {"arduino_libraries": [], "driver_notes": ""},
+        "kicad": {"backplane_footprint": "NONE", "notes": f"backplane end mates the slot header ({'/'.join(slots)})"},
+        "sourcing_in": [],
+        "factory_make": {
+            "by": "factory", "drawing": drawing, "made_to_drawing": made, "crossed": crossed,
+            "backplane_end": {"housing": port_housing, "crimp": CRIMP[fam_port]},
+            "module_end": {"family": mod_family, "housings": [h["housing"] for h in housings], "crimp": CRIMP[mod_family]},
+            "stock": pig, "steps": steps,
+            "test": "continuity and pin-map test of every unit against the drawing's position table",
+            "price_basis": "blueprint §3.3 rows 06/07 planning range 30-100 INR per harness (estimate; no harness quote yet)",
+        },
+        "price_inr_planning": [30, 100],
+        "evidence": ["blueprint §3.3 rows 06 (keyed 4-pin module cable) and 07 (keyed 3-pin actuator cable): planning range 30-100 INR",
+                     "backplane-end pin order from library/backplane-v1.json slot pins; module-end positions from the fitting modules' "
+                     "module_connector.pin_order (or rows) mapped by pin name"],
+        "uncertain": (["pin count not in the blueprint catalog: proposed row " + row + "; planning price borrowed from rows 06/07"]
+                      if cat_id is None and row != "07" else [])
+                     + ["no retail listing for this exact double-ended harness: made by our factory to the drawing; price is the "
+                        "planning range only", "housing dimensions are estimates; wire gauge not chosen"] + list(extra_uncertain),
+        "slots": list(slots), "proposed_row": cat_id is None and fam_port == "jst_ph" and n in (2, 6, 8),
+    }
+
+
+def _fits_base(m: dict, g: dict, slot_of: dict) -> bool:
+    """True when a module on one of the group's ports uses the base row: factory pre-wired, or the same housing family as
+    the port with a straight position table."""
+    pv1 = m.get("backplane_v1") or {}
+    if not pv1.get("supported") or not set(pv1.get("slots") or []) & set(g["slots"]) or not pv1.get("cable"):
+        return False
+    if m.get("prewire"):
+        return True
+    fam, hs = module_end_layout(m, slot_of[g["slots"][0]])
+    return fam == g["family"] and len(hs) == 1 and [p[2]["pin"] if p[2] else 0 for p in hs[0]] == list(range(1, g["n"] + 1))
+
+
+def foundation_cables(mods: list[dict], bp: dict, notes: list[str]) -> list[dict]:
+    """Base harnesses (same housing both ends, straight-through) for every port group, the straight Dupont 1xN rows for the
+    3- and 4-pin PH ports, and one row per distinct module-end position table needed by a library module."""
+    out: dict[str, dict] = {}
+    groups = port_groups(bp)
+    by_slot = {sid: g for g in groups for sid in g["slots"]}
+    slot_of = {s["id"]: s for s in bp["slots"]}
+
+    def add(row):
+        if row["id"] in out:
+            raise SystemExit(f"cable id clash {row['id']}")
+        out[row["id"]] = row
+
+    variants: dict[tuple, dict] = {}  # (family, n, port names, kind, layout) -> {id stem, housings, fits}
+    for m in mods:
+        pv1 = m.get("backplane_v1") or {}
+        if not pv1.get("supported") or not pv1.get("cable") or m.get("prewire"):
+            continue
+        slot = slot_of[pv1["slots"][0]]
+        g = by_slot[slot["id"]]
+        fam, hs = module_end_layout(m, slot)
+        if fam is None or not hs:
+            notes.append(f"{m['id']}: module connector {(m.get('module_connector') or {}).get('type')!r} has no harness family; "
+                         "electrical falls back to the base harness made to drawing")
+            continue
+        housings = [{"housing": HOUSING[fam].format(n=len(h)), "positions": _positions(h)} for h in hs]
+        perm = _perm(housings)
+        straight = len(housings) == 1 and perm == list(range(1, g["n"] + 1))
+        if fam == g["family"] and straight:
+            continue  # base row fits
+        if fam == g["family"]:
+            kind = "X"
+        elif fam == "spade_2.8":
+            kind = f"SPADE28"
+        elif len(housings) == 1:
+            kind = f"DUPONT1X{len(hs[0])}"
+        else:
+            kind = "DUPONT" + "_".join(f"1X{len(h)}" for h in hs) if len({len(h) for h in hs}) > 1 else f"DUPONT{len(hs)}X1X{len(hs[0])}"
+        if fam == "dupont_2.54" and straight:
+            continue  # the straight Dupont row below fits
+        key = (g["family"], g["n"], tuple(sorted(g["slots"])), kind, tuple(perm))
+        v = variants.setdefault(key, {"g": g, "fam": fam, "kind": kind, "perm": perm, "hs": hs, "fits": [], "first": m})
+        v["fits"].append(m["id"])
+    # base rows + straight Dupont rows
+    for g in groups:
+        fam, n = g["family"], g["n"]
+        row, cat_id = CATALOG[(fam, n)]
+        code = FAM_CODE[fam]
+        base_h = [{"housing": HOUSING[fam].format(n=n), "positions": _positions([(p["pin"], p["name"], p) for p in g["pins"]], True)}]
+        fits = [m["id"] for m in mods if _fits_base(m, g, slot_of)]
+        for L in HARNESS_LENGTHS:
+            add(_cable_row(cid=f"CABLE_{code}_{n}P_{L}", name=f"{FAM_LABEL[fam]} {n}-pin harness, {HOUSING[fam].format(n=n).split(' (')[0]} both ends, {L} mm",
+                           fam_port=fam, n=n, slots=g["slots"], port_pins=g["pins"], L=L, mod_family=fam, housings=base_h,
+                           pinning="straight_through", drawing=f"GS-H-{code[3:]}{n}-{code[3:]}{n}", fits=fits, row=row, cat_id=cat_id,
+                           extra_uncertain=["factory pre-wired modules use this row with the module-end housing cut off; the "
+                                            "factory solders the wires to the module pads (see the module's prewire)"]))
+        if fam == "jst_ph" and n in (3, 4):
+            dh = [{"housing": HOUSING["dupont_2.54"].format(n=n), "positions": _positions([(p["pin"], p["name"], p) for p in g["pins"]], True)}]
+            for L in HARNESS_LENGTHS:
+                add(_cable_row(cid=f"CABLE_{code}_{n}P_DUPONT1X{n}_{L}",
+                               name=f"JST-PH 2.0 {n}-pin to Dupont 1x{n} female harness, {L} mm, straight-through",
+                               fam_port=fam, n=n, slots=g["slots"], port_pins=g["pins"], L=L, mod_family="dupont_2.54", housings=dh,
+                               pinning="straight_through", drawing=f"GS-H-PH{n}-D1X{n}", fits=[], row=row, cat_id=cat_id))
+    stems: set = set()
+    for v in variants.values():
+        g, fam, kind, perm = v["g"], v["fam"], v["kind"], v["perm"]
+        n, code = g["n"], FAM_CODE[g["family"]]
+        housings = [{"housing": HOUSING[fam].format(n=len(h)), "positions": _positions(h)} for h in v["hs"]]
+        row, cat_id = CATALOG[(g["family"], n)]
+        ptxt = ",".join(str(p or "-") for p in perm)
+        stem = f"CABLE_{code}_{n}P_{kind}"
+        always = kind.startswith("DUPONT1X") or kind == "X"  # a crossed single housing: the position table is in the id
+        suffix = f"_X{''.join(str(p) for p in perm)}" if (always or stem in stems) else ""
+        stems.add(stem)
+        drawing = f"GS-H-{code[3:]}{n}-{kind.replace('DUPONT', 'D').replace('SPADE28', 'SP28')}" + (suffix.replace("_", "-") if suffix else "")
+        if fam == "spade_2.8":
+            what = f"{len(housings)} x 2.8 mm female spade"
+        elif len(housings) == 1:
+            what = f"Dupont 1x{len(housings[0]['positions'])} female"
+        elif len({len(h["positions"]) for h in housings}) == 1:
+            what = f"{len(housings)} x Dupont 1x{len(housings[0]['positions'])} female"
+        else:
+            what = " + ".join(f"Dupont 1x{len(h['positions'])}" for h in housings) + " female"
+        extra = []
+        if v["first"]["id"] == "MIC_INMP441_I2S":
+            extra.append((v["first"]["module_connector"] or {}).get("rows_basis", ""))
+        for L in HARNESS_LENGTHS:
+            add(_cable_row(cid=f"{stem}_{L}{suffix}",
+                           name=f"{FAM_LABEL[g['family']]} {n}-pin to {what} harness, {L} mm, made to drawing {drawing} "
+                                f"(module-end positions = port pins {ptxt})",
+                           fam_port=g["family"], n=n, slots=g["slots"], port_pins=g["pins"], L=L, mod_family=fam, housings=housings,
+                           pinning="drawing", drawing=drawing, fits=v["fits"], row=row, cat_id=cat_id, extra_uncertain=extra))
+    return list(out.values())
+
+
+# ---------------------------------------------------------------------------------------------- sourcing (REVIEW-1 MAJ-24, MIN-25)
+UPDATES = LIB / "sourcing-updates.json"
+REFS_INDEX = LIB / "references" / "index.json"   # curated, dated corrections and new listings (each names its snapshot); sources stay verbatim
+# vendor -> (domains its URLs must be on, fulfilment country, retail?)
+VENDORS = {
+    "electropi": (("electropi.in",), "IN", True), "robocraze": (("robocraze.com",), "IN", True),
+    "robo bazar": (("robobazar.in",), "IN", True), "robu": (("robu.in",), "IN", True), "hubtronics": (("hubtronics.in",), "IN", True),
+    "digikey india": (("digikey.in",), "US", True), "digikey": (("digikey.in", "digikey.com"), "US", True), "thinkrobotics": (("thinkrobotics.com",), "IN", True),
+    "fabtolab": (("fabtolab.com",), "IN", True), "probots": (("probots.co.in",), "IN", True), "evelta": (("evelta.com",), "IN", True),
+    "quartz components": (("quartzcomponents.com",), "IN", True), "amazon.in": (("amazon.in",), "IN", True),
+    "indiamart": (("indiamart.com",), "IN", False), "thingbits": (("thingbits.in",), "IN", True), "ibots": (("ibots.in",), "IN", True),
+    "rytronics": (("rytronics.in",), "IN", True), "kitsguru": (("kitsguru.com",), "IN", True), "robocomp": (("robocomp.in",), "IN", True),
+    "pimoroni": (("pimoroni.com",), "GB", True), "robodo": (("robodo.in",), "IN", True), "rees52": (("rees52.com",), "IN", True),
+    "dna technology": (("dnatechindia.com",), "IN", True), "zbotic": (("zbotic.in",), "IN", True),
+    "sunrom": (("sunrom.com",), "IN", True),
+}
+SKU_RES = [re.compile(r"\b(PRO\d{3,5}|TH\d{4}|SBC\d{3,5}|TIFEC\d{3,5}|COM\d{4})\b"), re.compile(r"\bSKU[:\s]+([A-Z0-9][A-Za-z0-9-]{3,})"),
+           re.compile(r"\bRobu SKU (R\d{4,8})\b")]
+OOS_RE = re.compile(r"out of stock|sold out|backorder|notify me|out-of-stock", re.I)
+INS_RE = re.compile(r"\bin stock\b|\d+ in stock", re.I)
+
+
+def vendor_key(v: str) -> str | None:
+    low = str(v or "").lower()
+    return next((k for k in VENDORS if low.startswith(k)), None)
+
+
+def host_of(url: str | None) -> str:
+    h = re.sub(r"^https?://", "", str(url or "")).split("/")[0].lower()
+    return re.sub(r"^(www|m|shop)\.", "", h)
+
+
+def load_updates() -> dict:
+    return json.loads(UPDATES.read_text(encoding="utf-8")) if UPDATES.exists() else {"updates": [], "add": [], "drop": []}
+
+
+def _match(row: dict, mt: dict) -> bool:
+    return all((str(row.get(k) or "").lower().startswith(str(v).lower()) if k == "vendor" else str(v) in str(row.get(k) or ""))
+               for k, v in mt.items())
+
+
+def apply_updates(m: dict, upd: dict, notes: list[str]) -> None:
+    rows = m.setdefault("sourcing_in", [])
+    for d in upd.get("drop", []):
+        if d["module"] == m["id"]:
+            keep = [r for r in rows if not _match(r, d["match"])]
+            if len(keep) != len(rows):
+                m.setdefault("merge_notes", []).append(f"sourcing row {d['match']} dropped: {d['why']}")
+            rows[:] = keep
+    for u in upd.get("updates", []):
+        if u["module"] != m["id"]:
+            continue
+        hits = [r for r in rows if _match(r, u["match"])]
+        if not hits:
+            notes.append(f"sourcing update for {m['id']} {u['match']} matched no row")
+        for r in hits:
+            r.update(u["set"])
+    for a in upd.get("add", []):
+        if a["module"] == m["id"]:
+            rows.append(dict(a["row"]))
+    for f in upd.get("module_fields", []):
+        if f["module"] == m["id"]:
+            for k, v in f["set"].items():
+                m.setdefault("merge_notes", []).append(f"{k} set by sourcing-updates.json: {f.get('why', '')}")
+                m[k] = v
+
+
+def sourcing_pass(m: dict) -> list[str]:
+    """Backfill sku / stock / checked_at / fulfilment_country / retail from each row's own text, lint URL host vs vendor,
+    and mark the chosen row with a structured selection_reason. Returns lint issues."""
+    issues = []
+    rp = m.get("reference_product") or {}
+    for r in m.get("sourcing_in") or []:
+        txt = f"{r.get('notes') or ''}"
+        if not r.get("sku"):
+            sku, kind = None, None
+            for rx in SKU_RES:
+                mm = rx.search(txt)
+                if mm:
+                    sku, kind = mm.group(1), "vendor_sku"
+                    break
+            if sku is None and "digikey" in host_of(r.get("url")):
+                parts = str(r.get("url")).rstrip("/").split("/")
+                if len(parts) >= 3 and "detail" in parts:
+                    sku, kind = parts[parts.index("detail") + 2], "mpn"
+            if sku is None and r.get("url") and r.get("url") == rp.get("product_url"):
+                mm = SKU_RES[0].search(str(rp.get("mpn_or_model") or ""))
+                if mm:
+                    sku, kind = mm.group(1), "vendor_sku"
+            if sku:
+                r["sku"], r["sku_kind"], r["sku_basis"] = sku, kind, "parsed from the row's notes/url (library text)"
+            else:
+                r["sku"] = None
+        if not r.get("stock"):
+            if re.search(r"stock state unclear", txt, re.I):
+                r["stock"] = "unknown"
+            elif OOS_RE.search(txt):
+                r["stock"] = "out_of_stock"
+            elif INS_RE.search(txt):
+                r["stock"] = "in_stock"
+            else:
+                r["stock"] = "unknown"
+            r.setdefault("stock_basis", "parsed from the row's notes" if r["stock"] != "unknown" else "not recorded")
+        if not r.get("checked_at"):
+            r["checked_at"] = r.get("seen_on")  # ISO 8601 date; time of day not recorded by the library agents
+            r["checked_at_precision"] = "date"
+        vk = vendor_key(r.get("vendor"))
+        if vk is None:
+            issues.append(f"{m['id']}: unknown vendor {r.get('vendor')!r} (add it to VENDORS)")
+            r.setdefault("fulfilment_country", None)
+            continue
+        doms, country, retail = VENDORS[vk]
+        r.setdefault("fulfilment_country", country)
+        r["retail"] = retail
+        if country != "IN":
+            r.setdefault("import_risk", f"ships from {country}: customs duty, courier and lead time are not in the quote")
+        h = host_of(r.get("url"))
+        r["host_ok"] = bool(h) and any(h == d or h.endswith("." + d) for d in doms)
+        if r.get("url") and not r["host_ok"]:
+            issues.append(f"{m['id']}: {r.get('vendor')} row links to {h}, not {'/'.join(doms)}")
+        if re.match(r"\s*DIFFERENT\b", txt):
+            r.setdefault("same_part", False)
+    rows = m.get("sourcing_in") or []
+    if rows:
+        def price(r):
+            v = r.get("price_inr_seen")
+            return float(v) if isinstance(v, (int, float)) else None
+
+        def score(r):
+            return (not r.get("host_ok", True), r.get("same_part") is False, not r.get("retail", True), not r.get("url"),
+                    r.get("stock") == "out_of_stock", str(r.get("status")) != "page_read", price(r) is None,
+                    r.get("fulfilment_country") != "IN")
+        ranked = sorted(range(len(rows)), key=lambda i: (score(rows[i]), i))
+        best = rows[ranked[0]]
+        for r in rows:
+            r.pop("selected", None)
+        best["selected"] = True
+        others = [rows[i] for i in ranked[1:]]
+        why = []
+        if best.get("same_part") is not False and any(o.get("same_part") is False for o in others):
+            why.append("same part as the reference (others are different parts)")
+        if best.get("stock") != "out_of_stock" and any(o.get("stock") == "out_of_stock" for o in others):
+            why.append("in stock or stock unknown where others are out of stock")
+        if str(best.get("status")) == "page_read" and any(str(o.get("status")) != "page_read" for o in others):
+            why.append("price read on the vendor's page (others: search snippets)")
+        if best.get("fulfilment_country") == "IN" and any(o.get("fulfilment_country") != "IN" for o in others):
+            why.append("ships from India")
+        if not why:
+            why.append("library order (the library agent's preference); no ranking rule separates the rows" if others else "only listing")
+        best["selection_reason"] = {"rule": "host matches vendor > same part > retail > has URL > not out of stock > page read > "
+                                            "price seen > ships from IN > library order",
+                                    "why": why, "alternatives": len(others)}
+        if best.get("fulfilment_country") not in (None, "IN"):
+            best["selection_reason"]["why"].append(f"no Indian listing of the same part: {best.get('import_risk')}")
+    return issues
+
+
+def finish_cable(m: dict) -> None:
+    """Module-end data for the non-design cable rows: single-ended PH pigtails (factory stock) and the in-box USB-C cable."""
+    if m.get("design_harness"):
+        return
+    if m.get("role") == "harness":
+        m["design_harness"] = False
+        m["module_end"] = {"family": "bare_wire", "housings": [],
+                           "note": "open tinned end: factory stock for made-to-drawing harnesses, never a design harness"}
+        sel = next((r for r in m.get("sourcing_in") or [] if r.get("selected")), None)
+        m["sku"] = (sel or {}).get("sku")
+    elif m.get("role") == "usb_cable":
+        m["module_end"] = {"family": "usb_c", "housings": [], "note": "USB-C plug both ends; ships in the box"}
+        sel = next((r for r in m.get("sourcing_in") or [] if r.get("selected")), None)
+        m["sku"] = (sel or {}).get("sku")
+
+
+def backplane_row_from_json(m: dict, bp: dict) -> None:
+    """REVIEW-1 MIN-24: the BACKPLANE_V1 row is regenerated from library/backplane-v1.json (pins, buses, holes, power,
+    evidence, uncertain); the library agent's PROPOSED allocation (BACKPLANE_S3_V0_CUSTOM) is dropped, not kept."""
+    pins = []
+    for sl in bp["slots"]:
+        if sl["kind"] not in ("port", "module_socket", "power_in"):
+            continue
+        for pn in sl["pins"]:
+            pins.append({"name": f"{sl['id']}.{pn['name']}", "slot": sl["id"], "pin": pn["pin"], "net": pn.get("net"),
+                         "gpio": pn.get("gpio") if pn.get("gpio") is not None else pn.get("source_gpio"),
+                         "func": pn.get("kind", "signal"), **({"via": pn["via"]} if pn.get("via") else {})})
+    m["pins"] = pins
+    buses = []
+    for b in bp["buses"]:
+        if b["type"] == "gpio":
+            buses.append("gpio (" + ", ".join(f"{k} GPIO{v}" for k, v in b["slots"].items()) + ")")
+        else:
+            gp = [f"{k} {v}" for k, v in b.items() if k in ("sda", "scl", "sck", "mosi", "miso", "bclk", "ws", "dout", "din", "enable", "gpio", "dp", "dn")]
+            buses.append(f"{b['type']} ({', '.join(gp)})")
+    pw = bp["power"]
+    m["electrical"] = {"supply_v": "5 (USB-C VBUS)", "logic_v": "3.3", "current_ma_typ": 0.0, "current_ma_max": float(pw["limits"]["limit_5v_ma"]),
+                       "bus": " | ".join(buses), "supply_rail": None, "current_basis": "library",
+                       "power": {"rails": pw["rails"], "devkit_isolation": pw["devkit_isolation"]["decision"],
+                                 "limits": pw["limits"]}}
+    m["mount"] = {"type": "holes", "holes": [{"x": h["at"][0], "y": h["at"][1], "d": h["d"]} for h in bp["board"]["holes"]],
+                  "hole_origin": "board lower-left corner, top view (library/backplane-v1.json frame)",
+                  "notes": f"{len(bp['cartridge']['holes'])} x M2.5 on printed bosses with heat-set inserts; "
+                           f"board top {bp['cartridge']['board_top_above_floor']} mm above the inner floor"}
+    m["reference_product"] = {"maker": "Gadget Studio (own design)", "mpn_or_model": f"{bp['id']} {bp['version']} (library/backplane-v1.json)",
+                              "product_url": None, "datasheet_url": None}
+    m["evidence"] = list(bp["evidence"])
+    m["uncertain"] = list(bp["uncertain"])
+    m["module_connector"] = {"type": "none", "pin_order": [], "location": "ports and sockets per library/backplane-v1.json slots"}
+    m.setdefault("merge_notes", []).append("pins, electrical, mount, evidence and uncertain regenerated from backplane-v1.json "
+                                           "(REVIEW-1 MIN-24); the proposed BACKPLANE_S3_V0_CUSTOM allocation is not kept")
+
+
+BRAND = re.compile(r"\bQuarktex\b")
+
+
+def fix_branding(m: dict) -> None:
+    """No company branding inside the product data: our own parts are 'Gadget Studio' parts."""
+    rp = m.get("reference_product")
+    if isinstance(rp, dict) and BRAND.search(str(rp.get("maker") or "")):
+        rp["maker"] = BRAND.sub("Gadget Studio", rp["maker"])
+        m.setdefault("merge_notes", []).append("reference_product.maker: company name replaced by 'Gadget Studio' (no branding in product data)")
 
 
 def merge() -> tuple[list[dict], list[str]]:
@@ -252,16 +726,22 @@ def merge() -> tuple[list[dict], list[str]]:
             m = dict(m)
             m["source_file"] = f.name
             rows.append(m)
-    for m in foundation_cables():
-        if m["id"] in seen:
-            notes.append(f"generated cable id {m['id']} already exists in {seen[m['id']]}; kept the library one")
-            continue
-        seen[m["id"]] = "foundation"
-        m["source_file"] = "foundation (tools/merge_modules.py)"
-        ROLE[m["id"]] = "harness"
-        rows.append(m)
+    bp = json.loads(BACKPLANE.read_text(encoding="utf-8"))
+    upd = load_updates()
+    lint: list[str] = []
     out = []
-    for m in rows:
+    pending = list(rows)
+    cables_done = False
+    while pending:
+        m = pending.pop(0)
+        fix_branding(m)
+        if m["id"] in CONNECTOR_FIX:
+            mc = dict(m.get("module_connector") or {})
+            fx = CONNECTOR_FIX[m["id"]]
+            if "type" in fx and mc.get("type") != fx["type"]:
+                m.setdefault("merge_notes", []).append(f"module_connector.type {mc.get('type')!r} -> {fx['type']!r}: {fx['type_basis']}")
+            mc.update(fx)
+            m["module_connector"] = mc
         oid = m["id"]
         role = ROLE.get(oid)
         if role is None:
@@ -287,7 +767,7 @@ def merge() -> tuple[list[dict], list[str]]:
         m["face_mm"] = list(face) if face else None
         m["depth_mm"] = depth
         mc = (m.get("module_connector") or {}).get("type", "")
-        m["harness_clearance_mm"] = 10.0 if mc in ("header_2.54", "wire_leads", "jst_ph_2.0", "solder_pads") else 0.0
+        m["harness_clearance_mm"] = 10.0 if mc in ("header_2.54", "wire_leads", "jst_ph_2.0", "jst_xh_2.5", "solder_pads", "spade_2.8") else 0.0
         # requires_soldering = the person following BUILD_GUIDE must solder (coordinator 2026-11-01: we ship built devices).
         # Factory work is recorded separately: `prewire` (leads and pins fitted before assembly) and `factory_soldering`.
         if m["id"] in PREWIRE:
@@ -306,14 +786,15 @@ def merge() -> tuple[list[dict], list[str]]:
             pass
         elif mc == "solder_pads" or "solder 2 leads" in mc_loc or "solder" in mc_loc:
             m["requires_soldering"], m["requires_soldering_basis"] = True, "module connector is solder pads/eyelets (library text)"
-        elif mc in ("jst_ph_2.0",) or role in ("harness", "usb_cable", "adapter") or "spade" in mc_loc:
+        elif mc in ("jst_ph_2.0", "jst_xh_2.5") or role in ("harness", "usb_cable", "adapter") or "spade" in mc_loc:
             m["requires_soldering"], m["requires_soldering_basis"] = False, "plug-in connector or crimped spade (library text)"
-        elif role in ("screws", "inserts", "feet", "ties", "gasket", "label", "magnet", "diffuser", "cartridge", "panel",
+        elif role in ("screws", "inserts", "feet", "ties", "gasket", "label", "magnet", "diffuser", "cartridge", "panel", "storage_card",
                       "servo_bracket", "servo_horn", "backplane", "power_in", "test_interface"):
             m["requires_soldering"], m["requires_soldering_basis"] = False, "mechanical/consumable or PCB-assembled part"
         else:
             m["requires_soldering"], m["requires_soldering_basis"] = None, "unknown: the library does not say whether the header comes fitted"
 
+        apply_updates(m, upd, notes)
         for row in m.get("sourcing_in") or []:
             txt = (str(row.get("notes", "")) + " " + str(row.get("status", ""))).lower()
             if re.search(r"incl\.?\s*(18%\s*)?gst|inclusive of gst|including gst|incl gst", txt):
@@ -324,6 +805,8 @@ def merge() -> tuple[list[dict], list[str]]:
                 row.setdefault("gst", None)
             mm = re.search(r"pack of (\d+)|(\d+)\s*(?:pcs|pieces|pc)\b", txt + " " + str(row.get("name", "")).lower())
             row.setdefault("pack_size", int(mm.group(1) or mm.group(2)) if mm else None)
+        lint += sourcing_pass(m)
+        finish_cable(m)
         # backplane binding
         pv1 = port_for(m, role)
         m["backplane_v1"] = pv1
@@ -366,6 +849,16 @@ def merge() -> tuple[list[dict], list[str]]:
             m["backplane_harness_library"] = bh
             m["backplane_harness"] = {"backplane_connector": f"socket {pv1['slots'][0]} on the backplane", "wires": [], "length_mm": 0}
         out.append(m)
+        if not pending and not cables_done:
+            cables_done = True
+            for c in foundation_cables(out, bp, notes):
+                if c["id"] in seen:
+                    notes.append(f"generated cable id {c['id']} already exists in {seen[c['id']]}; kept the library one")
+                    continue
+                seen[c["id"]] = "foundation"
+                c["source_file"] = "foundation (tools/merge_modules.py)"
+                ROLE[c["id"]] = "harness"
+                pending.append(c)
     # backplane entry follows backplane-v1.json
     if BACKPLANE.exists():
         bp = json.loads(BACKPLANE.read_text(encoding="utf-8"))
@@ -379,6 +872,7 @@ def merge() -> tuple[list[dict], list[str]]:
                 m["depth_mm"] = 17.6
                 m["kicad"] = {"backplane_footprint": "NONE", "notes": "see library/backplane-v1.json parts[] for every footprint"}
                 m.setdefault("merge_notes", []).append("renamed from BACKPLANE_S3_V0_CUSTOM; geometry now from backplane-v1.json")
+                backplane_row_from_json(m, bp)
             if m["id"] == "USBC_RECEPTACLE_GCT_USB4105":
                 slot = next(x for x in bp["slots"] if x["id"] == "J_PWR")
                 k = dict(m.get("kicad") or {})
@@ -387,6 +881,15 @@ def merge() -> tuple[list[dict], list[str]]:
                     k["backplane_footprint"] = slot["footprint"]
                 k["alt_footprint"] = slot.get("alt_footprint")
                 m["kicad"] = k
+    # REVIEW-1 MIN-23: the saved sources (library/references/index.json, sha256 per file) each module's data rests on
+    refs_ix = REFS_INDEX.exists() and json.loads(REFS_INDEX.read_text(encoding="utf-8")) or {"files": []}
+    for m in out:
+        files = [{"path": "references/" + f["path"], "sha256": f["sha256"], "url": f.get("url"), "fetched_at": f.get("fetched_at"),
+                  "kind": f.get("kind"), "covers": f.get("covers", [])}
+                 for f in refs_ix["files"] if m["id"] in (f.get("used_by") or [])]
+        if files:
+            m["evidence_files"] = sorted(files, key=lambda f: f["path"])
+    notes += [f"lint: {x}" for x in lint]
     order = {r: i for i, r in enumerate(sorted({m["catalog_row"] for m in out}))}
     out.sort(key=lambda m: (order[m["catalog_row"]], m["id"]))
     return out, notes
@@ -429,22 +932,24 @@ def readme(mods: list[dict], notes: list[str]) -> str:
           "`sourcing_in[].variant`/`same_part` flag pre-wired listings that are a different physical part. `sourcing_in[].gst` "
           "(`incl`/`excl`/null, parsed from the row's notes) and `sourcing_in[].pack_size` (parsed, else null).",
           "- `backplane_harness_library`: the library agent's original harness proposal when backplane-v1 differs.", "",
-          "## Connector policy (backplane-v1) and proposed catalog rows", "",
-          "One family, JST-PH 2.0 vertical, keyed. All PH ports carry 3.3 V except `J_LED` (5 V supply, 5 V data through the "
-          "74AHCT1G125 buffer), which is labelled 'LED 5V'. Every 3-pin IO module in this library accepts 3.3-5 V and its output "
-          "would only meet the buffer, so a mis-plug into `J_LED` does not reach a GPIO.", "",
-          "Blueprint rows 06 (4-pin) and 07 (3-pin) cover I2C and IO cables. backplane-v1 also needs these cable rows "
-          "(proposed, not yet in the blueprint catalog):", "",
-          "| proposed row | cable | used by |", "|---|---|---|",
-          "| 06b | JST-PH 2-pin speaker lead, 100-300 mm | `J_SPK` (speaker) |",
-          "| 06c | JST-PH 6-pin to Dupont 1x6, 100-300 mm | `J_MIC` (INMP441) |",
-          "| 06d | JST-PH 8-pin to JST-PH 8-pin, same order, 100-300 mm | `J_DISP` (Waveshare 2in LCD) |",
-          "| 06e | JST-PH 3-pin to servo 3-way 2.54 plug adapter | `J_LED` when it drives a servo |",
-          "| 06f | JST-PH 5-pin / 6-pin | encoder / DRV8833: not on backplane-v1, kept for backplane-v2 |",
+          "## Connector policy (backplane-v1) and harness rows", "",
+          "Ports are keyed JST-PH 2.0 (3.3 V) except `J_LED`, which is JST-XH 2.5 (B3B-XH-A, 5 V supply and 5 V data through "
+          "the 74AHCT1G125 buffer, silkscreen 'LED 5V'; REVIEW-1 MAJ-3). Rule checked by `tools/gen_backplane_v1.py`: two ports "
+          "with the same connector family and pin count carry the same supply, so no lead fits a port at the wrong voltage.", "",
+          "Every design harness row (`design_harness: true`, generated here from the backplane ports and the modules on them) "
+          "names ONE module-end family (`jst_ph`, `jst_xh`, `dupont_2.54` or `spade_2.8`) and its position table "
+          "(`module_end.housings[].positions[]`: port pin, module pin, wire colour), plus `sku`, `drawing` and a `factory_make` "
+          "entry (made by our factory to the drawing; no retail listing exists for these exact double-ended leads). Rows:", "",
+          "| id pattern | module end | used by |", "|---|---|---|",
+          "| `CABLE_JSTPH_<n>P_<len>` | PHR-n, same order | J_SPK speaker lead (factory pre-wired), J_DISP Waveshare LCD |",
+          "| `CABLE_JSTXH_3P_<len>` | XHP-3, same order | J_LED leads (factory pre-wired to the LED pads) |",
+          "| `CABLE_JSTPH_{3,4}P_DUPONT1X{3,4}_<len>` | Dupont 1xn, straight-through | modules whose header order equals the port |",
+          "| `..._DUPONT1X<k>_<len>_X<order>` | Dupont 1xk, made to drawing | header modules whose order differs (e.g. X2143 = OLED VCC,GND,SCL,SDA) |",
+          "| `CABLE_JSTPH_6P_DUPONT2X1X3_<len>` | 2 x Dupont 1x3, made to drawing | INMP441 (L/R,WS,SCK + SD,VDD,GND) |",
+          "| `CABLE_JSTPH_3P_SPADE28_<len>` | 2 x 2.8 mm female spade | arcade button microswitch COM/NO |",
           "",
-          "Harness modules `CABLE_JSTPH_<n>P_<len>` (n = 2, 3, 4, 6, 8; len = 100/150/200/300 mm) are generated by "
-          "`tools/merge_modules.py` and referenced by `spec.derived.harness[].module`. 3-pin and 4-pin map to rows 07/06; "
-          "2, 6 and 8-pin are proposed rows 06b/06c/06d with the 06/07 planning price (marked `backplane_v1.proposed_row`).",
+          "len = 100/150/200/300 mm. `CABLE_JSTPH_{3,4}P_300MM` are single-ended Evelta pigtails kept as factory stock "
+          "(`design_harness: false`). `gstudio.electrical.select_cable` picks the row whose position table matches the module.",
           "| 02a | 2 x 1x22, 1x7, 1x6, 2 x 1x1 female 2.54 sockets | DevKitC, amp and microSD sockets on the backplane |", "",
           "## Rules worth knowing", "",
           "- I2C clash: `IMU_MPU6050_GY521` and `RTC_DS3231_ZS042` both default to 0x68. Normalize rejects the pair unless the "

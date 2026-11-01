@@ -27,7 +27,7 @@ def _benchmark_to_ready(authed):
     assert 1 <= len(qs) <= 3 and all(q["consequence"] and len(q["options"]) >= 2 for q in qs)
     assert "microphone" in ch["text"]
     assert ch["payload"]["defaults"] and "India" in ch["text"]
-    assert events_named(evs, "project.renamed")[0]["name"] == "Bedtime Story Robot"
+    assert events_named(evs, "project.renamed")[0]["name"] == "Story Time Bot"
     seqs = [d["seq"] for _, d in evs]
     assert seqs == sorted(seqs) and len(set(seqs)) == len(seqs)
     # 2. answers -> concepts
@@ -57,7 +57,10 @@ def _benchmark_to_ready(authed):
     assert brief["purpose"]["source"] == "user" and brief["power"]["source"] == "suggested"
     assert all(f["source"] in ("user", "suggested") and f["evidence"] for f in brief["functions"])
     assert brief["size"]["source"] == "suggested" and brief["parts"][0]["evidence"]
-    assert brief["details"][0]["topic"] == "Sourcing country"
+    # MAJ-28: the subject the user named comes first, quoted from the prompt; then the model's details
+    assert brief["details"][0] == {"topic": "Subject", "value": "A robot", "source": "user",
+                                   "evidence": 'You wrote: "a cute robot"'}
+    assert brief["details"][1]["topic"] == "Sourcing country"
     p = authed.get(f"/api/projects/{pid}").json()
     assert p["stage"] == "brief" and p["selected_concept"] == cons[0]["id"]
     # 4. Build this -> progress -> result
@@ -73,7 +76,7 @@ def _benchmark_to_ready(authed):
     final = events_named(evs, "project")[-1]["project"]
     assert final["stage"] == "ready" and final["current_version"] == 1 and final["brief"]["approved"]
     assert final["versions"][0]["brief_version"] == 1
-    assert final["name"] == "Bedtime Story Robot"
+    assert final["name"] == "Story Time Bot"
     st = authed.get(f"/api/projects/{pid}/v/1/status").json()
     assert st["draft_url"] is None and st["messages"]          # finished: the draft is no longer offered
     assert authed.get(f"/api/projects/{pid}/v/1/files/cad/draft.glb").content[:4] == b"glTF"
@@ -203,7 +206,7 @@ def test_turn_conflict_and_bad_actions(authed):
 
 def test_project_crud(authed):
     pid = _new(authed)
-    assert authed.patch(f"/api/projects/{pid}", json={"name": "Moon Hug"}).json()["name"] == "Moon Hug"
+    assert authed.patch(f"/api/projects/{pid}", json={"name": "Lullaby Pod"}).json()["name"] == "Lullaby Pod"
     assert authed.patch(f"/api/projects/{pid}", json={"mode": "fast"}).json()["mode"] == "fast"
     assert authed.patch(f"/api/projects/{pid}", json={"mode": "x"}).status_code == 422
     assert authed.get("/api/projects/p_doesnotexist").status_code == 404
@@ -259,3 +262,24 @@ def test_enrich_status_draft_and_lines(tmp_path):
                                      "messages": [{"at": "t", "stage": "cad", "text": "Modelled the shell."}]})
     assert b["draft_url"].endswith("?rev=7") and b["messages"] == [{"text": "Modelled the shell.", "ts": "t", "stage": "cad"}]
     assert enrich_status(st, "p_x", 1, {"state": "done"})["draft_url"] is None
+
+
+def test_maj35_decor_pick_is_scoped_to_its_spec_path(authed):
+    """REVIEW-1 MAJ-35 (integration): the viewer selects PRINT_Shell#decor[i]; the edit turn is scoped to decor[i] with its label."""
+    import urllib.parse
+
+    pid = _benchmark_to_ready(authed)
+    store = authed.app.state.svc.store
+    key = f"projects/{pid}/v1/cad/components.json"
+    comps = store.read_json(key) or {}
+    shell = next((k for k in comps if k.startswith("PRINT_Shell")), "PRINT_Shell")
+    comps.setdefault(shell, {"kind": "PRINT", "label": "main shell"})
+    comps[shell]["decor"] = [{"name": f"{shell}#decor[0]", "spec_path": "decor[0]", "label": "face plate"},
+                             {"name": f"{shell}#decor[1]", "spec_path": "decor[1]", "label": "ears"}]
+    store.write_json(key, comps)
+    name = urllib.parse.quote(f"{shell}#decor[1]", safe="")
+    evs = sse(authed, "POST", f"/api/projects/{pid}/parts/{name}/edit", json={"instruction": "make them rounder"})
+    um = events_named(evs, "turn.start")[0]["user_message"]
+    assert um["payload"]["action"] == "edit_part"
+    assert um["payload"]["spec_path"] == "decor[1]" and um["payload"]["label"] == "ears"
+    assert um["text"].startswith("Edit ears")

@@ -25,6 +25,35 @@ from typing import Any, Iterable, Optional
 _PKG = Path(__file__).resolve().parent
 
 
+# ---------------------------------------------------------------------------------------------- harness families
+# REVIEW-1 BLK-2/BLK-3: each design harness row has ONE module-end termination family.
+CABLE_FAMILIES = ("jst_ph", "jst_xh", "dupont_2.54", "spade_2.8")
+_FAMILY_OF_CONNECTOR = {"jst_ph_2.0": "jst_ph", "jst_ph": "jst_ph", "jst_xh_2.5": "jst_xh", "jst_xh": "jst_xh",
+                        "header_2.54": "dupont_2.54", "dupont_2.54": "dupont_2.54", "spade_2.8": "spade_2.8"}
+_PORT_FAMILY = {"JST-PH 2.0": "jst_ph", "JST-XH 2.5": "jst_xh"}
+
+
+def cable_family_for(module_connector_type: Optional[str]) -> Optional[str]:
+    """Harness module-end family that mates a module connector type: 'jst_ph_2.0' -> 'jst_ph', 'jst_xh_2.5' -> 'jst_xh',
+    'header_2.54' -> 'dupont_2.54' (female Dupont housing on the module's pin header), 'spade_2.8' -> 'spade_2.8'.
+    None when no stocked harness family mates it (solder pads, bare leads, qwiic, none): such a module needs factory
+    pre-wiring or a made-to-drawing lead."""
+    return _FAMILY_OF_CONNECTOR.get(str(module_connector_type or "").strip().lower())
+
+
+def port_family(slot: dict) -> Optional[str]:
+    """Connector family of a backplane port slot ('JST-PH 2.0' -> 'jst_ph', 'JST-XH 2.5' -> 'jst_xh')."""
+    return _PORT_FAMILY.get(str(slot.get("connector") or ""))
+
+
+def module_end_family(m: dict) -> Optional[str]:
+    """Module-end family a harness for this library module must have: 'factory_prewired' when the factory solders a lead
+    to the module (m['prewire'].lead), else cable_family_for(module_connector.type)."""
+    if (m.get("prewire") or {}).get("lead"):
+        return "factory_prewired"
+    return cable_family_for((m.get("module_connector") or {}).get("type"))
+
+
 class UnknownModule(KeyError):
     def __init__(self, mid: str, suggestions: list[str]):
         self.mid = mid
@@ -138,6 +167,23 @@ class Library:
         ok = {"imu", "rtc", "hall", "endstop", "servo", "touch", "temp_humidity", "pressure", "light_sensor"}
         return [m for m in self.modules if m.get("role") in ok and (m.get("backplane_v1") or {}).get("supported")]
 
+    def harness_rows(self, slot: Optional[str] = None, length_mm: Optional[int] = None) -> list[dict]:
+        """Design harness rows (generated CABLE_* rows with a module_end table), optionally for one port slot and length."""
+        out = []
+        for m in self.modules:
+            if m.get("role") != "harness" or not m.get("design_harness"):
+                continue
+            if slot is not None and slot not in ((m.get("backplane_end") or {}).get("slots") or []):
+                continue
+            if length_mm is not None and int(m.get("length_mm") or 0) != int(length_mm):
+                continue
+            out.append(m)
+        return out
+
+    def requires(self, mid: str) -> list[dict]:
+        """Parts this module needs bought with it (e.g. MICROSD_SPI_MODULE_5V -> the storage card): [{module, qty, why}]."""
+        return [dict(r) for r in (self.get(mid).get("requires") or []) if isinstance(r, dict) and r.get("module")]
+
     def price_range(self, mid: str) -> Optional[tuple[float, float]]:
         p = self.get(mid).get("price_inr_planning")
         return (float(p[0]), float(p[1])) if isinstance(p, (list, tuple)) and len(p) == 2 else None
@@ -224,4 +270,4 @@ class Library:
         return "\n".join(lines)
 
 
-__all__ = ["Library", "UnknownModule"]
+__all__ = ["Library", "UnknownModule", "CABLE_FAMILIES", "cable_family_for", "module_end_family", "port_family"]

@@ -102,9 +102,13 @@ static void test_mic_conversion_and_levels() {
 }
 
 static void test_pin_guard_locks_and_backs_off() {
-  TEST_ASSERT_TRUE(gs::pin_format_ok("2468"));
+  // MAJ-2: a new PIN needs 6 to 8 digits; a 4-digit PIN from an older firmware still unlocks.
+  TEST_ASSERT_TRUE(gs::pin_format_ok("246813"));
   TEST_ASSERT_TRUE(gs::pin_format_ok("12345678"));
-  TEST_ASSERT_FALSE(gs::pin_format_ok("123"));
+  TEST_ASSERT_FALSE(gs::pin_format_ok("12345"));
+  TEST_ASSERT_FALSE(gs::pin_format_ok("2468"));
+  TEST_ASSERT_TRUE(gs::pin_format_ok("2468", gs::kPinLegacyMinDigits));
+  TEST_ASSERT_FALSE(gs::pin_format_ok("123", gs::kPinLegacyMinDigits));
   TEST_ASSERT_FALSE(gs::pin_format_ok("123456789"));
   TEST_ASSERT_FALSE(gs::pin_format_ok("12a4"));
   gs::PinGuard g;

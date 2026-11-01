@@ -1,7 +1,9 @@
 """Silkscreen: port names, per-pin function names, pin-1 dots, board name/revision/ID, test-pad labels.
 
-Top: every populated port gets its name (I2C1, MIC, SPK, IO1, ...) and a vertical function label beside each
-pin, placed on the inward side of the connector where nothing else sits. Bottom: board name, revision,
+Top: every populated port gets its reference designator as the build guide names it (J_MIC, J_I2C1, A1, S1, J_PWR,
+plus U1 between the devkit sockets and BP1 in the title; REVIEW-1 MAJ-16), a function line where the id alone is not
+enough ("LED 5V", "USB-C", "AMP", "SD"; MAJ-3), and a function label beside each pin (backplane-v1 `slots[].silk`
+when present). Text boxes are measured with KiCad and kept clear of pads, other parts' silk outlines and other text. Bottom: board name, revision,
 design ID and an ID-label box (where the serial/QR sticker goes; it is a placeholder, not a code), plus
 labels for the factory test pads. Bottom text is mirrored so it reads correctly from below.
 """
@@ -36,24 +38,52 @@ def short_name(name: str) -> str:
 class Silk:
     def __init__(self, bb: BoardBuilder):
         self.bb = bb
+        self._dims: dict = {}
+        self.why = ""  # what blocked the last rejected silk box (for the skipped log)
         self.pads = bb.pad_boxes()
+        self.obstacles = self._obstacles()
         self.top_boxes: list[tuple] = []
         self.bot_boxes: list[tuple] = []
         self.skipped: list[str] = []
 
+    def _obstacles(self) -> dict[str, tuple]:
+        """Per footprint, what silk text must keep clear of: its own silkscreen outline (the body as printed) when it
+        has one, else its courtyard. Text may sit inside another connector's courtyard but never on its body or
+        outline (KiCad DRC flags silk over silk)."""
+        out = {}
+        f = self.bb.frame
+        for ref, fp in self.bb.fps.items():
+            xs, ys = [], []
+            for g in fp.GraphicalItems():
+                if g.GetLayer() == pcbnew.F_SilkS and g.GetClass() == "PCB_SHAPE":
+                    bbx = g.GetBoundingBox()
+                    for v in (bbx.GetOrigin(), bbx.GetEnd()):
+                        x, y = f.to_board(v)
+                        xs.append(x)
+                        ys.append(y)
+            out[ref] = (min(xs), min(ys), max(xs), max(ys)) if xs else self.bb.boxes[ref]
+        return out
+
     def _blocked(self, box, own: str | None, layer="top") -> bool:
         W, H = self.bb.d.width, self.bb.d.height
+        self.why = ""
         if box[0] < 0.4 or box[1] < 0.4 or box[2] > W - 0.4 or box[3] > H - 0.4:
+            self.why = "board edge"
             return True
         if any(_overlap(box, pb, 0.05) for pb in self.pads["top" if layer == "top" else "bottom"]):
+            self.why = "a pad"
             return True
         if layer == "top":
-            for ref, cb in self.bb.boxes.items():
+            for ref, cb in self.obstacles.items():
                 if ref == own or ref.startswith("TP"):
                     continue
-                if _overlap(box, cb, 0.1):
+                if _overlap(box, cb, 0.15):
+                    self.why = f"{ref} outline"
                     return True
-            return any(_overlap(box, b, 0.2) for b in self.top_boxes)
+            if any(_overlap(box, b, 0.2) for b in self.top_boxes):
+                self.why = "other silk text"
+                return True
+            return False
         for ref, cb in self.bb.boxes.items():
             if ref.startswith("TP") or ref.startswith("H") or ref.startswith("S1_POST"):
                 if _overlap(box, cb, 0.1):
@@ -62,6 +92,8 @@ class Silk:
 
     # -------------------------------------------------------------- ports
     def port(self, part: Part, name_label: bool = True):
+        """Per-pin function labels on the side with room, then the name block (designator + function line) wherever
+        it fits: beyond the pin labels, on the other side, or at either end of the pin row. Then the pin-1 dot."""
         fp = self.bb.fps[part.ref]
         pads = sorted([p for p in fp.Pads() if p.GetNumber()], key=lambda p: int(p.GetNumber()) if p.GetNumber().isdigit() else 0)
         if len(pads) < 1:
@@ -79,7 +111,7 @@ class Silk:
         W, H = self.bb.d.width, self.bb.d.height
         normals = [(round(-row[1], 6), round(row[0], 6)), (round(row[1], 6), round(-row[0], 6))]
 
-        def room(nv):  # free distance from the courtyard centre to the board edge along nv
+        def room(nv):  # free distance from the courtyard to the board edge along nv
             d = []
             if nv[0] > 0.5:
                 d.append(W - cb[2])
@@ -91,115 +123,180 @@ class Silk:
                 d.append(cb[1])
             return min(d) if d else 0.0
         candidates = sorted(normals, key=lambda nv: -room(nv))
-        placed = False
-        for pins_, name_ in ((True, name_label), (False, name_label), (True, False)):
-            for nv in candidates:
-                if self._port_side(part, pads, pos, row, nv, cb, pins_, name_):
-                    placed = True
+        names = [short_name(part.pin_names.get(p.GetNumber(), "")) for p in pads]
+        pitch = math.hypot(pos[1][0] - pos[0][0], pos[1][1] - pos[0][1]) if len(pos) > 1 else 2.5
+        pin_side = None
+        if len(pos) > 1 and pitch >= 1.9 and any(names):
+            why = []
+            # labels running away from the connector first; then short labels lying along the row (one per pin)
+            for across in (False, True):
+                for nv in candidates:
+                    got = self._pin_labels(part, pos, row, nv, cb, names, across=across, pitch=pitch)
+                    if got is not None:
+                        pin_side = (nv, got)
+                        break
+                    why.append(self.why)
+                if pin_side:
                     break
-            if placed:
-                break
-        if not placed and name_label:
-            placed = self._port_end(part, pos, row, cb)
-        if not placed:
-            self.skipped.append(part.ref)
+            if pin_side is None:
+                self.skipped.append(f"{part.ref} pin labels (blocked by {', '.join(sorted(set(w for w in why if w)))})")
+        if name_label:
+            label = part.label or (names[0] if len(pos) == 1 and names and names[0] else part.ref)
+            if not self._name_block(part, label, part.sub_label, pos, row, cb, candidates, pin_side):
+                self.skipped.append(part.ref)
         # pin-1 dot: just beyond pad 1 along the row, outside the body
         if len(pos) >= 2:
             half = max(abs((cb[2] - cb[0]) * row[0]), abs((cb[3] - cb[1]) * row[1])) / 2
             c_along = (cx - pos[0][0]) * row[0] + (cy - pos[0][1]) * row[1]
             d = c_along - half - 0.7  # negative: beyond pad 1 side
-            for k in (d, d + 0.0):
-                px, py = pos[0][0] + row[0] * k, pos[0][1] + row[1] * k
-                box = _text_box(px, py, 0.9, 0.9)
-                if not self._blocked(box, part.ref):
-                    self.bb.silk_shape("circle", ((px, py), 0.3), width=0.3, filled=True)
-                    self.top_boxes.append(box)
-                    break
-
-    def _port_end(self, part, pos, row, cb) -> bool:
-        """Port name beside the connector, beyond one end of its pin row."""
-        label = part.label or part.ref
-        size = 1.0
-        L = len(label) * CHAR_W * size
-        horizontal = abs(row[0]) >= abs(row[1])
-        for sgn in (-1, 1):
-            if horizontal:
-                x = (cb[0] - 0.4 - L / 2) if sgn < 0 else (cb[2] + 0.4 + L / 2)
-                y = (cb[1] + cb[3]) / 2
-                box, rot = _text_box(x, y, L, size), 0.0
-            else:
-                x = (cb[0] + cb[2]) / 2
-                y = (cb[1] - 0.4 - L / 2) if sgn < 0 else (cb[3] + 0.4 + L / 2)
-                box, rot = _text_box(x, y, size, L), 90.0
+            px, py = pos[0][0] + row[0] * d, pos[0][1] + row[1] * d
+            box = _text_box(px, py, 0.9, 0.9)
             if not self._blocked(box, part.ref):
-                self.bb.text(label, x, y, size, 0.18, rot)
+                self.bb.silk_shape("circle", ((px, py), 0.3), width=0.3, filled=True)
                 self.top_boxes.append(box)
-                return True
+
+    def dims(self, text: str, size: float, thick: float = 0.15) -> tuple[float, float]:
+        """(reading length, line height) in mm of an unrotated KiCad stroke-font text, measured by KiCad itself
+        (character widths differ a lot, so a per-character estimate lets short labels collide)."""
+        return self._measure(text, size, thick)[:2]
+
+    def _measure(self, text: str, size: float, thick: float) -> tuple[float, float, float, float]:
+        """(w, h, dx, dy): box size, and the box centre minus the text anchor in board axes (+y up), unrotated."""
+        key = (text, size, thick)
+        if key not in self._dims:
+            t = pcbnew.PCB_TEXT(self.bb.board)
+            t.SetText(text)
+            t.SetTextSize(pcbnew.VECTOR2I(pcbnew.FromMM(size), pcbnew.FromMM(size)))
+            t.SetTextThickness(pcbnew.FromMM(thick))
+            t.SetPosition(pcbnew.VECTOR2I(0, 0))
+            box = t.GetBoundingBox()
+            c = box.GetCenter()
+            self._dims[key] = (pcbnew.ToMM(box.GetWidth()), pcbnew.ToMM(box.GetHeight()),
+                               pcbnew.ToMM(c.x), -pcbnew.ToMM(c.y))
+        return self._dims[key]
+
+    def put(self, text: str, cx: float, cy: float, size: float, thick: float, rot: float = 0.0):
+        """Place a text so its measured box is centred on (cx, cy) (board coords), rot 0 or 90 (CCW)."""
+        _, _, dx, dy = self._measure(text, size, thick)
+        if rot == 90.0:
+            dx, dy = -dy, dx
+        return self.bb.text(text, cx - dx, cy - dy, size, thick, rot)
+
+    @staticmethod
+    def _extent(cb, origin, nv) -> float:
+        corners = [(cb[0], cb[1]), (cb[2], cb[1]), (cb[2], cb[3]), (cb[0], cb[3])]
+        return max((x - origin[0]) * nv[0] + (y - origin[1]) * nv[1] for x, y in corners)
+
+    def _pin_labels(self, part, pos, row, nv, cb, names, size=0.8, across=False, pitch=2.0):
+        """Function name beside each pin on side nv. across=False: the text runs away from the connector (fits any
+        length); across=True: the text lies along the pin row, one short label over each pin (only when every label
+        is narrower than the pin pitch). Returns the far edge distance (from the pad row), or None on a collision."""
+        e = self._extent(cb, pos[0], nv) + 0.25
+        vertical_row = abs(row[1]) > abs(row[0])
+        if across and max(self.dims(nm, size, 0.12)[0] for nm in names if nm) > pitch - 0.2:
+            self.why = "labels wider than the pitch"
+            return None
+        texts, boxes, far = [], [], e
+        for (x, y), nm in zip(pos, names):
+            if not nm:
+                continue
+            L, th = self.dims(nm, size, 0.12)
+            depth = th if across else L
+            c = e + depth / 2
+            tx, ty = x + nv[0] * c, y + nv[1] * c
+            if across:
+                rot = 90.0 if vertical_row else 0.0
+                w, h = (th, L) if vertical_row else (L, th)
+            else:
+                rot = 0.0 if vertical_row else 90.0
+                w, h = (L, th) if vertical_row else (th, L)
+            box = _text_box(tx, ty, w, h)
+            if self._blocked(box, part.ref):
+                self.why = f"{nm}: {self.why}"
+                return None
+            boxes.append(box)
+            texts.append((nm, tx, ty, rot))
+            far = max(far, e + depth)
+        for nm, tx, ty, rot in texts:
+            self.put(nm, tx, ty, size, 0.12, rot)
+        self.top_boxes.extend(boxes)
+        return far
+
+    GAP = 0.3  # mm between stacked lines
+
+    @staticmethod
+    def _thick(sz: float) -> float:
+        return 0.2 if sz >= 1.0 else 0.15
+
+    def _block(self, lines: list[str], size: float):
+        """(sizes, along, across): text lines stacked; 'along' = reading direction extent, 'across' = stack extent."""
+        sizes = [size] + [max(0.8, round(size - 0.2, 2))] * (len(lines) - 1)
+        d = [self.dims(t, sz, self._thick(sz)) for t, sz in zip(lines, sizes)]
+        along = max(w for w, _ in d)
+        across = sum(h for _, h in d) + self.GAP * (len(lines) - 1)
+        return sizes, along, across
+
+    def _draw_block(self, lines, sizes, cx, cy, along, across, rot):
+        """Draw stacked lines centred on (cx, cy). rot 0: lines top to bottom; rot 90: text reads upward, lines left
+        to right (the text's 'up' points to -x)."""
+        off = -across / 2
+        for t, sz in zip(lines, sizes):
+            h = self.dims(t, sz, self._thick(sz))[1]
+            c = off + h / 2
+            if rot == 0.0:
+                self.put(t, cx, cy - c, sz, self._thick(sz), 0.0)
+            else:
+                self.put(t, cx + c, cy, sz, self._thick(sz), 90.0)
+            off += h + self.GAP
+
+    def _name_block(self, part, label, sub, pos, row, cb, candidates, pin_side) -> bool:
+        vertical_row = abs(row[1]) > abs(row[0])
+        rot0 = 90.0 if vertical_row else 0.0  # text reads along the pin row
+        variants = ([[label, sub], [f"{label} {sub}"]] if sub else []) + [[label]]
+        mid = sum((x - pos[0][0]) * row[0] + (y - pos[0][1]) * row[1] for x, y in pos) / len(pos)
+        base = (pos[0][0] + row[0] * mid, pos[0][1] + row[1] * mid)
+        half_row = max(abs((cb[2] - cb[0]) * row[0]), abs((cb[3] - cb[1]) * row[1])) / 2
+        ccx, ccy = (cb[0] + cb[2]) / 2, (cb[1] + cb[3]) / 2
+        for lines in variants:
+            for size in (1.2, 1.0, 0.9):
+                sizes, along, across = self._block(lines, size)
+                spots = []  # (cx, cy, rot)
+                # beside the connector (beyond its pin labels on that side), text along the row
+                a_row, a_nrm = (across, along) if vertical_row else (along, across)
+                for nv in candidates:
+                    e = (pin_side[1] + 0.4) if pin_side and pin_side[0] == nv else self._extent(cb, pos[0], nv) + 0.3
+                    for slide in (0.0, 1.0, -1.0, 2.0, -2.0, 3.0, -3.0, 4.0, -4.0):
+                        c = e + a_nrm / 2
+                        spots.append((base[0] + nv[0] * c + row[0] * slide, base[1] + nv[1] * c + row[1] * slide, rot0))
+                # beyond either end of the pin row: text along the row, then standing across it
+                for rot in (rot0, 90.0 - rot0):
+                    along_row = along if (rot == 90.0) == vertical_row else across
+                    for sgn in (1.0, -1.0):
+                        c = half_row + 0.4 + along_row / 2
+                        for shift in (0.0, 1.0, -1.0, 2.0, -2.0, 3.0, -3.0):
+                            nv = candidates[0]
+                            spots.append((ccx + row[0] * c * sgn + nv[0] * shift,
+                                          ccy + row[1] * c * sgn + nv[1] * shift, rot))
+                for bx, by, rot in spots:
+                    w, h = (across, along) if rot == 90.0 else (along, across)
+                    box = _text_box(bx, by, w, h)
+                    if not self._blocked(box, part.ref):
+                        self._draw_block(lines, sizes, bx, by, along, across, rot)
+                        self.top_boxes.append(box)
+                        if len(lines) == 1 and sub and lines[0] == label:
+                            self.skipped.append(f"{part.ref} function line '{sub}'")
+                        return True
         return False
 
-    def _port_side(self, part, pads, pos, row, nv, cb, want_pins=True, want_name=True) -> bool:
-        """Try to place per-pin labels + the port name on side `nv` of the connector."""
-        # distance from pad row to courtyard edge along nv
-        def extent(nv_):
-            corners = [(cb[0], cb[1]), (cb[2], cb[1]), (cb[2], cb[3]), (cb[0], cb[3])]
-            return max((x - pos[0][0]) * nv_[0] + (y - pos[0][1]) * nv_[1] for x, y in corners)
-        e = extent(nv) + 0.35
-        size_pin = 0.8 if len(pos) > 1 else 1.0
-        vertical_row = abs(row[1]) > abs(row[0])
-        names = [short_name(part.pin_names.get(p.GetNumber(), "")) for p in pads]
-        pitch = math.hypot(pos[1][0] - pos[0][0], pos[1][1] - pos[0][1]) if len(pos) > 1 else 2.5
-        show_pins = want_pins and len(pos) > 1 and pitch >= 1.9
-        boxes = []
-        texts = []
-        maxlen = max((len(nm) for nm in names), default=1)
-        tl = maxlen * CHAR_W * size_pin + 0.2
-        if show_pins:
-            for (x, y), nm in zip(pos, names):
-                if not nm:
-                    continue
-                L = len(nm) * CHAR_W * size_pin
-                # text runs along nv (perpendicular to the row): vertical text for a horizontal row
-                c = e + L / 2
-                tx, ty = x + nv[0] * c, y + nv[1] * c
-                rot = 0.0 if vertical_row else 90.0
-                w, h = (L, size_pin) if vertical_row else (size_pin, L)
-                box = _text_box(tx, ty, w, h)
-                boxes.append(box)
-                texts.append((nm, tx, ty, rot, size_pin, 0.12))
-            e2 = e + tl + 0.45
-        else:
-            e2 = e
-        label = part.label or (names[0] if len(pos) == 1 and names and names[0] else part.ref)
-        size_l = 1.2 if len(label) > 1 else 1.0
-        L = len(label) * CHAR_W * size_l
-        mid_along = sum((x - pos[0][0]) * row[0] + (y - pos[0][1]) * row[1] for x, y in pos) / len(pos)
-        bx = pos[0][0] + row[0] * mid_along + nv[0] * (e2 + (L / 2 if not vertical_row else size_l / 2))
-        by = pos[0][1] + row[1] * mid_along + nv[1] * (e2 + (size_l / 2 if not vertical_row else L / 2))
-        rot = 0.0
-        if vertical_row and abs(nv[0]) > 0.5:
-            rot = 90.0
-            bx = pos[0][0] + row[0] * mid_along + nv[0] * (e2 + size_l / 2)
-            by = pos[0][1] + row[1] * mid_along
-            lbox = _text_box(bx, by, size_l, L)
-        elif not vertical_row:
-            bx = pos[0][0] + row[0] * mid_along
-            by = pos[0][1] + row[1] * mid_along + nv[1] * (e2 + size_l / 2)
-            lbox = _text_box(bx, by, L, size_l)
-        else:
-            lbox = _text_box(bx, by, L, size_l)
-        allb = boxes + ([lbox] if want_name else [])
-        if not allb:
+    def free_label(self, lines: list[str], prefer: tuple[float, float], size: float = 1.4, tag: str = "") -> bool:
+        """A name block anywhere free on the top silk, nearest to `prefer` (board coords)."""
+        sizes, along, across = self._block(lines, size)
+        spot = self.find_spot(along, across, "top", prefer)
+        if spot is None:
+            self.skipped.append(tag or lines[0])
             return False
-        if any(self._blocked(b, part.ref) for b in allb):
-            if show_pins:
-                # try just the port name right next to the connector
-                return False
-            return False
-        for nm, tx, ty, r, s, th in texts:
-            self.bb.text(nm, tx, ty, s, th, r)
-        if want_name:
-            self.bb.text(label, bx, by, size_l, 0.2, rot)
-        self.top_boxes.extend(allb)
+        self._draw_block(lines, sizes, spot[0], spot[1], along, across, 0.0)
+        self.top_boxes.append(_text_box(spot[0], spot[1], along, across))
         return True
 
     # -------------------------------------------------------------- reference designators

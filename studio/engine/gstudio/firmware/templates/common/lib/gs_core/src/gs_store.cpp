@@ -328,6 +328,34 @@ StoreResult MemoryStore::erase_all() {
   return commit(next);
 }
 
+StoreResult MemoryStore::drop_clips(const uint8_t* ids, uint8_t n, uint8_t* changed) {
+  if (changed) *changed = 0;
+  if (!writable()) return StoreResult::Refused;
+  Memory next = mem_;
+  uint8_t w = 0;
+  uint8_t touched = 0;
+  for (uint8_t i = 0; i < next.count; ++i) {
+    Favourite f = next.fav[i];
+    bool listed = false;
+    for (uint8_t k = 0; k < n && !listed; ++k) listed = ids[k] == f.id;
+    if (listed && (f.flags & kFavHasClip)) {
+      ++touched;
+      if (!(f.flags & kFavHasName)) {
+        if (next.last_hero == f.id) next.last_hero = 0;
+        continue;  // clip-only favourite: nothing left to keep
+      }
+      f.flags = uint8_t(f.flags & ~kFavHasClip);
+    }
+    next.fav[w++] = f;
+  }
+  for (uint8_t i = w; i < next.count; ++i) next.fav[i] = Favourite();
+  next.count = w;
+  if (!touched) return StoreResult::NoChange;
+  const StoreResult r = commit(next);
+  if (r == StoreResult::Ok && changed) *changed = touched;
+  return r;
+}
+
 StoreResult MemoryStore::set_volume(uint8_t volume) {
   if (!writable()) return StoreResult::Refused;
   if (volume > limits_.volume_max) return StoreResult::OutOfRange;

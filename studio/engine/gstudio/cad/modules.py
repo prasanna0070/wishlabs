@@ -322,23 +322,36 @@ def _speaker(d, det, prov, x, z):
 
 
 # ------------------------------------------------------------------------------------------------ fasteners
-def fasteners(lib_get) -> dict:
+PURCHASED_INSERT = "INSERT_HEATSET_M2_5X4_MEC8005"  # normalize.PURCHASED_INSERT (the BOM row)
+PURCHASED_FEET = "FEET_RUBBER_8X2_5_SUNROM_4436"  # normalize.PURCHASED_FEET (the BOM row)
+
+
+def fasteners(lib_get, hw_modules: dict | None = None) -> dict:
     """Fastener/foot/tie geometry, from the library when present (ids per library B), else provisional."""
     f = copy.deepcopy(P.FASTENERS)
     src = {}
-    ins = lib_get("INSERT_HEATSET_M2_5X4_STD")
+    # REVIEW-1 MAJ-12 (integration): the insert and feet the BOM buys are the ones the CAD models. The spec's hardware
+    # list (normalize) names them; the library defaults below follow normalize's PURCHASED_* choices.
+    hw = dict(hw_modules or {})
+    f["hw_modules"] = {k: v for k, v in hw.items() if k and v}  # CAD group -> purchased library row (PURCHASE_<group>.module_id)
+    ins_id = next((i for i in (hw.get("HeatSetInserts"), PURCHASED_INSERT, "INSERT_HEATSET_M2_5X4_STD") if i and lib_get(i)), None)
+    ins = lib_get(ins_id) if ins_id else None
     if ins:
         dm = ins.get("dims_mm", {})
         hole = ((ins.get("mount") or {}).get("holes") or [{}])[0].get("d", 4.0)
         f["insert"] = {"thread": "M2.5", "od": float(dm.get("x", 4.6)), "length": float(dm.get("z", 4.0)), "hole_d": float(hole),
-                       "hole_depth": float(dm.get("z", 4.0)) + 1.0, "boss_d": max(7.2, float(hole) + 3.2)}
-        src["insert"] = "library INSERT_HEATSET_M2_5X4_STD (hole depth = L + 1 mm melt room, design estimate)"
-    ft = lib_get("FEET_BUMPON_SJ5302_CLEAR")
+                       "hole_depth": float(dm.get("z", 4.0)) + 1.0, "boss_d": max(7.2, float(hole) + 3.2), "module": ins_id}
+        src["insert"] = (f"library {ins_id} (hole {float(hole):g} mm from the library row"
+                         + (", an estimate" if "ESTIMATE" in str(((ins.get("mount") or {}).get("holes") or [{}])[0].get("basis", "")) else "")
+                         + "; hole depth = L + 1 mm melt room, design estimate)")
+    ft_id = next((i for i in (hw.get("Feet"), PURCHASED_FEET, "FEET_BUMPON_SJ5302_CLEAR") if i and lib_get(i)), None)
+    ft = lib_get(ft_id) if ft_id else None
     if ft:
         dm = ft.get("dims_mm", {})
         dd, hh = float(dm.get("x", 7.9)), float(dm.get("z", 2.2))
-        f["foot"] = {"d": dd, "h": hh, "seat_d": dd + 0.8, "seat_depth": 0.6, "hemispherical": True}
-        src["foot"] = "library FEET_BUMPON_SJ5302_CLEAR (seat recess size is a design estimate)"
+        f["foot"] = {"d": dd, "h": hh, "seat_d": dd + 0.8, "seat_depth": 0.6,
+                     "hemispherical": "hemisph" in str(ft.get("name", "") + dm.get("notes", "")).lower(), "module": ft_id}
+        src["foot"] = f"library {ft_id} (seat recess size is a design estimate)"
     sc = lib_get("SCREW_SET_M2_M2_5_SHCS_A2")
     if sc:
         f["screw"] = {"d": 2.5, "clear_d": 2.8, "head_d": 4.5, "head_h": 2.5, "lengths": [5, 8, 10, 12, 16, 20, 25, 30]}

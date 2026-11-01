@@ -16,14 +16,15 @@ FACT = {
         "source": {"type": "string", "enum": ["user", "suggested"],
                    "description": "user = the user said or chose it; suggested = your default or proposal."},
         "evidence": {"type": "string",
-                     "description": "Short basis, e.g. 'You chose 5 yo old' or 'Default: offline stories keep a "
-                                    "child's audio on the device'."},
+                     "description": "Short basis. For source user, quote the user's stored words exactly, e.g. "
+                                    "'You said: \"<their exact answer>\"'. For suggested, give the reason, e.g. "
+                                    "'Default: <reason>'."},
     },
     "required": ["value", "source", "evidence"],
 }
 
 PROJECT_NAME = {"type": "string",
-                "description": "Only on your first reply: a 2-4 word project name, e.g. 'Bedtime Story Robot'."}
+                "description": "Only on your first reply: a 2-4 word project name, e.g. '<Adjective> <Subject> <Role>'; never a name from another product."}
 DEFAULTS = {"type": "array", "maxItems": 5, "items": {"type": "string"},
             "description": "Defaults you chose instead of asking, each short and changeable, e.g. "
                            "'Country: India (default)', 'Power: USB-C adapter'."}
@@ -37,9 +38,10 @@ TOOLS: dict[str, dict] = {
             "type": "object",
             "properties": {
                 "message": {"type": "string",
-                            "description": "One or two short sentences: what you will make and the defaults you "
-                                           "chose, e.g. 'I'll plan a small USB-powered robot and use India for parts "
-                                           "sourcing; both choices can be changed.'"},
+                            "description": "One or two short plain sentences, no exclamation marks: what you will "
+                                           "make and the defaults you chose, e.g. 'I'll plan a small USB-powered "
+                                           "<subject> and use India for parts sourcing; both choices can be "
+                                           "changed.'"},
                 "defaults": DEFAULTS,
                 "project_name": PROJECT_NAME,
                 "questions": {
@@ -50,9 +52,9 @@ TOOLS: dict[str, dict] = {
                             "id": {"type": "string", "description": "short snake_case id, e.g. 'age'"},
                             "question": {"type": "string", "description": "The question, short and plain."},
                             "consequence": {"type": "string",
-                                            "description": "One sentence saying what the answer changes in the "
-                                                           "design, e.g. 'How favorites are entered will determine "
-                                                           "whether the robot needs a microphone.'"},
+                                            "description": "One sentence, shown directly under this question, "
+                                                           "saying what this answer changes in the design; name the "
+                                                           "question's topic in it (not 'This determines...')."},
                             "options": {"type": "array", "maxItems": 4, "items": {"type": "string"},
                                         "description": "0-4 short chip answers in everyday words (none for "
                                                        "open questions such as a city name)."},
@@ -66,20 +68,21 @@ TOOLS: dict[str, dict] = {
         },
     },
     "propose_concepts": {
-        "description": "Propose 6 concepts, 2 per tier: 'expected' (the obvious cute take), 'different' (a fresh "
-                       "but sensible idea), 'wildcard' (surprising, still buildable). Each is a complete valid spec "
-                       "with a different body family or silhouette. The app validates each spec, renders it from "
-                       "CAD and makes a product photo of exactly that render. Concepts that fail validation come "
-                       "back with errors: resend ONLY those, corrected, with the same titles. Ends your turn.",
+        "description": "Propose 6 concepts, 2 per tier: 'expected' (the obvious cute take on the subject), "
+                       "'different' (a fresh but sensible idea), 'wildcard' (surprising, still buildable). Each is a "
+                       "complete valid spec with a different body family or silhouette, its own feature layout and a "
+                       "character face. The app validates each spec, checks the set against the concept rules "
+                       "(subject kept, face, no shared layout), renders it from CAD and makes a product photo of "
+                       "exactly that render. Concepts that fail come back with errors: resend ONLY those, "
+                       "corrected, with the same titles (or `replaces`). Ends your turn.",
         "parameters": {
             "type": "object",
             "properties": {
                 "message": {"type": "string",
-                            "description": "Two plain sentences, no exclamation marks: the first asks the user to "
-                                           "choose a shape; the second states what all concepts share (the "
-                                           "behaviour, and what does not move), e.g. 'Choose the robot shape you "
-                                           "prefer from the concepts. The proposed design uses short offline "
-                                           "stories with saved character names; its face and limbs stay still.'"},
+                            "description": "Two plain sentences in your own words, no exclamation marks: the first "
+                                           "asks the user to choose a shape of the subject they named ('Choose the "
+                                           "<subject> shape you prefer from the concepts.'); the second states what "
+                                           "all concepts share (the behaviour, and what does not move)."},
                 "defaults": DEFAULTS,
                 "project_name": PROJECT_NAME,
                 "concepts": {
@@ -87,9 +90,15 @@ TOOLS: dict[str, dict] = {
                     "items": {
                         "type": "object",
                         "properties": {
-                            "title": {"type": "string", "description": "A cute two-word name, e.g. 'Moon Hug'."},
+                            "title": {"type": "string",
+                                      "description": "A cute name of two or three words that names the subject "
+                                                     "when the concept is one (e.g. '<Adjective> <Subject>')."},
                             "tier": {"type": "string", "enum": list(TIERS)},
-                            "blurb": {"type": "string", "description": "One sentence on the shape and its character."},
+                            "blurb": {"type": "string", "description": "One sentence on the shape and its character, "
+                                                                        "naming the subject."},
+                            "replaces": {"type": "string",
+                                         "description": "Only in a repair round: the earlier title this concept "
+                                                        "replaces, when you rename it."},
                             "spec": SPEC_PARAM,
                         },
                         "required": ["title", "tier", "blurb", "spec"],
@@ -150,7 +159,7 @@ TOOLS: dict[str, dict] = {
         "parameters": {
             "type": "object",
             "properties": {"spec": SPEC_PARAM,
-                           "message": {"type": "string", "description": "One short line, e.g. 'Building Moon Hug now.'"}},
+                           "message": {"type": "string", "description": "One short line, e.g. 'Building <name> now.'"}},
             "required": ["spec"],
         },
     },
@@ -202,7 +211,7 @@ def allowed_tools(stage: str, questions_left: int, has_selected: bool, has_versi
     elif stage == "building":
         names = ["say"]
     else:  # ready | error
-        names = ["update_design", "say", "ask_user"] if has_version else \
+        names = ["update_design", "say", "ask_user", "propose_concepts"] if has_version else \
             ["build_design", "write_brief", "propose_concepts", "say"]
     return names
 

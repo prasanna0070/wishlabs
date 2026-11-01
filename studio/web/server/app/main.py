@@ -11,6 +11,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .auth import AccessKey, LoginLimiter, SessionSigner
 from .config import SERVER_VERSION, Settings
+from .routes import device as device_routes
 from .routes import projects as project_routes
 from .routes import public as public_routes
 from .services import Services
@@ -48,6 +49,7 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
                             status_code=422)
 
     app.include_router(public_routes.router)
+    app.include_router(device_routes.router)
     app.include_router(project_routes.router)
 
     static: Path | None = settings.static_dir if settings.static_dir and settings.static_dir.is_dir() else None

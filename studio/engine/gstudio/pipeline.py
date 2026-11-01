@@ -1,4 +1,4 @@
-"""Build orchestration: spec -> normalize -> electrical -> (cad | pcb | firmware) -> order, manual -> checks -> docs -> package.
+"""Build orchestration: spec -> normalize -> electrical -> (cad | pcb | firmware) -> order, manual -> checks -> finalize -> docs -> package.
 
     build(spec, out_dir, options=None, progress_cb=None) -> summary dict
 
@@ -16,6 +16,10 @@
   selected do not block their dependents: those read the previous outputs on disk.
 * Every finished stage's record is saved to `out/.gstudio/stages/<id>.json` (summary, state, timings), so
   checks/docs/package can be re-run alone with `only`.
+* REVIEW-1: `stories_audio` defaults to true for the story_player template (BLK-4). The CAD collision check is a gate
+  (MAJ-6): on failure one repair round moves the clashing feature and rebuilds the CAD; if it still fails the version is
+  `not_buildable` (summary/status `buildable`, `verdict`, `verdict_message`) and the order stage holds the quote.
+  `finalize` runs gstudio.manual.finalize(ctx) after the checks so the guide's final checks match tests[] (MAJ-19).
 
 Threading note: the child processes are forked (Linux). Call build() from a single-threaded process; the
 builder service runs every build in its own `python -m gstudio build` subprocess for exactly this reason.
@@ -73,19 +77,23 @@ STAGES: tuple[StageDef, ...] = (
     StageDef("pcb", "Backplane PCB", "gstudio.pcb", "process", hard=("normalize", "electrical"), weight=30, timeout=1800),
     StageDef("firmware", "Firmware", "gstudio.firmware", "process", hard=("normalize", "electrical"), weight=25, timeout=1500),
     StageDef("order", "Print slicing and price", "gstudio.order", "process", hard=("normalize", "electrical"),
-             soft=("cad",), weight=8, timeout=900),
+             soft=("cad", "pcb"), weight=8, timeout=900),  # pcb: the BP1 PCBA line is priced from pcb/pcba.json (MAJ-22)
     # manual reads build.json purchased/printed (order) and reports firmware/PCB results in its final checks and guide,
     # so it starts after those have finished (in any state), never on half-written outputs.
     StageDef("manual", "Build manual", "gstudio.manual", "process", hard=("normalize", "electrical", "cad"),
              soft=("order", "pcb", "firmware"), weight=20, timeout=1500),
     StageDef("checks", "Digital checks", "gstudio.checks", "inline", hard=("normalize",),
              soft=("cad", "pcb", "firmware", "order", "manual"), weight=2, timeout=300),
-    StageDef("docs", "Project documents", "gstudio.docs_gen", "inline", hard=("normalize",), soft=("checks",), weight=1, timeout=120),
+    # finalize re-renders the guide's final checks, known-issue banner and manual-summary from checks/digital-checks.json
+    StageDef("finalize", "Final guide checks", "gstudio.manual", "inline", hard=("normalize",), soft=("checks", "manual"), weight=1,
+             timeout=300),
+    StageDef("docs", "Project documents", "gstudio.docs_gen", "inline", hard=("normalize",), soft=("checks", "finalize"), weight=1, timeout=120),
     StageDef("package", "Package and export", "gstudio.package", "inline", hard=("normalize",), soft=("docs",), weight=3, timeout=600),
 )
 STAGE_IDS = tuple(s.id for s in STAGES)
 ALWAYS = ("normalize", "electrical")
-ALIASES = {"docs_gen": "docs", "slice": "order", "quote": "order", "bom": "order"}
+ALIASES = {"docs_gen": "docs", "slice": "order", "quote": "order", "bom": "order", "final": "finalize"}
+GATE_FILE = "gate.json"  # .gstudio/gate.json: the MAJ-6 collision gate verdict for this version
 
 
 def parse_only(only: Any) -> Optional[list[str]]:
@@ -171,6 +179,7 @@ class Status:
         self.messages: list[dict] = []     # plain-English lines for the chat: {at, stage, text}
         self.draft: Optional[str] = None   # e.g. "cad/draft.glb" while the CAD stage refines a live draft
         self.draft_rev = 0
+        self.verdict: dict = {}            # MAJ-6 {buildable, verdict, verdict_message, pairs, repair}
 
     def percent(self) -> float:
         tot = done = 0.0
@@ -187,10 +196,13 @@ class Status:
 
     def as_dict(self) -> dict:
         failed = [r.id for r in self.recs.values() if r.state == "failed"]
-        return {"state": self.state, "percent": round(self.percent(), 1) if self.state != "done" else 100.0,
-                "stages": [r.public() for r in self.recs.values()], "error": self.error, "failed": failed,
-                "messages": self.messages[-MAX_MESSAGES:], "draft": self.draft, "draft_rev": self.draft_rev,
-                "started": self.started, "updated": now_iso()}
+        d = {"state": self.state, "percent": round(self.percent(), 1) if self.state != "done" else 100.0,
+             "stages": [r.public() for r in self.recs.values()], "error": self.error, "failed": failed,
+             "messages": self.messages[-MAX_MESSAGES:], "draft": self.draft, "draft_rev": self.draft_rev,
+             "started": self.started, "updated": now_iso()}
+        if self.verdict:
+            d.update({k: self.verdict.get(k) for k in ("buildable", "verdict", "verdict_message")})
+        return d
 
     def say(self, sid: str, text: str, write: bool = True) -> None:
         t = " ".join(str(text or "").split())[:400]
@@ -304,11 +316,14 @@ def completion_line(sid: str, label: str, state: str, summary: Any, message: str
                 f"₹{dp.get('pilot_one_off', 0):,} for a one-off, ₹{dp.get('steady_state', 0):,} at volume (an estimate, incl. GST).")
     if sid == "manual":
         st = s.get("steps")
-        im = s.get("images_rendered", s.get("images"))
         st = len(st) if isinstance(st, list) else st
-        im = len(im) if isinstance(im, list) else im
+        png, svg = image_counts(s)
         if st is not None:
-            return f"Wrote the build manual: {st} steps" + (f" with {im} illustrations rendered from the CAD." if im is not None else ".")
+            return (f"Wrote the build manual: {st} steps" + (f" with {png} PNG illustrations rendered from the CAD" if png is not None else "")
+                    + (f" and {svg} SVG diagram{'s' if svg != 1 else ''}" if svg else "") + ".")
+    if sid == "finalize" and s.get("tests") is not None:
+        return f"Brought the guide's final checks up to date: {s['tests']} checks listed" + (
+            f", {s['failed']} failed first" if s.get("failed") else "") + "."
     if sid == "checks" and isinstance(s.get("summary"), dict):
         c = s["summary"]
         return f"Digital checks: {c.get('passed', 0)} passed, {c.get('failed', 0)} failed, {c.get('warning', 0)} warnings."
@@ -317,6 +332,18 @@ def completion_line(sid: str, label: str, state: str, summary: Any, message: str
     if sid == "docs":
         return None
     return f"{label}: {message}" if message and message != "done" else f"{label} done."
+
+
+def image_counts(s: dict) -> tuple[Optional[int], Optional[int]]:
+    """(PNG, SVG) image counts from a manual summary or manual-summary.json: explicit counts, else the image list."""
+    png, svg = s.get("images_png"), s.get("images_svg")
+    imgs = s.get("images")
+    if isinstance(imgs, list) and (png is None or svg is None):
+        png = png if png is not None else sum(1 for x in imgs if str(x).lower().endswith(".png"))
+        svg = svg if svg is not None else sum(1 for x in imgs if str(x).lower().endswith(".svg"))
+    if png is None and isinstance(s.get("images_rendered"), int) and not isinstance(imgs, list):
+        png = s["images_rendered"]
+    return (int(png) if png is not None else None), (int(svg) if svg is not None else None)
 
 
 # ============================================================================ context helpers
@@ -376,6 +403,97 @@ def prepare_context(spec: Any, out: Path, options: dict, on_progress) -> Any:
 
     lib = options.get("_library")
     return BuildContext.prepare(load_spec_input(spec), out, lib=lib, options=_public_options(options), on_progress=on_progress)
+
+
+def apply_option_defaults(ctx: Any, spec_dict: dict) -> None:
+    """BLK-4: story audio is part of a story_player delivery unless the caller explicitly said no."""
+    opts = getattr(ctx, "options", None)
+    if not isinstance(opts, dict):
+        return
+    tmpl = (spec_dict.get("behaviour") or {}).get("template")
+    if opts.get("stories_audio") is None:
+        opts["stories_audio"] = tmpl == "story_player"
+        opts["stories_audio_basis"] = ("default for the story_player template" if tmpl == "story_player" else
+                                       f"default off for the {tmpl} template")
+    else:
+        opts["stories_audio"] = bool(opts["stories_audio"])
+        opts["stories_audio_basis"] = "set by the caller"
+
+
+# ============================================================================ MAJ-6 collision gate
+
+
+def read_collisions(out: Path) -> dict:
+    """{buildable: True|False|None, pairs: [{parts, mm3}], detail} from cad/digital-checks.json's collisions check."""
+    try:
+        d = json.loads((Path(out) / "cad" / "digital-checks.json").read_text())
+    except (OSError, ValueError):
+        return {"buildable": None, "pairs": [], "detail": "no cad/digital-checks.json"}
+    c = next((x for x in d.get("checks") or [] if isinstance(x, dict) and x.get("id") == "collisions"), None)
+    if c is None:
+        return {"buildable": None, "pairs": [], "detail": "the CAD reported no collisions check"}
+    pairs = [{"parts": list(i.get("parts") or []), "mm3": i.get("intersection_mm3")}
+             for i in ((c.get("data") or {}).get("intersections") or []) if isinstance(i, dict)]
+    return {"buildable": c.get("status") != "failed", "pairs": pairs, "detail": c.get("detail")}
+
+
+def pairs_text(pairs: list[dict]) -> str:
+    return "; ".join(f"{' / '.join(p['parts'])} ({mm3(p.get('mm3'))} mm3)" for p in pairs)
+
+
+def mm3(v) -> str:
+    v = float(v or 0)
+    return f"{v:.1f}" if v >= 0.1 else f"{v:.3f}"
+
+
+V_AXIS = {"front": (4, 5), "rear": (4, 5), "back": (4, 5), "left": (4, 5), "right": (4, 5), "top": (2, 3)}
+
+
+def repair_plan(spec_dict: dict, pairs: list[dict], comps: dict) -> Optional[dict]:
+    """One repair: move the feature that clashes with another feature's kit along v (the face's second `at` coordinate),
+    away from it, by the overlap along v plus 2 mm. None when no pair is between two different features."""
+    feats = {f.get("id"): f for f in spec_dict.get("features") or [] if isinstance(f, dict)}
+    vote: dict[str, list] = {}
+    for p in pairs:
+        names = p.get("parts") or []
+        if len(names) != 2:
+            continue
+        ca, cb = (comps.get(n) or {} for n in names)
+        fa, fb = ca.get("feature_id"), cb.get("feature_id")
+        if not fa or not fb or fa == fb or fa not in feats or fb not in feats:
+            continue
+        ba, bb = ca.get("bbox"), cb.get("bbox")
+        if not (isinstance(ba, list) and isinstance(bb, list) and len(ba) == 6 and len(bb) == 6):
+            continue
+
+        def vol(b):
+            return max(0.0, (b[1] - b[0]) * (b[3] - b[2]) * (b[5] - b[4]))
+        mover, other, bm, bo = (fa, fb, ba, bb) if vol(ba) <= vol(bb) else (fb, fa, bb, ba)
+        face = feats[mover].get("face") or "front"
+        lo, hi = V_AXIS.get(face, (4, 5))
+        overlap = min(bm[hi], bo[hi]) - max(bm[lo], bo[lo])
+        if overlap <= 0:
+            continue
+        sign = 1.0 if (bm[lo] + bm[hi]) >= (bo[lo] + bo[hi]) else -1.0
+        vote.setdefault(mover, []).append((overlap + 2.0, sign, other, names))
+    if not vote:
+        return None
+    mover = max(vote, key=lambda k: (len(vote[k]), max(v[0] for v in vote[k])))
+    dist, sign, other, names = max(vote[mover], key=lambda v: v[0])
+    at = list(feats[mover].get("at") or [0, 0])
+    new_at = [at[0], round(at[1] + sign * dist, 1)]
+    return {"feature": mover, "away_from": other, "from_at": at, "to_at": new_at, "moved_mm": round(dist, 1),
+            "direction": "up" if sign > 0 else "down", "pair": names,
+            "why": f"{' / '.join(names)} overlap by {dist - 2.0:.1f} mm along v; moved {mover} {dist:.1f} mm "
+                   f"{'up' if sign > 0 else 'down'} (overlap + 2 mm)"}
+
+
+def apply_repair(spec_dict: dict, plan: dict) -> dict:
+    sd = json.loads(json.dumps({k: v for k, v in spec_dict.items() if k != "derived"}))
+    for f in sd.get("features") or []:
+        if f.get("id") == plan["feature"]:
+            f["at"] = plan["to_at"]
+    return sd
 
 
 def _public_options(options: dict) -> dict:
@@ -536,6 +654,10 @@ class Pipeline:
         self._draft_check = 0.0
         self._draft_seen: dict = {}
         self._draft_published: dict = {}
+        self._q: Any = None
+        self._running: dict = {}
+        self.repair: Optional[dict] = None      # MAJ-6 repair round applied in this build
+        self.verdict: dict = {}
 
     # -------------------------------------------------------------------- helpers
     def archive_previous(self) -> None:
@@ -552,7 +674,7 @@ class Pipeline:
         prev.mkdir(parents=True)
         for n in found:
             shutil.move(str(self.out / n), str(prev / n))
-        for n in ("stages", "fragments", "summary.json", "slice"):
+        for n in ("stages", "fragments", "summary.json", "slice", GATE_FILE):
             if (self.out / STATE_DIR / n).exists():
                 shutil.move(str(self.out / STATE_DIR / n), str(prev / f".gstudio-{n}"))
 
@@ -623,9 +745,18 @@ class Pipeline:
                         self.save_record(sid)
                         return
                     mod = importlib.import_module(modname)
-                    fn = getattr(mod, "run", None)
+                    entry = "finalize" if sid == "finalize" else "run"
+                    fn = getattr(mod, entry, None)
                     if not callable(fn):
-                        self.status.finish(sid, "skipped", f"{modname} has no run(ctx) yet", skip_kind="unavailable")
+                        self.status.finish(sid, "skipped", f"{modname} has no {entry}(ctx) yet", skip_kind="unavailable")
+                        self.save_record(sid)
+                        return
+                    if sid == "finalize":
+                        with contextlib.suppress(Exception):
+                            self.ctx.artifacts["finalize.module"] = modname  # package re-runs the same finalize (MIN-21)
+                    if sid == "finalize" and not (self.out / "BUILD_GUIDE.md").exists():
+                        self.status.finish(sid, "skipped", "no BUILD_GUIDE.md to finalize (the manual stage did not write one)",
+                                           skip_kind="dependency")
                         self.save_record(sid)
                         return
                     summary = fn(self.ctx)
@@ -662,6 +793,7 @@ class Pipeline:
         with contextlib.suppress(Exception):
             ctx.say = lambda stage_id, text: self.status.say(stage_id, text)
         sd = spec_to_dict(ctx.spec, True)
+        apply_option_defaults(ctx, sd)
         write_json_atomic(self.out / "spec.json", sd)
         try:
             from gstudio.version import ENGINE_VERSION, PROJECT_SCHEMA
@@ -672,6 +804,8 @@ class Pipeline:
                 "project_id": o.get("project_id"), "created": now_iso(), "engine_version": ENGINE_VERSION,
                 "brief": o.get("brief"), "brief_version": o.get("brief_version"),
                 "concept_id": o.get("concept_id"), "spec_hash": spec_hash(sd)}
+        if self.repair:
+            proj["auto_repair"] = self.repair
         write_json_atomic(self.out / "project.json", proj)
         rep = getattr(ctx, "normalize_report", None)
         d = getattr(ctx.spec, "derived", None)
@@ -712,6 +846,8 @@ class Pipeline:
         if payload.get("artifacts"):
             with contextlib.suppress(Exception):
                 self.ctx.artifacts.update(payload["artifacts"])
+        if sid == "cad" and payload.get("ok") and self.cad_gate():
+            return  # a repair round relaunched the CAD stage; it finishes when that run reports
         if payload.get("ok"):
             for w in payload.get("warnings") or []:
                 with contextlib.suppress(Exception):
@@ -745,6 +881,83 @@ class Pipeline:
             else:
                 self._draft_seen[rel] = key
 
+    # -------------------------------------------------------------------- MAJ-6 gate
+    def cad_gate(self) -> bool:
+        """After a successful CAD run: read its collision check. On failure try ONE repair round (move the clashing
+        feature, re-normalize, re-run electrical and CAD); True when the CAD stage was relaunched. Otherwise record the
+        verdict in .gstudio/gate.json, status.json and the summary."""
+        g = read_collisions(self.out)
+        if g["buildable"] is not False:
+            self.set_verdict(g)
+            return False
+        plan = None
+        why_not = None
+        if self.repair is None and self.options.get("auto_repair", True) and self._running is not None and self._q is not None:
+            try:
+                comps = json.loads((self.out / "cad" / "components.json").read_text())
+            except (OSError, ValueError):
+                comps = {}
+            sd = spec_to_dict(self.ctx.spec, True)
+            plan = repair_plan(sd, g["pairs"], comps)
+            if plan is None:
+                why_not = "no colliding pair is between two features, so no feature can be moved automatically"
+            else:
+                try:
+                    new_ctx = (self.options.get("_context") or prepare_context)(apply_repair(sd, plan), self.out, self.options, self.on_progress)
+                except Exception as exc:  # noqa: BLE001 - an invalid repaired spec means no repair
+                    why_not = f"moving {plan['feature']} to {plan['to_at']} is not a valid design ({str(exc)[:200]})"
+                    plan = None
+                else:
+                    self.repair = dict(plan, round=1, before=g["pairs"])
+                    with contextlib.suppress(Exception):  # keep what PCB / firmware already published
+                        new_ctx.artifacts.update({k: v for k, v in (self.ctx.artifacts or {}).items() if not str(k).startswith("cad.")})
+                        for w in getattr(self.ctx, "warnings", []) or []:
+                            if w not in new_ctx.warnings:
+                                new_ctx.warnings.append(w)
+                    self.ctx = new_ctx
+                    with contextlib.suppress(Exception):
+                        self.ctx.say = lambda stage_id, text: self.status.say(stage_id, text)
+                    self.status.say("cad", f"Repair round: {plan['why']}; rebuilding the CAD.")
+                    nsd = spec_to_dict(self.ctx.spec, True)
+                    apply_option_defaults(self.ctx, nsd)
+                    write_json_atomic(self.out / "spec.json", nsd)
+                    with contextlib.suppress(Exception):
+                        pj = json.loads((self.out / "project.json").read_text())
+                        pj.update({"spec_hash": spec_hash(nsd), "auto_repair": self.repair})
+                        write_json_atomic(self.out / "project.json", pj)
+                    el = next(d for d in self.defs if d.id == "electrical")
+                    self.run_inline(el)
+                    if self.status.recs["electrical"].state == "done":
+                        self.launch(next(d for d in self.defs if d.id == "cad"), self._q, self._running)
+                        return True
+                    why_not = "electrical failed on the repaired spec"
+        elif self.repair is not None:
+            self.repair["after"] = g["pairs"]
+        elif not self.options.get("auto_repair", True):
+            why_not = "automatic repair is switched off (auto_repair=false)"
+        self.set_verdict(g, why_not)
+        return False
+
+    def set_verdict(self, g: dict, why_not: Optional[str] = None) -> None:
+        if g["buildable"] is False:
+            msg = (f"Not buildable: the CAD shows {len(g['pairs'])} colliding pair(s): {pairs_text(g['pairs'])}."
+                   + (f" One automatic repair ({self.repair['why']}) did not clear them." if self.repair else "")
+                   + (f" No automatic repair: {why_not}." if why_not else "")
+                   + " The quote is held until the design is revised.")
+            v = {"buildable": False, "verdict": "not_buildable", "verdict_message": msg, "pairs": g["pairs"]}
+        else:
+            v = {"buildable": True if g["buildable"] else None, "verdict": "buildable" if g["buildable"] else "unknown",
+                 "verdict_message": (("The CAD collision check passes" + (f" after one automatic repair: {self.repair['why']}" if self.repair else ""))
+                                     if g["buildable"] else f"Collisions not checked: {g.get('detail')}"),
+                 "pairs": []}
+        if self.repair:
+            v["repair"] = self.repair
+        self.verdict = v
+        self.status.verdict = v
+        write_json_atomic(self.out / STATE_DIR / GATE_FILE, dict(v, engine_run=self.status.started))
+        if v["buildable"] is False:
+            self.status.say("cad", msg)
+
     @staticmethod
     def kill(proc: Any) -> None:
         for sig in (signal.SIGTERM, signal.SIGKILL):
@@ -770,6 +983,7 @@ class Pipeline:
         running: dict[str, _Running] = {}
         mpctx = mp.get_context(self.options.get("_mp_start") or ("fork" if sys.platform.startswith("linux") else "spawn"))
         q = mpctx.Queue()
+        self._q, self._running = q, running
         results: dict[str, dict] = {}
         import threading
 
@@ -859,6 +1073,11 @@ class Pipeline:
         self.status.write()
         return summary
 
+    def story_audio(self) -> Optional[dict]:
+        opts = getattr(self.ctx, "options", None) if self.ctx is not None else None
+        rec = stage_records(self.out).get("firmware") or {}
+        return _story_audio(self.out, opts if isinstance(opts, dict) else dict(self.options), rec)
+
     def summary(self, seconds: float) -> dict:
         try:
             from gstudio.version import ENGINE_VERSION
@@ -867,10 +1086,26 @@ class Pipeline:
         return {"schema": "gadget-build-summary/1", "state": self.status.state, "error": self.status.error,
                 "out": str(self.out), "engine_version": ENGINE_VERSION, "seconds": round(seconds, 2),
                 "only": self.only, "fast": bool(self.options.get("fast")),
+                "buildable": self.verdict.get("buildable"), "verdict": self.verdict.get("verdict"),
+                "verdict_message": self.verdict.get("verdict_message"), "auto_repair": self.repair,
+                "story_audio": self.story_audio(),
                 "stages": {sid: {"label": r.label, "state": r.state, "message": r.message, "seconds": r.seconds,
                                  "error": r.error, "details": r.details, "summary": r.summary, "log": f"logs/{sid}.log"}
                            for sid, r in self.status.recs.items()},
                 "warnings": jsonable(getattr(self.ctx, "warnings", []) or []) if self.ctx is not None else []}
+
+
+def _story_audio(out: Path, options: dict, rec: dict) -> Optional[dict]:
+    s = rec.get("summary") if isinstance(rec.get("summary"), dict) else {}
+    sp = s.get("story_pack") if isinstance(s.get("story_pack"), dict) else None
+    if sp is None and options.get("stories_audio") is None:
+        return None
+    tm = (s.get("timings") or {}).get("story_pack_s")
+    warn = next((w for w in s.get("warnings") or [] if "TTS" in str(w) or "story audio" in str(w).lower()), None)
+    return {"requested": options.get("stories_audio"), "basis": options.get("stories_audio_basis"),
+            "audio": (sp or {}).get("audio"), "files": (sp or {}).get("file_count"), "missing": len((sp or {}).get("missing") or []),
+            "seconds": tm, "seconds_basis": "firmware stage timings.story_pack_s (TTS synthesis and card writing)",
+            "warning": warn}
 
 
 def build(spec: Any, out_dir: str | Path, options: Optional[dict] = None,

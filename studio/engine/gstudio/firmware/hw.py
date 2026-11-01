@@ -69,7 +69,8 @@ LIBS = {
     "VL53L0X": ["pololu/VL53L0X@1.3.1"],
 }
 
-PASSIVE_ROLES = {"power", "power_in", "cable", "usb_cable", "consumable", "fastener", "mechanical", "label", "backplane", "core"}
+PASSIVE_ROLES = {"power", "power_in", "cable", "usb_cable", "consumable", "fastener", "mechanical", "label", "backplane", "core",
+                 "storage_card", "adapter"}  # in-box items with nothing for the firmware to drive
 
 # Fallback by library role when a module id is not in DRIVERS (a new library entry).
 ROLE_FALLBACK = {
@@ -315,7 +316,7 @@ def bind(electrical: dict, spec: dict, lookup: ModuleLookup) -> Binding:
 def pins_h(b: Binding) -> str:
     L = [
         "// pins.h: GPIO numbers for this design. GENERATED from electrical.json; do not edit by hand.",
-        f"// electrical.json sha256 {b.electrical_sha256}",
+        f"// electrical.json canonical-JSON sha256 {b.electrical_sha256} (of json.dumps(sort_keys=True), not the file bytes)",
         "// Every number below is copied from electrical.json (\"gpio\", \"connections\", \"buses\"),",
         "// so the firmware pins always equal the wiring (QB-19).",
         "#pragma once",
@@ -496,6 +497,9 @@ def check_template(template: str, b: Binding, settings: dict) -> list[str]:
         if settings.get("capture_mode") == "child_voice_clip":
             need(has["mic"], "capture_mode child_voice_clip needs a microphone (INMP441)",
                  "add a mic feature, or set behaviour.settings.capture_mode to parent_web")
+        elif has["mic"]:
+            warn.append(f"a microphone is fitted but capture_mode is {settings.get('capture_mode')}: this firmware never "
+                        "opens it outside the factory self-test; remove the mic feature or opt in to child_voice_clip")
         if not has["neopixel"]:
             warn.append("no WS2812B light: there is no visible listening indicator or night light")
     elif template == "desk_companion":

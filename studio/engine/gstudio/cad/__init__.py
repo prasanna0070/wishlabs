@@ -50,6 +50,14 @@ def run(ctx) -> dict:
         params = build_params(ctx.spec, ctx.lib, getattr(ctx, "electrical", None), {"fast": fast})
     except Exception as e:
         raise StageError(f"CAD could not read the design: {e}", {"trace": traceback.format_exc(limit=4)})
+    if opts.get("recolor_only"):  # REVIEW-1 MIN-37: colour-only edit on a seeded copy of the base version
+        try:
+            rec = _recolor(ctx, params, jsonable(params), cad_dir, out, opts, prog, t0)
+        except Exception as e:  # never fail the stage on the fast path: rebuild instead
+            rec = None
+            prog(f"recolour fast path not used ({type(e).__name__}: {e}); rebuilding", 2)
+        if rec is not None:
+            return rec
     E.write_json(cad_dir / "params.json", jsonable(params))
     draft = {}
 
@@ -66,6 +74,10 @@ def run(ctx) -> dict:
     prog("writing STEP, GLB, BREP and print files", 85)
     files = E.write_all(model, cad_dir, print_dir, vendor=True, engine=ENGINE_VERSION, step=True)
     files["print_dir"] = str(print_dir)
+    try:  # REVIEW-1 MIN-23: each purchased envelope names the saved dimensional / pinout sources it was built from
+        _stamp_source_files(cad_dir / "components.json", ctx.lib)
+    except Exception as e:  # noqa: BLE001 - provenance stamping never fails the CAD
+        model.warnings.append(f"component source files not stamped: {e}")
     t_export = time.time() - t0 - t_build
     renders = {}
     if opts.get("cad_renders", True):
@@ -82,6 +94,19 @@ def run(ctx) -> dict:
     prog("running digital checks", 94)
     res = C.run_checks(model, files, step_path=None if fast else cad_dir / "assembly.step")
     E.write_json(cad_dir / "digital-checks.json", res)
+    mw = next((c for c in res["checks"] if c["id"] == "min_wall"), None)
+    if mw and mw["status"] == "failed" and opts.get("cad_renders", True):  # MIN-9: show where the walls are thin
+        from .render_cli import render_subprocess
+
+        pts = [p for w in (mw.get("data") or {}).values() if isinstance(w, dict) for p in (w.get("thin_points") or [])]
+        r = render_subprocess(cad_dir / "assembly.glb", cad_dir / "renders", ("thin",), None, model.info.get("split", "rear_cover"),
+                              1000, timeout=float(opts.get("render_timeout", 150)), name="thin-walls.png", points=pts)
+        if r.get("thin"):
+            renders["thin_walls"] = r["thin"]
+            mw["artifact"] = "cad/renders/thin-walls.png"
+            E.write_json(cad_dir / "digital-checks.json", res)
+        else:
+            model.warnings.append(f"thin-wall overlay skipped: {r.get('error', '')[:200]}")
     t_checks = time.time() - t0 - t_build - t_export - t_render
     for k, v in {"cad.components": "components.json", "cad.anchors": "anchors.json", "cad.cable_routes": "cable-routes.json",
                  "cad.glb": "assembly.glb", "cad.step": "assembly.step", "cad.params": "params.json", "cad.checks": "digital-checks.json",
@@ -107,13 +132,19 @@ def run(ctx) -> dict:
                   "anchors": "cad/anchors.json", "cable_routes": "cad/cable-routes.json", "params": "cad/params.json",
                   "source": "cad/gadget_cad.py", "draft": "cad/draft.glb" if draft else None,
                   "renders": {k: os.path.relpath(v, out) for k, v in renders.items()}},
-        "print": {n: {"file": v["file"], "orientation_note": v["orientation_note"], "material": v.get("material", "PLA"),
+        "print": {n: {"file": v["file"], "orientation_note": v["orientation_note"],
+                      "material": v.get("material") or (params.get("print_material") or {}).get("name") or "PLA",  # MIN-12: coupons too
                       **({"tests": v["tests"], "note": v.get("note")} if v.get("test") else {})}
                   for n, v in files["print"].items()},
         "rebuild": "python cad/gadget_cad.py",
         "checks": [{k: c[k] for k in ("id", "title", "status", "detail") if k in c} | ({"qb": c["qb"]} if c.get("qb") else {})
                    | {"artifact": "cad/digital-checks.json"} for c in res["checks"]],
         "limits": res["limits"],
+        "physical_checks": [{"id": "usb-cord-pull", "kind": "physical", "status": "not_run",
+                             "title": "Pull the USB-C cord along its axis",
+                             "expected": "the plug releases before the receptacle or the board moves; the cord tie takes the load",
+                             "why": "REVIEW-1 MIN-3 load path: " + ((model.info.get("usb_c") or {}).get("load_path") or {}).get("feature", "none modelled")}],
+        "decor_adjustments": model.info.get("decor_adjustments") or [],
         "info": {k: v for k, v in model.info.items() if k != "kits"},
         "kits": model.info.get("kits"),
         "warnings": model.warnings,
@@ -152,7 +183,9 @@ def preview(spec: Any, lib: Any = None, out: Any = ".", size=(1024, 1024)) -> di
     cuts, vis, screens = [], [], []
     for f in params["features"]:
         try:
-            k = build_kit(f, f["desc"], f["ref"], probeO, probeC, O, params["fasteners"], colors, f["spec_path"])
+            k = build_kit(f, f["desc"], f["ref"], probeO, probeC, O, params["fasteners"], colors, f["spec_path"],
+                          others=params["features"], skin=pv["bg"].skin_front if params["body"]["family"] == "silhouette" else
+                          float(params["body"].get("wall", 2.4)))
         except Exception as e:
             warnings.append(f"preview: feature {f['id']} skipped ({e})")
             continue
@@ -185,3 +218,150 @@ def preview(spec: Any, lib: Any = None, out: Any = ".", size=(1024, 1024)) -> di
 
 
 __all__ = ["run", "preview"]
+
+
+# ------------------------------------------------------------------------------------------------ recolour (MIN-37)
+_GEOM_SKIP = ("colors", "colors_hex", "warnings")
+
+
+def _recolor_map(old_cols: dict, new_cols: dict) -> Optional[dict]:
+    """sRGB tuple map old -> new over the palette roles; None if two roles shared an old colour but now differ."""
+    m: dict = {}
+    for k, ov in (old_cols or {}).items():
+        nv = (new_cols or {}).get(k)
+        if not (isinstance(ov, (list, tuple)) and isinstance(nv, (list, tuple)) and len(ov) >= 3 and len(nv) >= 3):
+            continue
+        key = tuple(round(float(x), 4) for x in ov[:3])
+        val = tuple(float(x) for x in nv[:3])
+        if key in m and any(abs(a - b) > 1e-4 for a, b in zip(m[key], val)):
+            return None
+        m[key] = val
+    return m
+
+
+def _lookup(m: dict, rgb, tol: float = 2e-3):
+    for k, v in m.items():
+        if all(abs(float(a) - b) <= tol for a, b in zip(rgb[:3], k)):
+            return v
+    return None
+
+
+def _recolor_glb(path: Path, m: dict) -> int:
+    """Rewrite baseColorFactor of every material whose colour is an old palette colour. Returns materials changed."""
+    import struct
+
+    from .export import _srgb_to_linear
+
+    b = path.read_bytes()
+    magic, ver, _total = struct.unpack("<4sII", b[:12])
+    if magic != b"glTF":
+        raise ValueError("not a GLB")
+    jlen, jtype = struct.unpack("<II", b[12:20])
+    doc = json.loads(b[20:20 + jlen])
+    rest = b[20 + jlen:]
+    lin_map = {tuple(round(_srgb_to_linear(x), 4) for x in k): tuple(_srgb_to_linear(x) for x in v) for k, v in m.items()}
+    n = 0
+    for mat in doc.get("materials") or []:
+        pbr = mat.get("pbrMetallicRoughness") or {}
+        f = pbr.get("baseColorFactor")
+        if not f:
+            continue
+        nv = _lookup(lin_map, f, tol=2e-3)
+        if nv is not None and any(abs(a - b) > 1e-6 for a, b in zip(f[:3], nv)):
+            pbr["baseColorFactor"] = [round(x, 6) for x in nv] + list(f[3:4] or [1.0])
+            n += 1
+    js = json.dumps(doc, separators=(",", ":")).encode()
+    js += b" " * ((4 - len(js) % 4) % 4)
+    path.write_bytes(struct.pack("<4sII", b"glTF", ver, 12 + 8 + len(js) + len(rest)) + struct.pack("<II", len(js), jtype) + js + rest)
+    return n
+
+
+def _recolor(ctx, params: dict, newp: dict, cad_dir: Path, out: Path, opts: dict, prog, t0: float) -> Optional[dict]:
+    """Colour-only edit: reuse the seeded geometry, STL, BREP and CAD checks; rewrite the colours in assembly.glb,
+    components.json and params.json and re-render the hero view. Returns the stage summary, or None to rebuild."""
+    from . import export as E
+
+    need = [cad_dir / n for n in ("params.json", "cad-summary.json", "assembly.glb", "components.json", "digital-checks.json")]
+    if not all(p.is_file() for p in need):
+        return None
+    oldp = json.loads((cad_dir / "params.json").read_text())
+    strip = lambda d: {k: v for k, v in d.items() if k not in _GEOM_SKIP}  # noqa: E731
+    if json.dumps(strip(oldp), sort_keys=True, default=str) != json.dumps(strip(newp), sort_keys=True, default=str):
+        prog("recolour: the geometry inputs differ from the base version; rebuilding", 2)
+        return None
+    m = _recolor_map(oldp.get("colors") or {}, newp.get("colors") or {})
+    if m is None:
+        prog("recolour: two colour roles shared one colour and now differ; rebuilding", 2)
+        return None
+    prog("recolour: reusing the base version's geometry", 10)
+    n_mat = _recolor_glb(cad_dir / "assembly.glb", m)
+    comps = json.loads((cad_dir / "components.json").read_text())
+    n_comp = 0
+    for c in comps.values():
+        if isinstance(c, dict) and isinstance(c.get("color"), list):
+            nv = _lookup(m, c["color"])
+            if nv is not None:
+                c["color"] = [round(float(x), 4) for x in nv]
+                c["color_hex"] = "#%02X%02X%02X" % tuple(int(round(255 * max(0.0, min(1.0, x)))) for x in nv)
+                n_comp += 1
+    E.write_json(cad_dir / "components.json", comps)
+    E.write_json(cad_dir / "params.json", newp)
+    summary = json.loads((cad_dir / "cad-summary.json").read_text())
+    renders = {}
+    if opts.get("cad_renders", True):
+        from .render_cli import render_subprocess
+
+        prog("rendering the hero view in the new colours", 60)
+        info = summary.get("info") or {}
+        renders = render_subprocess(cad_dir / "assembly.glb", cad_dir / "renders", ("hero",), info.get("screens"),
+                                    info.get("split", "rear_cover"), 1200, timeout=float(opts.get("render_timeout", 150)))
+        if "error" in renders:
+            renders = {}
+    secs = round(time.time() - t0, 1)
+    hexes = {k: [(oldp.get("colors_hex") or {}).get(k), (newp.get("colors_hex") or {}).get(k)] for k in ("body", "accent", "detail")}
+    summary["recolored"] = {"from": "the seeded base version (options.recolor_only)", "materials_changed": n_mat,
+                            "components_changed": n_comp, "colours": hexes,
+                            "unchanged": "geometry, STL, BREP, anchors, cable routes and the CAD digital checks are the base version's",
+                            "limits": ["cad/assembly.step keeps the base version's display colours (geometry identical)"]}
+    summary["say"] = (f"Recoloured the base version's CAD in {secs:g} s: the geometry did not change, so the parts, print files "
+                      f"and CAD checks are the base version's ({n_mat} materials recoloured). " + str(summary.get("say") or ""))
+    summary["timings"] = {"total": secs, "recolor": True, "base_timings": summary.get("timings")}
+    if renders:
+        summary.setdefault("files", {})["renders"] = {k: os.path.relpath(v, out) for k, v in renders.items()}
+    E.write_json(cad_dir / "cad-summary.json", summary)
+    for k, v in {"cad.components": "components.json", "cad.anchors": "anchors.json", "cad.cable_routes": "cable-routes.json",
+                 "cad.glb": "assembly.glb", "cad.step": "assembly.step", "cad.params": "params.json", "cad.checks": "digital-checks.json",
+                 "cad.source": "gadget_cad.py"}.items():
+        ctx.artifacts[k] = str(cad_dir / v)
+    ctx.artifacts["cad.renders"] = renders
+    ctx.artifacts["print.files"] = {n: str(out / v["file"]) for n, v in (summary.get("print") or {}).items()
+                                    if isinstance(v, dict) and v.get("file")}
+    _say(ctx, summary["say"])
+    prog("recolour done", 100)
+    return summary
+
+
+# ------------------------------------------------------------------------------------------------ MIN-23 sources
+def _stamp_source_files(path: Path, lib) -> int:
+    """components.json PURCHASE entries gain `source_files` [{path (in the export), library_path, sha256, url}] from the
+    library row's saved `evidence_files` under references/sources/ (datasheets, drawings, pinout pages); the package
+    stage copies those files into the export and checks their sha256 (MIN-23). Returns the entries stamped."""
+    comps = json.loads(path.read_text())
+    n = 0
+    for name, c in comps.items():
+        mid = c.get("module_id") if isinstance(c, dict) else None
+        if not mid or c.get("kind") != "PURCHASE":
+            continue
+        try:
+            m = lib.get(mid) if lib is not None and (not hasattr(lib, "has") or lib.has(mid)) else None
+        except Exception:  # noqa: BLE001
+            m = None
+        ev = [e for e in ((m or {}).get("evidence_files") or []) if isinstance(e, dict)
+              and str(e.get("path") or "").startswith("references/sources/") and e.get("sha256")]
+        if not ev:
+            continue
+        c["source_files"] = [{"path": "references/library/" + str(e["path"])[len("references/"):], "library_path": e["path"],
+                              "sha256": e["sha256"], "url": e.get("url"), "covers": e.get("covers") or []} for e in ev]
+        n += 1
+    path.write_text(json.dumps(comps, indent=1))
+    return n

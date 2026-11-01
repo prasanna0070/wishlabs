@@ -72,7 +72,10 @@ def test_backplane_consistency(lib):
             assert p.get("net") or p.get("kind") == "nc", (s["id"], p)
     ids = {s["id"] for s in bp["slots"]}
     assert {"U1", "A1", "S1", "J_PWR", "J_SPK", "J_I2C1", "J_I2C2", "J_DISP", "J_MIC", "J_IO1", "J_IO2", "J_IO3", "J_LED"} <= ids
-    assert all("_XH_" not in p["footprint"] for p in bp["parts"])  # PH only
+    # REVIEW-1 MAJ-3: J_LED is JST-XH (5 V) so no 3V3 PH lead mates it; every other port is PH
+    xh = [p["ref"] for p in bp["parts"] if "_XH_" in p["footprint"]]
+    assert xh == ["J_LED"] and lib.slot("J_LED")["connector"] == "JST-XH 2.5"
+    assert "B3B-XH-A" in lib.slot("J_LED")["footprint"] and lib.slot("J_LED")["silk"]["label"] == "LED 5V"
     assert len([p for p in bp["parts"] if p["role"] == "test_pad"]) == 7
     assert len(bp["board"]["holes"]) >= 4
 
@@ -113,10 +116,13 @@ def test_harness_modules(lib):
 
 
 def test_prewire_and_maker_soldering(lib):
-    for mid, n in (("SPK_40MM_4R_3W", 2), ("SPK_28MM_8R_2W", 2), ("LED_WS2812B_1PX_MODULE", 3), ("LED_RING_12_WS2812_50MM", 3)):
+    for mid, lead in (("SPK_40MM_4R_3W", "JST-PH 2.0 2p"), ("SPK_28MM_8R_2W", "JST-PH 2.0 2p"), ("LED_WS2812B_1PX_MODULE", "JST-XH 2.5 3p"),
+                      ("LED_RING_12_WS2812_50MM", "JST-XH 2.5 3p")):
         m = lib.get(mid)
         assert m["requires_soldering"] is False and m["factory_soldering"] is True
-        assert m["prewire"]["by"] == "factory" and m["prewire"]["lead"] == f"JST-PH 2.0 {n}p 100 mm"
+        assert m["prewire"]["by"] == "factory" and m["prewire"]["lead"] == f"{lead} 100 mm"
     assert lib.get("AMP_MAX98357A_I2S")["requires_soldering"] is False
-    pim = [r for r in lib.get("SPK_40MM_4R_3W")["sourcing_in"] if r.get("variant") == "prewired_jst_ph"]
-    assert pim and pim[0]["same_part"] is False
+    # the pre-wired Pimoroni speaker is 20 mm deep (keep-out is 17.5): REVIEW-1 MIN-23 moved it to rejected_sources
+    spk = lib.get("SPK_40MM_4R_3W")
+    assert not [r for r in spk["sourcing_in"] if r.get("variant") == "prewired_jst_ph"]
+    assert {r["vendor"] for r in spk["rejected_sources"]} == {"Robocomp", "Pimoroni (UK)"}

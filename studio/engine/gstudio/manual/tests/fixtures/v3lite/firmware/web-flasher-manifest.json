@@ -1,0 +1,16 @@
+{
+  "name": "Sleepy Bear firmware",
+  "version": "0.1.0+69e2f76d",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        {
+          "path": "firmware-merged.bin",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}

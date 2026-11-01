@@ -1,0 +1,207 @@
+{
+ "schema": "gadget-spec/1",
+ "name": "Sleepy Bear",
+ "slug": "sleepy-bear",
+ "tagline": "A gentle bear that tells stories about her favorite friends.",
+ "audience": {
+  "child_directed": true,
+  "age_years": 5
+ },
+ "region": "IN",
+ "colors": {
+  "body": "#8CC9C0",
+  "accent": "#FFF6EA",
+  "detail": "#2F2A52",
+  "body_name": "pale teal",
+  "accent_name": "warm cream",
+  "detail_name": "night indigo"
+ },
+ "body": {
+  "wall": 2.4,
+  "edge_round": 16.0,
+  "feet": 4,
+  "family": "silhouette",
+  "outline": [
+   [
+    -60.0,
+    0.0
+   ],
+   [
+    60.0,
+    0.0
+   ],
+   [
+    70.0,
+    40.0
+   ],
+   [
+    65.0,
+    110.0
+   ],
+   [
+    50.0,
+    150.0
+   ],
+   [
+    0.0,
+    165.0
+   ],
+   [
+    -50.0,
+    150.0
+   ],
+   [
+    -65.0,
+    110.0
+   ],
+   [
+    -70.0,
+    40.0
+   ]
+  ],
+  "depth": 110.0,
+  "split": "rear_cover"
+ },
+ "decor": [
+  {
+   "at": [
+    0.0,
+    120.0
+   ],
+   "color": null,
+   "type": "face_plate",
+   "shape": "ellipse",
+   "size": [
+    112.0,
+    58.0
+   ],
+   "depth": 1.2,
+   "relief": "engrave"
+  },
+  {
+   "at": [
+    45.0,
+    155.0
+   ],
+   "color": null,
+   "type": "ear",
+   "style": "bear",
+   "side": "both",
+   "size": [
+    32.0,
+    32.0
+   ],
+   "thickness": null,
+   "tilt": 0.0
+  }
+ ],
+ "features": [
+  {
+   "id": "speaker",
+   "module": "SPK_40MM_4R_3W",
+   "face": "front",
+   "at": [
+    0.0,
+    56.0
+   ],
+   "label": "Story speaker",
+   "grille": {
+    "pattern": "dots_ellipse",
+    "w": 36.0,
+    "h": 36.0,
+    "hole": 2.4,
+    "pitch": 4.4
+   },
+   "rotate": 0
+  },
+  {
+   "id": "story_button",
+   "module": "BUTTON_ARCADE_30MM_SNAPIN",
+   "face": "top",
+   "at": [
+    0.0,
+    -10.0
+   ],
+   "label": "Story and listening button",
+   "grille": null,
+   "rotate": 0
+  },
+  {
+   "id": "eyes",
+   "module": "OLED_130_SH1106_I2C",
+   "face": "front",
+   "at": [
+    0.0,
+    120.0
+   ],
+   "label": "Animated sleepy eyes",
+   "grille": null,
+   "rotate": 0
+  },
+  {
+   "id": "status_light",
+   "module": "LED_WS2812B_1PX_MODULE",
+   "face": "front",
+   "at": [
+    0.0,
+    85.0
+   ],
+   "label": "Night light",
+   "grille": null,
+   "rotate": 0
+  },
+  {
+   "id": "mic",
+   "module": "MIC_INMP441_I2S",
+   "face": "front",
+   "at": [
+    30.0,
+    85.0
+   ],
+   "label": "Voice microphone",
+   "grille": null,
+   "rotate": 0
+  }
+ ],
+ "electronics": {
+  "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+  "extra_modules": [],
+  "power": {
+   "input": "usb_c_5v",
+   "adapter_in_box": false
+  }
+ },
+ "behaviour": {
+  "template": "story_player",
+  "summary": "Tap the top button for a bedtime story. Hold it down and tell the bear your new favorite character; it will remember for next time. The tummy light glows warmly during stories and turns blue when listening.",
+  "settings": {
+   "volume_default": 35,
+   "volume_max": 60,
+   "long_press_ms": 600,
+   "led_max_percent": 45,
+   "setup_hotspot_minutes": 15,
+   "mic_gain_shift": 13,
+   "capture_mode": "child_voice_clip",
+   "clip_seconds": 2.0,
+   "keep_window_seconds": 10,
+   "night_light": true,
+   "night_light_minutes": 20,
+   "night_light_brightness": 12,
+   "night_light_color": "#FFB36B",
+   "max_favourites": 12,
+   "story_order": "shuffle",
+   "default_hero": "little star",
+   "names_for_audio": [],
+   "voice": "Achernar",
+   "language": "en-IN"
+  }
+ },
+ "safety": {
+  "flags": [
+   "CHILD_DIRECTED",
+   "LOCAL_VOICE_CAPTURE",
+   "NIGHT_USE"
+  ],
+  "notes": "Adult assembly required. Microphone only active when button is held."
+ }
+}

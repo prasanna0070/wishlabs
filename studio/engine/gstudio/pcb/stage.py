@@ -10,7 +10,7 @@ from typing import Callable, Optional
 
 from ..errors import StageError
 from . import build as B
-from . import fab, kicad_cli, route, visuals
+from . import fab, kicad_cli, reuse, route, rules, silk_audit, sourcing, visuals
 from .design import Design
 
 PCB_FILE = "backplane.kicad_pcb"
@@ -38,11 +38,17 @@ def _pcb_steps(design: Design, pcb_dir: Path, timings: dict, options: dict, prog
         if p.block in ("test", "mech") or p.board_only or not p.ref.startswith("J_"):
             continue
         silk.port(p, name_label=not p.ref.startswith("J_U1"))
-    silk.top_title("GADGET STUDIO", f"{design.backplane_id} rev {design.revision}")
-    silk.bottom_identity(f"GADGET STUDIO {design.backplane_id.upper()}",
-                         f"rev {design.revision}  {design.slug}  {design.date}", f"ID {design.design_id[:8]}")
-    silk.test_pads([p for p in design.parts if p.ref.startswith("TP")])
     silk.refdes(design.parts)
+    # U1 (the devkit) has no single connector to name: print its designator between its two sockets (REVIEW-1 MAJ-16)
+    if "J_U1A" in bb.boxes and "J_U1B" in bb.boxes:
+        a_, b_ = bb.boxes["J_U1A"], bb.boxes["J_U1B"]
+        silk.free_label(["U1", "DevKitC-1"], ((a_[0] + a_[2]) / 2, (min(a_[3], b_[3]) + max(a_[1], b_[1])) / 2),
+                        size=1.4, tag="U1 label")
+    # no version number or date on copper or silk: the same electrical design prints the same board (MIN-36)
+    silk.top_title("GADGET STUDIO", f"BP1 {design.backplane_id} rev {design.revision}")
+    silk.bottom_identity(f"GADGET STUDIO {design.backplane_id.upper()}",
+                         f"BP1 rev {design.revision}  {design.slug}", f"ID {design.design_id[:8]}")
+    silk.test_pads([p for p in design.parts if p.ref.startswith("TP")])
     bb.silk_boxes = list(silk.top_boxes) + list(silk.bot_boxes)  # stitching vias stay out of silk text
     bb.assign_unconnected(sch_nets)
     waived = {tuple(sorted(w.get("refs", []))) for w in design.waivers if w.get("rule") == "courtyards_overlap"}
@@ -145,12 +151,80 @@ def patch_project(pcb_dir: Path, design: Design) -> None:
     pro.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
 
 
+def _raw_backplane(backplane_src) -> dict:
+    return backplane_src if isinstance(backplane_src, dict) else json.loads(Path(backplane_src).read_text())
+
+
+def try_reuse(backplane_src, electrical: dict, pcb_dir: Path, meta: dict, options: dict,
+              lib_footprints: Optional[dict], prog) -> tuple[str, Optional[dict]]:
+    """(pcb_key, summary of a reused board or None). REVIEW-1 MIN-36."""
+    t0 = time.time()
+    key = reuse.pcb_key(_raw_backplane(backplane_src), electrical, meta.get("slug", "gadget"), options, lib_footprints)
+    if options.get("reuse") is False:
+        return key, None
+    hit = reuse.find(pcb_dir.parent, key, options, log=lambda m: prog(m, None))
+    if hit is None:
+        return key, None
+    label, src, prev = hit
+    reuse.adopt(src, pcb_dir)
+    if label.startswith("gs://"):  # downloaded into a temp folder by reuse.find
+        shutil.rmtree(src.parent, ignore_errors=True)
+    s = dict(prev)
+    secs = round(time.time() - t0, 2)
+    s["reused"] = {"from": label if label != "cache" else f"cache {src}", "pcb_key": key, "seconds": secs,
+                   "original_timings_s": prev.get("timings_s"), "why": "electrical inputs unchanged (same pcb_key)"}
+    s["timings_s"] = {"total": secs, "reused": True}
+    if reuse.scrub_paths(pcb_dir):  # a board cached before MIN-19 may still name its build folder
+        s = reuse.scrub_obj(s)
+        s["file_sha256"] = reuse.file_hashes(pcb_dir)
+    s["say"] = (f"Reused the routed board from {s['reused']['from']} in {secs:g} s: the electrical design did not change "
+                f"(rev {s.get('revision', '')}). " + str(prev.get("say", "")))
+    (pcb_dir / reuse.SUMMARY).write_text(json.dumps(s, indent=2) + "\n")
+    prog(f"reused: board unchanged (rev {s.get('revision', '')}), copied from {s['reused']['from']}", 100)
+    return key, s
+
+
+def count_joints(pcb_path: Path, design: Design) -> dict:
+    """Solder joints per board for the assembly estimate: SMD pads and plated through-hole pads of BOM parts."""
+    import pcbnew
+
+    board = pcbnew.LoadBoard(str(pcb_path))
+    inbom = {p.ref for p in design.parts if p.in_bom and not p.board_only}
+    smt = man = 0
+    for fp in board.GetFootprints():
+        if fp.GetReference() not in inbom:
+            continue
+        for pad in fp.Pads():
+            a = pad.GetAttribute()
+            if a == pcbnew.PAD_ATTRIB_SMD:
+                smt += 1
+            elif a == pcbnew.PAD_ATTRIB_PTH:
+                man += 1
+    return {"smt": smt, "manual": man}
+
+
+def silk_report(pcb_path: Path, design: Design) -> dict:
+    """Designators the build guide uses for this board, and whether each one is printed on the top silk (MAJ-16)."""
+    texts = silk_audit.silk_texts(pcb_path)
+    words = silk_audit.silk_words(texts)
+    want = ["BP1", "U1"]
+    for sid in design.used_slots:
+        if sid != "U1":
+            want.append(sid)
+    phrases = ["LED 5V"] if "J_LED" in design.used_slots else []
+    missing = [w for w in want if w not in words] + [ph for ph in phrases if not any(ph in t for t in texts)]
+    return {"expected": want + phrases, "missing": missing, "texts": len(texts)}
+
+
 def build_pcb(backplane_src, electrical: dict, pcb_dir: Path, meta: dict, options: Optional[dict] = None,
               progress: Optional[Callable[[str, Optional[float]], None]] = None,
-              lib_footprints: Optional[dict] = None) -> dict:
+              lib_footprints: Optional[dict] = None, modules: Optional[dict] = None) -> dict:
     options = dict(options or {})
     prog = progress or (lambda m, p=None: None)
     pcb_dir = Path(pcb_dir).resolve()
+    key, reused = try_reuse(backplane_src, electrical, pcb_dir, meta, options, lib_footprints, prog)
+    if reused is not None:
+        return reused
     if pcb_dir.exists() and options.get("clean", True):
         for child in pcb_dir.iterdir():
             if child.is_dir():
@@ -186,15 +260,22 @@ def build_pcb(backplane_src, electrical: dict, pcb_dir: Path, meta: dict, option
     layers = fab.zip_layers(Path(g["zip"]))
     bom = fab.bom(design, pcb_dir / "bom.csv")
     cpl = fab.cpl(board["pcb"], pcb_dir, design)
+    joints = count_joints(board["pcb"], design)
+    pcba = sourcing.pcba_cost(bom["pcba_lines"], joints, design.design_id)
+    (pcb_dir / "pcba.json").write_text(json.dumps(pcba, indent=2) + "\n")
     timings["fab"] = round(time.time() - t, 2)
-    prog("Gerbers, drill, BOM and CPL written", 78)
+    prog("Gerbers, drill, BOM, CPL and PCBA estimate written", 78)
+    extra = {"bom": bom, "cpl": cpl, "pcba": pcba, "silk": silk_report(board["pcb"], design),
+             "bp_raw": _raw_backplane(backplane_src), "modules": modules or {}}
 
     t = time.time()
     vis = visuals.make_all(board["pcb"], pcb_dir / f"{B.PROJECT}.kicad_sch", pcb_dir, design, options)
     timings["visuals"] = round(time.time() - t, 2)
     prog("renders, SVG plots and GLB written", 97)
     timings["total"] = round(time.time() - t0, 2)
-    summary = summarize(design, pcb_dir, sch, board, drc, g, layers, bom, cpl, vis, timings)
+    summary = summarize(design, pcb_dir, sch, board, drc, g, layers, bom, cpl, vis, timings, extra, key)
+    if summary["routed"]:
+        reuse.store(pcb_dir, key, options)
     if not summary["routed"]:
         raise StageError(f"Autorouting left {summary['unrouted']} connections unrouted (Freerouting "
                          f"{board['freerouting'].get('passes')} passes, retried); outputs kept in pcb/ for review",
@@ -203,7 +284,35 @@ def build_pcb(backplane_src, electrical: dict, pcb_dir: Path, meta: dict, option
     return summary
 
 
-def summarize(design, pcb_dir, sch, board, drc, g, layers, bom, cpl, vis, timings) -> dict:
+def extra_checks(design: Design, extra: dict) -> list[dict]:
+    """REVIEW-1 checks: port keying (MAJ-3), amp shutdown at boot (MIN-1), orderable BOM/CPL (MAJ-22), silk
+    designators (MAJ-16)."""
+    out = [rules.port_keying_check(extra["bp_raw"])]
+    if "A1" in design.used_slots:
+        r7 = next((p for p in design.parts if p.ref == "R7"), None)
+        amp_id = (next((s for s in extra["bp_raw"].get("slots", []) if s.get("id") == "A1"), {}) or {}).get("module")
+        out.append(rules.amp_sd_boot_check(rules.parse_ohms(r7.value) if r7 else None,
+                                           (extra.get("modules") or {}).get(amp_id)))
+    bom, cpl = extra["bom"], extra["cpl"]
+    out.append({"id": "pcb.bom_orderable", "title": "Every PCBA BOM line has a pinned maker part number and LCSC id",
+                "kind": "digital", "status": "failed" if bom["unpinned"] else "passed",
+                "detail": (f"{bom['lines'] - 1} part lines pinned (parts.json, read 2026-11-01); stock and price not read"
+                           if not bom["unpinned"] else "no pinned part for " + ", ".join(bom["unpinned"])),
+                "artifact": "pcb/bom.csv"})
+    out.append({"id": "pcb.cpl_clean", "title": "Pick-and-place file lists only parts to place (no fiducials)",
+                "kind": "digital", "status": "failed" if cpl.get("fiducial_rows") else "passed",
+                "detail": f"{cpl['placements']} placements, {cpl.get('fiducial_rows', 0)} fiducial rows",
+                "artifact": "pcb/cpl.csv"})
+    sk = extra["silk"]
+    out.append({"id": "pcb.silk_designators", "title": "Silkscreen prints every designator the build guide uses",
+                "kind": "digital", "status": "failed" if sk["missing"] else "passed",
+                "detail": ("missing: " + ", ".join(sk["missing"])) if sk["missing"]
+                else "on the top silk: " + ", ".join(sk["expected"]),
+                "artifact": "pcb/backplane.kicad_pcb"})
+    return out
+
+
+def summarize(design, pcb_dir, sch, board, drc, g, layers, bom, cpl, vis, timings, extra=None, key="") -> dict:
     st = board["stats"]
     files = sorted(str(p.relative_to(pcb_dir.parent)) for p in pcb_dir.rglob("*") if p.is_file())
     routed = st["unrouted"] == 0 and drc["unconnected"] == 0
@@ -232,6 +341,13 @@ def summarize(design, pcb_dir, sch, board, drc, g, layers, bom, cpl, vis, timing
         {"id": "pcb.fabricated", "title": "Board fabricated and electrically tested", "kind": "physical",
          "status": "not_run", "detail": "Physical checks still needed: no board has been made."},
     ]
+    art = {"pcb.erc": "pcb/erc.json", "pcb.netlist": "pcb/netlist.json", "pcb.drc": "pcb/drc.json",
+           "pcb.routed": "pcb/backplane.kicad_pcb", "pcb.parity": "pcb/drc.json", "pcb.courtyards": "pcb/backplane.kicad_pcb",
+           "pcb.gerbers": "pcb/backplane-gerbers.zip", "pcb.fabricated": "pcb/backplane-gerbers.zip"}
+    for c in checks:
+        c.setdefault("artifact", art.get(c["id"], "pcb/pcb-summary.json"))
+    if extra:
+        checks[-1:-1] = extra_checks(design, extra)
     summary = {
         "layers": 2,
         "size_mm": [design.width, design.height],
@@ -251,6 +367,9 @@ def summarize(design, pcb_dir, sch, board, drc, g, layers, bom, cpl, vis, timing
         "slots_used": design.used_slots,
         "slots_omitted": design.omitted_slots,
         "design_id": design.design_id,
+        "revision": design.revision,
+        "pcb_key": key,
+        "reused": None,
         "backplane": f"{design.backplane_id} {design.backplane_version}",
         "rules": board["rules"],
         "net_classes": {k: {"track_mm": v["track"], "clearance_mm": v["clearance"],
@@ -259,21 +378,38 @@ def summarize(design, pcb_dir, sch, board, drc, g, layers, bom, cpl, vis, timing
                         for k, v in board["classes"].items()},
         "freerouting": board["freerouting"],
         "deviations": design.deviations,
+        "silk_skipped": board.get("silk_skipped", []),
         "envelope_models": board.get("envelopes", []),
         "thermal_fixes": board.get("thermal_fixes", 0),
         "splits": design.splits,
         "files": files,
         "renders": vis,
         "bom_lines": bom["lines"],
+        "bom_unpinned": bom.get("unpinned", []),
         "cpl_placements": cpl["placements"],
+        "pcba": _pcba_brief(extra["pcba"]) if extra else None,
+        "silk": extra["silk"] if extra else None,
         "checks": checks,
         "timings_s": timings,
         "say": (f"Routed the {design.width:g} x {design.height:g} mm backplane: {drc['errors']} DRC errors, "
                 f"{sch['erc']['errors']} ERC errors, {max(st['unrouted'], drc['unconnected'])} unrouted, "
                 f"{st['vias']} vias, {st['track_length_mm']:.0f} mm of track."),
     }
+    reuse.scrub_paths(pcb_dir)  # MIN-19: no build-machine paths in the delivered PCB files
+    summary = reuse.scrub_obj(summary)
+    summary["file_sha256"] = reuse.file_hashes(pcb_dir)
     (pcb_dir / "pcb-summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     return summary
+
+
+def _pcba_brief(pcba: dict) -> dict:
+    """What the order stage needs to price BP1 as a populated board (details in pcb/pcba.json)."""
+    b = pcba["batches"]
+    return {"file": "pcb/pcba.json", "status": pcba["status"], "complete": pcba["complete"],
+            "includes_usb_c_receptacle": pcba["includes_usb_c_receptacle"],
+            "inr_per_board": {k: v["inr_per_board"] for k, v in b.items()},
+            "usd_per_board": {k: v["usd_per_board"] for k, v in b.items()},
+            "excludes": pcba["excludes"], "joints_per_board": pcba["joints_per_board"]}
 
 
 __all__ = ["build_pcb"]

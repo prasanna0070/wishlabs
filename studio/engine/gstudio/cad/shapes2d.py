@@ -113,24 +113,52 @@ def face_plate(shape: str, w: float, h: float) -> Polygon:
     return rounded_rect(w, h, min(w, h) * 0.28)
 
 
-def ear(style: str, w: float, h: float) -> Polygon:
-    """Ear outline with its base centre at (0, 0) and the tip toward +v. Extends below v=0 (embedded part)."""
+# Ear roundness (REVIEW-1 MAJ-30/MAJ-34): 0 = crisp/pointed outline, 1 = as round as the style allows. None = style default.
+EAR_ROUNDNESS_DEFAULT = {"cat": 0.25, "bear": 0.6, "bunny": 0.5, "owl_tuft": 0.2, "antenna": 0.5}
+
+
+def ear_roundness(style: str, roundness=None) -> float:
+    r = EAR_ROUNDNESS_DEFAULT.get(style, 0.5) if roundness is None else float(roundness)
+    return float(min(max(r, 0.0), 1.0))
+
+
+def ear(style: str, w: float, h: float, roundness=None) -> Polygon:
+    """Ear outline with its base centre at (0, 0) and the tip toward +v. Extends below v=0 (embedded neck).
+
+    roundness 0..1: cat/owl_tuft corner and tip radius, bear disc aspect (1 = a full circle) and neck taper, bunny tip
+    fullness. The part below v=0 is clipped to the body by decor.apply_ears, so it never shows."""
     e = max(h * 0.45, 8.0)
+    r = ear_roundness(style, roundness)
     if style == "cat":
         p = Polygon([(-w / 2, -e), (w / 2, -e), (w * 0.42, 0.05 * h), (w * 0.06, h), (-w * 0.08, h * 0.98), (-w * 0.5, 0.05 * h)])
-        return _soften(p, w * 0.16)
+        return _soften(p, w * (0.08 + 0.32 * r))
     if style == "bear":
-        c = ellipse(w, w, 0, h - w / 2)
-        stem = Polygon([(-w * 0.32, -e), (w * 0.32, -e), (w * 0.32, h - w / 2), (-w * 0.32, h - w / 2)])
+        dh = w * (0.8 + 0.2 * r)  # disc height: a flatter oval at low roundness, a circle at 1
+        c = ellipse(w, dh, 0, h - dh / 2)
+        neck_top = 0.32 * w * (1.15 - 0.35 * r)  # tapered neck: wide at the root, narrower under a rounder disc
+        neck_root = 0.36 * w
+        stem = Polygon([(-neck_root, -e), (neck_root, -e), (neck_top, h - dh / 2), (-neck_top, h - dh / 2)])
         return _soften(unary_union([c, stem]), w * 0.08)
     if style == "bunny":
         body = ellipse(w, h * 1.1 + e, 0, (h - e) / 2 + h * 0.03)
+        if r > 0.5:  # fuller, rounder tip: blend with a circle at the top
+            k = (r - 0.5) * 2.0
+            tip = Point(0, h - w / 2).buffer(w / 2 * (0.8 + 0.2 * k), quad_segs=RES)
+            body = _soften(unary_union([body, tip]), w * 0.1 * k + 0.01)
         return body
     if style == "owl_tuft":
         p = Polygon([(-w / 2, -e), (w / 2, -e), (w * 0.48, h * 0.35), (w * 0.30, h), (w * 0.05, h * 0.62), (-w * 0.30, h * 0.40), (-w * 0.5, 0)])
-        return _soften(p, w * 0.12)
+        return _soften(p, w * (0.06 + 0.30 * r))
     # antenna fallback outline (3D antenna is built separately)
     return ellipse(w, w, 0, h - w / 2).union(Polygon([(-1.6, -e), (1.6, -e), (1.6, h - w / 2), (-1.6, h - w / 2)]))
+
+
+def ear_visible(style: str, w: float, h: float, roundness=None) -> Polygon:
+    """The part of the ear meant to show (v >= 0): the 'disc footprint' the decor_inside_silhouette check allows."""
+    p = ear(style, w, h, roundness)
+    clip = Polygon([(-10 * w, 0.0), (10 * w, 0.0), (10 * w, 10 * h + 10), (-10 * w, 10 * h + 10)])
+    q = p.intersection(clip)
+    return q if not q.is_empty else p
 
 
 def footprint_points(poly: Polygon, n: int = 24) -> np.ndarray:

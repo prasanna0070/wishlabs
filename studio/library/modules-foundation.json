@@ -1,0 +1,670 @@
+[
+ {
+  "id": "SCREW_M2_5X5_SHCS_A2",
+  "catalog_row": "09",
+  "catalog_id": null,
+  "role": "screws",
+  "name": "M2.5 x 5 mm socket head cap screw, SS304 (pack of 10)",
+  "reference_product": {
+   "maker": "ThinkRobotics (generic SS304)",
+   "mpn_or_model": "Stainless Steel Socket Head Screws (pack of 10), variant MEC7001-M2.5/5",
+   "product_url": "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric",
+   "datasheet_url": null
+  },
+  "dims_mm": {
+   "x": 4.5,
+   "y": 4.5,
+   "z": 5,
+   "notes": "z = length under the head (listing: 'Length is measured from under the head'); x/y head diameter is an estimate (same as SCREW_SET_M2_M2_5_SHCS_A2, ISO 4762 not read)"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "into an M2.5 heat-set insert"
+  },
+  "pins": [],
+  "module_connector": {
+   "type": "none",
+   "pin_order": [],
+   "location": "n/a"
+  },
+  "backplane_harness": {},
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal"
+  },
+  "electrical": {
+   "supply_v": "none",
+   "logic_v": "none",
+   "current_ma_typ": 0,
+   "current_ma_max": 0,
+   "bus": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": ""
+  },
+  "thread": "M2.5",
+  "length_mm": 5,
+  "pack_size": 10,
+  "sourcing_in": [
+   {
+    "vendor": "ThinkRobotics",
+    "url": "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric",
+    "price_inr_seen": 49.99,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "sku": "MEC7001-M2.5/5",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:29:21Z",
+    "pack_size": 10,
+    "gst": null,
+    "snapshot": "references/listings/thinkrobotics-18-8-stainless-steel-socket-head-screws-metric.js",
+    "notes": "Shopify product JSON variant MEC7001-M2.5/5: Rs 49.99 per pack, available true; 'Package Contains - 10 screws'; GST basis not stated in the JSON"
+   }
+  ],
+  "price_inr_planning": [
+   49.99,
+   49.99
+  ],
+  "evidence": [
+   "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric.js read 2026-11-01T13:29:21Z (snapshot references/listings/thinkrobotics-18-8-stainless-steel-socket-head-screws-metric.js): variant MEC7001-M2.5/5 Rs 49.99, pack of 10, SS304, length under the head"
+  ],
+  "uncertain": [
+   "head diameter and height are estimates (ISO 4762 not read)",
+   "planning range = the one seen retail price (no second listing)"
+  ]
+ },
+ {
+  "id": "SCREW_M2_5X8_SHCS_A2",
+  "catalog_row": "09",
+  "catalog_id": null,
+  "role": "screws",
+  "name": "M2.5 x 8 mm socket head cap screw, SS304 (pack of 10)",
+  "reference_product": {
+   "maker": "ThinkRobotics (generic SS304)",
+   "mpn_or_model": "Stainless Steel Socket Head Screws (pack of 10), variant MEC7001-M2.5/8",
+   "product_url": "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric",
+   "datasheet_url": null
+  },
+  "dims_mm": {
+   "x": 4.5,
+   "y": 4.5,
+   "z": 8,
+   "notes": "z = length under the head (listing: 'Length is measured from under the head'); x/y head diameter is an estimate (same as SCREW_SET_M2_M2_5_SHCS_A2, ISO 4762 not read)"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "into an M2.5 heat-set insert"
+  },
+  "pins": [],
+  "module_connector": {
+   "type": "none",
+   "pin_order": [],
+   "location": "n/a"
+  },
+  "backplane_harness": {},
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal"
+  },
+  "electrical": {
+   "supply_v": "none",
+   "logic_v": "none",
+   "current_ma_typ": 0,
+   "current_ma_max": 0,
+   "bus": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": ""
+  },
+  "thread": "M2.5",
+  "length_mm": 8,
+  "pack_size": 10,
+  "sourcing_in": [
+   {
+    "vendor": "ThinkRobotics",
+    "url": "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric",
+    "price_inr_seen": 79.99,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "sku": "MEC7001-M2.5/8",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:29:21Z",
+    "pack_size": 10,
+    "gst": null,
+    "snapshot": "references/listings/thinkrobotics-18-8-stainless-steel-socket-head-screws-metric.js",
+    "notes": "Shopify product JSON variant MEC7001-M2.5/8: Rs 79.99 per pack, available true; 'Package Contains - 10 screws'; GST basis not stated in the JSON"
+   }
+  ],
+  "price_inr_planning": [
+   79.99,
+   79.99
+  ],
+  "evidence": [
+   "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric.js read 2026-11-01T13:29:21Z (snapshot references/listings/thinkrobotics-18-8-stainless-steel-socket-head-screws-metric.js): variant MEC7001-M2.5/8 Rs 79.99, pack of 10, SS304, length under the head"
+  ],
+  "uncertain": [
+   "head diameter and height are estimates (ISO 4762 not read)",
+   "planning range = the one seen retail price (no second listing)"
+  ]
+ },
+ {
+  "id": "SCREW_M2_5X12_SHCS_A2",
+  "catalog_row": "09",
+  "catalog_id": null,
+  "role": "screws",
+  "name": "M2.5 x 12 mm socket head cap screw, SS304 (pack of 10)",
+  "reference_product": {
+   "maker": "ThinkRobotics (generic SS304)",
+   "mpn_or_model": "Stainless Steel Socket Head Screws (pack of 10), variant MEC7001-M2.5/12",
+   "product_url": "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric",
+   "datasheet_url": null
+  },
+  "dims_mm": {
+   "x": 4.5,
+   "y": 4.5,
+   "z": 12,
+   "notes": "z = length under the head (listing: 'Length is measured from under the head'); x/y head diameter is an estimate (same as SCREW_SET_M2_M2_5_SHCS_A2, ISO 4762 not read)"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "into an M2.5 heat-set insert"
+  },
+  "pins": [],
+  "module_connector": {
+   "type": "none",
+   "pin_order": [],
+   "location": "n/a"
+  },
+  "backplane_harness": {},
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal"
+  },
+  "electrical": {
+   "supply_v": "none",
+   "logic_v": "none",
+   "current_ma_typ": 0,
+   "current_ma_max": 0,
+   "bus": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": ""
+  },
+  "thread": "M2.5",
+  "length_mm": 12,
+  "pack_size": 10,
+  "sourcing_in": [
+   {
+    "vendor": "ThinkRobotics",
+    "url": "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric",
+    "price_inr_seen": 99.99,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "sku": "MEC7001-M2.5/12",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:29:21Z",
+    "pack_size": 10,
+    "gst": null,
+    "snapshot": "references/listings/thinkrobotics-18-8-stainless-steel-socket-head-screws-metric.js",
+    "notes": "Shopify product JSON variant MEC7001-M2.5/12: Rs 99.99 per pack, available true; 'Package Contains - 10 screws'; GST basis not stated in the JSON; the variant title reads 'M2.5X0.4 / 12mm' (pitch label inconsistent with the 0.45 mm M2.5 coarse pitch of the other M2.5 variants)"
+   }
+  ],
+  "price_inr_planning": [
+   99.99,
+   99.99
+  ],
+  "evidence": [
+   "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric.js read 2026-11-01T13:29:21Z (snapshot references/listings/thinkrobotics-18-8-stainless-steel-socket-head-screws-metric.js): variant MEC7001-M2.5/12 Rs 99.99, pack of 10, SS304, length under the head"
+  ],
+  "uncertain": [
+   "head diameter and height are estimates (ISO 4762 not read)",
+   "planning range = the one seen retail price (no second listing)"
+  ]
+ },
+ {
+  "id": "SCREW_M2X6_SHCS_A2",
+  "catalog_row": "09",
+  "catalog_id": null,
+  "role": "screws",
+  "name": "M2 x 6 mm socket head cap screw, SS304 (pack of 10)",
+  "reference_product": {
+   "maker": "ThinkRobotics (generic SS304)",
+   "mpn_or_model": "Stainless Steel Socket Head Screws (pack of 10), variant MEC7001-M2/6",
+   "product_url": "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric",
+   "datasheet_url": null
+  },
+  "dims_mm": {
+   "x": 3.8,
+   "y": 3.8,
+   "z": 6,
+   "notes": "z = length under the head (listing: 'Length is measured from under the head'); x/y head diameter is an estimate (same as SCREW_SET_M2_M2_5_SHCS_A2, ISO 4762 not read)"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "into a printed 1.8 mm pilot hole"
+  },
+  "pins": [],
+  "module_connector": {
+   "type": "none",
+   "pin_order": [],
+   "location": "n/a"
+  },
+  "backplane_harness": {},
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal"
+  },
+  "electrical": {
+   "supply_v": "none",
+   "logic_v": "none",
+   "current_ma_typ": 0,
+   "current_ma_max": 0,
+   "bus": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": ""
+  },
+  "thread": "M2",
+  "length_mm": 6,
+  "pack_size": 10,
+  "sourcing_in": [
+   {
+    "vendor": "ThinkRobotics",
+    "url": "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric",
+    "price_inr_seen": 79.99,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "sku": "MEC7001-M2/6",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:29:21Z",
+    "pack_size": 10,
+    "gst": null,
+    "snapshot": "references/listings/thinkrobotics-18-8-stainless-steel-socket-head-screws-metric.js",
+    "notes": "Shopify product JSON variant MEC7001-M2/6: Rs 79.99 per pack, available true; 'Package Contains - 10 screws'; GST basis not stated in the JSON"
+   }
+  ],
+  "price_inr_planning": [
+   79.99,
+   79.99
+  ],
+  "evidence": [
+   "https://thinkrobotics.com/products/18-8-stainless-steel-socket-head-screws-metric.js read 2026-11-01T13:29:21Z (snapshot references/listings/thinkrobotics-18-8-stainless-steel-socket-head-screws-metric.js): variant MEC7001-M2/6 Rs 79.99, pack of 10, SS304, length under the head"
+  ],
+  "uncertain": [
+   "head diameter and height are estimates (ISO 4762 not read)",
+   "planning range = the one seen retail price (no second listing)"
+  ]
+ },
+ {
+  "id": "INSERT_HEATSET_M2_5X4_MEC8005",
+  "catalog_row": "10",
+  "catalog_id": null,
+  "role": "inserts",
+  "name": "Brass heat-set knurled insert M2.5, 3.5 mm OD x 4.0 mm (pack of 10)",
+  "reference_product": {
+   "maker": "ThinkRobotics",
+   "mpn_or_model": "MEC8005-M2.5 'Brass Heat-Set Knurled Inserts for Plastic (Pack of 10)', variant 'M2.5 X 4.5mm'",
+   "product_url": "https://thinkrobotics.com/products/brass-heat-set-inserts-for-plastic",
+   "datasheet_url": "https://cdn.shopify.com/s/files/1/0014/4313/5560/files/M2.5mmThread.png?v=1644389842"
+  },
+  "dims_mm": {
+   "x": 3.5,
+   "y": 3.5,
+   "z": 4.0,
+   "notes": "Vendor drawing (snapshot references/sources/thinkrobotics-mec8005-m2_5-insert-drawing.png): top flange OD 3.5 mm, lead-in OD 3.1 mm, length 4.00 mm, M2.5 x 0.45 thread. The variant title says 4.5 mm: the drawing and the title disagree, so the length is unconfirmed until a sample is measured."
+  },
+  "pilot_d_mm": 3.1,
+  "thread": "M2.5",
+  "length_mm": 4.0,
+  "pack_size": 10,
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "heat_set",
+   "holes": [
+    {
+     "d": 3.2,
+     "basis": "ESTIMATE: the vendor gives no hole size; 3.1 mm lead-in OD from the drawing + 0.1 mm print allowance. Confirm with the fit coupon."
+    }
+   ],
+   "hole_origin": "insert axis",
+   "notes": "press in with a soldering iron (listing); hole depth = length + melt room (design estimate)"
+  },
+  "pins": [],
+  "module_connector": {
+   "type": "none",
+   "pin_order": [],
+   "location": "n/a"
+  },
+  "backplane_harness": {},
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "internal"
+  },
+  "electrical": {
+   "supply_v": "none",
+   "logic_v": "none",
+   "current_ma_typ": 0,
+   "current_ma_max": 0,
+   "bus": "none"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": ""
+  },
+  "sourcing_in": [
+   {
+    "vendor": "ThinkRobotics",
+    "url": "https://thinkrobotics.com/products/brass-heat-set-inserts-for-plastic",
+    "price_inr_seen": 59.99,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "sku": "MEC8005-M2.5",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:29:26Z",
+    "pack_size": 10,
+    "gst": null,
+    "snapshot": "references/listings/thinkrobotics-brass-heat-set-inserts-for-plastic.js",
+    "notes": "Shopify product JSON: 'Brass Heat-Set Knurled Inserts for Plastic (Pack of 10)', variant 'M2.5 X 4.5mm', sku MEC8005-M2.5, Rs 59.99, available true; GST basis not stated in the JSON"
+   }
+  ],
+  "price_inr_planning": [
+   59.99,
+   59.99
+  ],
+  "evidence": [
+   "thinkrobotics.com product JSON read 2026-11-01T13:29:26Z: pack of 10, variant M2.5 X 4.5mm, sku MEC8005-M2.5, Rs 59.99, available",
+   "vendor M2.5 insert drawing read 2026-11-01: 3.5 mm OD, 3.1 mm lead-in, 4.00 mm long, M2.5 x 0.45"
+  ],
+  "uncertain": [
+   "length: drawing 4.00 mm vs variant title 4.5 mm; measure a sample",
+   "recommended hole diameter not given by the vendor; 3.2 mm is an estimate for the fit coupon",
+   "not the CNC Kitchen insert (OD 4.6, hole 4.0) that INSERT_HEATSET_M2_5X4_STD and the current boss geometry assume"
+  ]
+ },
+ {
+  "id": "STORAGE_MICROSD_32GB_A1",
+  "catalog_row": "37b",
+  "catalog_id": null,
+  "role": "storage_card",
+  "name": "microSD card 32 GB, SDHC Class 10 A1 (SanDisk), FAT32",
+  "reference_product": {
+   "maker": "SanDisk (Western Digital)",
+   "mpn_or_model": "32 GB microSDHC Class 10 UHS-I A1 (SanDisk Ultra class); retailer listings name no MPN",
+   "product_url": "https://robocraze.com/products/sandisk-32gb-micro-sd-sdhc-card",
+   "datasheet_url": null
+  },
+  "dims_mm": {
+   "x": 11.0,
+   "y": 15.0,
+   "z": 1.0,
+   "notes": "microSD form factor 11 x 15 x 1.0 mm (SD Association standard size; not re-read this session)"
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "card_slot",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "push-push slot on the S1 microSD module"
+  },
+  "pins": [],
+  "module_connector": {
+   "type": "none",
+   "pin_order": [],
+   "location": "card contacts in the S1 module slot"
+  },
+  "backplane_harness": {},
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "inside the S1 module slot"
+  },
+  "electrical": {
+   "supply_v": "3.3 (from the S1 module LDO)",
+   "logic_v": "3.3",
+   "current_ma_typ": 0,
+   "current_ma_max": 0,
+   "bus": "spi via S1 (module)",
+   "notes": "card current is included in the S1 module row"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": "FAT32; holds the firmware/sdcard/ story pack (SOFTWARE_SETUP.md); the firmware checks sd_mounted() before saving"
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": "not on the board; goes in the S1 module's slot"
+  },
+  "sourcing_in": [
+   {
+    "vendor": "Quartz Components",
+    "url": "https://quartzcomponents.com/products/32gb-ultra-microsd-memory-card-red-grey",
+    "price_inr_seen": 1499.0,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "sku": "OTH-QC2868",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:29:17Z",
+    "pack_size": 1,
+    "gst": null,
+    "snapshot": "references/listings/quartzcomponents-32gb-ultra-microsd-memory-card-red-grey.js",
+    "notes": "Shopify product JSON: 'SanDisk Ultra Micro SD 32GB UHS-I, 120MB/s R, Class 10 Memory Card', sku OTH-QC2868, Rs 1,499, available true; description says Class 10, UHS-I, A1; GST basis not stated in the JSON"
+   },
+   {
+    "vendor": "Robocraze",
+    "url": "https://robocraze.com/products/sandisk-32gb-micro-sd-sdhc-card",
+    "price_inr_seen": 1549.0,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "sku": "TIFAC0025",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "checked_at": "2026-11-01T13:29:13Z",
+    "pack_size": 1,
+    "gst": null,
+    "snapshot": "references/listings/robocraze-sandisk-32gb-micro-sd-sdhc-card.js",
+    "notes": "Shopify product JSON: 'SanDisk 32GB Micro SDHC Memory Card Class 10 A1 for Raspberry Pi', sku TIFAC0025, Rs 1,549, available true; GST basis not stated in the JSON"
+   }
+  ],
+  "price_inr_planning": [
+   1499.0,
+   1549.0
+  ],
+  "evidence": [
+   "quartzcomponents.com and robocraze.com product JSON read 2026-11-01 (snapshots in references/listings/): both list a SanDisk 32 GB microSDHC Class 10 A1 card in stock at Rs 1,499 and Rs 1,549",
+   "REVIEW-1 BLK-5: SOFTWARE_SETUP.md requires a FAT32 microSD card holding firmware/sdcard/; the S1 module ships without one"
+  ],
+  "uncertain": [
+   "planning range = the two seen retail prices (no wholesale quote)",
+   "card size from the microSD standard, not measured",
+   "write endurance under repeated clip saves not tested"
+  ]
+ },
+ {
+  "id": "FEET_RUBBER_8X2_5_SUNROM_4436",
+  "catalog_row": "11",
+  "catalog_id": "FEET_A",
+  "role": "feet",
+  "name": "Self-adhesive rubber feet, clear, 8 mm dia x 2.5 mm (Sunrom 4436)",
+  "reference_product": {
+   "maker": "Sunrom (vendor part; maker not stated)",
+   "mpn_or_model": "Sunrom product code 4436 'Rubber Feet, Clear Transparent, Self Adhesive, 8mm diameter'",
+   "product_url": "https://www.sunrom.com/p/rubber-feet",
+   "datasheet_url": null
+  },
+  "dims_mm": {
+   "x": 8.0,
+   "y": 8.0,
+   "z": 2.5,
+   "notes": "Listing (snapshot references/listings/sunrom-4436-rubber-feet-8mm.html): 'Diameter: 8mm', 'Height: 2.5mm', 'Cylindrical Top', 'Easy application with 3M pressure sensitive adhesives'. The page says 'Similar to 3M's Bumpon'; it is not the 3M SJ5302."
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "adhesive",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "Proposal: shallow printed locating recess slightly larger than the foot so the assembler places feet repeatably; recess size to be test-printed. Use 4 feet at the base corners."
+  },
+  "module_connector": {
+   "type": "none",
+   "pin_order": [],
+   "location": "n/a"
+  },
+  "backplane_harness": {
+   "backplane_connector": "NONE",
+   "wires": [],
+   "length_mm": 0
+  },
+  "aperture": {
+   "needs": "none",
+   "size_mm": {
+    "w": 0,
+    "h": 0,
+    "d": 0
+   },
+   "notes": "",
+   "feature_allowed": false,
+   "required": false
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": ""
+  },
+  "kicad": {
+   "backplane_footprint": "NONE",
+   "notes": ""
+  },
+  "pack_size": 10,
+  "sourcing_in": [
+   {
+    "vendor": "Sunrom",
+    "url": "https://www.sunrom.com/p/rubber-feet",
+    "price_inr_seen": 54.3,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "sku": "4436",
+    "sku_kind": "vendor_sku",
+    "stock": "in_stock",
+    "stock_qty": 186,
+    "checked_at": "2026-11-01T16:37:51Z",
+    "pack_size": 10,
+    "gst": null,
+    "snapshot": "references/listings/sunrom-4436-rubber-feet-8mm.html",
+    "fulfilment_country": "IN",
+    "retail": true,
+    "host_ok": true,
+    "same_part": true,
+    "selected": true,
+    "selection_reason": {
+     "rule": "host matches vendor > same part > retail > has URL > not out of stock > page read > price seen > ships from IN > library order",
+     "why": [
+      "only Indian retail listing read for adhesive feet of this size (REVIEW-1 MIN-25: IndiaMART rows removed from the benchmark)"
+     ],
+     "alternatives": 0
+    },
+    "notes": "Page read 2026-11-01T16:37:51Z: 'Product Code 4436', 'Price: Rs.5.43/- Minimum: 10' (1-49 tier), 'Ready Stock: 186 nos.'. Sold per piece with a minimum order of 10, so one order unit is 10 pieces: 10 x Rs 5.43 = Rs 54.30 (arithmetic on the page price). The page does not say whether GST is included (Sunrom issues GST bills)."
+   }
+  ],
+  "price_inr_planning": [
+   54.3,
+   54.3
+  ],
+  "evidence": [
+   "sunrom.com/p/rubber-feet read 2026-11-01T16:37:51Z (sha256 d21eaf1709240b52...): product code 4436, 8 mm diameter, 2.5 mm height, Rs 5.43 per piece (1-49), minimum 10, ready stock 186"
+  ],
+  "uncertain": [
+   "shape: the page says 'Cylindrical Top'; the exact profile is not drawn, so the CAD models a filleted cylinder",
+   "rubber compound and adhesive grade not named beyond '3M pressure sensitive adhesives'",
+   "adhesion on textured FDM surfaces not verified (a smooth printed pad may be needed)",
+   "GST basis of the price not stated"
+  ],
+  "category": "mechanical",
+  "aliases": [],
+  "ref_prefix": null,
+  "face_mm": [
+   8.0,
+   8.0
+  ],
+  "depth_mm": 2.5,
+  "harness_clearance_mm": 0.0,
+  "requires_soldering": false,
+  "requires_soldering_basis": "mechanical/consumable or PCB-assembled part",
+  "backplane_v1": {
+   "port": "none",
+   "slots": [],
+   "cable": null,
+   "supported": true,
+   "why": "mechanical or consumable; no electrical port"
+  }
+ }
+]

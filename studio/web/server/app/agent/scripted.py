@@ -36,7 +36,7 @@ def _pick(mods: list[dict], kind: str) -> str:
 
 def fallback_spec(mods: list[dict]) -> dict:
     return {
-        "schema": "gadget-spec/1", "name": "Moon Hug", "slug": "moon-hug",
+        "schema": "gadget-spec/1", "name": "Lullaby Pod", "slug": "lullaby-pod",
         "tagline": "A crescent moon that tells bedtime stories",
         "audience": {"child_directed": True, "age_years": 5}, "region": "IN",
         "colors": {"body": "#8CC9C0", "accent": "#F4F1EA", "detail": "#2B3A42", "body_name": "pale teal"},
@@ -71,16 +71,16 @@ def fallback_spec(mods: list[dict]) -> dict:
 
 
 TIERED = (
-    ("expected", "Moon Hug", "A crescent moon hugging a sleepy round face, with the story button as its belly.",
+    ("expected", "Moon Bot", "A sleepy round robot with a crescent-moon face and the story button on its head.",
      ("#8CC9C0", "pale teal"), 1.0),
-    ("expected", "Owl Nook", "A plump owl with tufted ears and a glowing chest light.", ("#F4D58D", "butter yellow"),
-     0.94),
-    ("different", "Cloud Pal", "A soft cloud with a sleepy smile and a big round button below its face.",
+    ("expected", "Owl Bot", "A plump owl-styled robot with antenna ears and a glowing chest light.",
+     ("#F4D58D", "butter yellow"), 0.94),
+    ("different", "Cloud Robot", "A soft cloud-shaped robot with a sleepy smile below its face.",
      ("#C3B1E1", "lavender"), 1.08),
     ("different", "Bean Bot", "A rounded bean-shaped robot that leans back like it is listening.",
      ("#A8D5A2", "mint"), 0.9),
-    ("wildcard", "Story Lantern", "A little lantern with a face that glows while it reads.", ("#F6B98B", "apricot"),
-     0.86),
+    ("wildcard", "Lantern Bot", "A little lantern robot with a face that glows while it reads.",
+     ("#F6B98B", "apricot"), 0.86),
     ("wildcard", "Snail Shell", "A friendly snail whose shell holds the speaker.", ("#F2B5C4", "blush pink"), 1.12),
 )
 
@@ -127,7 +127,7 @@ class ScriptedBrain:
                     "message": "I'll plan a small USB-powered bedside robot and use India for parts sourcing; both "
                                "choices can be changed.",
                     "defaults": ["Country: India (default)", "Power: USB-C adapter"],
-                    "project_name": "Bedtime Story Robot",
+                    "project_name": "Story Time Bot",
                     "questions": [
                     {"id": "age", "question": "How old is she?",
                      "consequence": "Her age will guide the story style and controls.",
@@ -218,12 +218,17 @@ class ScriptedBrain:
         return ScriptedBrain._edit(spec, text)
 
     async def _concepts(self, turn) -> None:
+        """Replays one fixed set. The scripted brain cannot redesign, so concept-rule repair rounds resend the same
+        set until the app stops asking and shows it with its rule failures recorded (set_check)."""
         base = self.base_spec()
         cs = [{"tier": tr, "title": t, "blurb": b, "spec": s} for tr, t, b, s in variants(base)]
-        await turn.call_tool("propose_concepts", {
-            "message": "Choose the robot shape you prefer from the concepts. The proposed design uses short offline "
-                       "stories with saved character names; its face and limbs stay still.",
-            "concepts": cs})
+        args = {"message": "Choose the robot shape you prefer from the concepts. The proposed design uses short offline "
+                           "stories with saved character names; its face and limbs stay still.",
+                "concepts": cs}
+        for _ in range(self.svc.settings.max_repair_rounds + 1):
+            res = await turn.call_tool("propose_concepts", copy.deepcopy(args))
+            if res.terminal or not res.response.get("set_failures"):
+                return
 
     @staticmethod
     def _brief_args(p: dict) -> dict:

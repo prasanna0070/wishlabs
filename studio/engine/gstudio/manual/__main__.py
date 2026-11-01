@@ -1,4 +1,4 @@
-"""Standalone runner: python -m gstudio.manual <out_dir> [--no-render] [--workers N] [--cache DIR]
+"""Standalone runner: python -m gstudio.manual <out_dir> [--no-render] [--workers N] [--cache DIR] [--finalize] [--lenient]
 
 Reads <out_dir>/spec.json and electrical.json (and cad/, print/, pcb/, firmware/ if present) and runs the
 manual stage on that output directory. Uses gstudio.library.Library when it imports, else library/*.json.
@@ -20,6 +20,8 @@ def main(argv=None) -> int:
     ap.add_argument("--no-render", action="store_true")
     ap.add_argument("--workers", type=int, default=0)
     ap.add_argument("--cache", default=None)
+    ap.add_argument("--finalize", action="store_true", help="only run finalize(ctx) (after the checks stage)")
+    ap.add_argument("--lenient", action="store_true", help="report, do not fail, on missing module ends / unused rows")
     a = ap.parse_args(argv)
     out = Path(a.out)
     try:
@@ -30,7 +32,7 @@ def main(argv=None) -> int:
         lib = None
     spec = json.loads((out / "spec.json").read_text()) if (out / "spec.json").is_file() else {}
     elec = json.loads((out / "electrical.json").read_text()) if (out / "electrical.json").is_file() else None
-    opts = {"manual_no_render": a.no_render}
+    opts = {"manual_no_render": a.no_render, "manual_lenient": a.lenient}
     if a.workers:
         opts["manual_workers"] = a.workers
     if a.cache:
@@ -41,9 +43,9 @@ def main(argv=None) -> int:
 
     ctx = SimpleNamespace(spec=spec, lib=lib, out=out, electrical=elec, artifacts={}, options=opts, progress=progress,
                           warn=lambda s, m: print(f"WARN {s}: {m}", file=sys.stderr))
-    from . import run
+    from . import finalize, run
 
-    summary = run(ctx)
+    summary = finalize(ctx) if a.finalize else run(ctx)
     print(json.dumps({k: v for k, v in summary.items() if k not in ("images", "figure_seconds")}, indent=2))
     return 0 if summary.get("ok") else 1
 

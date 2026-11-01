@@ -40,6 +40,7 @@ class Split:
     info: dict = field(default_factory=dict)
     warnings: list = field(default_factory=list)
     boss_points: list = field(default_factory=list)
+    lip_root: list = field(default_factory=list)  # cover: ring that carries the lip segments (applied with a validity guard)
 
 
 def _xz_to_face(poly: Polygon, y: float, length: float) -> Optional[cq.Shape]:
@@ -219,8 +220,25 @@ def rear_cover(O, C, y_s: float, probeO, probeC, bg, floor, fz, keep_boxes, usb_
     lip = lip.difference(unary_union(relief)) if relief else lip
     if usb_pt is not None:
         lip = lip.difference(Point(usb_pt[0], usb_pt[2]).buffer(10))
-    lip = lip.buffer(-0.05).buffer(0.05)
+    lip = lip.buffer(-0.7).buffer(0.7)  # no wedge tips thinner than 1.4 mm where the reliefs cut the ring (MIN-9)
     lip_parts = [g for g in getattr(lip, "geoms", [lip]) if g.area > 4.0]
+    # The lip sits 0.25 mm inside the shell's inner wall, so on its own it never touches the cover's wall ring and was
+    # dropped as floating fragments (REVIEW-1 MIN-10). A root ring just behind the seam, overlapping the cover wall by
+    # 0.3 mm, carries every lip segment.
+    # no face of the root may coincide with a lip face (OCC cannot fuse coincident spline faces): inner edge and the
+    # relief ends sit 0.4 mm away from the lip's
+    root = csec.buffer(0.3).difference(csec.buffer(-0.25 - 1.6 - 0.4)).difference(sbox(-1e3, -1e3, 1e3, floor + 12.4))
+    root = root.difference(unary_union(relief).buffer(0.4)) if relief else root
+    if usb_pt is not None:
+        root = root.difference(Point(usb_pt[0], usb_pt[2]).buffer(10.4))
+    root = root.buffer(-0.7).buffer(0.7)
+    root_parts = [g for g in getattr(root, "geoms", [root]) if g.area > 4.0]
+    for g in root_parts:  # built into the body before the split (cavity minus adds), so it lands on the cover side;
+        # 1.43 mm along Y (the wall rule) and 0.05 mm short of where the cavity's rear round starts
+        s = _xz_to_face(g, y_s + 0.02, 1.43)
+        if s is not None:
+            sp.shell_adds.append(s)
+            sp.lip_root.append(s)
     for g in lip_parts:
         s = _xz_to_face(g, y_s - 3.0, 3.5)
         if s is not None:
@@ -251,7 +269,7 @@ def rear_cover(O, C, y_s: float, probeO, probeC, bg, floor, fz, keep_boxes, usb_
             if vs is not None:
                 sp.other_cuts.append(vs)
         sp.info["vent_slots"] = len(slots)
-    sp.info.update({"seam_y": round(y_s, 2), "cover_screws": len(pts), "lip_segments": len(lip_parts),
+    sp.info.update({"seam_y": round(y_s, 2), "cover_screws": len(pts), "lip_segments": len(lip_parts), "lip_root_segments": len(root_parts),
                     "lip_gap_mm": 0.25, "lip_thickness_mm": 1.6, "lip_depth_mm": 3.0})
     return sp
 
@@ -361,3 +379,43 @@ def usb_tunnel(pt, bp: dict, y_end: float) -> cq.Shape:
     f = rounded_rect_face_fast(op["w"], op["h"], op.get("corner_r", 2.5))
     pl = cq.Plane(origin=V(x, y - 0.3, z), xDir=V(1, 0, 0), normal=V(0, 1, 0))
     return prism(f, 0, y_end - (y - 0.3) + 20).moved(cq.Location(pl))
+
+
+def cord_tie_bridge(usb_pt, bp: dict, probeO, probeC, fz: dict, y_min: Optional[float] = None) -> Optional[dict]:
+    """External USB-C cord strain relief (REVIEW-1 MIN-3): two tie slots through the rear wall above the USB-C opening,
+    joined by a channel inside a thickened inner pad. A cable tie goes out of one slot, round the cord where it leaves the
+    opening and back in the other, so a pull on the cord is taken by the wall bridge (and the part's screws), not by the
+    receptacle. Returns {adds, cuts, info} in world coordinates, or None when the wall there cannot carry it."""
+    op = (bp.get("cartridge") or {}).get("usb_c_opening") or {"w": 13.0, "h": 7.0}
+    t = fz.get("tie", {"slot_w": 3.6, "slot_h": 1.8, "w": 2.5, "t": 1.0})
+    x, y, z = (float(v) for v in usb_pt)
+    sw, sh = float(t.get("slot_w", 3.6)), float(t.get("slot_h", 1.8))
+    z_slot = z + op["h"] / 2 + 1.6 + sw / 2
+    dx = op["w"] / 2 + 2.4
+    ys_in, ys_out = [], []
+    for xx in (x - dx, x, x + dx):
+        h, _, _ = probeC.hits([[xx, y - 5.0, z_slot]], [[0, 1.0, 0]])
+        o, _, _ = probeO.hits([[xx, y + 400.0, z_slot]], [[0, -1.0, 0]])
+        if not (np.isfinite(h[0, 1]) and np.isfinite(o[0, 1])):
+            return None
+        ys_in.append(float(h[0, 1]))
+        ys_out.append(float(o[0, 1]))
+    y_in, y_out = min(ys_in), max(ys_out)
+    ch_d = sh  # channel depth (tie thickness 1.0 + room)
+    pad_t = ch_d + 1.8
+    y0 = y_in - pad_t
+    if y_min is not None and y0 < y_min:
+        return None
+    pad = cq.Solid.makeBox(2 * dx + sh + 6.0, y_in - y0 + 0.6, sw + 3.2, V(x - dx - sh / 2 - 3.0, y0, z_slot - sw / 2 - 1.6))
+    chan = cq.Solid.makeBox(2 * dx + sh, ch_d, sw, V(x - dx - sh / 2, y_in - ch_d, z_slot - sw / 2))
+    cuts = [chan]
+    for sx in (-1, 1):
+        cuts.append(cq.Solid.makeBox(sh, y_out - (y_in - ch_d) + 2.0, sw, V(x + sx * dx - sh / 2, y_in - ch_d, z_slot - sw / 2)))
+    info = {"feature": "cord tie bridge: 2 tie slots above the USB-C opening joined by a channel in an inner pad",
+            "slot_mm": [sh, sw], "slot_centres": [[round(x - dx, 2), round(z_slot, 2)], [round(x + dx, 2), round(z_slot, 2)]],
+            "distance_from_opening_mm": round(z_slot - sw / 2 - (z + op["h"] / 2), 2), "pad_thickness_mm": round(pad_t, 2),
+            "tie": "one nylon cable tie (STRAIN_TIE_NYLON66_100X2_5) from the tie kit",
+            "path": "cord -> cable tie -> wall bridge between the slots -> part screws -> shell",
+            "physical_check": "pull the cord along its axis: the plug must release before the receptacle or the board moves"}
+    return {"adds": [pad], "cuts": cuts, "info": info}
+

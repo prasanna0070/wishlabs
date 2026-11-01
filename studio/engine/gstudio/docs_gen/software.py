@@ -94,7 +94,9 @@ def render(b: Bundle) -> str:
             L.append(table(["Constant", "GPIO"], pins[:60]))
 
     src = "\n".join(p.read_text(errors="ignore") for p in fw_dir.glob("src/**/*") if p.is_file() and p.suffix in (".cpp", ".h", ".ino"))
-    if "/api/state" in src and "/api/action" in src:
+    api = (s.get("api") if isinstance(s, dict) else None) or {}
+    api_on = api.get("enabled") if isinstance(api, dict) and "enabled" in api else True  # MIN-19: off when network is off
+    if api_on and "/api/state" in src and "/api/action" in src:
         L += ["", "## Local control API", "",
               "The firmware serves a small JSON API on the local network for the companion app or an MCP client: "
               "`GET /api/state` and `POST /api/action`. It is local only; nothing is uploaded."]

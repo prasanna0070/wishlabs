@@ -1,0 +1,232 @@
+"""Pinned CAD environment and the clean-environment regeneration check (REVIEW-1 MAJ-26).
+
+    python -m gstudio.cad.regen lock  [--venv DIR]          # (VM) build a fresh venv from the direct pins, freeze the full
+                                                            # closure and write requirements.lock with sha256 hashes
+    python -m gstudio.cad.regen venv  [--venv DIR]          # (VM) create/refresh the clean regeneration venv from the lock
+    python -m gstudio.cad.regen check <out_dir> [--venv DIR] [--requirements FILE] [--timeout S]
+                                                            # rerun <out>/cad/gadget_cad.py in that venv and compare
+
+`cad/requirements.txt` in every delivery is requirements.lock: every package the vendored cad/gadget_cad/ imports (and
+their dependencies) pinned with `==` and `--hash=sha256:` for the Linux x86_64 CPython 3.12 wheels the engine runs on.
+The check reports drift when the venv's installed versions differ from the delivered pins, and compares every
+component's volume (0.1 %) and bbox (0.01 mm) with cad/components.json.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+from typing import Optional
+
+HERE = Path(__file__).resolve().parent
+LOCK = HERE / "requirements.lock"
+# the packages the vendored CAD source imports, at the versions the engine is built and tested with (VM, 2026-11-01)
+DIRECT = ["cadquery==2.8.0", "cadquery-ocp==7.9.3.1.1", "numpy==2.5.4", "shapely==2.2.0", "trimesh==5.2.0", "manifold3d==3.5.4",
+          "scipy==1.18.1", "pyvista==0.49.2", "vtk==9.6.2", "rtree==1.4.1", "pillow==10.2.0",
+          # optional trimesh dependency the CAD uses: plane sections (probe.section) need it; without it the standalone
+          # rebuild silently loses every section-based feature (found by cad_regenerates on 2026-11-01)
+          "networkx==3.7"]
+IMPORTS = {"cadquery": "cadquery", "OCP": "cadquery-ocp", "numpy": "numpy", "shapely": "shapely", "trimesh": "trimesh",
+           "manifold3d": "manifold3d", "scipy": "scipy", "pyvista": "pyvista", "vtk": "vtk", "rtree": "rtree", "PIL": "pillow",
+           "networkx (via trimesh sections)": "networkx"}
+DEFAULT_VENV = Path(os.environ.get("GS_CAD_REGEN_VENV", "/opt/gs/cad-regen/venv"))
+VOL_TOL = 0.001  # 0.1 %
+BBOX_TOL = 0.01  # mm
+
+
+def _run(cmd, **kw) -> subprocess.CompletedProcess:
+    return subprocess.run(cmd, capture_output=True, text=True, **kw)
+
+
+def _norm(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def parse_pins(text: str) -> dict:
+    """requirements text -> {normalized name: version} for '==' pins (hash continuation lines ignored)."""
+    out = {}
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith(("#", "--")):
+            continue
+        m = re.match(r"^([A-Za-z0-9_.\-]+)(\[[^\]]*\])?==([^\s;\\]+)", line)
+        if m:
+            out[_norm(m.group(1))] = m.group(3)
+    return out
+
+
+def installed(python: str) -> dict:
+    r = _run([python, "-m", "pip", "freeze", "--all"])
+    return parse_pins(r.stdout)
+
+
+def make_lock(venv: Path, lock: Path = LOCK) -> dict:
+    """Fresh venv from DIRECT -> pip freeze closure -> download each wheel -> sha256 -> write the lock file."""
+    t0 = time.time()
+    if venv.exists():
+        shutil.rmtree(venv)
+    venv.parent.mkdir(parents=True, exist_ok=True)
+    r = _run([sys.executable, "-m", "venv", str(venv)])
+    if r.returncode:
+        raise RuntimeError(r.stderr)
+    py = str(venv / "bin" / "python")
+    _run([py, "-m", "pip", "install", "-q", "--upgrade", "pip"])
+    r = _run([py, "-m", "pip", "install", "-q", *DIRECT])
+    if r.returncode:
+        raise RuntimeError(r.stderr[-2000:])
+    pins = installed(py)
+    pins = {k: v for k, v in pins.items() if k not in ("pip", "setuptools", "wheel")}
+    with tempfile.TemporaryDirectory() as td:
+        req = Path(td) / "closure.txt"
+        req.write_text("".join(f"{k}=={v}\n" for k, v in sorted(pins.items())))
+        r = _run([py, "-m", "pip", "download", "-q", "--no-deps", "--only-binary=:all:", "-r", str(req), "-d", td])
+        if r.returncode:
+            raise RuntimeError(r.stderr[-2000:])
+        hashes: dict = {}
+        for f in Path(td).iterdir():
+            if f.suffix not in (".whl",):
+                continue
+            nm = _norm(f.name.split("-")[0])
+            hashes.setdefault(nm, []).append(hashlib.sha256(f.read_bytes()).hexdigest())
+    lines = ["# Gadget Studio CAD environment (REVIEW-1 MAJ-26): every package cad/gadget_cad/ imports and their",
+             "# dependencies, pinned with hashes of the Linux x86_64 CPython 3.12 wheels the engine was built with.",
+             "# Install: python3.12 -m pip install --require-hashes -r cad/requirements.txt",
+             f"# Generated by `python -m gstudio.cad.regen lock` on {time.strftime('%Y-%m-%d')}.", ""]
+    missing = []
+    for k, v in sorted(pins.items()):
+        hs = hashes.get(k)
+        if not hs:
+            missing.append(k)
+            lines.append(f"{k}=={v}")
+            continue
+        lines.append(f"{k}=={v} \\")
+        lines += [f"    --hash=sha256:{h}" + (" \\" if i < len(hs) - 1 else "") for i, h in enumerate(sorted(hs))]
+    lock.write_text("\n".join(lines) + "\n")
+    return {"packages": len(pins), "missing_hashes": missing, "seconds": round(time.time() - t0, 1), "lock": str(lock)}
+
+
+def ensure_venv(venv: Path = DEFAULT_VENV, requirements: Path = LOCK) -> dict:
+    """Create (once) the clean regeneration venv from the lock; a marker records the lock's sha256."""
+    sha = hashlib.sha256(Path(requirements).read_bytes()).hexdigest()
+    mark = venv / ".lock-sha256"
+    if mark.exists() and mark.read_text().strip() == sha and (venv / "bin" / "python").exists():
+        return {"venv": str(venv), "created": False}
+    if venv.exists():
+        shutil.rmtree(venv)
+    venv.parent.mkdir(parents=True, exist_ok=True)
+    r = _run([sys.executable, "-m", "venv", str(venv)])
+    if r.returncode:
+        raise RuntimeError(r.stderr)
+    py = str(venv / "bin" / "python")
+    _run([py, "-m", "pip", "install", "-q", "--upgrade", "pip"])
+    r = _run([py, "-m", "pip", "install", "-q", "--require-hashes", "-r", str(requirements)])
+    if r.returncode:
+        raise RuntimeError(r.stderr[-2000:])
+    mark.write_text(sha)
+    return {"venv": str(venv), "created": True}
+
+
+def _cmp_components(a: dict, b: dict) -> list:
+    rows = []
+    for name, ca in a.items():
+        cb = b.get(name)
+        if cb is None:
+            rows.append({"component": name, "problem": "missing in the regenerated build"})
+            continue
+        va, vb = float(ca.get("volume_mm3") or 0.0), float(cb.get("volume_mm3") or 0.0)
+        dv = abs(va - vb) / max(abs(va), 1e-9) if va else abs(vb)
+        db = max(abs(float(x) - float(y)) for x, y in zip(ca.get("bbox") or [0] * 6, cb.get("bbox") or [0] * 6))
+        if dv > VOL_TOL or db > BBOX_TOL:
+            rows.append({"component": name, "volume_diff_pct": round(100 * dv, 4), "bbox_diff_mm": round(db, 4)})
+    for name in b:
+        if name not in a:
+            rows.append({"component": name, "problem": "extra in the regenerated build"})
+    return rows
+
+
+def cad_regenerates(out_dir, venv: Optional[Path] = None, requirements: Optional[Path] = None, timeout: float = 600.0,
+                    build_venv: bool = True) -> dict:
+    """Digital check `cad_regenerates` (package stage): rerun <out>/cad/gadget_cad.py in a clean venv built from the
+    delivered requirements and compare every component with <out>/cad/components.json."""
+    out = Path(out_dir).resolve()
+    cad = out / "cad"
+    req = Path(requirements) if requirements else cad / "requirements.txt"
+    venv = Path(venv) if venv else DEFAULT_VENV
+    res = {"id": "cad_regenerates", "title": "The delivered CAD source rebuilds the same parts in a clean pinned environment",
+           "qb": "QB-04", "artifact": "cad/gadget_cad.py"}
+    t0 = time.time()
+    try:
+        if not (cad / "gadget_cad.py").exists():
+            return {**res, "status": "not_run", "detail": "no cad/gadget_cad.py in this build"}
+        pins = parse_pins(req.read_text()) if req.exists() else {}
+        if build_venv:
+            ensure_venv(venv, LOCK if LOCK.exists() else req)
+        py = venv / "bin" / "python"
+        if not py.exists():
+            return {**res, "status": "not_run", "detail": f"no clean venv at {venv}"}
+        have = installed(str(py))
+        drift = [{"package": k, "pinned": v, "installed": have.get(k)} for k, v in sorted(pins.items()) if have.get(k) != v]
+        unpinned = sorted(m for m, pkg in IMPORTS.items() if _norm(pkg) not in pins)
+        if not pins:
+            return {**res, "status": "failed", "detail": "cad/requirements.txt has no == pins"}
+        with tempfile.TemporaryDirectory(prefix="gs-regen-") as td:
+            env = {k: v for k, v in os.environ.items() if k not in ("PYTHONPATH", "VIRTUAL_ENV")}
+            env["PATH"] = f"{venv / 'bin'}:/usr/bin:/bin"
+            r = subprocess.run([str(py), str(cad / "gadget_cad.py"), "--out", td, "--no-checks"], capture_output=True, text=True,
+                               timeout=timeout, env=env, cwd=td)
+            if r.returncode:
+                return {**res, "status": "failed", "detail": f"gadget_cad.py exited {r.returncode}: {(r.stderr or r.stdout)[-400:]}",
+                        "data": {"drift": drift}}
+            a = json.loads((cad / "components.json").read_text())
+            b = json.loads((Path(td) / "cad" / "components.json").read_text())
+        rows = _cmp_components(a, b)
+        bad = bool(rows or drift or unpinned)
+        det = (f"{len(a)} components rebuilt in {time.time() - t0:.0f} s from cad/params.json; "
+               f"{len(rows)} differ (volume > {100 * VOL_TOL:g} % or bbox > {BBOX_TOL:g} mm); {len(pins)} pinned packages, "
+               f"{len(drift)} drifted from the venv" + (f"; imports without a pin: {unpinned}" if unpinned else ""))
+        return {**res, "status": "failed" if bad else "passed", "detail": det,
+                "data": {"differences": rows[:20], "drift": drift, "unpinned_imports": unpinned, "venv": str(venv),
+                         "requirements": str(req), "seconds": round(time.time() - t0, 1)}}
+    except subprocess.TimeoutExpired:
+        return {**res, "status": "failed", "detail": f"gadget_cad.py did not finish in {timeout:.0f} s"}
+    except Exception as e:
+        return {**res, "status": "not_run", "detail": f"regeneration check could not run: {e}"[:400]}
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description="CAD environment lock and regeneration check")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    a = sub.add_parser("lock")
+    a.add_argument("--venv", default="/opt/gs/cad-regen/lock-venv")
+    v = sub.add_parser("venv")
+    v.add_argument("--venv", default=str(DEFAULT_VENV))
+    c = sub.add_parser("check")
+    c.add_argument("out")
+    c.add_argument("--venv", default=str(DEFAULT_VENV))
+    c.add_argument("--requirements", default=None)
+    c.add_argument("--timeout", type=float, default=600.0)
+    c.add_argument("--no-build-venv", action="store_true")
+    ns = ap.parse_args(argv)
+    if ns.cmd == "lock":
+        print(json.dumps(make_lock(Path(ns.venv))))
+    elif ns.cmd == "venv":
+        print(json.dumps(ensure_venv(Path(ns.venv))))
+    else:
+        r = cad_regenerates(ns.out, Path(ns.venv), Path(ns.requirements) if ns.requirements else None, ns.timeout,
+                            build_venv=not ns.no_build_venv)
+        print(json.dumps(r, indent=1))
+        return 0 if r["status"] == "passed" else 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

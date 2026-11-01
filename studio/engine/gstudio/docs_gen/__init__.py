@@ -26,8 +26,9 @@ def bundle(ctx) -> Bundle:
 def run(ctx) -> dict:
     b = bundle(ctx)
     files = {}
-    for name, fn in (("PROJECT.md", lambda: project.render(b)), ("PARTS_EVIDENCE.md", lambda: parts.render(b, ctx.lib)),
-                     ("SOFTWARE_SETUP.md", lambda: software.render(b))):
+    # MAJ-21: PROJECT.md links the other documents, so it is written last (after the files it names exist)
+    for name, fn in (("PARTS_EVIDENCE.md", lambda: parts.render(b, ctx.lib)), ("SOFTWARE_SETUP.md", lambda: software.render(b)),
+                     ("PROJECT.md", lambda: project.render(b))):
         ctx.progress(STAGE, f"writing {name}", None)
         text = fn()
         (b.out / name).write_text(text, encoding="utf-8")

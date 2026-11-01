@@ -97,6 +97,7 @@ void StoryController::on_button(ButtonEvent ev, uint32_t now) {
   if (ev == ButtonEvent::None) return;
   if (ev == ButtonEvent::Press) {
     consumed_ = false;
+    armed_ = state_ == StoryState::Idle && cfg_.mode == CaptureMode::ChildVoiceClip && can_save_;
     if (state_ == StoryState::Playing) {
       emit(Cmd::Stop);
       state_ = StoryState::Idle;
@@ -109,6 +110,7 @@ void StoryController::on_button(ButtonEvent ev, uint32_t now) {
     return;
   }
   if (ev == ButtonEvent::LongStart) {
+    armed_ = false;
     if (cfg_.mode != CaptureMode::ChildVoiceClip) return;
     if (state_ == StoryState::Idle) {
       start_recording(now);
@@ -121,11 +123,13 @@ void StoryController::on_button(ButtonEvent ev, uint32_t now) {
     return;
   }
   if (ev == ButtonEvent::LongRelease) {
+    armed_ = false;
     if (state_ == StoryState::Recording) emit(Cmd::StopRecord);
     consumed_ = false;
     return;
   }
   if (ev == ButtonEvent::Tap) {
+    armed_ = false;
     const bool was_consumed = consumed_;
     consumed_ = false;
     if (was_consumed) return;
@@ -180,6 +184,10 @@ void StoryController::on_keep_result(bool ok, uint32_t now) {
   }
 }
 
+void StoryController::on_record_started(uint32_t now) {
+  if (state_ == StoryState::Recording) record_started_ = now;
+}
+
 void StoryController::tick(uint32_t now) {
   if (state_ == StoryState::Recording && time_reached(now, record_started_ + cfg_.clip_ms + 750)) {
     // Safety net: the recorder should have reported already. Never leave the mic open.
@@ -225,7 +233,7 @@ void StoryController::request_stop(uint32_t now) {
 }
 
 Indicator StoryController::indicator(uint32_t now) const {
-  if (state_ == StoryState::Recording) return Indicator::Listening;
+  if (state_ == StoryState::Recording || armed_) return Indicator::Listening;
   if (flash_on_ && !time_reached(now, flash_until_)) return flash_ind_;
   if (state_ == StoryState::Reviewing || state_ == StoryState::AwaitKeep) return Indicator::KeepPrompt;
   if (state_ == StoryState::Playing) return Indicator::Story;

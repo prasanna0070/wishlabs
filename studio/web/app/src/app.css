@@ -272,14 +272,6 @@ body.resizing iframe, body.resizing canvas { pointer-events: none; }
 .viewer-ctl { position: absolute; right: 16px; bottom: 16px; display: flex; gap: 2px; padding: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-control); box-shadow: var(--sh-control); z-index: 30; }
 .stage-pill { position: absolute; top: 14px; right: 16px; z-index: 30; background: rgba(255, 255, 255, 0.92); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; color: var(--ink-2); }
 .dimtag { display: inline-block; white-space: nowrap; background: rgba(255, 255, 255, 0.95); border: 1px solid #C9D0F5; color: var(--primary-press); font-size: 11.5px; font-weight: 600; padding: 2px 7px; border-radius: 5px; font-variant-numeric: tabular-nums; box-shadow: var(--sh-control); }
-.callout3d { position: relative; width: 0; height: 0; }
-.callout3d .dot { position: absolute; left: -4px; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 0 2px #fff; }
-.callout3d .leader { position: absolute; left: 0; bottom: 0; width: 36px; height: var(--rise); border-left: 1.5px dashed var(--primary); border-top: 1.5px dashed var(--primary); transform-origin: bottom left; }
-.callout3d.left .leader { left: auto; right: 0; border-left: 0; border-right: 1.5px dashed var(--primary); }
-.card3d { position: absolute; bottom: calc(var(--rise) - 14px); left: 36px; background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--sh-popover); padding: 6px 10px; white-space: nowrap; min-width: 120px; }
-.callout3d.left .card3d { left: auto; right: 36px; }
-.card3d .t { font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em; color: var(--ink); }
-.card3d .s { font-size: 12px; color: var(--ink-3); }
 
 /* preview tab */
 .preview { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
@@ -499,3 +491,53 @@ body.resizing iframe, body.resizing canvas { pointer-events: none; }
   .hero { padding-top: 40px; }
   .projects, .home-top { padding-left: 16px; padding-right: 16px; }
 }
+
+/* ---- REVIEW-1 (web-frontend) ---------------------------------------------------------------- */
+/* MIN-44: screen-space callouts, placed by lib/place.ts */
+.lab-layer { position: absolute; inset: 0; pointer-events: none; z-index: 20; overflow: hidden; }
+.lab-measure { position: absolute; left: -9999px; top: 0; visibility: hidden; }
+.lab-lines { position: absolute; inset: 0; overflow: visible; }
+.lab-lines line { stroke: var(--primary); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.lab-lines circle { fill: var(--primary); stroke: #fff; stroke-width: 2; }
+.lab-card { position: absolute; background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--sh-popover); padding: 5px 9px; max-width: 252px; }
+.lab-measure .lab-card { position: static; display: inline-block; }
+.lab-card .t { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; line-height: 1.3; color: var(--ink); }
+.lab-card .s { font-size: 11.5px; line-height: 1.3; color: var(--ink-3); }
+/* MIN-44: grouped Use list in the step card */
+.use-list { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 2px 0 10px; background: var(--surface-soft); font-size: 13px; }
+.use-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.use-chip { display: inline-flex; gap: 4px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; font-size: 12.5px; color: var(--ink-2); }
+.use-chip b { color: var(--ink); }
+.use-toggle { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; }
+.use-all { margin-top: 6px; }
+.use-all ul { margin: 2px 0 6px; padding-left: 18px; }
+/* MAJ-39: version dialog and the "behind the latest" banner */
+.behind-banner { flex: none; display: flex; align-items: center; gap: 10px; padding: 7px 16px; background: var(--warning-soft); border-bottom: 1px solid #EED9B2; color: #6E4A10; font-size: 13px; }
+.vd { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 16px; min-height: 0; }
+.vd-list { display: flex; flex-direction: column; gap: 2px; max-height: 70vh; overflow: auto; border-right: 1px solid var(--line); padding-right: 10px; }
+.vd-row { display: flex; align-items: center; gap: 8px; text-align: left; background: none; border: 0; padding: 8px; border-radius: var(--r-control); cursor: pointer; min-width: 0; }
+.vd-row:hover { background: var(--hover); }
+.vd-row.on { background: var(--selected); }
+.vd-row .grow { min-width: 0; }
+.vd-main { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.vd-meta { margin-top: 2px; }
+.vd-trigger { color: var(--ink-2); font-style: italic; }
+.vd-viewer { position: relative; height: 330px; border: 1px solid var(--line); border-radius: var(--r-card); overflow: hidden; background: var(--paper); }
+.vd-viewer .viewer { height: 100%; }
+.vd-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.vd-groups details { border-top: 1px solid var(--line); padding: 6px 0; }
+.vd-groups summary { cursor: pointer; padding: 2px 0; }
+.btn.disabled { opacity: 0.5; pointer-events: none; }
+/* MIN-43: concept history grouped by tier */
+.concept-history .concept-tier + .concept-tier { margin-top: 10px; }
+.concept-history .tier-label { margin: 10px 0 0; }
+/* MIN-45 */
+.activity-eta { margin: 4px 2px 0; }
+/* MIN-29 */
+.stages li.has-failures .st-msg { color: var(--warning); }
+@media (max-width: 720px) {
+  .vd { grid-template-columns: 1fr; }
+  .vd-list { max-height: 160px; border-right: 0; border-bottom: 1px solid var(--line); padding: 0 0 8px; }
+}
+/* MAJ-8: the drawer's layout problems stay visible without pushing the controls away */
+.tweak .layout-issues { max-height: 38vh; overflow: auto; }

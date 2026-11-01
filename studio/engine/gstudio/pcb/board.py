@@ -144,7 +144,7 @@ class BoardBuilder:
                 for n in c["nets"]:
                     ns.SetNetclassPatternAssignment(board_net_name(n), name)
         tb = b.GetTitleBlock()
-        tb.SetTitle(f"{d.name}: backplane ({d.backplane_id})")
+        tb.SetTitle(f"BP1 backplane {d.backplane_id} for {d.slug}")  # no project name: reused across versions (MIN-36)
         tb.SetDate(d.date)
         tb.SetRevision(d.revision)
         tb.SetCompany("Gadget Studio")
@@ -248,7 +248,10 @@ class BoardBuilder:
                     bb = courtyard_bbox(fp, self.frame)
                     if not _inside(bb, W, H, 0.6):
                         continue
-                    if any(_overlap(bb, o, 0.15) for o in self.boxes.values()):
+                    # fiducials also keep 3.5 mm clear of port connectors: that strip holds the port's pin labels
+                    gap = {r: (3.5 if p.ref.startswith("FID") and r.startswith("J_") and not r.startswith("J_U1")
+                               else 0.15) for r in self.boxes}
+                    if any(_overlap(bb, o, gap[r]) for r, o in self.boxes.items()):
                         continue
                     if any(_overlap(bb, k) for k in keep):
                         continue

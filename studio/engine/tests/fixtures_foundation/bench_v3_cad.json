@@ -1,0 +1,1176 @@
+{
+ "source": "_out/e2e/v3/cad (benchmark run 2026-11-01): components.json bboxes and the collisions / feature_module_clearance checks",
+ "components": {
+  "PRINT_Shell": {
+   "kind": "PRINT",
+   "label": "main shell",
+   "ref": null,
+   "feature_id": null,
+   "module_id": null,
+   "bbox": [
+    -70.928,
+    70.928,
+    -55.0,
+    47.62,
+    1.6,
+    187.95
+   ]
+  },
+  "PRINT_RearCover": {
+   "kind": "PRINT",
+   "label": "rear cover",
+   "ref": null,
+   "feature_id": null,
+   "module_id": null,
+   "bbox": [
+    -70.928,
+    70.928,
+    44.62,
+    55.0,
+    1.6,
+    166.6
+   ]
+  },
+  "PURCHASE_Speaker": {
+   "kind": "PURCHASE",
+   "label": "Speaker 40 mm round, 4 ohm, 3 W",
+   "ref": "SPK1",
+   "feature_id": "speaker",
+   "module_id": "SPK_40MM_4R_3W",
+   "bbox": [
+    -19.97,
+    20.0,
+    -51.4,
+    -33.9,
+    37.608,
+    77.592
+   ]
+  },
+  "PURCHASE_SpeakerGasket": {
+   "kind": "PURCHASE",
+   "label": "foam gasket ring (cut from strip)",
+   "ref": "SPK1",
+   "feature_id": "speaker",
+   "module_id": "SPK_GASKET_FOAM_25X3_ADH",
+   "bbox": [
+    -19.67,
+    19.7,
+    -53.4,
+    -51.4,
+    37.907,
+    77.293
+   ]
+  },
+  "PRINT_SpeakerRing": {
+   "kind": "PRINT",
+   "label": "speaker clamp ring",
+   "ref": "SPK1",
+   "feature_id": "speaker",
+   "module_id": null,
+   "bbox": [
+    -25.16,
+    25.161,
+    -49.7,
+    -42.6,
+    36.406,
+    86.096
+   ]
+  },
+  "PURCHASE_Button": {
+   "kind": "PURCHASE",
+   "label": "Big 30 mm snap-in arcade push button (microswitch)",
+   "ref": "BTN1",
+   "feature_id": "story_button",
+   "module_id": "BUTTON_ARCADE_30MM_SNAPIN",
+   "bbox": [
+    -16.5,
+    16.5,
+    -26.5,
+    6.5,
+    132.465,
+    170.465
+   ]
+  },
+  "PURCHASE_Display": {
+   "kind": "PURCHASE",
+   "label": "1.3 in 128x64 mono OLED, SH1106, I2C 4-pin",
+   "ref": "DISP1",
+   "feature_id": "eyes",
+   "module_id": "OLED_130_SH1106_I2C",
+   "bbox": [
+    -17.7,
+    17.7,
+    -52.0,
+    -40.7,
+    104.85,
+    138.35
+   ]
+  },
+  "PRINT_DisplayClip": {
+   "kind": "PRINT",
+   "label": "printed clamp strap",
+   "ref": "DISP1",
+   "feature_id": "eyes",
+   "module_id": null,
+   "bbox": [
+    -25.5,
+    25.5,
+    -49.3,
+    -40.0,
+    126.375,
+    133.575
+   ]
+  },
+  "PRINT_LedDiffuser": {
+   "kind": "PRINT",
+   "label": "light diffuser (natural PETG)",
+   "ref": "LED1",
+   "feature_id": "status_light",
+   "module_id": null,
+   "bbox": [
+    -5.189,
+    5.2,
+    -55.0,
+    -51.4,
+    81.403,
+    91.797
+   ]
+  },
+  "PURCHASE_Led": {
+   "kind": "PURCHASE",
+   "label": "Addressable RGB LED, single WS2812B 5050 on a mini board",
+   "ref": "LED1",
+   "feature_id": "status_light",
+   "module_id": "LED_WS2812B_1PX_MODULE",
+   "bbox": [
+    -5.0,
+    5.0,
+    -48.4,
+    -42.7,
+    81.6,
+    91.6
+   ]
+  },
+  "PRINT_LedClip": {
+   "kind": "PRINT",
+   "label": "printed clamp strap",
+   "ref": "LED1",
+   "feature_id": "status_light",
+   "module_id": null,
+   "bbox": [
+    -12.8,
+    12.8,
+    -45.2,
+    -39.8,
+    83.0,
+    90.4
+   ]
+  },
+  "PURCHASE_MicGasket": {
+   "kind": "PURCHASE",
+   "label": "foam gasket ring around the mic port (cut from the gasket strip)",
+   "ref": "MIC1",
+   "feature_id": "mic",
+   "module_id": "SPK_GASKET_FOAM_25X3_ADH",
+   "bbox": [
+    26.219,
+    33.8,
+    -53.1,
+    -52.1,
+    82.805,
+    90.395
+   ]
+  },
+  "PURCHASE_Microphone": {
+   "kind": "PURCHASE",
+   "label": "INMP441 I2S MEMS microphone module",
+   "ref": "MIC1",
+   "feature_id": "mic",
+   "module_id": "MIC_INMP441_I2S",
+   "bbox": [
+    23.0,
+    37.0,
+    -52.1,
+    -42.6,
+    79.6,
+    93.6
+   ]
+  },
+  "PRINT_MicClip": {
+   "kind": "PRINT",
+   "label": "printed clamp strap",
+   "ref": "MIC1",
+   "feature_id": "mic",
+   "module_id": null,
+   "bbox": [
+    26.4,
+    33.6,
+    -51.1,
+    -42.9,
+    71.8,
+    101.4
+   ]
+  },
+  "PURCHASE_Backplane": {
+   "kind": "PURCHASE",
+   "label": "Backplane PCB backplane-v1 (assembled)",
+   "ref": "BP1",
+   "feature_id": null,
+   "module_id": "BACKPLANE_V1",
+   "bbox": [
+    -31.4,
+    31.4,
+    -32.0,
+    47.11,
+    10.4,
+    20.5
+   ]
+  },
+  "PURCHASE_CoreBoard": {
+   "kind": "PURCHASE",
+   "label": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+   "ref": "U1",
+   "feature_id": null,
+   "module_id": "CORE_ESP32S3_DEVKITC1_N8R8",
+   "bbox": [
+    -36.75,
+    33.5,
+    10.92,
+    36.43,
+    20.5,
+    27.7
+   ]
+  },
+  "PURCHASE_Amplifier": {
+   "kind": "PURCHASE",
+   "label": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+   "ref": "AMP1",
+   "feature_id": null,
+   "module_id": "AMP_MAX98357A_I2S",
+   "bbox": [
+    13.02,
+    30.92,
+    -23.5,
+    -4.45,
+    20.5,
+    25.5
+   ]
+  },
+  "PURCHASE_MicroSdModule": {
+   "kind": "PURCHASE",
+   "label": "microSD SPI module with LDO and level shifter (Catalex-type)",
+   "ref": "SD1",
+   "feature_id": null,
+   "module_id": "MICROSD_SPI_MODULE_5V",
+   "bbox": [
+    -30.9,
+    11.1,
+    -23.5,
+    0.5,
+    20.5,
+    26.5
+   ]
+  },
+  "PURCHASE_HeatSetInserts": {
+   "kind": "PURCHASE",
+   "label": "M2.5 heat-set inserts x17",
+   "ref": null,
+   "feature_id": null,
+   "module_id": "INSERT_HEATSET_M2_5X4_STD",
+   "bbox": [
+    -63.71,
+    59.952,
+    -45.3,
+    45.4,
+    6.4,
+    159.565
+   ]
+  },
+  "PURCHASE_ModuleScrews": {
+   "kind": "PURCHASE",
+   "label": "M2.5 module clamp screws x9",
+   "ref": null,
+   "feature_id": null,
+   "module_id": "SCREW_SET_M2_M2_5_SHCS_A2",
+   "bbox": [
+    -24.15,
+    32.25,
+    -50.9,
+    -37.3,
+    42.9,
+    132.225
+   ]
+  },
+  "PURCHASE_CartridgeScrews": {
+   "kind": "PURCHASE",
+   "label": "M2.5 cartridge screws x4",
+   "ref": null,
+   "feature_id": null,
+   "module_id": "SCREW_SET_M2_M2_5_SHCS_A2",
+   "bbox": [
+    -30.15,
+    30.15,
+    -30.75,
+    45.35,
+    7.0,
+    14.5
+   ]
+  },
+  "PURCHASE_CoverScrews": {
+   "kind": "PURCHASE",
+   "label": "M2.5 cover screws x4",
+   "ref": null,
+   "feature_id": null,
+   "module_id": "SCREW_SET_M2_M2_5_SHCS_A2",
+   "bbox": [
+    -63.66,
+    59.902,
+    41.0,
+    55.5,
+    16.185,
+    159.515
+   ]
+  },
+  "PURCHASE_Feet": {
+   "kind": "PURCHASE",
+   "label": "adhesive bumper feet x4",
+   "ref": null,
+   "feature_id": null,
+   "module_id": "FEET_BUMPON_SJ5302_CLEAR",
+   "bbox": [
+    -57.618,
+    57.618,
+    -37.849,
+    41.22,
+    0.0,
+    2.2
+   ]
+  },
+  "REFERENCE_CableSpk1": {
+   "kind": "REFERENCE",
+   "label": "JST-PH 2.0 2p 200 mm (display-only route)",
+   "ref": "SPK1",
+   "feature_id": "speaker",
+   "module_id": null,
+   "bbox": [
+    14.757,
+    22.896,
+    -40.838,
+    -0.014,
+    17.594,
+    58.734
+   ]
+  },
+  "REFERENCE_CableBtn1": {
+   "kind": "REFERENCE",
+   "label": "JST-PH 2.0 3p 300 mm (display-only route)",
+   "ref": "BTN1",
+   "feature_id": "story_button",
+   "module_id": null,
+   "bbox": [
+    -21.719,
+    1.656,
+    -42.594,
+    -8.646,
+    17.585,
+    133.109
+   ]
+  },
+  "REFERENCE_CableDisp1": {
+   "kind": "REFERENCE",
+   "label": "JST-PH 2.0 4p 300 mm (display-only route)",
+   "ref": "DISP1",
+   "feature_id": "eyes",
+   "module_id": null,
+   "bbox": [
+    -1.693,
+    12.029,
+    -42.845,
+    6.612,
+    17.579,
+    137.862
+   ]
+  },
+  "REFERENCE_CableLed1": {
+   "kind": "REFERENCE",
+   "label": "JST-PH 2.0 3p 200 mm (display-only route)",
+   "ref": "LED1",
+   "feature_id": "status_light",
+   "module_id": null,
+   "bbox": [
+    -1.473,
+    13.076,
+    -43.04,
+    -27.235,
+    17.731,
+    86.076
+   ]
+  },
+  "REFERENCE_CableMic1": {
+   "kind": "REFERENCE",
+   "label": "JST-PH 2.0 6p 300 mm (display-only route)",
+   "ref": "MIC1",
+   "feature_id": "mic",
+   "module_id": null,
+   "bbox": [
+    -25.365,
+    37.85,
+    -43.077,
+    6.917,
+    17.355,
+    88.621
+   ]
+  }
+ },
+ "digital_checks": {
+  "checks": [
+   {
+    "id": "collisions",
+    "title": "Full pair matrix of rigid components: no unintended intersection",
+    "status": "failed",
+    "detail": "23 rigid components, 253 pairs, 64 with overlapping boxes checked by boolean, 6 unintended intersections, 13 allowed by rule",
+    "qb": "QB-08",
+    "data": {
+     "components": 23,
+     "pairs_total": 253,
+     "pairs_bbox_overlap": 64,
+     "intersections": [
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PRINT_LedDiffuser"
+       ],
+       "intersection_mm3": 14.2867,
+       "seconds": 0.181
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_Led"
+       ],
+       "intersection_mm3": 41.8951,
+       "seconds": 0.277
+      },
+      {
+       "parts": [
+        "PRINT_SpeakerRing",
+        "PURCHASE_Led"
+       ],
+       "intersection_mm3": 31.4556,
+       "seconds": 0.069
+      },
+      {
+       "parts": [
+        "PURCHASE_Led",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 10.1871,
+       "seconds": 0.014
+      },
+      {
+       "parts": [
+        "PURCHASE_Led",
+        "PURCHASE_ModuleScrews"
+       ],
+       "intersection_mm3": 9.721,
+       "seconds": 0.015
+      },
+      {
+       "parts": [
+        "PRINT_LedClip",
+        "PURCHASE_ModuleScrews"
+       ],
+       "intersection_mm3": 11.2767,
+       "seconds": 0.025
+      }
+     ],
+     "allowed": [
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_SpeakerGasket"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.003,
+       "allowed": "foam gasket modelled at its compressed thickness"
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_MicGasket"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.003,
+       "allowed": "foam gasket modelled at its compressed thickness"
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 129.2018,
+       "seconds": 0.021,
+       "allowed": "heat-set insert melts into its printed boss (interference fit by design)"
+      },
+      {
+       "parts": [
+        "PRINT_RearCover",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.006,
+       "allowed": "heat-set insert melts into its printed boss (interference fit by design)"
+      },
+      {
+       "parts": [
+        "PURCHASE_Speaker",
+        "PURCHASE_SpeakerGasket"
+       ],
+       "intersection_mm3": -0.0,
+       "seconds": 0.003,
+       "allowed": "foam gasket modelled at its compressed thickness"
+      },
+      {
+       "parts": [
+        "PRINT_SpeakerRing",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 74.9984,
+       "seconds": 0.005,
+       "allowed": "heat-set insert melts into its printed boss (interference fit by design)"
+      },
+      {
+       "parts": [
+        "PRINT_DisplayClip",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 49.999,
+       "seconds": 0.003,
+       "allowed": "heat-set insert melts into its printed boss (interference fit by design)"
+      },
+      {
+       "parts": [
+        "PRINT_LedClip",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 55.5445,
+       "seconds": 0.004,
+       "allowed": "heat-set insert melts into its printed boss (interference fit by design)"
+      },
+      {
+       "parts": [
+        "PURCHASE_MicGasket",
+        "PURCHASE_Microphone"
+       ],
+       "intersection_mm3": -0.0,
+       "seconds": 0.001,
+       "allowed": "foam gasket modelled at its compressed thickness"
+      },
+      {
+       "parts": [
+        "PRINT_MicClip",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 49.9989,
+       "seconds": 0.003,
+       "allowed": "heat-set insert melts into its printed boss (interference fit by design)"
+      },
+      {
+       "parts": [
+        "PURCHASE_HeatSetInserts",
+        "PURCHASE_ModuleScrews"
+       ],
+       "intersection_mm3": 151.9998,
+       "seconds": 0.011,
+       "allowed": "screw threads into its insert (threads simplified)"
+      },
+      {
+       "parts": [
+        "PURCHASE_HeatSetInserts",
+        "PURCHASE_CartridgeScrews"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0,
+       "allowed": "screw threads into its insert (threads simplified)"
+      },
+      {
+       "parts": [
+        "PURCHASE_HeatSetInserts",
+        "PURCHASE_CoverScrews"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0,
+       "allowed": "screw threads into its insert (threads simplified)"
+      }
+     ],
+     "threshold_mm3": 0.05,
+     "pairs": [
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PRINT_RearCover"
+       ],
+       "intersection_mm3": -0.0,
+       "seconds": 0.012
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_Speaker"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.004
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_SpeakerGasket"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.003,
+       "allowed": "foam gasket modelled at its compressed thickness"
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PRINT_SpeakerRing"
+       ],
+       "intersection_mm3": -0.0,
+       "seconds": 0.01
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_Button"
+       ],
+       "intersection_mm3": -0.0,
+       "seconds": 0.009
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_Display"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.004
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PRINT_DisplayClip"
+       ],
+       "intersection_mm3": -0.0,
+       "seconds": 0.005
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PRINT_LedDiffuser"
+       ],
+       "intersection_mm3": 14.2867,
+       "seconds": 0.181
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_Led"
+       ],
+       "intersection_mm3": 41.8951,
+       "seconds": 0.277
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PRINT_LedClip"
+       ],
+       "intersection_mm3": -0.0,
+       "seconds": 0.005
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_MicGasket"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.003,
+       "allowed": "foam gasket modelled at its compressed thickness"
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_Microphone"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.002
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PRINT_MicClip"
+       ],
+       "intersection_mm3": -0.0,
+       "seconds": 0.005
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_Backplane"
+       ],
+       "intersection_mm3": -0.0,
+       "seconds": 0.01
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_CoreBoard"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.002
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_Amplifier"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.001
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_MicroSdModule"
+       ],
+       "intersection_mm3": -0.0,
+       "seconds": 0.004
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 129.2018,
+       "seconds": 0.021,
+       "allowed": "heat-set insert melts into its printed boss (interference fit by design)"
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_ModuleScrews"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.003
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_CartridgeScrews"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.002
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_CoverScrews"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.002
+      },
+      {
+       "parts": [
+        "PRINT_Shell",
+        "PURCHASE_Feet"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.004
+      },
+      {
+       "parts": [
+        "PRINT_RearCover",
+        "PURCHASE_Backplane"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.001
+      },
+      {
+       "parts": [
+        "PRINT_RearCover",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.006,
+       "allowed": "heat-set insert melts into its printed boss (interference fit by design)"
+      },
+      {
+       "parts": [
+        "PRINT_RearCover",
+        "PURCHASE_CartridgeScrews"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.001
+      },
+      {
+       "parts": [
+        "PRINT_RearCover",
+        "PURCHASE_CoverScrews"
+       ],
+       "intersection_mm3": -0.0,
+       "seconds": 0.006
+      },
+      {
+       "parts": [
+        "PURCHASE_Speaker",
+        "PURCHASE_SpeakerGasket"
+       ],
+       "intersection_mm3": -0.0,
+       "seconds": 0.003,
+       "allowed": "foam gasket modelled at its compressed thickness"
+      },
+      {
+       "parts": [
+        "PURCHASE_Speaker",
+        "PRINT_SpeakerRing"
+       ],
+       "intersection_mm3": -0.0,
+       "seconds": 0.003
+      },
+      {
+       "parts": [
+        "PURCHASE_Speaker",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PURCHASE_Speaker",
+        "PURCHASE_ModuleScrews"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PRINT_SpeakerRing",
+        "PURCHASE_Led"
+       ],
+       "intersection_mm3": 31.4556,
+       "seconds": 0.069
+      },
+      {
+       "parts": [
+        "PRINT_SpeakerRing",
+        "PRINT_LedClip"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PRINT_SpeakerRing",
+        "PURCHASE_Microphone"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PRINT_SpeakerRing",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 74.9984,
+       "seconds": 0.005,
+       "allowed": "heat-set insert melts into its printed boss (interference fit by design)"
+      },
+      {
+       "parts": [
+        "PRINT_SpeakerRing",
+        "PURCHASE_ModuleScrews"
+       ],
+       "intersection_mm3": -0.0,
+       "seconds": 0.005
+      },
+      {
+       "parts": [
+        "PURCHASE_Button",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PURCHASE_Display",
+        "PRINT_DisplayClip"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PURCHASE_Display",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PURCHASE_Display",
+        "PURCHASE_ModuleScrews"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PRINT_DisplayClip",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 49.999,
+       "seconds": 0.003,
+       "allowed": "heat-set insert melts into its printed boss (interference fit by design)"
+      },
+      {
+       "parts": [
+        "PRINT_DisplayClip",
+        "PURCHASE_ModuleScrews"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.003
+      },
+      {
+       "parts": [
+        "PURCHASE_Led",
+        "PRINT_LedClip"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PURCHASE_Led",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 10.1871,
+       "seconds": 0.014
+      },
+      {
+       "parts": [
+        "PURCHASE_Led",
+        "PURCHASE_ModuleScrews"
+       ],
+       "intersection_mm3": 9.721,
+       "seconds": 0.015
+      },
+      {
+       "parts": [
+        "PRINT_LedClip",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 55.5445,
+       "seconds": 0.004,
+       "allowed": "heat-set insert melts into its printed boss (interference fit by design)"
+      },
+      {
+       "parts": [
+        "PRINT_LedClip",
+        "PURCHASE_ModuleScrews"
+       ],
+       "intersection_mm3": 11.2767,
+       "seconds": 0.025
+      },
+      {
+       "parts": [
+        "PURCHASE_MicGasket",
+        "PURCHASE_Microphone"
+       ],
+       "intersection_mm3": -0.0,
+       "seconds": 0.001,
+       "allowed": "foam gasket modelled at its compressed thickness"
+      },
+      {
+       "parts": [
+        "PURCHASE_Microphone",
+        "PRINT_MicClip"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PURCHASE_Microphone",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PURCHASE_Microphone",
+        "PURCHASE_ModuleScrews"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PRINT_MicClip",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 49.9989,
+       "seconds": 0.003,
+       "allowed": "heat-set insert melts into its printed boss (interference fit by design)"
+      },
+      {
+       "parts": [
+        "PRINT_MicClip",
+        "PURCHASE_ModuleScrews"
+       ],
+       "intersection_mm3": -0.0,
+       "seconds": 0.003
+      },
+      {
+       "parts": [
+        "PURCHASE_Backplane",
+        "PURCHASE_CoreBoard"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PURCHASE_Backplane",
+        "PURCHASE_Amplifier"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PURCHASE_Backplane",
+        "PURCHASE_MicroSdModule"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PURCHASE_Backplane",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": -0.0,
+       "seconds": 0.005
+      },
+      {
+       "parts": [
+        "PURCHASE_Backplane",
+        "PURCHASE_CartridgeScrews"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.004
+      },
+      {
+       "parts": [
+        "PURCHASE_Backplane",
+        "PURCHASE_CoverScrews"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PURCHASE_CoreBoard",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PURCHASE_Amplifier",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PURCHASE_MicroSdModule",
+        "PURCHASE_HeatSetInserts"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0
+      },
+      {
+       "parts": [
+        "PURCHASE_HeatSetInserts",
+        "PURCHASE_ModuleScrews"
+       ],
+       "intersection_mm3": 151.9998,
+       "seconds": 0.011,
+       "allowed": "screw threads into its insert (threads simplified)"
+      },
+      {
+       "parts": [
+        "PURCHASE_HeatSetInserts",
+        "PURCHASE_CartridgeScrews"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0,
+       "allowed": "screw threads into its insert (threads simplified)"
+      },
+      {
+       "parts": [
+        "PURCHASE_HeatSetInserts",
+        "PURCHASE_CoverScrews"
+       ],
+       "intersection_mm3": 0.0,
+       "seconds": 0.0,
+       "allowed": "screw threads into its insert (threads simplified)"
+      }
+     ]
+    }
+   },
+   {
+    "id": "feature_module_clearance",
+    "title": "Feature modules clear each other and the cartridge (>= 0.5 mm)",
+    "status": "failed",
+    "detail": "4 module neighbour pairs within 5 mm; 1 under 0.5 mm",
+    "data": {
+     "pairs": [
+      {
+       "parts": [
+        "PURCHASE_Speaker",
+        "PRINT_LedDiffuser"
+       ],
+       "gap_mm": 3.82
+      },
+      {
+       "parts": [
+        "PURCHASE_Speaker",
+        "PURCHASE_Led"
+       ],
+       "gap_mm": 4.95
+      },
+      {
+       "parts": [
+        "PURCHASE_Led",
+        "PURCHASE_Speaker"
+       ],
+       "gap_mm": 4.95
+      },
+      {
+       "parts": [
+        "PURCHASE_Led",
+        "PRINT_SpeakerRing"
+       ],
+       "gap_mm": 0.0
+      }
+     ]
+    }
+   }
+  ]
+ }
+}

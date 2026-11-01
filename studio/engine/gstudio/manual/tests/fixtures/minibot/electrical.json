@@ -88,7 +88,51 @@
       "net": "GND",
       "color": "grey"
      }
-    ]
+    ],
+    "module_end_family": "dupont_2.54",
+    "module_end_housings": [
+     {
+      "housing": "A",
+      "positions": [
+       {
+        "pos": 1,
+        "module_pin": "L/R",
+        "wire_colour": "grey"
+       },
+       {
+        "pos": 2,
+        "module_pin": "WS",
+        "wire_colour": "white"
+       },
+       {
+        "pos": 3,
+        "module_pin": "SCK",
+        "wire_colour": "green"
+       }
+      ]
+     },
+     {
+      "housing": "B",
+      "positions": [
+       {
+        "pos": 1,
+        "module_pin": "SD",
+        "wire_colour": "blue"
+       },
+       {
+        "pos": 2,
+        "module_pin": "VDD",
+        "wire_colour": "red"
+       },
+       {
+        "pos": 3,
+        "module_pin": "GND",
+        "wire_colour": "black"
+       }
+      ]
+     }
+    ],
+    "made_to_drawing": true
    }
   },
   {
@@ -148,7 +192,8 @@
       "net": "LED_DIN_5V",
       "color": "green"
      }
-    ]
+    ],
+    "module_end": "factory_prewired"
    }
   },
   {
@@ -172,7 +217,8 @@
       "net": "SPK_N",
       "color": "black"
      }
-    ]
+    ],
+    "module_end": "factory_prewired"
    }
   },
   {

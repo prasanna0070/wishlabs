@@ -1,6 +1,8 @@
 #include "gs_board.h"
 
 #include <FS.h>
+
+#include "gs_fsfile.h"
 #include <SPI.h>
 #include <Wire.h>
 #if GS_HAS_SD
@@ -191,6 +193,42 @@ bool sd_mkdirs(const char* dir) {
   return SD.mkdir(dir);
 #else
   (void)dir;
+  return false;
+#endif
+}
+
+bool sd_wipe(const char* path) {
+#if GS_HAS_SD
+  if (!s_sd) return false;
+  if (!SD.exists(path)) return true;
+  File f = SD.open(path, "r+");
+  if (f) {
+    GsFsFile ff(f);
+    gs::zero_fill(&ff);
+    f.close();
+  }
+  return SD.remove(path);
+#else
+  (void)path;
+  return false;
+#endif
+}
+
+bool sd_list(const char* dir, SdListFn fn, void* ctx) {
+#if GS_HAS_SD
+  if (!s_sd) return false;
+  File d = SD.open(dir);
+  if (!d || !d.isDirectory()) return false;
+  for (File f = d.openNextFile(); f; f = d.openNextFile()) {
+    if (!f.isDirectory()) fn(f.name(), ctx);
+    f.close();
+  }
+  d.close();
+  return true;
+#else
+  (void)dir;
+  (void)fn;
+  (void)ctx;
   return false;
 #endif
 }

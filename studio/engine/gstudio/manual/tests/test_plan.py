@@ -48,7 +48,8 @@ def test_steps_schema_and_flow(minibot_ctx):
         assert s.instruction.startswith("**Use:**") and "\n\n**Tools:**" in s.instruction
         assert s.parts, f"{s.id} has empty parts"
         assert s.camera and len(s.camera["position"]) == 3 and len(s.camera["target"]) == 3
-    order = ["check-parts", "fit-coupon", "print-parts", "install-inserts", "assemble-cartridge", "mount-cartridge",
+    # MAJ-13: the cartridge is bench-tested on the table before anything is printed
+    order = ["check-parts", "assemble-cartridge", "bench-test", "fit-coupon", "print-parts", "install-inserts", "mount-cartridge",
              "mount-speaker", "mount-eyes", "mount-story-button", "mount-night-light", "mount-mic", "plug-harnesses",
              "route-cables", "flash-and-test", "close-cover", "final-checks"]
     assert ids == order
@@ -75,6 +76,17 @@ def test_no_invented_numbers_in_text(minibot_ctx):
     for inst in data.instances:
         allowed |= set(re.findall(r"\d+", str((inst.get("harness") or {}).get("cable", ""))))
         allowed |= {str((inst.get("harness") or {}).get("length_mm"))}
+    from gstudio.manual.cables import FAMILY_WORDS
+
+    allowed |= {x for v in FAMILY_WORDS.values() for x in re.findall(r"\d+(?:\.\d+)?", v)}  # connector pitches (2.0, 2.54, 2.8)
+    from gstudio.manual.steps import FOLD_MM
+
+    allowed.add(str(FOLD_MM))  # the suggested fold length, labelled as a suggestion in the text
+    for r in data.routes:  # extra length = cable length - CAD route, both saved
+        for inst in data.instances:
+            L = (inst.get("harness") or {}).get("length_mm")
+            if L and r.length_mm:
+                allowed.add(f"{float(L) - float(r.length_mm):.0f}")
     for s in steps:
         for num in re.findall(r"(\d+(?:\.\d+)?)\s*mm", s.instruction + s.expected):
             assert num in allowed, (s.id, num)

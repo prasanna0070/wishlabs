@@ -9,6 +9,7 @@ import { bytes } from "../../lib/format";
 import { SerialConsole, parseSerialLine, serialSupported } from "../../lib/serial";
 import type { Build, FileEntry, Version } from "../../lib/types";
 import { Spinner } from "../ui";
+import { StoryAudio } from "./StoryAudio";
 
 type ToolTab = "flash" | "console" | "selftest" | "reports" | "files";
 
@@ -247,6 +248,9 @@ function FlashPanel({ version, build }: { version: Version; build: Build }) {
       <p className="muted small" style={{ marginBottom: 0 }}>
         Pins and ports come from this version's electrical plan. Check the wiring against the manual before powering the board.
       </p>
+      <div style={{ marginTop: 14 }}>
+        <StoryAudio version={version} />
+      </div>
     </div>
   );
 }

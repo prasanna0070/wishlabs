@@ -373,8 +373,12 @@ def test_seen_price_above_planning_is_stated():
          "sourcing_in": [{"vendor": "DK", "url": "https://d.in/s", "price_inr_seen": 787.51, "seen_on": "2026-11-01", "status": "page_read"}]}
     r = bom._row("Speaker 40 mm", 1, m, module_id="SPK", catalog_row=None, refs=[], model_parts=[], kind="module")
     q = quote.make_quote([r], PRINTS, SPEC, None, draws=300)
-    assert q["inputs"]["seen_above_planning"][0]["extra_per_unit_inr"] == pytest.approx(537.51)
-    assert any("above their planning range" in x for x in q["reasons"])
+    # MAJ-23: the one-off is priced from the GST-normalised seen price (basis unknown -> +18%), and the delta is stated
+    assert r["gst_basis"] == "unknown" and r["price_inr_incl_gst"] == pytest.approx(787.51 * 1.18, abs=0.01)
+    d = q["inputs"]["seen_above_planning"][0]
+    assert d["position"] == "above" and d["delta_one_off_inr"] == pytest.approx(787.51 * 1.18 - (80 + 0.7 * 170), abs=0.01)
+    assert q["parts_total_inr"]["one_off"] == round(787.51 * 1.18)
+    assert any("GST-inclusive seen prices" in x and "1 seen above the range" in x for x in q["reasons"])
 
 
 def test_hardware_quantity_comes_from_the_cad_groups():
@@ -422,7 +426,7 @@ def test_prewired_modules_are_factory_work_and_pass_qb28():
     rl = bom._row("WS2812B mini", 1, led, module_id="LED", catalog_row=None, refs=["LED1"], model_parts=[], kind="module")
     assert rs["solderedBy"] == "factory" and rl["solderedBy"] == "maker"
     work = bom.factory_work([rs, rl])
-    assert work == [{"name": "Speaker 40 mm", "module_id": "SPK", "refs": ["SPK1"], "by": "factory",
+    assert work == [{"name": "Speaker 40 mm", "module_id": "SPK", "refs": ["SPK1"], "kind": "solder", "by": "factory",
                      "what": "2-pin JST-PH lead soldered to the speaker tabs", "prewire": spk["prewire"]}]
     led["prewire"] = {"by": "factory", "what": "3-pin lead"}
     assert bom._row("WS2812B mini", 1, led, module_id="LED", catalog_row=None, refs=[], model_parts=[], kind="module")["solderedBy"] == "factory"

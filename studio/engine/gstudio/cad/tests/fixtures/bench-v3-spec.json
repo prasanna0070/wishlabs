@@ -1,0 +1,621 @@
+{
+ "schema": "gadget-spec/1",
+ "name": "Sleepy Bear",
+ "slug": "sleepy-bear",
+ "tagline": "A gentle bear that tells stories about her favorite friends.",
+ "audience": {
+  "child_directed": true,
+  "age_years": 5
+ },
+ "region": "IN",
+ "colors": {
+  "body": "#8CC9C0",
+  "accent": "#FFF6EA",
+  "detail": "#2F2A52",
+  "body_name": "pale teal",
+  "accent_name": "warm cream",
+  "detail_name": "night indigo"
+ },
+ "body": {
+  "wall": 2.4,
+  "edge_round": 16.0,
+  "feet": 4,
+  "family": "silhouette",
+  "outline": [
+   [
+    -60.0,
+    0.0
+   ],
+   [
+    60.0,
+    0.0
+   ],
+   [
+    70.0,
+    40.0
+   ],
+   [
+    65.0,
+    110.0
+   ],
+   [
+    50.0,
+    150.0
+   ],
+   [
+    0.0,
+    165.0
+   ],
+   [
+    -50.0,
+    150.0
+   ],
+   [
+    -65.0,
+    110.0
+   ],
+   [
+    -70.0,
+    40.0
+   ]
+  ],
+  "depth": 110.0,
+  "split": "rear_cover"
+ },
+ "decor": [
+  {
+   "at": [
+    0.0,
+    120.0
+   ],
+   "color": null,
+   "type": "face_plate",
+   "shape": "ellipse",
+   "size": [
+    112.0,
+    58.0
+   ],
+   "depth": 1.2,
+   "relief": "engrave"
+  },
+  {
+   "at": [
+    45.0,
+    155.0
+   ],
+   "color": null,
+   "type": "ear",
+   "style": "bear",
+   "side": "both",
+   "size": [
+    32.0,
+    32.0
+   ],
+   "thickness": null,
+   "tilt": 0.0
+  }
+ ],
+ "features": [
+  {
+   "id": "speaker",
+   "module": "SPK_40MM_4R_3W",
+   "face": "front",
+   "at": [
+    0.0,
+    56.0
+   ],
+   "label": "Story speaker",
+   "grille": {
+    "pattern": "dots_ellipse",
+    "w": 36.0,
+    "h": 36.0,
+    "hole": 2.4,
+    "pitch": 4.4
+   },
+   "rotate": 0
+  },
+  {
+   "id": "story_button",
+   "module": "BUTTON_ARCADE_30MM_SNAPIN",
+   "face": "top",
+   "at": [
+    0.0,
+    -10.0
+   ],
+   "label": "Story and listening button",
+   "grille": null,
+   "rotate": 0
+  },
+  {
+   "id": "eyes",
+   "module": "OLED_130_SH1106_I2C",
+   "face": "front",
+   "at": [
+    0.0,
+    120.0
+   ],
+   "label": "Animated sleepy eyes",
+   "grille": null,
+   "rotate": 0
+  },
+  {
+   "id": "status_light",
+   "module": "LED_WS2812B_1PX_MODULE",
+   "face": "front",
+   "at": [
+    0.0,
+    85.0
+   ],
+   "label": "Night light",
+   "grille": null,
+   "rotate": 0
+  },
+  {
+   "id": "mic",
+   "module": "MIC_INMP441_I2S",
+   "face": "front",
+   "at": [
+    30.0,
+    85.0
+   ],
+   "label": "Voice microphone",
+   "grille": null,
+   "rotate": 0
+  }
+ ],
+ "electronics": {
+  "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+  "extra_modules": [],
+  "power": {
+   "input": "usb_c_5v",
+   "adapter_in_box": false
+  }
+ },
+ "behaviour": {
+  "template": "story_player",
+  "summary": "Tap the top button for a bedtime story. Hold it down and tell the bear your new favorite character; it will remember for next time. The tummy light glows warmly during stories and turns blue when listening.",
+  "settings": {
+   "volume_default": 35,
+   "volume_max": 60,
+   "long_press_ms": 600,
+   "led_max_percent": 45,
+   "setup_hotspot_minutes": 15,
+   "mic_gain_shift": 13,
+   "capture_mode": "child_voice_clip",
+   "clip_seconds": 2.0,
+   "keep_window_seconds": 10,
+   "night_light": true,
+   "night_light_minutes": 20,
+   "night_light_brightness": 12,
+   "night_light_color": "#FFB36B",
+   "max_favourites": 12,
+   "story_order": "shuffle",
+   "default_hero": "little star",
+   "names_for_audio": [],
+   "voice": "Achernar",
+   "language": "en-IN",
+   "voice_clip_consent": true
+  }
+ },
+ "safety": {
+  "flags": [
+   "CHILD_DIRECTED",
+   "LOCAL_VOICE_CAPTURE",
+   "NIGHT_USE",
+   "CHILD_VOICE_STORED"
+  ],
+  "notes": "Adult assembly required. Microphone only active when button is held."
+ },
+ "derived": {
+  "engine_version": "0.1.0",
+  "size_mm": [
+   141.1,
+   110.0,
+   171.0
+  ],
+  "bbox": [
+   -70.5,
+   70.5,
+   -55.0,
+   55.0,
+   0.0,
+   171.0
+  ],
+  "instances": [
+   {
+    "ref": "U1",
+    "module": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "role": "core",
+    "name": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+    "source": "core",
+    "feature": null,
+    "slot": "U1",
+    "face": null,
+    "position": [
+     1.0,
+     23.7,
+     16.4
+    ],
+    "qty": 1,
+    "reason": "",
+    "harness": null
+   },
+   {
+    "ref": "BP1",
+    "module": "BACKPLANE_V1",
+    "role": "backplane",
+    "name": "Standard backplane PCB backplane-v1 (ours)",
+    "source": "implied",
+    "feature": null,
+    "slot": null,
+    "face": null,
+    "position": [
+     0.0,
+     7.3,
+     10.4
+    ],
+    "qty": 1,
+    "reason": "standard core cartridge",
+    "harness": null
+   },
+   {
+    "ref": "PWR1",
+    "module": "USBC_RECEPTACLE_GCT_USB4105",
+    "role": "power_in",
+    "name": "USB-C 2.0 receptacle on backplane (5V sink, CC 5.1k Rd)",
+    "source": "implied",
+    "feature": null,
+    "slot": "J_PWR",
+    "face": null,
+    "position": [
+     0.0,
+     42.6,
+     16.4
+    ],
+    "qty": 1,
+    "reason": "USB-C 5 V input on the backplane",
+    "harness": null
+   },
+   {
+    "ref": "SPK1",
+    "module": "SPK_40MM_4R_3W",
+    "role": "speaker",
+    "name": "Speaker 40 mm round, 4 ohm, 3 W",
+    "source": "feature",
+    "feature": "speaker",
+    "slot": "J_SPK",
+    "face": "front",
+    "position": [
+     0.0,
+     -38.9,
+     56.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "harness": "H1"
+   },
+   {
+    "ref": "BTN1",
+    "module": "BUTTON_ARCADE_30MM_SNAPIN",
+    "role": "button",
+    "name": "Big 30 mm snap-in arcade push button (microswitch)",
+    "source": "feature",
+    "feature": "story_button",
+    "slot": "J_IO1",
+    "face": "top",
+    "position": [
+     0.0,
+     -10.0,
+     137.2
+    ],
+    "qty": 1,
+    "reason": "",
+    "harness": "H2"
+   },
+   {
+    "ref": "DISP1",
+    "module": "OLED_130_SH1106_I2C",
+    "role": "display",
+    "name": "1.3 in 128x64 mono OLED, SH1106, I2C 4-pin",
+    "source": "feature",
+    "feature": "eyes",
+    "slot": "J_I2C1",
+    "face": "front",
+    "position": [
+     0.0,
+     -42.0,
+     120.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "harness": "H3"
+   },
+   {
+    "ref": "LED1",
+    "module": "LED_WS2812B_1PX_MODULE",
+    "role": "led",
+    "name": "Addressable RGB LED, single WS2812B 5050 on a mini board",
+    "source": "feature",
+    "feature": "status_light",
+    "slot": "J_LED",
+    "face": "front",
+    "position": [
+     0.0,
+     -46.0,
+     85.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "harness": "H4"
+   },
+   {
+    "ref": "MIC1",
+    "module": "MIC_INMP441_I2S",
+    "role": "mic",
+    "name": "INMP441 I2S MEMS microphone module",
+    "source": "feature",
+    "feature": "mic",
+    "slot": "J_MIC",
+    "face": "front",
+    "position": [
+     30.0,
+     -46.1,
+     85.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "harness": "H5"
+   },
+   {
+    "ref": "AMP1",
+    "module": "AMP_MAX98357A_I2S",
+    "role": "amp",
+    "name": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+    "source": "implied",
+    "feature": null,
+    "slot": "A1",
+    "face": null,
+    "position": [
+     22.0,
+     -14.0,
+     16.4
+    ],
+    "qty": 1,
+    "reason": "a speaker needs the I2S amplifier",
+    "harness": null
+   },
+   {
+    "ref": "SD1",
+    "module": "MICROSD_SPI_MODULE_5V",
+    "role": "storage",
+    "name": "microSD SPI module with LDO and level shifter (Catalex-type)",
+    "source": "implied",
+    "feature": null,
+    "slot": "S1",
+    "face": null,
+    "position": [
+     -9.9,
+     -11.5,
+     16.4
+    ],
+    "qty": 1,
+    "reason": "story audio files live on microSD",
+    "harness": null
+   },
+   {
+    "ref": "CBL1",
+    "module": "CABLE_USBC_C2C_1M",
+    "role": "usb_cable",
+    "name": "USB-C to USB-C cable, 1 m, USB 2.0",
+    "source": "implied",
+    "feature": null,
+    "slot": null,
+    "face": null,
+    "position": null,
+    "qty": 1,
+    "reason": "USB-C cable in the box",
+    "harness": null
+   }
+  ],
+  "harness": [
+   {
+    "id": "H1",
+    "ref": "SPK1",
+    "slot": "J_SPK",
+    "kind": "speaker_lead",
+    "cable": "JST-PH 2.0 2p 200 mm",
+    "pins": 2,
+    "length_mm": 200,
+    "distance_mm": 167.4,
+    "module": "CABLE_JSTPH_2P_200",
+    "module_end": "factory_prewired"
+   },
+   {
+    "id": "H2",
+    "ref": "BTN1",
+    "slot": "J_IO1",
+    "kind": "jst_ph",
+    "cable": "JST-PH 2.0 3p 300 mm",
+    "pins": 3,
+    "length_mm": 300,
+    "distance_mm": 243.0,
+    "module": "CABLE_JSTPH_3P_300",
+    "module_end": "spade_2.8"
+   },
+   {
+    "id": "H3",
+    "ref": "DISP1",
+    "slot": "J_I2C1",
+    "kind": "jst_ph",
+    "cable": "JST-PH 2.0 4p 300 mm",
+    "pins": 4,
+    "length_mm": 300,
+    "distance_mm": 245.0,
+    "module": "CABLE_JSTPH_4P_300",
+    "module_end": "dupont_2.54"
+   },
+   {
+    "id": "H4",
+    "ref": "LED1",
+    "slot": "J_LED",
+    "kind": "jst_ph",
+    "cable": "JST-PH 2.0 3p 200 mm",
+    "pins": 3,
+    "length_mm": 200,
+    "distance_mm": 165.6,
+    "module": "CABLE_JSTPH_3P_200",
+    "module_end": "factory_prewired"
+   },
+   {
+    "id": "H5",
+    "ref": "MIC1",
+    "slot": "J_MIC",
+    "kind": "jst_ph",
+    "cable": "JST-PH 2.0 6p 300 mm",
+    "pins": 6,
+    "length_mm": 300,
+    "distance_mm": 260.1,
+    "module": "CABLE_JSTPH_6P_300",
+    "module_end": "dupont_2.54"
+   }
+  ],
+  "hardware": [
+   {
+    "id": "SCREW_SET_M2_M2_5_SHCS_A2",
+    "name": "M2.5 socket head screw",
+    "qty": 4,
+    "use": "backplane to the 4 cartridge bosses",
+    "module": "SCREW_SET_M2_M2_5_SHCS_A2",
+    "catalog_row": "09",
+    "group": "CartridgeScrews",
+    "size": "M2.5",
+    "qty_basis": "planned"
+   },
+   {
+    "id": "SCREW_SET_M2_M2_5_SHCS_A2",
+    "name": "M2.5 socket head screw",
+    "qty": 4,
+    "use": "rear cover",
+    "module": "SCREW_SET_M2_M2_5_SHCS_A2",
+    "catalog_row": "09",
+    "group": "CoverScrews",
+    "size": "M2.5",
+    "qty_basis": "planned"
+   },
+   {
+    "id": "SCREW_SET_M2_M2_5_SHCS_A2",
+    "name": "M2.5 socket head screw",
+    "qty": 9,
+    "use": "module clamp straps and the speaker ring",
+    "module": "SCREW_SET_M2_M2_5_SHCS_A2",
+    "catalog_row": "09",
+    "group": "ModuleScrews",
+    "size": "M2.5",
+    "qty_basis": "planned"
+   },
+   {
+    "id": "SCREW_SET_M2_M2_5_SHCS_A2",
+    "name": "M2 socket head screw",
+    "qty": 2,
+    "use": "microSD module corners into the 2 printed support posts (1.8 mm pilot holes)",
+    "module": "SCREW_SET_M2_M2_5_SHCS_A2",
+    "catalog_row": "09",
+    "group": "SupportPostScrews",
+    "size": "M2",
+    "qty_basis": "planned"
+   },
+   {
+    "id": "INSERT_HEATSET_M2_5X4_STD",
+    "name": "M2.5 heat-set insert",
+    "qty": 17,
+    "use": "4 cartridge + 4 cover + 9 module bosses",
+    "module": "INSERT_HEATSET_M2_5X4_STD",
+    "catalog_row": "10",
+    "group": "HeatSetInserts",
+    "size": "M2.5",
+    "qty_basis": "planned"
+   },
+   {
+    "id": "FEET_BUMPON_SJ5302_CLEAR",
+    "name": "adhesive bumper foot",
+    "qty": 4,
+    "use": "underside",
+    "module": "FEET_BUMPON_SJ5302_CLEAR",
+    "catalog_row": "11",
+    "group": "Feet",
+    "size": null,
+    "qty_basis": "planned"
+   },
+   {
+    "id": "STRAIN_TIE_NYLON66_100X2_5",
+    "name": "cable tie 100 x 2.5 mm",
+    "qty": 6,
+    "use": "harness retention at printed anchors",
+    "module": "STRAIN_TIE_NYLON66_100X2_5",
+    "catalog_row": "08",
+    "group": "CableTies",
+    "size": null,
+    "qty_basis": "planned"
+   },
+   {
+    "id": "SPK_GASKET_FOAM_25X3_ADH",
+    "name": "speaker foam gasket strip",
+    "qty": 1,
+    "use": "seal the speaker to the baffle",
+    "module": "SPK_GASKET_FOAM_25X3_ADH",
+    "catalog_row": "13",
+    "group": "SpeakerGasket",
+    "size": null,
+    "qty_basis": "planned"
+   },
+   {
+    "id": "LABEL_QR_POLYESTER_50X25_PACK",
+    "name": "device ID label + packing kit",
+    "qty": 1,
+    "use": "serial/QR label and packing",
+    "module": "LABEL_QR_POLYESTER_50X25_PACK",
+    "catalog_row": "50",
+    "group": "Label",
+    "size": null,
+    "qty_basis": "planned"
+   }
+  ],
+  "cartridge": {
+   "backplane": "backplane-v1",
+   "board_origin": [
+    -31.4,
+    -32.0,
+    8.8
+   ],
+   "rotation_deg": 0.0,
+   "floor_z": 2.4,
+   "board_top_z": 10.4,
+   "board_size": [
+    62.8,
+    78.6
+   ],
+   "keepout_box": [
+    -36.75,
+    33.4,
+    -32.0,
+    47.11,
+    2.4,
+    34.4
+   ],
+   "usb_c_center": [
+    0.0,
+    47.11,
+    12.0
+   ],
+   "usb_c_wall_gap": 7.92,
+   "usb_c_tunnel_mm": 7.92,
+   "usb_c_tunnel_size": [
+    13.0,
+    7.0
+   ],
+   "split": "rear_cover",
+   "seam_y": 47.5
+  },
+  "warnings": []
+ }
+}

@@ -27,11 +27,15 @@ if [ -z "$BUILDER_URL" ]; then
   echo "gstudio-builder is not deployed; set BUILDER_URL or deploy the builder first" >&2; exit 1
 fi
 
+# MAJ-33: story_player builds carry name_audio_url = $PUBLIC_URL/api/device/<token>/name-audio (empty on a first deploy)
+PUBLIC_URL=${PUBLIC_URL:-$(gcloud run services describe $SVC --region=$REGION --project=$P \
+  --format='value(status.url)' 2>/dev/null || true)}
+
 gcloud run deploy $SVC --project=$P --region=$REGION --image=$IMAGE \
   --service-account=$SA --allow-unauthenticated \
   --cpu=1 --memory=1Gi --no-cpu-throttling --min-instances=0 --max-instances=3 --concurrency=40 \
   --timeout=3600 --execution-environment=gen2 \
-  --set-env-vars="BUILDER=remote,BUILDER_URL=$BUILDER_URL,BUCKET=$BUCKET,AGENT=gemini,GOOGLE_CLOUD_PROJECT=$P" \
+  --set-env-vars="BUILDER=remote,BUILDER_URL=$BUILDER_URL,BUCKET=$BUCKET,AGENT=gemini,GOOGLE_CLOUD_PROJECT=$P${PUBLIC_URL:+,PUBLIC_URL=$PUBLIC_URL}" \
   --set-secrets="ACCESS_KEY=gstudio-access-key:latest"
 URL=$(gcloud run services describe $SVC --region=$REGION --project=$P --format='value(status.url)')
 echo "deployed: $URL"

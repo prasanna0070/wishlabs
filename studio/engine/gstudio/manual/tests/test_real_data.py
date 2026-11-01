@@ -85,3 +85,28 @@ def test_parse_real_backplane():
         assert s.pins and all(p.at for p in s.pins), s.id  # every port pad position is known
     for s in bp.slots.values():
         assert s.rect is None or (s.rect[0] < s.rect[1] and s.rect[2] < s.rect[3]), s.id
+
+
+def test_module_ends_from_real_electrical(tmp_path):
+    """MAJ-10 on the real electrical stage: every harness of the bedtime robot has a specific module-end termination,
+    and the OLED's Dupont housing starts with VCC at position 1 (its own pin order), marked made to drawing."""
+    spec = next((p for p in EXAMPLES if p.parent.name == "bedtime-robot"), None)
+    if spec is None:
+        pytest.skip("no bedtime-robot example")
+    from gstudio.manual.cables import module_ends
+    from gstudio.manual.data import load
+
+    ctx = _prepared(spec, tmp_path)
+    h = {i["ref"]: i.get("harness") or {} for i in ctx.electrical["instances"]}
+    if not any(x.get("module_end_housings") for x in h.values()):
+        pytest.skip("electrical stage does not write module_end_housings yet")
+    ends = module_ends(load(ctx))
+    assert ends and all(me.family != "unknown" and not me.mismatch for me in ends.values()), {r: me.family for r, me in ends.items()}
+    disp = next(me for r, me in ends.items() if r.startswith("DISP"))
+    assert disp.family == "dupont_2.54" and disp.pin1().module_pin == "VCC" and disp.made_to_drawing
+    mic = next((me for r, me in ends.items() if r.startswith("MIC")), None)
+    if mic is not None:
+        assert mic.family == "dupont_2.54" and len(mic.housings) == 2 and all(len(x.positions) == 3 for x in mic.housings)
+    btn = next((me for r, me in ends.items() if r.startswith("BTN")), None)
+    if btn is not None:
+        assert btn.family == "spade_2.8" and {p.module_pin for p in btn.positions} == {"COM", "NO"}

@@ -2,7 +2,9 @@
 // events and audio callbacks and emits commands; the device glue executes them.
 //
 //   Idle      tap -> StartStory (Playing)
-//             hold (child_voice_clip mode) -> StartRecord, light listening-blue (Recording)
+//             press (child_voice_clip mode) -> light and face show listening at once (armed)
+//             hold (child_voice_clip mode) -> StartRecord (Recording): the glue plays the spoken
+//             cue, then opens the mic and reports on_record_started()
 //   Playing   press -> Stop (the release that follows is ignored); hold keeps going into Recording
 //   Recording release or clip time -> StopRecord; recorder reports -> PlayClip (Reviewing)
 //   Reviewing press -> stop playback and open the keep window (that tap never keeps)
@@ -12,7 +14,7 @@
 //             window expires -> DiscardClip (discard chime)
 //
 // The microphone is only opened by a hold in child_voice_clip mode, and the light is
-// listening-blue for exactly as long as the recorder runs.
+// listening-blue for at least as long as the recorder runs (from the press, before the mic opens).
 #pragma once
 #include <stdint.h>
 
@@ -39,7 +41,7 @@ struct Command {
 
 struct StoryCtlConfig {
   CaptureMode mode = CaptureMode::ChildVoiceClip;
-  uint32_t clip_ms = 2000;          // recording length
+  uint32_t clip_ms = 3000;          // recording length
   uint32_t min_clip_ms = 400;       // shorter recordings are discarded
   uint32_t keep_window_ms = 10000;  // tap within this window to keep the clip
   uint32_t flash_ms = 1500;         // how long saved / discarded / error colours show
@@ -53,6 +55,8 @@ class StoryController {
   void on_playback_done(uint32_t now);
   void on_record_done(bool ok, uint32_t recorded_ms, uint32_t now);
   void on_keep_result(bool ok, uint32_t now);
+  // The glue opened the mic (after the spoken cue): the recording watchdog counts from here.
+  void on_record_started(uint32_t now);
   void tick(uint32_t now);
 
   // Parent page / app requests.
@@ -79,6 +83,7 @@ class StoryController {
   StoryCtlConfig cfg_;
   StoryState state_ = StoryState::Idle;
   bool consumed_ = false;  // the current press already did something; ignore its release
+  bool armed_ = false;     // child_voice_clip: pressed in Idle, the hold may start a recording
   bool can_save_ = true;
   uint32_t record_started_ = 0;
   uint32_t keep_deadline_ = 0;

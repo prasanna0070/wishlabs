@@ -1,11 +1,11 @@
 [
   {"id": "esp32s3-devkitc1-n16r8", "name": "ESP32-S3-DevKitC-1 N16R8 (fixture)", "role": "core", "mount": "backplane socket"},
   {"id": "backplane-v1", "name": "Backplane v1 (fixture)", "role": "backplane", "mount": "screws on bosses"},
-  {"id": "oled-096-i2c", "name": "0.96 in I2C OLED (fixture)", "role": "display", "mount": "printed holder"},
-  {"id": "speaker-40mm", "name": "40 mm speaker (fixture)", "role": "speaker", "mount": "ring clamp"},
-  {"id": "btn-16mm", "name": "16 mm push button (fixture)", "role": "button", "mount": "panel nut from outside"},
-  {"id": "ws2812b-mini", "name": "WS2812B mini board (fixture)", "role": "led", "mount": "printed holder"},
-  {"id": "inmp441", "name": "INMP441 I2S microphone (fixture)", "role": "mic", "mount": "adhesive pad"},
+  {"id": "oled-096-i2c", "name": "0.96 in I2C OLED (fixture)", "role": "display", "mount": "printed holder", "module_connector": {"type": "header_2.54", "pin_order": ["VCC", "GND", "SCL", "SDA"], "location": "top edge (fixture)"}},
+  {"id": "speaker-40mm", "name": "40 mm speaker (fixture)", "role": "speaker", "mount": "ring clamp", "module_connector": {"type": "wire_leads", "pin_order": ["+", "-"], "location": "solder eyelets (fixture)"}},
+  {"id": "btn-16mm", "name": "16 mm push button (fixture)", "role": "button", "mount": "panel nut from outside", "module_connector": {"type": "wire_leads", "pin_order": ["COM", "NO"], "location": "microswitch spade terminals at the back (fixture)"}},
+  {"id": "ws2812b-mini", "name": "WS2812B mini board (fixture)", "role": "led", "mount": "printed holder", "module_connector": {"type": "solder_pads", "pin_order": ["5V", "GND", "DIN", "DOUT"], "location": "edge pads (fixture)"}},
+  {"id": "inmp441", "name": "INMP441 I2S microphone (fixture)", "role": "mic", "mount": {"type": "adhesive", "notes": "INMP441 is BOTTOM-ported: the sound hole goes through the module PCB (fixture)."}, "module_connector": {"type": "header_2.54", "pin_order": ["VDD", "GND", "L/R", "WS", "SCK", "SD"], "location": "two rows of three (fixture)"}},
   {"id": "max98357a", "name": "MAX98357A amplifier (fixture)", "role": "amp", "mount": "backplane socket"},
   {"id": "microsd-spi", "name": "microSD SPI module (fixture)", "role": "sd", "mount": "backplane socket"}
 ]

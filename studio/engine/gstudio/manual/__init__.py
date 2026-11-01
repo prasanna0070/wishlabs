@@ -1,8 +1,10 @@
 """Build manual stage (ARCHITECTURE §2, §5, §9).
 
-`run(ctx)` writes build.json `steps`/`wiring`/`tests`, manual/*.png (+ wiring.svg), BUILD_GUIDE.md and
-manual/manual-summary.json, and returns the summary. Importing this package is cheap: VTK, OCP and
-scipy load only inside run().
+`run(ctx)` writes build.json `steps`/`wiring`/`tests`, manual/*.png (+ wiring.svg), BUILD_GUIDE.md,
+manual/manual-summary.json and the regenerable figure bundle (manual/figures.json + manual/render_manual.py), and
+returns the summary. `finalize(ctx)` runs after the checks stage and re-renders the guide's do-not-print banner,
+known-issue lines, stop rules, final checks and manual-summary from checks/digital-checks.json (BLK-7, MAJ-19).
+Importing this package is cheap: VTK, OCP and scipy load only inside run().
 """
 
 from __future__ import annotations
@@ -16,4 +18,11 @@ def run(ctx: Any) -> dict:
     return _run(ctx)
 
 
-__all__ = ["run"]
+def finalize(ctx: Any) -> dict:
+    """finalize(ctx) -> dict: after gstudio.checks.run, before gstudio.package.run."""
+    from .stage import finalize as _finalize
+
+    return _finalize(ctx)
+
+
+__all__ = ["run", "finalize"]

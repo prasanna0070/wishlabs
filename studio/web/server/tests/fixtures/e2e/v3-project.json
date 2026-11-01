@@ -1,0 +1,441 @@
+{
+ "schema": "gadget-project/1",
+ "name": "Sleepy Bear",
+ "slug": "sleepy-bear",
+ "version": 3,
+ "project_id": "p_d565a53hmmrp",
+ "created": "2026-11-01T12:05:59Z",
+ "engine_version": "0.1.0",
+ "brief": {
+  "version": 1,
+  "concept_id": "c_izebmb583d",
+  "title": "Sleepy Bear Bedtime Storyteller",
+  "size": {
+   "w_mm": 141,
+   "d_mm": 110,
+   "h_mm": 168,
+   "value": "About 141 W x 110 D x 168 H mm",
+   "source": "suggested",
+   "evidence": "Body envelope computed from the design geometry; the CAD build gives the final numbers."
+  },
+  "functions": [
+   {
+    "title": "Audio output",
+    "value": "A clear speaker on the front to play bedtime stories.",
+    "source": "suggested",
+    "evidence": "Standard for audio storytelling"
+   },
+   {
+    "title": "Voice input",
+    "value": "A built-in microphone to capture her favorite character names.",
+    "source": "user",
+    "evidence": "You chose to let her tell the robot"
+   },
+   {
+    "title": "Controls",
+    "value": "A single, large arcade-style button on the top of the head.",
+    "source": "suggested",
+    "evidence": "Best for a 5-year-old's motor skills"
+   },
+   {
+    "title": "Animated eyes",
+    "value": "A small screen showing sleepy, expressive eyes.",
+    "source": "suggested",
+    "evidence": "Gives the bear character"
+   },
+   {
+    "title": "Night light",
+    "value": "A gentle tummy light that glows during stories and changes color when listening.",
+    "source": "suggested",
+    "evidence": "Provides bedtime comfort and feedback"
+   }
+  ],
+  "details": [
+   {
+    "topic": "Sourcing country",
+    "value": "India",
+    "source": "suggested",
+    "evidence": "Gadget Studio default"
+   },
+   {
+    "topic": "Offline storage",
+    "value": "Stories and voice clips are kept entirely on the device.",
+    "source": "suggested",
+    "evidence": "Default for child privacy"
+   }
+  ],
+  "parts": [
+   {
+    "module_id": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "name": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+    "role": "core",
+    "qty": 1,
+    "implied": false,
+    "reason": "",
+    "refs": [
+     "U1"
+    ],
+    "source": "suggested",
+    "evidence": "From the parts catalog"
+   },
+   {
+    "module_id": "BACKPLANE_V1",
+    "name": "Standard backplane PCB backplane-v1 (ours)",
+    "role": "backplane",
+    "qty": 1,
+    "implied": true,
+    "reason": "standard core cartridge",
+    "refs": [
+     "BP1"
+    ],
+    "source": "suggested",
+    "evidence": "Added automatically for the design"
+   },
+   {
+    "module_id": "USBC_RECEPTACLE_GCT_USB4105",
+    "name": "USB-C 2.0 receptacle on backplane (5V sink, CC 5.1k Rd)",
+    "role": "power_in",
+    "qty": 1,
+    "implied": true,
+    "reason": "USB-C 5 V input on the backplane",
+    "refs": [
+     "PWR1"
+    ],
+    "source": "suggested",
+    "evidence": "Added automatically for the design"
+   },
+   {
+    "module_id": "SPK_40MM_4R_3W",
+    "name": "Speaker 40 mm round, 4 ohm, 3 W",
+    "role": "speaker",
+    "qty": 1,
+    "implied": false,
+    "reason": "",
+    "refs": [
+     "SPK1"
+    ],
+    "source": "suggested",
+    "evidence": "From the parts catalog"
+   },
+   {
+    "module_id": "BUTTON_ARCADE_30MM_SNAPIN",
+    "name": "Big 30 mm snap-in arcade push button (microswitch)",
+    "role": "button",
+    "qty": 1,
+    "implied": false,
+    "reason": "",
+    "refs": [
+     "BTN1"
+    ],
+    "source": "suggested",
+    "evidence": "From the parts catalog"
+   },
+   {
+    "module_id": "OLED_130_SH1106_I2C",
+    "name": "1.3 in 128x64 mono OLED, SH1106, I2C 4-pin",
+    "role": "display",
+    "qty": 1,
+    "implied": false,
+    "reason": "",
+    "refs": [
+     "DISP1"
+    ],
+    "source": "suggested",
+    "evidence": "From the parts catalog"
+   },
+   {
+    "module_id": "LED_WS2812B_1PX_MODULE",
+    "name": "Addressable RGB LED, single WS2812B 5050 on a mini board",
+    "role": "led",
+    "qty": 1,
+    "implied": false,
+    "reason": "",
+    "refs": [
+     "LED1"
+    ],
+    "source": "suggested",
+    "evidence": "From the parts catalog"
+   },
+   {
+    "module_id": "MIC_INMP441_I2S",
+    "name": "INMP441 I2S MEMS microphone module",
+    "role": "mic",
+    "qty": 1,
+    "implied": false,
+    "reason": "",
+    "refs": [
+     "MIC1"
+    ],
+    "source": "suggested",
+    "evidence": "From the parts catalog"
+   },
+   {
+    "module_id": "AMP_MAX98357A_I2S",
+    "name": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+    "role": "amp",
+    "qty": 1,
+    "implied": true,
+    "reason": "a speaker needs the I2S amplifier",
+    "refs": [
+     "AMP1"
+    ],
+    "source": "suggested",
+    "evidence": "Added automatically for the design"
+   },
+   {
+    "module_id": "MICROSD_SPI_MODULE_5V",
+    "name": "microSD SPI module with LDO and level shifter (Catalex-type)",
+    "role": "storage",
+    "qty": 1,
+    "implied": true,
+    "reason": "story audio files live on microSD",
+    "refs": [
+     "SD1"
+    ],
+    "source": "suggested",
+    "evidence": "Added automatically for the design"
+   },
+   {
+    "module_id": "CABLE_USBC_C2C_1M",
+    "name": "USB-C to USB-C cable, 1 m, USB 2.0",
+    "role": "usb_cable",
+    "qty": 1,
+    "implied": true,
+    "reason": "USB-C cable in the box",
+    "refs": [
+     "CBL1"
+    ],
+    "source": "suggested",
+    "evidence": "Added automatically for the design"
+   }
+  ],
+  "limits": [
+   {
+    "value": "The bear's face and limbs do not move; it does not walk or gesture.",
+    "source": "suggested",
+    "evidence": "Stated in the concept phase"
+   },
+   {
+    "value": "Physical safety for a 5-year-old (durability, drop testing) requires a real-world physical check of the final build.",
+    "source": "suggested",
+    "evidence": "Standard digital limits"
+   },
+   {
+    "value": "No internal battery or direct wall plug; requires an external USB-C power source.",
+    "source": "suggested",
+    "evidence": "Catalog limitation"
+   }
+  ],
+  "safety_flags": [
+   "CHILD_DIRECTED",
+   "LOCAL_VOICE_CAPTURE",
+   "NIGHT_USE"
+  ],
+  "spec": {
+   "electronics": {
+    "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "extra_modules": [],
+    "power": {
+     "input": "usb_c_5v",
+     "adapter_in_box": false
+    }
+   },
+   "tagline": "A gentle bear that tells stories about her favorite friends.",
+   "body": {
+    "split": "rear_cover",
+    "wall": 2.4,
+    "outline": [
+     [
+      -60,
+      0
+     ],
+     [
+      60,
+      0
+     ],
+     [
+      70,
+      40
+     ],
+     [
+      65,
+      110
+     ],
+     [
+      50,
+      150
+     ],
+     [
+      0,
+      165
+     ],
+     [
+      -50,
+      150
+     ],
+     [
+      -65,
+      110
+     ],
+     [
+      -70,
+      40
+     ]
+    ],
+    "depth": 110,
+    "family": "silhouette",
+    "edge_round": 12,
+    "feet": 4
+   },
+   "safety": {
+    "flags": [
+     "CHILD_DIRECTED",
+     "LOCAL_VOICE_CAPTURE",
+     "NIGHT_USE"
+    ],
+    "notes": "Adult assembly required. Microphone only active when button is held."
+   },
+   "features": [
+    {
+     "module": "SPK_40MM_4R_3W",
+     "id": "speaker",
+     "grille": {
+      "hole": 2.4,
+      "w": 36,
+      "h": 36,
+      "pitch": 4.4,
+      "pattern": "dots_ellipse"
+     },
+     "label": "Story speaker",
+     "face": "front",
+     "at": [
+      0,
+      56
+     ]
+    },
+    {
+     "id": "story_button",
+     "label": "Story and listening button",
+     "at": [
+      0,
+      -10
+     ],
+     "face": "top",
+     "module": "BUTTON_ARCADE_30MM_SNAPIN"
+    },
+    {
+     "module": "OLED_130_SH1106_I2C",
+     "at": [
+      0,
+      120
+     ],
+     "face": "front",
+     "id": "eyes",
+     "label": "Animated sleepy eyes"
+    },
+    {
+     "label": "Night light",
+     "at": [
+      0,
+      85
+     ],
+     "module": "LED_WS2812B_1PX_MODULE",
+     "face": "front",
+     "id": "status_light"
+    },
+    {
+     "module": "MIC_INMP441_I2S",
+     "id": "mic",
+     "face": "front",
+     "at": [
+      30,
+      85
+     ],
+     "label": "Voice microphone"
+    }
+   ],
+   "region": "IN",
+   "slug": "sleepy-bear",
+   "decor": [
+    {
+     "at": [
+      0,
+      120
+     ],
+     "relief": "engrave",
+     "type": "face_plate",
+     "size": [
+      100,
+      50
+     ],
+     "shape": "ellipse",
+     "depth": 1.2
+    },
+    {
+     "style": "bear",
+     "tilt": 0,
+     "side": "both",
+     "at": [
+      45,
+      155
+     ],
+     "size": [
+      25,
+      25
+     ],
+     "type": "ear"
+    }
+   ],
+   "audience": {
+    "age_years": 5,
+    "child_directed": true
+   },
+   "colors": {
+    "body_name": "dusk lavender",
+    "accent_name": "warm cream",
+    "body": "#B9B3E8",
+    "accent": "#FFF6EA",
+    "detail": "#2F2A52",
+    "detail_name": "night indigo"
+   },
+   "behaviour": {
+    "template": "story_player",
+    "summary": "Tap the top button for a bedtime story. Hold it down and tell the bear your new favorite character; it will remember for next time. The tummy light glows warmly during stories and turns blue when listening.",
+    "settings": {}
+   },
+   "schema": "gadget-spec/1",
+   "name": "Sleepy Bear"
+  },
+  "created": "2026-11-01T12:00:26Z",
+  "approved": true,
+  "approved_at": "2026-11-01T12:00:37Z",
+  "summary": {
+   "value": "A soft, bear-shaped bedtime companion that tells short, age-appropriate stories and learns new favorite characters by voice.",
+   "source": "suggested",
+   "evidence": "Matches your Sleepy Bear choice"
+  },
+  "purpose": {
+   "value": "To help a 5-year-old settle down for bed with engaging stories about her favorite characters.",
+   "source": "user",
+   "evidence": "You chose 5 yo old and bedtime stories"
+  },
+  "interaction": {
+   "value": "Tap the top button for a bedtime story. Hold the button down and speak to teach the bear a new favorite character.",
+   "source": "suggested",
+   "evidence": "Simple one-button logic for a 5yo"
+  },
+  "privacy_safety": {
+   "value": "The microphone only activates while the button is physically held. Voice data is processed locally and never sent to the cloud. As a child-directed product, a physical safety review is needed before it can be sold.",
+   "source": "suggested",
+   "evidence": "Strict privacy rules for child-directed voice toys"
+  },
+  "power": {
+   "value": "Powered by a standard USB-C cable (5V). No batteries included or supported.",
+   "source": "suggested",
+   "evidence": "Gadget Studio safety rules"
+  }
+ },
+ "brief_version": null,
+ "concept_id": null,
+ "spec_hash": "faebc0a8cdc3a3a0fc4a130cb912e2a8daeb2465f9634df5ecd28423a84513db"
+}

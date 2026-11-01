@@ -41,7 +41,7 @@ def test_images_are_real(minibot_run):
     out, s, _ = minibot_run
     for p in (out / "manual").glob("*.png"):
         im = Image.open(p)
-        assert im.width >= 1000 and im.height >= 700, p
+        assert im.width >= 1000 and im.height >= (300 if p.name.startswith("cable-end-") else 700), p
         ex = im.convert("L").getextrema()
         assert ex[1] - ex[0] > 100, f"{p} looks blank"
     assert s["images_rendered"] >= 12
@@ -82,3 +82,30 @@ def test_build_json_merges(minibot_run):
 def test_stage_is_fast_enough(minibot_run):
     _, s, _ = minibot_run
     assert s["_wall"] < 120, s["_wall"]
+
+
+def test_review1_summary_fields(minibot_run):
+    out, s, _ = minibot_run
+    assert s["wiring_overlaps"] == [], s["wiring_overlaps"][:5]
+    assert s["labels_dropped_priority"] == []
+    assert s["harness_module_end_missing"] == [] and s["repeated_step_titles"] == []
+    assert s["images_png"] == len(list((out / "manual").glob("*.png"))) and s["images_svg"] == 1
+    for ref in ("disp1", "mic1", "btn1", "led1", "spk1"):
+        assert (out / "manual" / f"cable-end-{ref}.png").is_file()
+    assert (out / "manual" / "figures.json").is_file() and (out / "manual" / "render_manual.py").is_file()
+
+
+def test_render_manual_regenerates_every_png(minibot_run, tmp_path):
+    """MAJ-27: the shipped renderer re-renders every manual PNG from the delivered files, SSIM >= 0.98."""
+    import subprocess
+    import sys
+
+    out, _, _ = minibot_run
+    r = subprocess.run([sys.executable, str(out / "manual" / "render_manual.py"), "--root", str(out), "--out", str(tmp_path),
+                        "--compare", "--cache", str(tmp_path / "cache")], capture_output=True, text=True, timeout=900)
+    assert r.returncode == 0, (r.stdout[-3000:], r.stderr[-3000:])
+    shipped = {p.name for p in (out / "manual").glob("*.png")}
+    regen = {p.name for p in (tmp_path / "manual").glob("*.png")}
+    assert shipped == regen, shipped ^ regen
+    ss = [float(x) for x in re.findall(r"\.png: SSIM ([0-9.]+)", r.stdout)]
+    assert len(ss) == len(shipped) and min(ss) >= 0.98, r.stdout[-2000:]

@@ -214,8 +214,30 @@ static void test_recorder_watchdog_closes_mic() {
   c.on_button(ButtonEvent::Press, 0);
   c.on_button(ButtonEvent::LongStart, 600);
   drain(c);
-  c.tick(600 + 2000 + 750);  // the recorder never reported
+  c.tick(600 + 3000 + 750);  // the recorder never reported (clip_ms is 3 s by default, MIN-38)
   TEST_ASSERT_TRUE(has(drain(c), Cmd::StopRecord));
+}
+
+static void test_watchdog_counts_from_when_the_mic_opened() {
+  // MIN-38: the spoken cue plays before the mic opens; the safety net starts when it really opens.
+  StoryController c;
+  c.on_button(ButtonEvent::Press, 0);
+  TEST_ASSERT_EQUAL(Indicator::Listening, c.indicator(10));  // listening face at once, before the hold
+  c.on_button(ButtonEvent::LongStart, 600);
+  drain(c);
+  c.on_record_started(2100);  // a 1.5 s cue
+  c.tick(600 + 3000 + 750);
+  TEST_ASSERT_FALSE(has(drain(c), Cmd::StopRecord));
+  c.tick(2100 + 3000 + 750);
+  TEST_ASSERT_TRUE(has(drain(c), Cmd::StopRecord));
+}
+
+static void test_tap_in_parent_web_mode_never_shows_listening() {
+  gs::StoryCtlConfig cfg;
+  cfg.mode = gs::CaptureMode::ParentWeb;
+  StoryController c(cfg);
+  c.on_button(ButtonEvent::Press, 0);
+  TEST_ASSERT_NOT_EQUAL(Indicator::Listening, c.indicator(10));
 }
 
 static void test_parent_stop_discards_a_take() {
@@ -278,6 +300,8 @@ void register_story_ctl_tests() {
   RUN_TEST(test_hold_during_keep_window_records_again);
   RUN_TEST(test_hold_during_story_stops_then_records);
   RUN_TEST(test_recorder_watchdog_closes_mic);
+  RUN_TEST(test_watchdog_counts_from_when_the_mic_opened);
+  RUN_TEST(test_tap_in_parent_web_mode_never_shows_listening);
   RUN_TEST(test_parent_stop_discards_a_take);
   RUN_TEST(test_button_fsm_drives_controller);
 }

@@ -19,6 +19,7 @@ export interface TurnState {
   userMsgId?: string;
   status: string;
   steps: TurnStep[];
+  action?: string; // what the turn was asked to do (text, answers, regenerate_concepts, ...)
 }
 
 export interface ConceptProgress {
@@ -274,8 +275,9 @@ export const useProject = create<ProjectState>((set, get) => {
     send: async (body) => {
       const { ctx, project, turn } = get();
       if (!ctx || !project || ctx.share || turn?.running) return;
-      const t: TurnState = { running: true, startedAt: Date.now(), status: "Reading your message", steps: [{ id: "start", label: "Reading your message", state: "running" }] };
-      set({ turn: t, sendError: null, conceptProgress: body.action === "regenerate_concepts" ? {} : get().conceptProgress });
+      const action = body.action || (body.answers || body.skipped ? "answers" : "text");
+      const t: TurnState = { running: true, startedAt: Date.now(), action, status: "Reading your message", steps: [{ id: "start", label: "Reading your message", state: "running" }] };
+      set({ turn: t, sendError: null, conceptProgress: body.action === "regenerate_concepts" || body.action === "more_concepts" ? {} : get().conceptProgress });
       const mode = project.mode;
       try {
         // follow_build false: the turn ends once a build is queued, so the composer stays usable during a long build;

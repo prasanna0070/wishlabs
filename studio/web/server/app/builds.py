@@ -1,5 +1,10 @@
 """Version builds: start (new version, background task), watch (status.json polling), finalize (summary +
-result message), reconcile (finish versions whose builder completed while no task was watching)."""
+result message), reconcile (finish versions whose builder completed while no task was watching).
+
+Partial builds: a version can start as a copy of an earlier one (`seed_from`) and run only some engine stages
+(`options.only`), e.g. the story-audio rerun (firmware + checks + docs + package, BLK-4) or a colour-only tweak
+that reuses pcb/ and firmware/ (MIN-37). Builders that cannot see the seeded files (remote) get a full build.
+"""
 from __future__ import annotations
 
 import asyncio
@@ -7,19 +12,35 @@ import logging
 import time
 from typing import AsyncIterator
 
+from . import export_extras
+from .brief import revise_brief, size_from_spec
 from .projects import NotFound, find_message, find_version, make_message, pkey, vkey
-from .summary import build_summary
-from .util import now_iso, parse_iso, spec_hash
+from .summary import build_summary, check_counts, story_audio_state
+from .trace import cad_size, requirements
+from .util import new_id, now_iso, parse_iso, spec_hash
 
 log = logging.getLogger("gstudio.builds")
 
 FINAL = ("done", "error")
+EDIT_SOURCES = ("update", "tweak")
+SEED_DROP = ("status.json", "export.zip", "manifest.json")
+
+
+def build_options(spec: dict, options: dict | None = None) -> dict:
+    """Options sent to the builder. story_player designs get their story audio by default (BLK-4)."""
+    opts = {"fast": False}
+    tmpl = ((spec or {}).get("behaviour") or {}).get("template")
+    if tmpl == "story_player":
+        opts["stories_audio"] = True
+    opts.update({k: v for k, v in (options or {}).items() if v is not None})
+    return opts
 
 
 class BuildManager:
     def __init__(self, svc):
         self.svc = svc
         self.tasks: dict[tuple[str, int], asyncio.Task] = {}
+        self._fin_locks: dict[tuple[str, int], asyncio.Lock] = {}
 
     @property
     def store(self):
@@ -32,20 +53,35 @@ class BuildManager:
     # ------------------------------------------------------------------ start
     async def start(self, pid: str, spec: dict, *, source: str, label: str, brief: dict | None = None,
                     base_version: int | None = None, extra_messages: list[dict] | None = None,
-                    copy_from: int | None = None) -> tuple[dict, dict]:
+                    copy_from: int | None = None, seed_from: int | None = None, options: dict | None = None,
+                    changes: list[dict] | None = None, change_text: str | None = None,
+                    plan: dict | None = None) -> tuple[dict, dict]:
         """Create version n (queued), make it current, add the progress message, launch the build task.
+        Edit builds (update/tweak) also write brief v(k+1) carrying the change (MAJ-36).
         Returns (version, progress_message)."""
         holder: dict = {}
+        names = await asyncio.to_thread(self.svc.bridge.module_names) if source in EDIT_SOURCES and brief else {}
+        public = getattr(self.svc.settings, "public_url", None)
 
         def mut(p):
             busy = [v for v in p["versions"] if v["state"] in ("queued", "running")]
             if busy and copy_from is None:
                 raise BuildBusy(busy[-1]["n"])
             n = max([v["n"] for v in p["versions"]] or [0]) + 1
+            b = brief
+            if source in EDIT_SOURCES and brief:
+                b = revise_brief(p.get("brief") or brief, spec, version=len(p.get("brief_history") or []) + 1,
+                                 for_version=n, source=source, change=change_text or label, names=names)
+                p["brief"] = b
+                p["brief_history"] = (p.get("brief_history") or []) + [b]
             v = {"n": n, "created": now_iso(), "label": label[:120], "source": source, "state": "queued",
-                 "summary": "", "spec_hash": spec_hash(spec), "brief_version": (brief or {}).get("version"),
+                 "summary": "", "spec_hash": spec_hash(spec), "brief_version": (b or {}).get("version"),
                  "base_version": base_version, "percent": 0, "error": None, "started": now_iso(), "ended": None,
                  "finalized": False, "thumb": None}
+            if changes is not None:
+                v["changes"] = [c.get("text") if isinstance(c, dict) else str(c) for c in changes]
+            if plan:
+                v["plan"] = plan
             if copy_from is not None:
                 v["restored_from"] = copy_from
             p["versions"].append(v)
@@ -53,31 +89,74 @@ class BuildManager:
             for m in extra_messages or []:
                 p["chat"].append(m)
             msg = make_message("assistant", "progress", f"Building version {n}: {label}",
-                               {"version": n, "status": {"state": "queued", "percent": 0, "stages": []}})
+                               {"version": n, "status": {"state": "queued", "percent": 0, "stages": []},
+                                **({"changes": v["changes"]} if changes is not None else {}),
+                                **({"plan": plan} if plan else {})})
             p["chat"].append(msg)
-            if source in ("build", "update", "restore", "tweak"):
+            if source in ("build", "update", "restore", "tweak", "story_audio"):
                 p["stage"] = "building"
-            holder["v"], holder["m"] = v, msg
+            # MAJ-33: a story card build tells the firmware where its parent page can fetch spoken name clips
+            if public and ((spec.get("behaviour") or {}).get("template")) == "story_player":
+                if not (p.get("device") or {}).get("token"):
+                    p["device"] = {"token": new_id("d", 24), "created": now_iso()}
+                    holder["new_token"] = p["device"]["token"]
+                holder["name_audio_url"] = f"{public}/api/device/{p['device']['token']}/name-audio"
+            holder["v"], holder["m"], holder["b"], holder["p"] = v, msg, b, p
 
         await self.repo.aupdate(pid, mut)
-        v, msg = holder["v"], holder["m"]
+        v, msg, b = holder["v"], holder["m"], holder["b"]
         n = v["n"]
+        if holder.get("new_token"):
+            await asyncio.to_thread(self.store.write_json, f"devices/{holder['new_token']}.json",
+                                    {"pid": pid, "created": now_iso()})
+        if holder.get("name_audio_url"):
+            options = {**(options or {}), "name_audio_url": holder["name_audio_url"]}
+        if base_version is not None and copy_from is None and not (options or {}).get("pcb_reuse_from"):
+            # MIN-37: the PCB stage reuses the base version's routed board when its pcb_key is unchanged
+            src = self._version_location(pid, base_version)
+            if src:
+                options = {**(options or {}), "pcb_reuse_from": src}
         await asyncio.to_thread(self.store.write_json, f"projects/{pid}/inputs/v{n}.json",
-                                {"spec": spec, "brief": brief, "source": source, "label": label})
+                                {"spec": spec, "brief": b, "source": source, "label": label,
+                                 "options": options or {}, "seed_from": seed_from})
+        if copy_from is None:
+            if seed_from is not None:
+                await asyncio.to_thread(self._seed, pid, seed_from, n)
+            try:
+                concept = export_extras.concept_for(holder["p"], b)
+                await asyncio.to_thread(export_extras.seed_references, self.store, pid, n, concept)
+            except Exception:  # noqa: BLE001 - references are a nice-to-have, never block a build
+                log.exception("could not seed references for %s v%s", pid, n)
         await asyncio.to_thread(self.store.write_json, vkey(pid, n, "status.json"),
                                 {"state": "queued", "percent": 0, "stages": [], "error": None})
         if copy_from is not None:
             task = asyncio.create_task(self._copy(pid, n, copy_from))
         else:
-            task = asyncio.create_task(self._run(pid, n, spec, brief))
+            task = asyncio.create_task(self._run(pid, n, spec, b, options))
         self.tasks[(pid, n)] = task
         task.add_done_callback(lambda t, k=(pid, n): self.tasks.pop(k, None))
         return v, msg
 
-    async def _run(self, pid: str, n: int, spec: dict, brief: dict | None) -> None:
+    def _version_location(self, pid: str, n: int) -> str | None:
+        """Where a builder can read version n: the local folder, or gs://bucket/projects/<pid>/v<n>/."""
+        local = self.store.local_path(vkey(pid, n, "status.json"))
+        if local is not None:
+            return str(local.parent)
+        bucket = getattr(self.svc.settings, "bucket", None)
+        return f"gs://{bucket}/projects/{pid}/v{n}/" if bucket else None
+
+    def _seed(self, pid: str, src: int, n: int) -> None:
+        """v<n> starts as a copy of v<src> (every file, engine stage records included) minus the files the new run
+        must rewrite, so nothing stale can be shipped if a later stage fails."""
+        self.store.copy_prefix(f"projects/{pid}/v{src}", f"projects/{pid}/v{n}")
+        for rel in SEED_DROP:
+            self.store.delete(vkey(pid, n, rel))
+
+    async def _run(self, pid: str, n: int, spec: dict, brief: dict | None, options: dict | None = None) -> None:
         try:
             await self.repo.aupdate(pid, lambda p: _set_state(p, n, "running"))
-            res = await self.svc.builder.build(pid, n, spec, brief, {"fast": False})
+            opts = build_options(spec, options)
+            res = await self.svc.builder.build(pid, n, spec, brief, opts)
             log.info("build %s v%s returned %s", pid, n, {k: res.get(k) for k in ("ok", "state", "error")}
                      if isinstance(res, dict) else res)
             st = await asyncio.to_thread(self.store.read_json, vkey(pid, n, "status.json")) or {}
@@ -108,33 +187,76 @@ class BuildManager:
         await self.finalize(pid, n)
 
     # ------------------------------------------------------------------ finalize / reconcile
+    def _read_text(self, key: str) -> str | None:
+        b = self.store.read_bytes(key)
+        return b.decode(errors="replace") if b is not None else None
+
     async def finalize(self, pid: str, n: int) -> dict | None:
         """Idempotent: compute the summary from files, set version state, append the result message."""
+        lock = self._fin_locks.setdefault((pid, n), asyncio.Lock())
+        async with lock:
+            return await self._finalize(pid, n)
+
+    async def _finalize(self, pid: str, n: int) -> dict | None:
         rd = lambda rel: asyncio.to_thread(self.store.read_json, vkey(pid, n, rel))  # noqa: E731
         status = await rd("status.json") or {}
         if status.get("state") not in FINAL:
             return None
         status = await asyncio.to_thread(enrich_status, self.store, pid, n, status)
         status["draft_url"] = None
-        build, manifest, dc, quote = await asyncio.gather(rd("build.json"), rd("manifest.json"),
-                                                          rd("checks/digital-checks.json"), rd("order/quote.json"))
-        spec = await rd("spec.json")
+        (build, manifest, dc, quote, spec, msum, stories, electrical, comps, cad_sum) = await asyncio.gather(
+            rd("build.json"), rd("manifest.json"), rd("checks/digital-checks.json"), rd("order/quote.json"),
+            rd("spec.json"), rd("manual/manual-summary.json"), rd("firmware/sdcard/stories.json"),
+            rd("electrical.json"), rd("cad/components.json"), rd("cad/cad-summary.json"))
+        fw_text = await asyncio.to_thread(self._read_text, vkey(pid, n, "firmware/test-results.txt"))
+        if isinstance(comps, dict) and isinstance(comps.get("components"), dict):
+            comps = comps["components"]
+        measured = cad_size(comps)
+        try:
+            p0 = await self.repo.aget(pid)
+        except NotFound:
+            return None
+        v0 = find_version(p0, n)
+        if v0 is None or v0.get("finalized"):
+            return None
+        if status["state"] == "done":
+            try:
+                rec = export_extras.project_record(p0, n, now_iso())
+                info = await asyncio.to_thread(export_extras.finalize, self.store, pid, n, rec)
+                log.info("export extras %s v%s: %s", pid, n, info)
+            except Exception:  # noqa: BLE001 - the export still ships without the extras
+                log.exception("export extras failed for %s v%s", pid, n)
+            manifest = await rd("manifest.json")
         holder: dict = {}
 
         def mut(p):
             v = find_version(p, n)
             if v is None or v.get("finalized"):
                 return
+            # MAJ-36: a brief written by the server for this edit build gets the CAD-measured size
+            if measured and status["state"] == "done":
+                for b in [p.get("brief")] + list(p.get("brief_history") or []):
+                    if isinstance(b, dict) and b.get("auto_for_version") == n:
+                        b["size"] = size_from_spec(b.get("spec") or {}, measured, f"the CAD of v{n}")
             name = (spec or {}).get("name") or (p.get("brief") or {}).get("title") or p["name"]
-            payload, text, one = build_summary(name, status, build, manifest, dc, quote, v.get("brief_version"))
+            brief = next((b for b in p.get("brief_history") or [] if b.get("version") == v.get("brief_version")),
+                         None) or (p.get("brief") if v.get("brief_version") is None else None)
+            story = story_audio_state(spec, stories, check_counts(dc))
+            reqs = requirements(brief, electrical=electrical, build=build, components=comps, fw_text=fw_text,
+                                story=story, stories=stories, quote=quote) if status["state"] == "done" else []
+            payload, text, one = build_summary(name, status, build, manifest, dc, quote, v.get("brief_version"),
+                                               {"manual_summary": msum, "stories": stories, "spec": spec,
+                                                "requirements": reqs, "cad_summary": cad_sum})
+            if measured:
+                payload["cad_size"] = measured
             v["state"] = status["state"]
             v["percent"] = 100 if status["state"] == "done" else status.get("percent")
             v["error"] = status.get("error")
             v["ended"] = now_iso()
             v["summary"] = one
             v["finalized"] = True
-            if spec:
-                v["spec_hash"] = spec_hash(spec)
+            if spec:   # v["spec_hash"] stays the input-spec hash (same basis as brief.spec_hash)
+                v["output_spec_hash"] = spec_hash(spec)
             files = {f.get("path") for f in (manifest or {}).get("files") or [] if isinstance(f, dict)}
             for cand in ("manual/assembled.png", "manual/hero.png", "cad/preview.png"):
                 if cand in files or (not files and status["state"] == "done" and cand == "manual/assembled.png"):

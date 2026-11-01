@@ -13,8 +13,8 @@ from dataclasses import dataclass, field
 from typing import Iterable, Optional
 
 from .data import Comp, ManualData, camel_words, kebab
-
-Vec = tuple[float, float, float]
+from .geom import (AXES, Vec, axis_phrase, axis_short, bbox_center, bbox_gap, bbox_offset, bbox_size,  # noqa: F401
+                   bbox_union, dominant_axis, vadd, vnorm, vscale, vsub)
 
 # ref prefix (normalize assigns DISP1, SPK1, MIC1, BTN1, LED1, AMP1, SD1, U1, BP1) -> role
 REF_ROLES = [
@@ -44,80 +44,11 @@ HARDWARE_ROLES = {"screws", "inserts", "feet", "ties", "gasket", "harness", "lab
                   "fasteners", "standoffs", "packing"}
 FEATURE_ORDER = ["speaker", "display", "button", "led", "mic", "touch", "buzzer", "sensor"]
 
-AXES: dict[Vec, str] = {
-    (1.0, 0.0, 0.0): "+X (the gadget's left)",
-    (-1.0, 0.0, 0.0): "-X (the gadget's right)",
-    (0.0, -1.0, 0.0): "-Y (front)",
-    (0.0, 1.0, 0.0): "+Y (rear)",
-    (0.0, 0.0, 1.0): "+Z (up)",
-    (0.0, 0.0, -1.0): "-Z (down)",
-}
 FACE_NORMALS: dict[str, Vec] = {
     "front": (0.0, -1.0, 0.0), "rear": (0.0, 1.0, 0.0), "top": (0.0, 0.0, 1.0), "bottom": (0.0, 0.0, -1.0),
     # spec faces left/right are the gadget's own sides; +X is the gadget's left (ARCHITECTURE §0)
     "left": (1.0, 0.0, 0.0), "right": (-1.0, 0.0, 0.0),
 }
-
-
-# --------------------------------------------------------------------------------------------- vectors
-def vsub(a: Vec, b: Vec) -> Vec:
-    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
-
-
-def vadd(a: Vec, b: Vec) -> Vec:
-    return (a[0] + b[0], a[1] + b[1], a[2] + b[2])
-
-
-def vscale(a: Vec, s: float) -> Vec:
-    return (a[0] * s, a[1] * s, a[2] * s)
-
-
-def vnorm(a: Vec) -> Vec:
-    n = math.sqrt(a[0] ** 2 + a[1] ** 2 + a[2] ** 2) or 1.0
-    return (a[0] / n, a[1] / n, a[2] / n)
-
-
-def dominant_axis(v: Vec) -> Vec:
-    i = max(range(3), key=lambda k: abs(v[k]))
-    out = [0.0, 0.0, 0.0]
-    out[i] = 1.0 if v[i] >= 0 else -1.0
-    return (out[0], out[1], out[2])
-
-
-def axis_phrase(v: Vec) -> str:
-    return AXES[dominant_axis(v)]
-
-
-def axis_short(v: Vec) -> str:
-    return axis_phrase(v).split(" ", 1)[0]
-
-
-def bbox_union(boxes: Iterable[Optional[tuple]]) -> Optional[tuple]:
-    bs = [b for b in boxes if b]
-    if not bs:
-        return None
-    return (min(b[0] for b in bs), max(b[1] for b in bs), min(b[2] for b in bs),
-            max(b[3] for b in bs), min(b[4] for b in bs), max(b[5] for b in bs))
-
-
-def bbox_offset(b: tuple, d: Vec) -> tuple:
-    return (b[0] + d[0], b[1] + d[0], b[2] + d[1], b[3] + d[1], b[4] + d[2], b[5] + d[2])
-
-
-def bbox_center(b: tuple) -> Vec:
-    return ((b[0] + b[1]) / 2, (b[2] + b[3]) / 2, (b[4] + b[5]) / 2)
-
-
-def bbox_size(b: tuple) -> Vec:
-    return (b[1] - b[0], b[3] - b[2], b[5] - b[4])
-
-
-def bbox_gap(a: tuple, b: tuple) -> float:
-    """Euclidean gap between two boxes (0 if they touch or overlap)."""
-    dx = max(0.0, max(a[0], b[0]) - min(a[1], b[1]))
-    dy = max(0.0, max(a[2], b[2]) - min(a[3], b[3]))
-    dz = max(0.0, max(a[4], b[4]) - min(a[5], b[5]))
-    return math.sqrt(dx * dx + dy * dy + dz * dz)
 
 
 # --------------------------------------------------------------------------------------------- groups
@@ -269,6 +200,7 @@ def classify(data: ManualData) -> Assembly:
 
     # ---- electronics by role
     groups: dict[str, Group] = {}
+    accessories: list[Comp] = []
     for c in purchases:
         role = role_of(c, data)
         if role == "backplane":
@@ -280,9 +212,15 @@ def classify(data: ManualData) -> Assembly:
         if role in ("amp", "sd"):
             A.cartridge_mods.append(c)
             continue
+        if not c.ref and c.host_ref and data.is_accessory(c):
+            accessories.append(c)  # e.g. a gasket ring cut for SPK1: joins the speaker's step
+            continue
         if not c.ref and (role in HARDWARE_ROLES or _has(c, "screw", "insert", "feet", "foot", "bumper", "tie", "nut", "bolt",
                                                           "standoff", "washer", "label", "cable", "harness")):
             continue  # kit hardware (it may carry a library module_id): handled below, never a feature step
+        if c.ref and data.is_accessory(c):
+            accessories.append(c)  # a gasket or pad that shares the module's ref: joins that module's step (BLK-6)
+            continue
         inst = data.instance(c.ref) if c.ref else {}
         fid = c.feature_id or inst.get("feature")
         same = next((g for g in groups.values() if c.ref and g.ref == c.ref), None)
@@ -306,8 +244,16 @@ def classify(data: ManualData) -> Assembly:
         g = Group(key=key, role=role or "module", module=c, ref=c.ref, feature_id=fid,
                   face=feat.get("face") or inst.get("face"), label=feat.get("label"))
         groups[c.name] = g
+    for c in accessories:
+        host = c.ref or c.host_ref
+        same = next((g for g in groups.values() if host and g.ref == host), None) or \
+            next((g for g in groups.values() if c.feature_id and g.feature_id == c.feature_id), None)
+        if same is not None:
+            same.extras.append(c)
+        else:
+            A.other.append(c)
     taken = {c.name for c in [A.backplane, A.core, *A.cartridge_mods] if c} | {
-        x.name for g in groups.values() for x in [g.module, *g.extras] if x}
+        x.name for g in groups.values() for x in [g.module, *g.extras] if x} | {c.name for c in A.other}
 
     # ---- fasteners, inserts, feet, ties, harness
     rest = [c for c in purchases if c.name not in taken]
@@ -339,6 +285,19 @@ def classify(data: ManualData) -> Assembly:
             hit.fasteners.append(c)
             continue
         boxes = data.solid_boxes.get(c.name) or []
+        rec = fastener_records(data).get(c.name.split("_", 1)[-1])
+        if rec and len(rec) == len(boxes) and feats:
+            # the CAD fastener records name each screw's kit ("SPK1 ring screw"), in solid order (MAJ-11)
+            by_ref: dict[str, list[int]] = {}
+            for k, lab in enumerate(rec):
+                by_ref.setdefault(str(lab).split(" ", 1)[0], []).append(k)
+            gmap = {g.ref: g for g in feats if g.ref}
+            near = all(r in gmap and gmap[r].module and gmap[r].module.bbox
+                       and all(bbox_gap(boxes[k], gmap[r].module.bbox) < 30.0 for k in idx) for r, idx in by_ref.items())
+            if near:
+                for r, idx in by_ref.items():
+                    gmap[r].fasteners.append(subcomp(data, c, idx) if len(by_ref) > 1 else c)
+                continue
         if len(boxes) > 1 and feats:
             owners: dict[str, list[int]] = {}
             for k, sb in enumerate(boxes):
@@ -432,6 +391,16 @@ def classify(data: ManualData) -> Assembly:
     A.features = sorted(aperture, key=order_key)
     A.internals = sorted(internal, key=order_key)
     return A
+
+
+def fastener_records(data: ManualData) -> dict[str, list[str]]:
+    """CAD fastener group ("ModuleScrews") -> screw labels in model order, from cad/digital-checks.json."""
+    out: dict[str, list[str]] = {}
+    for c in data.cad_checks():
+        if c.get("id") == "fastener_engagement":
+            for s in (c.get("data") or {}).get("screws") or []:
+                out.setdefault(str(s.get("group")), []).append(str(s.get("screw") or ""))
+    return out
 
 
 def subcomp(data: ManualData, c: Comp, idx: list[int]) -> Comp:

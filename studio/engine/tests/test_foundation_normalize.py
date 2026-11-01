@@ -27,8 +27,10 @@ def test_good_spec_normalizes(lib):
     sp, rep = normalize(good(), lib)
     assert rep["ok"], rep["errors"]
     refs = {i.ref: i for i in sp.derived.instances}
-    for r in ("U1", "BP1", "PWR1", "BTN1", "LED1", "SPK1", "MIC1", "DISP1", "AMP1", "SD1", "CBL1"):
+    for r in ("U1", "BP1", "PWR1", "BTN1", "LED1", "SPK1", "MIC1", "DISP1", "AMP1", "SD1", "CBL1", "CARD1", "PSU1"):
         assert r in refs, r
+    assert refs["CARD1"].required_by == "SD1" and refs["CARD1"].module == "STORAGE_MICROSD_32GB_A1"
+    assert sp.electronics.power.adapter_in_box is True  # child-directed (REVIEW-1 MAJ-5 rule)
     assert refs["AMP1"].source == "implied" and refs["SD1"].source == "implied"
     assert refs["DISP1"].slot == "J_I2C1" and refs["AMP1"].slot == "A1" and refs["SD1"].slot == "S1"
     assert refs["SPK1"].slot == "J_SPK" and refs["LED1"].slot == "J_LED" and refs["MIC1"].slot == "J_MIC"
@@ -36,8 +38,12 @@ def test_good_spec_normalizes(lib):
     for h in sp.derived.harness:
         assert h.length_mm in (100, 150, 200, 300)
         assert h.pins in (2, 3, 4, 6, 8)
-        assert h.module == f"CABLE_JSTPH_{h.pins}P_{h.length_mm}" and lib.has(h.module)
-        assert h.module_end in ("jst_ph", "dupont_2.54", "spade_2.8", "solder", "factory_prewired")
+        assert lib.has(h.module) and h.match == "exact" and h.sku and lib.get(h.module)["length_mm"] == h.length_mm
+        assert h.module_end in ("jst_ph", "jst_xh", "dupont_2.54", "spade_2.8", "solder", "factory_prewired")
+    mods = {h.ref: h.module for h in sp.derived.harness}
+    assert mods["DISP1"].startswith("CABLE_JSTPH_4P_DUPONT1X4_") and mods["DISP1"].endswith("_X2143")  # VCC,GND,SCL,SDA
+    assert mods["BTN1"].startswith("CABLE_JSTPH_3P_SPADE28_") and mods["MIC1"].startswith("CABLE_JSTPH_6P_DUPONT2X1X3_")
+    assert mods["LED1"].startswith("CABLE_JSTXH_3P_") and mods["SPK1"].startswith("CABLE_JSTPH_2P_")
     ends = {h.ref: h.module_end for h in sp.derived.harness}
     assert ends["DISP1"] == "dupont_2.54" and ends["BTN1"] == "spade_2.8"
     assert ends["SPK1"] == "factory_prewired" and ends["LED1"] == "factory_prewired"
@@ -45,10 +51,10 @@ def test_good_spec_normalizes(lib):
     assert hw["adhesive bumper foot"] == 4
     # same rules as the CAD stage: 4 cartridge + 4 cover + speaker ring 3 + display 2 + LED 2 + mic 2 (+ arcade button 0)
     assert hw["M2.5 heat-set insert"] == 17
-    assert sum(h.qty for h in sp.derived.hardware if h.size == "M2.5" and "screw" in h.name) == 17
+    assert sum(h.qty for h in sp.derived.hardware if str(h.size).startswith("M2.5x") and "screw" in h.name) == 17
     assert {h.group for h in sp.derived.hardware} >= {"CartridgeScrews", "CoverScrews", "ModuleScrews", "HeatSetInserts"}
     assert all(h.qty_basis == "planned" for h in sp.derived.hardware)
-    m2 = [h for h in sp.derived.hardware if h.size == "M2"]
+    m2 = [h for h in sp.derived.hardware if str(h.size).startswith("M2x")]
     assert [h.group for h in m2] == ["SupportPostScrews"] and m2[0].qty == 2
     c = sp.derived.cartridge
     assert c is not None and c.board_top_z == pytest.approx(c.floor_z + 8.0)
@@ -176,7 +182,7 @@ def test_i2c_clash_and_coin_cell(lib):
     assert "i2c_clash" in codes(rep)
     assert "child_safety" in codes(rep)  # coin cell in a child-directed design
     d["audience"]["child_directed"] = False
-    d["safety"]["flags"] = []
+    d["safety"]["flags"] = ["CHILD_VOICE_STORED"]  # keeps the fixture's voice-clip consent (firmware consent gate, MAJ-1)
     d["electronics"]["extra_modules"] = ["RTC_DS3231_ZS042"]
     sp, rep = normalize(d, lib)
     assert rep["ok"], rep["errors"]

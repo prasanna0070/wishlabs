@@ -1,0 +1,1372 @@
+{
+  "schema": "gadget-electrical/1",
+  "engine_version": "0.1.0",
+  "backplane": "backplane-v1",
+  "core": {
+    "ref": "U1",
+    "module": "CORE_ESP32S3_DEVKITC1_N8R8"
+  },
+  "instances": [
+    {
+      "ref": "U1",
+      "module": "CORE_ESP32S3_DEVKITC1_N8R8",
+      "role": "core",
+      "name": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+      "feature": null,
+      "slot": "U1",
+      "source": "core"
+    },
+    {
+      "ref": "BP1",
+      "module": "BACKPLANE_V1",
+      "role": "backplane",
+      "name": "Standard backplane PCB backplane-v1 (ours)",
+      "feature": null,
+      "slot": null,
+      "source": "implied"
+    },
+    {
+      "ref": "PWR1",
+      "module": "USBC_RECEPTACLE_GCT_USB4105",
+      "role": "power_in",
+      "name": "USB-C 2.0 receptacle on backplane (5V sink, CC 5.1k Rd)",
+      "feature": null,
+      "slot": "J_PWR",
+      "source": "implied"
+    },
+    {
+      "ref": "SPK1",
+      "module": "SPK_40MM_4R_3W",
+      "role": "speaker",
+      "name": "Speaker 40 mm round, 4 ohm, 3 W",
+      "feature": "speaker",
+      "slot": "J_SPK",
+      "source": "feature",
+      "harness": {
+        "cable": "JST-PH 2.0 2p",
+        "length_mm": 200,
+        "wires": [
+          {
+            "module_pin": "+",
+            "slot_pin": 1,
+            "slot_pin_name": "SPK+",
+            "net": "SPK_P",
+            "color": "white",
+            "gpio": null
+          },
+          {
+            "module_pin": "-",
+            "slot_pin": 2,
+            "slot_pin_name": "SPK-",
+            "net": "SPK_N",
+            "color": "grey",
+            "gpio": null
+          }
+        ],
+        "module_end": "wire_leads"
+      },
+      "pins": {
+        "+": {
+          "net": "SPK_P",
+          "slot_pin": 1
+        },
+        "-": {
+          "net": "SPK_N",
+          "slot_pin": 2
+        }
+      }
+    },
+    {
+      "ref": "BTN1",
+      "module": "BUTTON_ARCADE_30MM_SNAPIN",
+      "role": "button",
+      "name": "Big 30 mm snap-in arcade push button (microswitch)",
+      "feature": "story_button",
+      "slot": "J_IO1",
+      "source": "feature",
+      "harness": {
+        "cable": "JST-PH 2.0 3p",
+        "length_mm": 300,
+        "wires": [
+          {
+            "module_pin": "COM",
+            "slot_pin": 1,
+            "slot_pin_name": "GND",
+            "net": "GND",
+            "color": "black",
+            "gpio": null
+          },
+          {
+            "module_pin": "NO",
+            "slot_pin": 3,
+            "slot_pin_name": "SIG",
+            "net": "IO1_SIG",
+            "color": "white",
+            "gpio": 4
+          }
+        ],
+        "module_end": "wire_leads"
+      },
+      "pins": {
+        "COM": {
+          "net": "GND",
+          "slot_pin": 1
+        },
+        "NO": {
+          "net": "IO1_SIG",
+          "gpio": 4,
+          "slot_pin": 3
+        }
+      }
+    },
+    {
+      "ref": "DISP1",
+      "module": "OLED_130_SH1106_I2C",
+      "role": "display",
+      "name": "1.3 in 128x64 mono OLED, SH1106, I2C 4-pin",
+      "feature": "eyes",
+      "slot": "J_I2C1",
+      "source": "feature",
+      "harness": {
+        "cable": "JST-PH 2.0 4p",
+        "length_mm": 300,
+        "wires": [
+          {
+            "module_pin": "GND",
+            "slot_pin": 1,
+            "slot_pin_name": "GND",
+            "net": "GND",
+            "color": "black",
+            "gpio": null
+          },
+          {
+            "module_pin": "VCC",
+            "slot_pin": 2,
+            "slot_pin_name": "3V3",
+            "net": "+3V3",
+            "color": "orange",
+            "gpio": null
+          },
+          {
+            "module_pin": "SDA",
+            "slot_pin": 3,
+            "slot_pin_name": "SDA",
+            "net": "I2C_SDA",
+            "color": "blue",
+            "gpio": 8
+          },
+          {
+            "module_pin": "SCL",
+            "slot_pin": 4,
+            "slot_pin_name": "SCL",
+            "net": "I2C_SCL",
+            "color": "yellow",
+            "gpio": 9
+          }
+        ],
+        "module_end": "header_2.54"
+      },
+      "pins": {
+        "GND": {
+          "net": "GND",
+          "slot_pin": 1
+        },
+        "VCC": {
+          "net": "+3V3",
+          "slot_pin": 2
+        },
+        "SDA": {
+          "net": "I2C_SDA",
+          "gpio": 8,
+          "slot_pin": 3
+        },
+        "SCL": {
+          "net": "I2C_SCL",
+          "gpio": 9,
+          "slot_pin": 4
+        }
+      }
+    },
+    {
+      "ref": "LED1",
+      "module": "LED_WS2812B_1PX_MODULE",
+      "role": "led",
+      "name": "Addressable RGB LED, single WS2812B 5050 on a mini board",
+      "feature": "status_light",
+      "slot": "J_LED",
+      "source": "feature",
+      "harness": {
+        "cable": "JST-PH 2.0 3p",
+        "length_mm": 200,
+        "wires": [
+          {
+            "module_pin": "GND",
+            "slot_pin": 1,
+            "slot_pin_name": "GND",
+            "net": "GND",
+            "color": "black",
+            "gpio": null
+          },
+          {
+            "module_pin": "5V",
+            "slot_pin": 2,
+            "slot_pin_name": "5V",
+            "net": "+5V",
+            "color": "red",
+            "gpio": null
+          },
+          {
+            "module_pin": "DIN",
+            "slot_pin": 3,
+            "slot_pin_name": "DIN",
+            "net": "LED_DIN_5V",
+            "color": "green",
+            "gpio": 2,
+            "via": "U3 74AHCT1G125 (3.3 V -> 5 V) + R3 330 ohm"
+          }
+        ],
+        "module_end": "solder_pads"
+      },
+      "pins": {
+        "GND": {
+          "net": "GND",
+          "slot_pin": 1
+        },
+        "5V": {
+          "net": "+5V",
+          "slot_pin": 2
+        },
+        "DIN": {
+          "net": "LED_DIN_5V",
+          "gpio": 2,
+          "via": "U3 74AHCT1G125 (3.3 V -> 5 V) + R3 330 ohm",
+          "slot_pin": 3
+        }
+      }
+    },
+    {
+      "ref": "MIC1",
+      "module": "MIC_INMP441_I2S",
+      "role": "mic",
+      "name": "INMP441 I2S MEMS microphone module",
+      "feature": "mic",
+      "slot": "J_MIC",
+      "source": "feature",
+      "harness": {
+        "cable": "JST-PH 2.0 6p",
+        "length_mm": 300,
+        "wires": [
+          {
+            "module_pin": "GND",
+            "slot_pin": 1,
+            "slot_pin_name": "GND",
+            "net": "GND",
+            "color": "black",
+            "gpio": null
+          },
+          {
+            "module_pin": "VDD",
+            "slot_pin": 2,
+            "slot_pin_name": "3V3",
+            "net": "+3V3",
+            "color": "orange",
+            "gpio": null
+          },
+          {
+            "module_pin": "SCK",
+            "slot_pin": 3,
+            "slot_pin_name": "SCK",
+            "net": "I2S_MIC_SCK",
+            "color": "yellow",
+            "gpio": 41
+          },
+          {
+            "module_pin": "WS",
+            "slot_pin": 4,
+            "slot_pin_name": "WS",
+            "net": "I2S_MIC_WS",
+            "color": "green",
+            "gpio": 42
+          },
+          {
+            "module_pin": "SD",
+            "slot_pin": 5,
+            "slot_pin_name": "SD",
+            "net": "I2S_MIC_SD",
+            "color": "blue",
+            "gpio": 40
+          },
+          {
+            "module_pin": "L/R",
+            "slot_pin": 6,
+            "slot_pin_name": "LR",
+            "net": "GND",
+            "color": "black",
+            "gpio": null,
+            "note": "strap"
+          }
+        ],
+        "module_end": "header_2.54"
+      },
+      "pins": {
+        "GND": {
+          "net": "GND",
+          "slot_pin": 1
+        },
+        "VDD": {
+          "net": "+3V3",
+          "slot_pin": 2
+        },
+        "SCK": {
+          "net": "I2S_MIC_SCK",
+          "gpio": 41,
+          "slot_pin": 3
+        },
+        "WS": {
+          "net": "I2S_MIC_WS",
+          "gpio": 42,
+          "slot_pin": 4
+        },
+        "SD": {
+          "net": "I2S_MIC_SD",
+          "gpio": 40,
+          "slot_pin": 5
+        },
+        "L/R": {
+          "net": "GND",
+          "slot_pin": 6
+        }
+      }
+    },
+    {
+      "ref": "AMP1",
+      "module": "AMP_MAX98357A_I2S",
+      "role": "amp",
+      "name": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+      "feature": null,
+      "slot": "A1",
+      "source": "implied",
+      "harness": null,
+      "pins": {
+        "LRC": {
+          "net": "I2S_SPK_LRC",
+          "gpio": 16,
+          "slot_pin": 1
+        },
+        "BCLK": {
+          "net": "I2S_SPK_BCLK",
+          "gpio": 15,
+          "slot_pin": 2
+        },
+        "DIN": {
+          "net": "I2S_SPK_DIN",
+          "gpio": 7,
+          "slot_pin": 3
+        },
+        "SD": {
+          "net": "AMP_SD",
+          "gpio": 39,
+          "slot_pin": 5
+        },
+        "GND": {
+          "net": "GND",
+          "slot_pin": 6
+        },
+        "VIN": {
+          "net": "+5V",
+          "slot_pin": 7
+        },
+        "VO+": {
+          "net": "SPK_P",
+          "slot_pin": "VO+"
+        },
+        "VO-": {
+          "net": "SPK_N",
+          "slot_pin": "VO-"
+        }
+      }
+    },
+    {
+      "ref": "SD1",
+      "module": "MICROSD_SPI_MODULE_5V",
+      "role": "storage",
+      "name": "microSD SPI module with LDO and level shifter (Catalex-type)",
+      "feature": null,
+      "slot": "S1",
+      "source": "implied",
+      "harness": null,
+      "pins": {
+        "GND": {
+          "net": "GND",
+          "slot_pin": 1
+        },
+        "VCC": {
+          "net": "+5V",
+          "slot_pin": 2
+        },
+        "MISO": {
+          "net": "SPI_MISO",
+          "gpio": 13,
+          "slot_pin": 3
+        },
+        "MOSI": {
+          "net": "SPI_MOSI",
+          "gpio": 11,
+          "slot_pin": 4
+        },
+        "SCK": {
+          "net": "SPI_SCK",
+          "gpio": 12,
+          "slot_pin": 5
+        },
+        "CS": {
+          "net": "SD_CS",
+          "gpio": 10,
+          "slot_pin": 6
+        }
+      }
+    },
+    {
+      "ref": "CBL1",
+      "module": "CABLE_USBC_C2C_1M",
+      "role": "usb_cable",
+      "name": "USB-C to USB-C cable, 1 m, USB 2.0",
+      "feature": null,
+      "slot": null,
+      "source": "implied"
+    }
+  ],
+  "slots_used": [
+    "J_PWR",
+    "U1",
+    "J_SPK",
+    "J_IO1",
+    "J_I2C1",
+    "J_LED",
+    "J_MIC",
+    "A1",
+    "S1"
+  ],
+  "gpio": {
+    "I2C_SDA": 8,
+    "I2C_SCL": 9,
+    "SPI_SCK": 12,
+    "SPI_MOSI": 11,
+    "SPI_MISO": 13,
+    "SD_CS": 10,
+    "I2S_SPK_BCLK": 15,
+    "I2S_SPK_LRC": 16,
+    "I2S_SPK_DIN": 7,
+    "AMP_SD": 39,
+    "I2S_MIC_SCK": 41,
+    "I2S_MIC_WS": 42,
+    "I2S_MIC_SD": 40,
+    "IO1_SIG": 4,
+    "LED_DIN": 2,
+    "USB_DP": 20,
+    "USB_DN": 19,
+    "UART0_TX": 43,
+    "UART0_RX": 44,
+    "BOOT_IO0": 0
+  },
+  "gpio_paths": {
+    "LED_DIN_5V": {
+      "gpio": 2,
+      "via": "U3 74AHCT1G125 (3.3 V -> 5 V) + R3 330 ohm",
+      "signal": "LED_DIN"
+    }
+  },
+  "buses": [
+    {
+      "type": "i2c",
+      "sda": 8,
+      "scl": 9,
+      "freq_hz": 400000,
+      "pullups": "4.7 k on the backplane (R4, R5)",
+      "devices": [
+        {
+          "ref": "DISP1",
+          "addr": "0x3C",
+          "module": "OLED_130_SH1106_I2C"
+        }
+      ],
+      "clashes": []
+    },
+    {
+      "type": "i2s_tx",
+      "port": 0,
+      "bclk": 15,
+      "ws": 16,
+      "dout": 7,
+      "enable": 39,
+      "devices": [
+        {
+          "ref": "AMP1"
+        }
+      ]
+    },
+    {
+      "type": "i2s_rx",
+      "port": 1,
+      "bclk": 41,
+      "ws": 42,
+      "din": 40,
+      "channel": "left",
+      "devices": [
+        {
+          "ref": "MIC1"
+        }
+      ]
+    },
+    {
+      "type": "spi",
+      "host": "FSPI",
+      "sck": 12,
+      "mosi": 11,
+      "miso": 13,
+      "devices": [
+        {
+          "ref": "SD1",
+          "cs": 10
+        }
+      ]
+    },
+    {
+      "type": "ws2812",
+      "gpio": 2,
+      "level_shift": "74AHCT1G125 to 5 V",
+      "devices": [
+        {
+          "ref": "LED1"
+        }
+      ]
+    }
+  ],
+  "nets": [
+    {
+      "name": "+3V3",
+      "nodes": [
+        "BP1.J_I2C1.2",
+        "BP1.J_IO1.2",
+        "BP1.J_MIC.2",
+        "BP1.J_U1A.1",
+        "BP1.J_U1A.2",
+        "BP1.R4.2",
+        "BP1.R5.2",
+        "BP1.TP2.1",
+        "DISP1.VCC",
+        "MIC1.VDD",
+        "U1.J1-1",
+        "U1.J1-2"
+      ]
+    },
+    {
+      "name": "+5V",
+      "nodes": [
+        "AMP1.VIN",
+        "BP1.A1.7",
+        "BP1.C1.1",
+        "BP1.C2.1",
+        "BP1.C3.1",
+        "BP1.C4.1",
+        "BP1.C5.1",
+        "BP1.D1.1",
+        "BP1.F1.2",
+        "BP1.J_LED.2",
+        "BP1.J_U1A.21",
+        "BP1.S1.2",
+        "BP1.TP1.1",
+        "BP1.U2.5",
+        "BP1.U3.5",
+        "LED1.5V",
+        "SD1.VCC",
+        "U1.J1-21"
+      ]
+    },
+    {
+      "name": "AMP_SD",
+      "nodes": [
+        "AMP1.SD",
+        "BP1.A1.5",
+        "BP1.J_U1B.9",
+        "BP1.R7.1",
+        "U1.J3-9"
+      ]
+    },
+    {
+      "name": "BOOT_IO0",
+      "nodes": [
+        "BP1.J_U1B.14",
+        "BP1.TP7.1",
+        "U1.J3-14"
+      ]
+    },
+    {
+      "name": "CC1",
+      "nodes": [
+        "BP1.J_PWR.A5",
+        "BP1.R1.1"
+      ]
+    },
+    {
+      "name": "CC2",
+      "nodes": [
+        "BP1.J_PWR.B5",
+        "BP1.R2.1"
+      ]
+    },
+    {
+      "name": "EN",
+      "nodes": [
+        "BP1.J_U1A.3",
+        "BP1.TP4.1",
+        "U1.J1-3"
+      ]
+    },
+    {
+      "name": "GND",
+      "nodes": [
+        "AMP1.GND",
+        "BP1.A1.6",
+        "BP1.C1.2",
+        "BP1.C2.2",
+        "BP1.C3.2",
+        "BP1.C4.2",
+        "BP1.C5.2",
+        "BP1.D1.2",
+        "BP1.J_I2C1.1",
+        "BP1.J_IO1.1",
+        "BP1.J_LED.1",
+        "BP1.J_MIC.1",
+        "BP1.J_MIC.6",
+        "BP1.J_PWR.A1",
+        "BP1.J_PWR.A12",
+        "BP1.J_PWR.B1",
+        "BP1.J_PWR.B12",
+        "BP1.J_PWR.S1",
+        "BP1.J_U1A.22",
+        "BP1.J_U1B.1",
+        "BP1.J_U1B.21",
+        "BP1.J_U1B.22",
+        "BP1.R1.2",
+        "BP1.R2.2",
+        "BP1.R7.2",
+        "BP1.S1.1",
+        "BP1.TP3.1",
+        "BP1.U2.2",
+        "BP1.U3.1",
+        "BP1.U3.3",
+        "BTN1.COM",
+        "DISP1.GND",
+        "LED1.GND",
+        "MIC1.GND",
+        "MIC1.L/R",
+        "SD1.GND",
+        "U1.J1-22",
+        "U1.J3-1",
+        "U1.J3-21",
+        "U1.J3-22"
+      ]
+    },
+    {
+      "name": "I2C_SCL",
+      "nodes": [
+        "BP1.J_I2C1.4",
+        "BP1.J_U1A.15",
+        "BP1.R5.1",
+        "DISP1.SCL",
+        "U1.J1-15"
+      ]
+    },
+    {
+      "name": "I2C_SDA",
+      "nodes": [
+        "BP1.J_I2C1.3",
+        "BP1.J_U1A.12",
+        "BP1.R4.1",
+        "DISP1.SDA",
+        "U1.J1-12"
+      ]
+    },
+    {
+      "name": "I2S_MIC_SCK",
+      "nodes": [
+        "BP1.J_MIC.3",
+        "BP1.J_U1B.7",
+        "MIC1.SCK",
+        "U1.J3-7"
+      ]
+    },
+    {
+      "name": "I2S_MIC_SD",
+      "nodes": [
+        "BP1.J_MIC.5",
+        "BP1.J_U1B.8",
+        "MIC1.SD",
+        "U1.J3-8"
+      ]
+    },
+    {
+      "name": "I2S_MIC_WS",
+      "nodes": [
+        "BP1.J_MIC.4",
+        "BP1.J_U1B.6",
+        "MIC1.WS",
+        "U1.J3-6"
+      ]
+    },
+    {
+      "name": "I2S_SPK_BCLK",
+      "nodes": [
+        "AMP1.BCLK",
+        "BP1.A1.2",
+        "BP1.J_U1A.8",
+        "U1.J1-8"
+      ]
+    },
+    {
+      "name": "I2S_SPK_DIN",
+      "nodes": [
+        "AMP1.DIN",
+        "BP1.A1.3",
+        "BP1.J_U1A.7",
+        "U1.J1-7"
+      ]
+    },
+    {
+      "name": "I2S_SPK_LRC",
+      "nodes": [
+        "AMP1.LRC",
+        "BP1.A1.1",
+        "BP1.J_U1A.9",
+        "U1.J1-9"
+      ]
+    },
+    {
+      "name": "IO1_SIG",
+      "nodes": [
+        "BP1.J_IO1.3",
+        "BP1.J_U1A.4",
+        "BTN1.NO",
+        "U1.J1-4"
+      ]
+    },
+    {
+      "name": "LED_DIN_3V3",
+      "nodes": [
+        "BP1.J_U1B.5",
+        "BP1.U3.2",
+        "U1.J3-5"
+      ]
+    },
+    {
+      "name": "LED_DIN_5V",
+      "nodes": [
+        "BP1.J_LED.3",
+        "BP1.R3.2",
+        "LED1.DIN"
+      ]
+    },
+    {
+      "name": "LED_DIN_BUF",
+      "nodes": [
+        "BP1.R3.1",
+        "BP1.U3.4"
+      ]
+    },
+    {
+      "name": "SD_CS",
+      "nodes": [
+        "BP1.J_U1A.16",
+        "BP1.S1.6",
+        "SD1.CS",
+        "U1.J1-16"
+      ]
+    },
+    {
+      "name": "SPI_MISO",
+      "nodes": [
+        "BP1.J_U1A.19",
+        "BP1.S1.3",
+        "SD1.MISO",
+        "U1.J1-19"
+      ]
+    },
+    {
+      "name": "SPI_MOSI",
+      "nodes": [
+        "BP1.J_U1A.17",
+        "BP1.S1.4",
+        "SD1.MOSI",
+        "U1.J1-17"
+      ]
+    },
+    {
+      "name": "SPI_SCK",
+      "nodes": [
+        "BP1.J_U1A.18",
+        "BP1.S1.5",
+        "SD1.SCK",
+        "U1.J1-18"
+      ]
+    },
+    {
+      "name": "SPK_N",
+      "nodes": [
+        "AMP1.VO-",
+        "BP1.A1.VO-",
+        "BP1.J_SPK.2",
+        "SPK1.-"
+      ]
+    },
+    {
+      "name": "SPK_P",
+      "nodes": [
+        "AMP1.VO+",
+        "BP1.A1.VO+",
+        "BP1.J_SPK.1",
+        "SPK1.+"
+      ]
+    },
+    {
+      "name": "UART0_RX",
+      "nodes": [
+        "BP1.J_U1B.3",
+        "BP1.TP6.1",
+        "U1.J3-3"
+      ]
+    },
+    {
+      "name": "UART0_TX",
+      "nodes": [
+        "BP1.J_U1B.2",
+        "BP1.TP5.1",
+        "U1.J3-2"
+      ]
+    },
+    {
+      "name": "USB_DN",
+      "nodes": [
+        "BP1.J_PWR.A7",
+        "BP1.J_PWR.B7",
+        "BP1.J_U1B.20",
+        "BP1.U2.3",
+        "BP1.U2.4",
+        "U1.J3-20"
+      ]
+    },
+    {
+      "name": "USB_DP",
+      "nodes": [
+        "BP1.J_PWR.A6",
+        "BP1.J_PWR.B6",
+        "BP1.J_U1B.19",
+        "BP1.U2.1",
+        "BP1.U2.6",
+        "U1.J3-19"
+      ]
+    },
+    {
+      "name": "VBUS",
+      "nodes": [
+        "BP1.F1.1",
+        "BP1.J_PWR.A4",
+        "BP1.J_PWR.A9",
+        "BP1.J_PWR.B4",
+        "BP1.J_PWR.B9"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "SPK1.+",
+      "to": "BP1.J_SPK.1",
+      "via": "JST-PH 2.0 2p 200 mm",
+      "kind": "cable",
+      "color": "white",
+      "net": "SPK_P"
+    },
+    {
+      "from": "SPK1.-",
+      "to": "BP1.J_SPK.2",
+      "via": "JST-PH 2.0 2p 200 mm",
+      "kind": "cable",
+      "color": "grey",
+      "net": "SPK_N"
+    },
+    {
+      "from": "BTN1.COM",
+      "to": "BP1.J_IO1.1",
+      "via": "JST-PH 2.0 3p 300 mm",
+      "kind": "cable",
+      "color": "black",
+      "net": "GND"
+    },
+    {
+      "from": "BTN1.NO",
+      "to": "BP1.J_IO1.3",
+      "via": "JST-PH 2.0 3p 300 mm",
+      "kind": "cable",
+      "color": "white",
+      "net": "IO1_SIG",
+      "gpio": 4
+    },
+    {
+      "from": "DISP1.GND",
+      "to": "BP1.J_I2C1.1",
+      "via": "JST-PH 2.0 4p 300 mm",
+      "kind": "cable",
+      "color": "black",
+      "net": "GND"
+    },
+    {
+      "from": "DISP1.VCC",
+      "to": "BP1.J_I2C1.2",
+      "via": "JST-PH 2.0 4p 300 mm",
+      "kind": "cable",
+      "color": "orange",
+      "net": "+3V3"
+    },
+    {
+      "from": "DISP1.SDA",
+      "to": "BP1.J_I2C1.3",
+      "via": "JST-PH 2.0 4p 300 mm",
+      "kind": "cable",
+      "color": "blue",
+      "net": "I2C_SDA",
+      "gpio": 8
+    },
+    {
+      "from": "DISP1.SCL",
+      "to": "BP1.J_I2C1.4",
+      "via": "JST-PH 2.0 4p 300 mm",
+      "kind": "cable",
+      "color": "yellow",
+      "net": "I2C_SCL",
+      "gpio": 9
+    },
+    {
+      "from": "LED1.GND",
+      "to": "BP1.J_LED.1",
+      "via": "JST-PH 2.0 3p 200 mm",
+      "kind": "cable",
+      "color": "black",
+      "net": "GND"
+    },
+    {
+      "from": "LED1.5V",
+      "to": "BP1.J_LED.2",
+      "via": "JST-PH 2.0 3p 200 mm",
+      "kind": "cable",
+      "color": "red",
+      "net": "+5V"
+    },
+    {
+      "from": "LED1.DIN",
+      "to": "BP1.J_LED.3",
+      "via": "JST-PH 2.0 3p 200 mm",
+      "kind": "cable",
+      "color": "green",
+      "net": "LED_DIN_5V",
+      "gpio": 2,
+      "through": "U3 74AHCT1G125 (3.3 V -> 5 V) + R3 330 ohm",
+      "note": "GPIO02 via U3 74AHCT1G125 (3.3 V -> 5 V) + R3 330 ohm"
+    },
+    {
+      "from": "MIC1.GND",
+      "to": "BP1.J_MIC.1",
+      "via": "JST-PH 2.0 6p 300 mm",
+      "kind": "cable",
+      "color": "black",
+      "net": "GND"
+    },
+    {
+      "from": "MIC1.VDD",
+      "to": "BP1.J_MIC.2",
+      "via": "JST-PH 2.0 6p 300 mm",
+      "kind": "cable",
+      "color": "orange",
+      "net": "+3V3"
+    },
+    {
+      "from": "MIC1.SCK",
+      "to": "BP1.J_MIC.3",
+      "via": "JST-PH 2.0 6p 300 mm",
+      "kind": "cable",
+      "color": "yellow",
+      "net": "I2S_MIC_SCK",
+      "gpio": 41
+    },
+    {
+      "from": "MIC1.WS",
+      "to": "BP1.J_MIC.4",
+      "via": "JST-PH 2.0 6p 300 mm",
+      "kind": "cable",
+      "color": "green",
+      "net": "I2S_MIC_WS",
+      "gpio": 42
+    },
+    {
+      "from": "MIC1.SD",
+      "to": "BP1.J_MIC.5",
+      "via": "JST-PH 2.0 6p 300 mm",
+      "kind": "cable",
+      "color": "blue",
+      "net": "I2S_MIC_SD",
+      "gpio": 40
+    },
+    {
+      "from": "MIC1.L/R",
+      "to": "BP1.J_MIC.6",
+      "via": "JST-PH 2.0 6p 300 mm",
+      "kind": "cable",
+      "color": "black",
+      "net": "GND"
+    },
+    {
+      "from": "AMP1.LRC",
+      "to": "BP1.A1.1",
+      "via": "socket A1",
+      "kind": "socket",
+      "color": null,
+      "net": "I2S_SPK_LRC"
+    },
+    {
+      "from": "AMP1.BCLK",
+      "to": "BP1.A1.2",
+      "via": "socket A1",
+      "kind": "socket",
+      "color": null,
+      "net": "I2S_SPK_BCLK"
+    },
+    {
+      "from": "AMP1.DIN",
+      "to": "BP1.A1.3",
+      "via": "socket A1",
+      "kind": "socket",
+      "color": null,
+      "net": "I2S_SPK_DIN"
+    },
+    {
+      "from": "AMP1.SD",
+      "to": "BP1.A1.5",
+      "via": "socket A1",
+      "kind": "socket",
+      "color": null,
+      "net": "AMP_SD"
+    },
+    {
+      "from": "AMP1.GND",
+      "to": "BP1.A1.6",
+      "via": "socket A1",
+      "kind": "socket",
+      "color": null,
+      "net": "GND"
+    },
+    {
+      "from": "AMP1.VIN",
+      "to": "BP1.A1.7",
+      "via": "socket A1",
+      "kind": "socket",
+      "color": null,
+      "net": "+5V"
+    },
+    {
+      "from": "AMP1.VO+",
+      "to": "BP1.A1.VO+",
+      "via": "socket A1",
+      "kind": "socket",
+      "color": null,
+      "net": "SPK_P"
+    },
+    {
+      "from": "AMP1.VO-",
+      "to": "BP1.A1.VO-",
+      "via": "socket A1",
+      "kind": "socket",
+      "color": null,
+      "net": "SPK_N"
+    },
+    {
+      "from": "SD1.GND",
+      "to": "BP1.S1.1",
+      "via": "socket S1",
+      "kind": "socket",
+      "color": null,
+      "net": "GND"
+    },
+    {
+      "from": "SD1.VCC",
+      "to": "BP1.S1.2",
+      "via": "socket S1",
+      "kind": "socket",
+      "color": null,
+      "net": "+5V"
+    },
+    {
+      "from": "SD1.MISO",
+      "to": "BP1.S1.3",
+      "via": "socket S1",
+      "kind": "socket",
+      "color": null,
+      "net": "SPI_MISO"
+    },
+    {
+      "from": "SD1.MOSI",
+      "to": "BP1.S1.4",
+      "via": "socket S1",
+      "kind": "socket",
+      "color": null,
+      "net": "SPI_MOSI"
+    },
+    {
+      "from": "SD1.SCK",
+      "to": "BP1.S1.5",
+      "via": "socket S1",
+      "kind": "socket",
+      "color": null,
+      "net": "SPI_SCK"
+    },
+    {
+      "from": "SD1.CS",
+      "to": "BP1.S1.6",
+      "via": "socket S1",
+      "kind": "socket",
+      "color": null,
+      "net": "SD_CS"
+    }
+  ],
+  "support_parts": [
+    {
+      "ref": "F1",
+      "group": "power",
+      "value": "PTC fuse 1.5 A hold, >= 6 V (1812)",
+      "footprint": "Fuse:Fuse_1812_4532Metric"
+    },
+    {
+      "ref": "D1",
+      "group": "power",
+      "value": "TVS 5.0 V standoff, unidirectional (SMAJ5.0A class); pad 1 = cathode",
+      "footprint": "Diode_SMD:D_SMA"
+    },
+    {
+      "ref": "C1",
+      "group": "power",
+      "value": "10 uF 25 V X5R",
+      "footprint": "Capacitor_SMD:C_0805_2012Metric"
+    },
+    {
+      "ref": "C2",
+      "group": "power",
+      "value": "100 nF 50 V X7R",
+      "footprint": "Capacitor_SMD:C_0603_1608Metric"
+    },
+    {
+      "ref": "R1",
+      "group": "power",
+      "value": "5.1 k 1% (CC1 to GND)",
+      "footprint": "Resistor_SMD:R_0603_1608Metric"
+    },
+    {
+      "ref": "R2",
+      "group": "power",
+      "value": "5.1 k 1% (CC2 to GND)",
+      "footprint": "Resistor_SMD:R_0603_1608Metric"
+    },
+    {
+      "ref": "U2",
+      "group": "usb",
+      "value": "USBLC6-2SC6 USB ESD array",
+      "footprint": "Package_TO_SOT_SMD:SOT-23-6"
+    },
+    {
+      "ref": "U3",
+      "group": "led",
+      "value": "74AHCT1G125 buffer at +5V (LED data level shift; OE# tied low)",
+      "footprint": "Package_TO_SOT_SMD:SOT-23-5"
+    },
+    {
+      "ref": "R3",
+      "group": "led",
+      "value": "330 ohm (LED DIN series)",
+      "footprint": "Resistor_SMD:R_0603_1608Metric"
+    },
+    {
+      "ref": "C5",
+      "group": "led",
+      "value": "100 nF (U3 decoupling)",
+      "footprint": "Capacitor_SMD:C_0603_1608Metric"
+    },
+    {
+      "ref": "C4",
+      "group": "led",
+      "value": "22 uF 10 V X5R (J_LED 5 V bulk)",
+      "footprint": "Capacitor_SMD:C_1206_3216Metric"
+    },
+    {
+      "ref": "R4",
+      "group": "i2c",
+      "value": "4.7 k (I2C SDA pull-up to +3V3)",
+      "footprint": "Resistor_SMD:R_0603_1608Metric"
+    },
+    {
+      "ref": "R5",
+      "group": "i2c",
+      "value": "4.7 k (I2C SCL pull-up to +3V3)",
+      "footprint": "Resistor_SMD:R_0603_1608Metric"
+    },
+    {
+      "ref": "R7",
+      "group": "audio",
+      "value": "100 k (AMP_SD pull-down: amp stays off until firmware enables it)",
+      "footprint": "Resistor_SMD:R_0603_1608Metric"
+    },
+    {
+      "ref": "C3",
+      "group": "audio",
+      "value": "22 uF 10 V X5R (A1 VIN bulk)",
+      "footprint": "Capacitor_SMD:C_1206_3216Metric"
+    },
+    {
+      "ref": "TP1",
+      "group": "test",
+      "value": "+5V",
+      "footprint": "TestPoint:TestPoint_Pad_D1.5mm"
+    },
+    {
+      "ref": "TP2",
+      "group": "test",
+      "value": "+3V3",
+      "footprint": "TestPoint:TestPoint_Pad_D1.5mm"
+    },
+    {
+      "ref": "TP3",
+      "group": "test",
+      "value": "GND",
+      "footprint": "TestPoint:TestPoint_Pad_D1.5mm"
+    },
+    {
+      "ref": "TP4",
+      "group": "test",
+      "value": "EN",
+      "footprint": "TestPoint:TestPoint_Pad_D1.5mm"
+    },
+    {
+      "ref": "TP5",
+      "group": "test",
+      "value": "UART0_TX",
+      "footprint": "TestPoint:TestPoint_Pad_D1.5mm"
+    },
+    {
+      "ref": "TP6",
+      "group": "test",
+      "value": "UART0_RX",
+      "footprint": "TestPoint:TestPoint_Pad_D1.5mm"
+    },
+    {
+      "ref": "TP7",
+      "group": "test",
+      "value": "BOOT_IO0",
+      "footprint": "TestPoint:TestPoint_Pad_D1.5mm"
+    }
+  ],
+  "power": {
+    "rails": [
+      {
+        "name": "+5V",
+        "source": "USB-C VBUS via F1 (PTC 1.5 A hold)",
+        "limit_ma": 1350
+      },
+      {
+        "name": "+3V3",
+        "source": "DevKitC on-board LDO SGM2212-3.3 (800 mA rating)",
+        "limit_ma": 600
+      }
+    ],
+    "caps": {
+      "volume_max": 60.0,
+      "led_max_percent": 45.0,
+      "source": "behaviour.settings (validated by gstudio.firmware.settings)"
+    },
+    "budget": [
+      {
+        "ref": "U1",
+        "module": "CORE_ESP32S3_DEVKITC1_N8R8",
+        "rail": "+3V3",
+        "ma_typ": 95.0,
+        "ma_max": 355.0,
+        "ma_max_capped": 355.0,
+        "basis": "estimate"
+      },
+      {
+        "ref": "BTN1",
+        "module": "BUTTON_ARCADE_30MM_SNAPIN",
+        "rail": "+3V3",
+        "ma_typ": 0.3,
+        "ma_max": 1.0,
+        "ma_max_capped": 1.0,
+        "basis": "datasheet"
+      },
+      {
+        "ref": "DISP1",
+        "module": "OLED_130_SH1106_I2C",
+        "rail": "+3V3",
+        "ma_typ": 20.0,
+        "ma_max": 50.0,
+        "ma_max_capped": 50.0,
+        "basis": "estimate"
+      },
+      {
+        "ref": "LED1",
+        "module": "LED_WS2812B_1PX_MODULE",
+        "rail": "+5V",
+        "ma_typ": 20.0,
+        "ma_max": 60.0,
+        "ma_max_capped": 27.0,
+        "basis": "estimate",
+        "cap": "led_max_percent 45 (estimate: LED current scales with brightness)"
+      },
+      {
+        "ref": "MIC1",
+        "module": "MIC_INMP441_I2S",
+        "rail": "+3V3",
+        "ma_typ": 1.4,
+        "ma_max": 1.4,
+        "ma_max_capped": 1.4,
+        "basis": "datasheet"
+      },
+      {
+        "ref": "AMP1",
+        "module": "AMP_MAX98357A_I2S",
+        "rail": "+5V",
+        "ma_typ": 50.0,
+        "ma_max": 800.0,
+        "ma_max_capped": 288.0,
+        "basis": "estimate",
+        "cap": "volume_max 60 (estimate: amp max current x (volume/100)^2)"
+      },
+      {
+        "ref": "SD1",
+        "module": "MICROSD_SPI_MODULE_5V",
+        "rail": "+5V",
+        "ma_typ": 30.0,
+        "ma_max": 100.0,
+        "ma_max_capped": 100.0,
+        "basis": "estimate"
+      }
+    ],
+    "total_ma_typ": 216.7,
+    "total_ma_max": 1367.4,
+    "total_ma_max_capped": 822.4,
+    "rail_3v3_ma_typ": 116.7,
+    "rail_3v3_ma_max": 407.4,
+    "limit_ma": 1350,
+    "ok": true,
+    "ok_uncapped": false,
+    "ok_5v": true,
+    "ok_3v3": true,
+    "firmware_caps_required": true,
+    "notes": "Uncapped worst case 1367 mA exceeds the 1350 mA budget (90% of the 1.5 A fuse hold); with the firmware caps the peak is 822 mA (within budget). Capped figures are estimates (LED current x brightness, amp current x volume squared); peaks are summed worst-case, which real use rarely reaches. Figures marked 'estimate' are not datasheet values."
+  },
+  "warnings": []
+}
