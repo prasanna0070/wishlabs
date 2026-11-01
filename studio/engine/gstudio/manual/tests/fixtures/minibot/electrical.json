@@ -1,0 +1,246 @@
+{
+ "schema": "gadget-electrical/1",
+ "backplane": "backplane-v1",
+ "note": "TEST FIXTURE ONLY: invented pins and GPIO numbers.",
+ "core": {
+  "ref": "U1",
+  "module": "esp32s3-devkitc1-n16r8"
+ },
+ "instances": [
+  {
+   "ref": "DISP1",
+   "module": "oled-096-i2c",
+   "feature": "eyes",
+   "slot": "J_I2C1",
+   "harness": {
+    "cable": "JST-PH 4p 150 mm",
+    "length_mm": 150,
+    "wires": [
+     {
+      "module_pin": "GND",
+      "slot_pin": 1,
+      "net": "GND",
+      "color": "black"
+     },
+     {
+      "module_pin": "VCC",
+      "slot_pin": 2,
+      "net": "+3V3",
+      "color": "red"
+     },
+     {
+      "module_pin": "SDA",
+      "slot_pin": 3,
+      "net": "I2C_SDA",
+      "color": "blue"
+     },
+     {
+      "module_pin": "SCL",
+      "slot_pin": 4,
+      "net": "I2C_SCL",
+      "color": "yellow"
+     }
+    ]
+   }
+  },
+  {
+   "ref": "MIC1",
+   "module": "inmp441",
+   "feature": "mic",
+   "slot": "J_MIC",
+   "harness": {
+    "cable": "JST-PH 6p 150 mm",
+    "length_mm": 150,
+    "wires": [
+     {
+      "module_pin": "GND",
+      "slot_pin": 1,
+      "net": "GND",
+      "color": "black"
+     },
+     {
+      "module_pin": "VDD",
+      "slot_pin": 2,
+      "net": "+3V3",
+      "color": "red"
+     },
+     {
+      "module_pin": "SCK",
+      "slot_pin": 3,
+      "net": "I2S_MIC_SCK",
+      "color": "green"
+     },
+     {
+      "module_pin": "WS",
+      "slot_pin": 4,
+      "net": "I2S_MIC_WS",
+      "color": "white"
+     },
+     {
+      "module_pin": "SD",
+      "slot_pin": 5,
+      "net": "I2S_MIC_SD",
+      "color": "blue"
+     },
+     {
+      "module_pin": "L/R",
+      "slot_pin": 6,
+      "net": "GND",
+      "color": "grey"
+     }
+    ]
+   }
+  },
+  {
+   "ref": "BTN1",
+   "module": "btn-16mm",
+   "feature": "story_button",
+   "slot": "J_IO1",
+   "harness": {
+    "cable": "JST-PH 3p 100 mm",
+    "length_mm": 100,
+    "wires": [
+     {
+      "module_pin": "COM",
+      "slot_pin": 1,
+      "net": "GND",
+      "color": "black"
+     },
+     {
+      "module_pin": "NC",
+      "slot_pin": 2,
+      "net": "+3V3",
+      "color": "red"
+     },
+     {
+      "module_pin": "NO",
+      "slot_pin": 3,
+      "net": "IO1_SIG",
+      "color": "yellow"
+     }
+    ]
+   }
+  },
+  {
+   "ref": "LED1",
+   "module": "ws2812b-mini",
+   "feature": "night_light",
+   "slot": "J_LED",
+   "harness": {
+    "cable": "JST-PH 3p 150 mm",
+    "length_mm": 150,
+    "wires": [
+     {
+      "module_pin": "GND",
+      "slot_pin": 1,
+      "net": "GND",
+      "color": "black"
+     },
+     {
+      "module_pin": "5V",
+      "slot_pin": 2,
+      "net": "+5V",
+      "color": "red"
+     },
+     {
+      "module_pin": "DIN",
+      "slot_pin": 3,
+      "net": "LED_DIN_5V",
+      "color": "green"
+     }
+    ]
+   }
+  },
+  {
+   "ref": "SPK1",
+   "module": "speaker-40mm",
+   "feature": "speaker",
+   "slot": "J_SPK",
+   "harness": {
+    "cable": "JST-PH 2p 100 mm",
+    "length_mm": 100,
+    "wires": [
+     {
+      "module_pin": "+",
+      "slot_pin": 1,
+      "net": "SPK_P",
+      "color": "red"
+     },
+     {
+      "module_pin": "-",
+      "slot_pin": 2,
+      "net": "SPK_N",
+      "color": "black"
+     }
+    ]
+   }
+  },
+  {
+   "ref": "AMP1",
+   "module": "max98357a",
+   "slot": "A1"
+  },
+  {
+   "ref": "SD1",
+   "module": "microsd-spi",
+   "slot": "S1"
+  }
+ ],
+ "slots_used": [
+  "J_PWR",
+  "U1",
+  "A1",
+  "S1",
+  "J_I2C1",
+  "J_MIC",
+  "J_IO1",
+  "J_LED",
+  "J_SPK"
+ ],
+ "gpio": {
+  "I2C_SDA": 8,
+  "I2C_SCL": 9,
+  "I2S_MIC_SCK": 41,
+  "I2S_MIC_WS": 42,
+  "I2S_MIC_SD": 40,
+  "IO1_SIG": 4,
+  "LED_DIN_5V": 48
+ },
+ "buses": [
+  {
+   "type": "i2c",
+   "sda": 8,
+   "scl": 9,
+   "devices": [
+    {
+     "ref": "DISP1",
+     "addr": "0x3C"
+    }
+   ]
+  },
+  {
+   "type": "spi",
+   "devices": [
+    {
+     "ref": "SD1"
+    }
+   ]
+  }
+ ],
+ "nets": [],
+ "connections": [],
+ "power": {
+  "rails": [
+   {
+    "name": "+5V",
+    "source": "USB-C via F1"
+   },
+   {
+    "name": "+3V3",
+    "source": "devkit regulator"
+   }
+  ],
+  "budget": [],
+  "ok": true
+ }
+}

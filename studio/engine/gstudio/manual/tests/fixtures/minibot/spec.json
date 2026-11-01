@@ -1,0 +1,320 @@
+{
+ "schema": "gadget-spec/1",
+ "name": "Mini Bot",
+ "slug": "mini-bot",
+ "tagline": "A tiny test robot that tells stories",
+ "audience": {
+  "child_directed": true,
+  "age_years": 5
+ },
+ "region": "IN",
+ "colors": {
+  "body": "#8CC9C0",
+  "accent": "#F4F1EA",
+  "detail": "#2B3A42",
+  "body_name": "pale teal"
+ },
+ "body": {
+  "family": "silhouette",
+  "outline": [
+   [
+    -60,
+    0
+   ],
+   [
+    60,
+    0
+   ],
+   [
+    60,
+    140
+   ],
+   [
+    -60,
+    140
+   ]
+  ],
+  "depth": 90,
+  "edge_round": 5,
+  "wall": 2.4,
+  "split": "rear_cover",
+  "feet": 4
+ },
+ "decor": [],
+ "features": [
+  {
+   "id": "eyes",
+   "module": "oled-096-i2c",
+   "face": "front",
+   "at": [
+    0,
+    112
+   ],
+   "label": "Animated eyes"
+  },
+  {
+   "id": "story_button",
+   "module": "btn-16mm",
+   "face": "front",
+   "at": [
+    0,
+    80
+   ],
+   "label": "Story button"
+  },
+  {
+   "id": "night_light",
+   "module": "ws2812b-mini",
+   "face": "front",
+   "at": [
+    30,
+    124
+   ],
+   "label": "Night light"
+  },
+  {
+   "id": "speaker",
+   "module": "speaker-40mm",
+   "face": "front",
+   "at": [
+    0,
+    40
+   ]
+  },
+  {
+   "id": "mic",
+   "module": "inmp441",
+   "face": "front",
+   "at": [
+    -30,
+    92
+   ],
+   "label": "Microphone hole"
+  }
+ ],
+ "electronics": {
+  "core": "esp32s3-devkitc1-n16r8",
+  "extra_modules": [],
+  "power": {
+   "input": "usb_c_5v",
+   "adapter_in_box": false
+  }
+ },
+ "behaviour": {
+  "template": "story_player",
+  "summary": "Tap for a story.",
+  "settings": {
+   "capture_mode": "child_voice_clip"
+  }
+ },
+ "safety": {
+  "flags": [
+   "CHILD_DIRECTED",
+   "LOCAL_VOICE_CAPTURE"
+  ],
+  "notes": ""
+ },
+ "derived": {
+  "engine_version": "0.1.0",
+  "size_mm": [
+   120,
+   90,
+   143
+  ],
+  "bbox": [
+   -60,
+   60,
+   -48,
+   46.5,
+   0,
+   143
+  ],
+  "instances": [
+   {
+    "ref": "U1",
+    "module": "esp32s3-devkitc1-n16r8",
+    "role": "core",
+    "name": "ESP32-S3-DevKitC-1 N16R8 (fixture)",
+    "source": "core",
+    "feature": null,
+    "slot": "U1",
+    "face": null,
+    "position": null,
+    "qty": 1,
+    "reason": ""
+   },
+   {
+    "ref": "BP1",
+    "module": "backplane-v1",
+    "role": "backplane",
+    "name": "Backplane v1 (fixture)",
+    "source": "implied",
+    "feature": null,
+    "slot": null,
+    "face": null,
+    "position": null,
+    "qty": 1,
+    "reason": ""
+   },
+   {
+    "ref": "DISP1",
+    "module": "oled-096-i2c",
+    "role": "display",
+    "name": "0.96 in I2C OLED (fixture)",
+    "source": "feature",
+    "feature": "eyes",
+    "slot": "J_I2C1",
+    "face": "front",
+    "position": null,
+    "qty": 1,
+    "reason": ""
+   },
+   {
+    "ref": "BTN1",
+    "module": "btn-16mm",
+    "role": "button",
+    "name": "16 mm push button (fixture)",
+    "source": "feature",
+    "feature": "story_button",
+    "slot": "J_IO1",
+    "face": "front",
+    "position": null,
+    "qty": 1,
+    "reason": ""
+   },
+   {
+    "ref": "LED1",
+    "module": "ws2812b-mini",
+    "role": "led",
+    "name": "WS2812B mini board (fixture)",
+    "source": "feature",
+    "feature": "night_light",
+    "slot": "J_LED",
+    "face": "front",
+    "position": null,
+    "qty": 1,
+    "reason": ""
+   },
+   {
+    "ref": "SPK1",
+    "module": "speaker-40mm",
+    "role": "speaker",
+    "name": "40 mm speaker (fixture)",
+    "source": "feature",
+    "feature": "speaker",
+    "slot": "J_SPK",
+    "face": "front",
+    "position": null,
+    "qty": 1,
+    "reason": ""
+   },
+   {
+    "ref": "MIC1",
+    "module": "inmp441",
+    "role": "mic",
+    "name": "INMP441 I2S microphone (fixture)",
+    "source": "feature",
+    "feature": "mic",
+    "slot": "J_MIC",
+    "face": "front",
+    "position": null,
+    "qty": 1,
+    "reason": ""
+   },
+   {
+    "ref": "AMP1",
+    "module": "max98357a",
+    "role": "amp",
+    "name": "MAX98357A amplifier (fixture)",
+    "source": "implied",
+    "feature": null,
+    "slot": "A1",
+    "face": null,
+    "position": null,
+    "qty": 1,
+    "reason": ""
+   },
+   {
+    "ref": "SD1",
+    "module": "microsd-spi",
+    "role": "sd",
+    "name": "microSD SPI module (fixture)",
+    "source": "implied",
+    "feature": null,
+    "slot": "S1",
+    "face": null,
+    "position": null,
+    "qty": 1,
+    "reason": ""
+   }
+  ],
+  "harness": [
+   {
+    "id": "H_DISP1",
+    "ref": "DISP1",
+    "slot": "J_I2C1",
+    "kind": "jst_ph",
+    "cable": "JST-PH 4p 150 mm",
+    "pins": 4,
+    "length_mm": 150,
+    "distance_mm": 118.0
+   }
+  ],
+  "hardware": [
+   {
+    "id": "inserts_m25",
+    "name": "M2.5 heat-set insert",
+    "qty": 4,
+    "use": "cartridge bosses"
+   },
+   {
+    "id": "cartridge_screws",
+    "name": "M2.5 x 6 mm screw",
+    "qty": 4,
+    "use": "cartridge"
+   },
+   {
+    "id": "cover_screws",
+    "name": "M2.5 x 10 mm screw",
+    "qty": 4,
+    "use": "rear cover"
+   },
+   {
+    "id": "feet",
+    "name": "Adhesive rubber foot 10 mm",
+    "qty": 4,
+    "use": "base"
+   },
+   {
+    "id": "cable_ties",
+    "name": "Cable tie 100 mm",
+    "qty": 2,
+    "use": "cable routing"
+   }
+  ],
+  "cartridge": {
+   "backplane": "backplane-v1",
+   "board_origin": [
+    -46,
+    -22,
+    11.8
+   ],
+   "rotation_deg": 0,
+   "floor_z": 5.4,
+   "board_top_z": 13.4,
+   "board_size": [
+    92,
+    62
+   ],
+   "keepout_box": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ]
+  },
+  "warnings": []
+ }
+}

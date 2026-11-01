@@ -1,0 +1,24 @@
+{
+  "id": "backplane-v1",
+  "note": "TEST FIXTURE ONLY. Positions, pins and GPIO numbers are invented for tests and are not the real backplane.",
+  "board": {"size_mm": [92, 62], "thickness_mm": 1.6,
+            "holes": [{"x": 3.5, "y": 3.5, "d": 2.7}, {"x": 88.5, "y": 3.5, "d": 2.7}, {"x": 3.5, "y": 58.5, "d": 2.7}, {"x": 88.5, "y": 58.5, "d": 2.7}]},
+  "slots": [
+    {"id": "U1", "kind": "socket", "footprint": "2 x 1x22 2.54 mm female sockets", "at": [63.5, 31], "accepts": ["core"], "pins": []},
+    {"id": "A1", "kind": "socket", "footprint": "1x7 2.54 mm socket", "at": [15, 43], "accepts": ["amp"], "pins": []},
+    {"id": "S1", "kind": "socket", "footprint": "1x6 2.54 mm socket", "at": [18, 17], "accepts": ["sd"], "pins": []},
+    {"id": "J_PWR", "kind": "usb_c", "footprint": "USB-C 16-pin receptacle", "at": [46, 59], "edge": "rear", "pins": []},
+    {"id": "J_I2C1", "kind": "jst_ph", "at": [10, 4], "edge": "front", "accepts": ["display", "sensor"],
+     "pins": [{"n": 1, "name": "GND", "net": "GND"}, {"n": 2, "name": "3V3", "net": "+3V3"}, {"n": 3, "name": "SDA", "net": "I2C_SDA", "gpio": 8}, {"n": 4, "name": "SCL", "net": "I2C_SCL", "gpio": 9}]},
+    {"id": "J_MIC", "kind": "jst_ph", "at": [26, 4], "edge": "front", "accepts": ["mic"],
+     "pins": [{"n": 1, "name": "GND", "net": "GND"}, {"n": 2, "name": "3V3", "net": "+3V3"}, {"n": 3, "name": "SCK", "net": "I2S_MIC_SCK", "gpio": 41}, {"n": 4, "name": "WS", "net": "I2S_MIC_WS", "gpio": 42}, {"n": 5, "name": "SD", "net": "I2S_MIC_SD", "gpio": 40}, {"n": 6, "name": "LR", "net": "GND"}]},
+    {"id": "J_IO1", "kind": "jst_ph", "at": [42, 4], "edge": "front", "accepts": ["button"],
+     "pins": [{"n": 1, "name": "GND", "net": "GND"}, {"n": 2, "name": "3V3", "net": "+3V3"}, {"n": 3, "name": "SIG", "net": "IO1_SIG", "gpio": 4}]},
+    {"id": "J_LED", "kind": "jst_ph", "at": [54, 4], "edge": "front", "accepts": ["led"],
+     "pins": [{"n": 1, "name": "GND", "net": "GND"}, {"n": 2, "name": "5V", "net": "+5V"}, {"n": 3, "name": "DIN", "net": "LED_DIN_5V", "gpio": 48}]},
+    {"id": "J_I2C2", "kind": "jst_ph", "at": [66, 4], "edge": "front", "accepts": ["sensor"],
+     "pins": [{"n": 1, "name": "GND"}, {"n": 2, "name": "3V3"}, {"n": 3, "name": "SDA"}, {"n": 4, "name": "SCL"}]},
+    {"id": "J_SPK", "kind": "jst_ph", "at": [82, 4], "edge": "front", "accepts": ["speaker"],
+     "pins": [{"n": 1, "name": "SPK+", "net": "SPK_P"}, {"n": 2, "name": "SPK-", "net": "SPK_N"}]}
+  ]
+}
