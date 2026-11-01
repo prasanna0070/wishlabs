@@ -21,6 +21,20 @@ const FINE = html.classList.contains("fine");
 if (RM || !LIBS) html.classList.remove("pin");
 const PIN = html.classList.contains("pin");
 
+/* The pinned 3D story (desktop) and the stacked cards (phones) are chosen once, before first paint.
+   When the viewport later crosses that breakpoint (rotation, window resize, DevTools device mode),
+   reload so the right layout is built instead of squeezing the desktop one. */
+if (!RM && window.matchMedia) {
+  const pinMq = window.matchMedia("(min-width: 1024px) and (min-height: 600px)");
+  let pinTimer = 0;
+  const onPinChange = () => {
+    clearTimeout(pinTimer);
+    pinTimer = setTimeout(() => { if (pinMq.matches !== PIN) location.reload(); }, 250);
+  };
+  if (pinMq.addEventListener) pinMq.addEventListener("change", onPinChange);
+  else if (pinMq.addListener) pinMq.addListener(onPinChange);
+}
+
 function hasWebGL() {
   try {
     const c = document.createElement("canvas");
