@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parent page</title>
+<style>
+:root{--ink:#1B1F24;--paper:#F6F5F1;--panel:#FFFFFF;--line:#E4E1D8;--primary:#3046D9;--on-primary:#FFFFFF;--ok:#1F8A5B;--warn:#B7791F;--bad:#B4352B;--muted:#5F6670}
+@media (prefers-color-scheme:dark){:root{--ink:#ECEAE4;--paper:#15181C;--panel:#1E2228;--line:#30353D;--primary:#7F8FF5;--on-primary:#0E1230;--ok:#4CC08A;--warn:#E0A84A;--bad:#F07A6E;--muted:#A3A9B2}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:640px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:8px 0 2px}h2{font-size:17px;margin:0 0 10px}
+.sub{color:var(--muted);font-size:14px;margin:0 0 14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:0 0 14px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grow{flex:1 1 160px;min-width:0}
+label{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px}
+input[type=text],input[type=password],input[type=number],select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);font:inherit}
+input[type=range]{width:100%}
+button{font:inherit;border:1px solid var(--line);background:var(--paper);color:var(--ink);padding:10px 14px;border-radius:10px;cursor:pointer;min-height:44px}
+button.primary{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+button.danger{color:var(--bad);border-color:var(--bad);background:transparent}
+button:disabled{opacity:.5;cursor:default}
+.chip{display:inline-block;font-size:13px;padding:3px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin:0 6px 6px 0}
+.chip.ok{color:var(--ok);border-color:var(--ok)}.chip.warn{color:var(--warn);border-color:var(--warn)}.chip.bad{color:var(--bad);border-color:var(--bad)}
+ul.list{list-style:none;margin:0;padding:0}
+ul.list li{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+ul.list li:first-child{border-top:0}
+.note{font-size:13px;color:var(--muted);margin:8px 0 0}
+.msg{padding:10px 12px;border-radius:10px;margin:0 0 14px;border:1px solid var(--line);background:var(--panel)}
+.msg.bad{border-color:var(--bad);color:var(--bad)}.msg.ok{border-color:var(--ok);color:var(--ok)}
+.hidden{display:none}
+.big{font-size:40px;font-weight:600;letter-spacing:.5px}
+svg.spark{width:100%;height:60px}
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title">Gadget</h1>
+  <p class="sub" id="subtitle">Parent page on your home network</p>
+  <div id="msg" class="msg hidden" role="status"></div>
+  <section id="setup" class="card hidden">
+    <h2>Set up Wi-Fi</h2>
+    <p class="note">Choose your home Wi-Fi and a parent PIN. The PIN protects this page. Nothing here goes to the internet.</p>
+    <label for="ssid">Home Wi-Fi network</label>
+    <div class="row"><select id="ssidList" class="grow"><option value="">Scanning...</option></select><button id="rescan" type="button">Scan</button></div>
+    <input id="ssid" type="text" placeholder="or type the network name" autocomplete="off">
+    <label for="wpass">Wi-Fi password</label><input id="wpass" type="password" autocomplete="off">
+    <div id="curPinBox" class="hidden"><label for="curpin">Current parent PIN</label><input id="curpin" type="password" inputmode="numeric" autocomplete="off"></div>
+    <label for="pin1">New parent PIN (4 to 8 digits)</label><input id="pin1" type="password" inputmode="numeric" autocomplete="off">
+    <label for="pin2">Repeat the PIN</label><input id="pin2" type="password" inputmode="numeric" autocomplete="off">
+    <div class="row" style="margin-top:14px"><button class="primary" id="saveSetup" type="button">Save and join</button></div>
+    <p class="note" id="setupStatus"></p>
+  </section>
+  <section id="login" class="card hidden">
+    <h2>Parent PIN</h2>
+    <label for="pin">Enter the parent PIN</label>
+    <div class="row"><input id="pin" class="grow" type="password" inputmode="numeric" autocomplete="current-password"><button class="primary" id="go" type="button">Open</button></div>
+  </section>
+  <div id="app" class="hidden">
+    <section class="card"><div id="chips"></div></section>
+    <div id="sections"></div>
+    <section class="card" id="device">
+      <h2>Device</h2>
+      <div id="devInfo" class="note"></div>
+      <div class="row" style="margin-top:10px">
+        <button id="identify" type="button">Blink the light</button>
+        <button id="restart" type="button">Restart</button>
+        <button id="forget" class="danger" type="button">Forget Wi-Fi</button>
+        <button id="reset" class="danger" type="button">Reset memory</button>
+      </div>
+      <div id="otaBox" style="margin-top:14px"></div>
+    </section>
+  </div>
+</main>
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+let PIN=sessionStorage.getItem("gspin")||"";let INFO=null;let STATE=null;let timer=null;
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function show(id,on){$(id).classList.toggle("hidden",!on)}
+function say(text,kind){const m=$("#msg");m.textContent=text;m.className="msg "+(kind||"");show("#msg",!!text)}
+async function api(path,body){
+  const opt={headers:{"X-GS-PIN":PIN}};
+  if(body!==undefined){opt.method="POST";opt.headers["Content-Type"]="application/json";opt.body=JSON.stringify(body)}
+  const r=await fetch(path,opt);let j={};try{j=await r.json()}catch(e){}
+  if(r.status===401){sessionStorage.removeItem("gspin");PIN="";showLogin("Wrong PIN. Try again.");throw new Error("pin")}
+  if(r.status===429){say(j.message+" ("+j.retry_after_s+" s)","bad");throw new Error("locked")}
+  return {status:r.status,ok:r.ok&&j.ok!==false,data:j};
+}
+async function act(action,args){
+  try{const r=await api("/api/action",Object.assign({action},args||{}));say(r.data.message||"",r.ok?"ok":"bad");await refresh()}catch(e){}
+}
+function showLogin(err){show("#app",false);show("#setup",false);show("#login",true);if(err)say(err,"bad")}
+async function start(){
+  try{INFO=await (await fetch("/api/info")).json()}catch(e){say("The device did not answer. Check that you are on the same Wi-Fi.","bad");return}
+  $("#title").textContent=INFO.name;document.title=INFO.name+" parent page";
+  $("#subtitle").textContent=INFO.setup?"Setup hotspot: "+(INFO.ip||""):"Open at http://"+INFO.host+" or http://"+INFO.ip;
+  if(INFO.setup&&(!INFO.pin_set||!INFO.wifi_saved)){showSetup();return}
+  if(!PIN){showLogin();return}
+  await refresh();
+}
+function showSetup(){
+  show("#login",false);show("#app",false);show("#setup",true);show("#curPinBox",!!INFO.pin_set);scan();
+}
+async function scan(){
+  const sel=$("#ssidList");sel.innerHTML="<option value=''>Scanning...</option>";
+  try{const r=await fetch("/api/scan",{headers:{"X-GS-PIN":PIN}});const j=await r.json();
+    sel.innerHTML="<option value=''>Choose a network</option>"+(j.networks||[]).map(n=>`<option>${esc(n.ssid)}</option>`).join("")}
+  catch(e){sel.innerHTML="<option value=''>Scan failed: type the name below</option>"}
+}
+$("#rescan").onclick=scan;
+$("#ssidList").onchange=e=>{if(e.target.value)$("#ssid").value=e.target.value};
+$("#saveSetup").onclick=async()=>{
+  const ssid=$("#ssid").value.trim(),p1=$("#pin1").value,p2=$("#pin2").value;
+  if(!ssid){say("Choose your home Wi-Fi network.","bad");return}
+  if(p1||!INFO.pin_set){if(!/^\d{4,8}$/.test(p1)){say("The PIN must be 4 to 8 digits.","bad");return}if(p1!==p2){say("The two PINs do not match.","bad");return}}
+  if(INFO.pin_set)PIN=$("#curpin").value;
+  const r=await fetch("/api/setup",{method:"POST",headers:{"Content-Type":"application/json","X-GS-PIN":PIN},body:JSON.stringify({ssid,password:$("#wpass").value,pin:p1})});
+  const j=await r.json().catch(()=>({}));say(j.message||"",r.ok?"ok":"bad");
+  if(r.ok){if(p1){PIN=p1;sessionStorage.setItem("gspin",PIN)}waitJoin()}
+};
+function waitJoin(){
+  let n=0;const t=setInterval(async()=>{n++;try{const i=await (await fetch("/api/info")).json();
+    if(i.mode==="home_wifi"){clearInterval(t);$("#setupStatus").innerHTML=`Joined. On your home Wi-Fi, open <b>http://${esc(i.host)}</b> or <b>http://${esc(i.ip)}</b>. This hotspot closes in about a minute.`}
+    else $("#setupStatus").textContent="Joining your Wi-Fi..."}catch(e){}
+    if(n>40){clearInterval(t);$("#setupStatus").textContent="Could not confirm the join. If the hotspot is still here, check the password and try again."}},3000);
+}
+$("#go").onclick=async()=>{PIN=$("#pin").value;sessionStorage.setItem("gspin",PIN);say("");await refresh()};
+$("#pin").addEventListener("keydown",e=>{if(e.key==="Enter")$("#go").click()});
+async function refresh(){
+  let r;try{r=await api("/api/state")}catch(e){return}
+  if(!r.ok){say(r.data.message||"Could not load the state.","bad");return}
+  STATE=r.data;show("#login",false);show("#setup",false);show("#app",true);render();
+  clearTimeout(timer);timer=setTimeout(refresh,4000);
+}
+function chip(text,kind){return `<span class="chip ${kind||""}">${esc(text)}</span>`}
+function render(){
+  const s=STATE,a=s.app||{},d=s.device||{},m=s.memory||{},n=s.network||{},u=s.update||{},c=s.card||{};
+  $("#chips").innerHTML=chip(n.mode==="home_wifi"?"Wi-Fi: "+n.ssid:"Wi-Fi: "+n.mode,n.mode==="home_wifi"?"ok":"warn")
+    +chip("Memory: "+m.status,m.writable?"ok":"bad")
+    +(c.present?chip(c.mounted?"Card: "+c.used_mb+" of "+c.total_mb+" MB used":"Card: not found",c.mounted?"ok":"bad"):"")
+    +chip("Firmware "+d.firmware);
+  $("#devInfo").innerHTML=`${esc(d.name)} &middot; ${esc(d.template)} &middot; build ${esc(d.build)} &middot; update slot ${esc(u.partition)} (${esc(u.state)})`;
+  const S=[];
+  if(m.status==="corrupt"||m.status==="storage_error")S.push(`<section class="card"><h2>Memory problem</h2><p>The saved memory could not be read, so the device did not overwrite it. Nothing is changed until you choose Reset memory below.</p></section>`);
+  if(m.status==="recovered")S.push(`<section class="card"><p class="note">The last change before a power cut was not saved; the earlier saved state was kept.</p></section>`);
+  if(a.player)S.push(playerCard(a));
+  if(a.favourites)S.push(favCard(a));
+  if(a.volume!==undefined)S.push(volumeCard(a));
+  if(a.night_light)S.push(nightCard(a));
+  if(a.face)S.push(faceCard(a));
+  if(a.notices)S.push(noticeCard(a));
+  if(a.scenes)S.push(sceneCard(a));
+  if(a.readings)S.push(sensorCard(a));
+  $("#sections").innerHTML=S.join("");
+  bind();
+  $("#otaBox").innerHTML=u.signed_updates?`<label>Firmware update (signed files from the app)</label><div class="row"><input type="file" id="fwFile" accept=".bin"><input type="file" id="sigFile" accept=".sig"><button id="fwGo" type="button">Install</button></div><p class="note">The device checks the signature before installing and returns to the old version if the new one fails its checks.</p>`
+    :`<p class="note">Updates over Wi-Fi are off in this build (no signing key). Update over USB instead.</p>`;
+  if(u.signed_updates)$("#fwGo").onclick=ota;
+}
+function playerCard(a){
+  const p=a.player,pack=a.story_pack||{};
+  const rows=(a.stories||[]).map(s=>`<li><span>${esc(s.title)}${s.audio?"":" <span class='chip warn'>no audio yet</span>"}</span><button data-play="${esc(s.id)}" ${s.audio?"":"disabled"}>Play</button></li>`).join("");
+  return `<section class="card"><h2>Stories</h2><div class="row"><span class="grow">${p.listening?"<b>Listening now</b> (the light is blue)":esc(p.state==="playing"?"Playing: "+p.story_title:"Ready")}</span><button class="primary" data-act="play_story">Play a story</button><button data-act="stop">Stop</button></div>
+  <p class="note">${esc(pack.message||"")}</p><ul class="list">${rows}</ul></section>`;
+}
+function favCard(a){
+  const mode=a.capture_mode;const full=a.favourites.length>=a.max_favourites;
+  const rows=a.favourites.map(f=>{const label=f.name||("Voice clip "+f.id);
+    const badge=f.has_clip?(f.clip_on_card===false?"<span class='chip bad'>clip missing</span>":""):(f.name_audio?"":"<span class='chip warn'>chime instead of name</span>");
+    return `<li><span class="grow">${esc(label)} ${badge}</span><span class="row">${f.has_clip?`<button data-listen="${f.id}">Listen</button>`:""}<button data-rename="${f.id}" data-name="${esc(f.name)}">${f.name?"Rename":"Add name"}</button><button class="danger" data-remove="${f.id}" data-name="${esc(label)}">Remove</button></span></li>`}).join("")||"<li><span class='note'>No favourites yet.</span></li>";
+  const how=mode==="child_voice_clip"?"To add one on the gadget: hold the button until the light turns blue, say the name, let go, then tap within "+a.keep_window_seconds+" seconds to keep it.":(mode==="parent_web"?"Type a name below. Names with a story-pack clip are spoken; others play a soft chime.":"");
+  return `<section class="card"><h2>Favourites (${a.favourites.length} of ${a.max_favourites})</h2><p class="note">${esc(how)}</p><ul class="list">${rows}</ul>
+  <label for="newName">Add a favourite by name</label><div class="row"><input id="newName" class="grow" type="text" maxlength="32" autocomplete="off" ${full?"disabled":""}><button class="primary" id="addName" ${full?"disabled":""}>Save</button></div>
+  <div class="row" style="margin-top:12px"><button class="danger" id="eraseAll">Erase all favourites</button></div><p class="note">${esc(a.privacy||"")}</p></section>`;
+}
+function volumeCard(a){return `<section class="card"><h2>Volume</h2><input type="range" id="vol" min="0" max="${a.volume_max}" value="${a.volume}"><p class="note">${a.volume} of ${a.volume_max} (${esc(a.volume_note||"software setting")}). Start low and check the loudness yourself.</p></section>`}
+function nightCard(a){const nl=a.night_light;return `<section class="card"><h2>Night light</h2>
+  <div class="row"><label class="grow" style="margin:0"><input type="checkbox" id="nlOn" ${nl.enabled?"checked":""}> Glow during stories</label><button id="nlNow">${nl.on?"Turn off now":"Turn on now"}</button></div>
+  <label>Timer: <b id="nlMinV">${nl.minutes}</b> minutes</label><input type="range" id="nlMin" min="0" max="${nl.minutes_max}" value="${nl.minutes}">
+  <label>Brightness: <b id="nlLevV">${nl.level}</b>%</label><input type="range" id="nlLev" min="1" max="${nl.level_max}" value="${nl.level}">
+  <p class="note">${nl.on?"On, about "+Math.round(nl.remaining_s/60)+" minutes left.":"Off."}</p></section>`}
+function faceCard(a){return `<section class="card"><h2>Companion</h2><p>Face: <b>${esc(a.face)}</b></p><div class="row"><button data-act="poke">Say hello</button><button data-act="chime">Chime</button></div></section>`}
+function noticeCard(a){const rows=a.notices.map(x=>`<li><span>${esc(x.text)}</span><button data-ack="${x.id}">Clear</button></li>`).join("")||"<li><span class='note'>No notifications.</span></li>";
+  return `<section class="card"><h2>Clock and notifications</h2><p class="big">${esc(a.time||"--:--")}</p><p class="note">${esc(a.time_note||"")}</p><ul class="list">${rows}</ul>
+  <label for="nt">Send a notification</label><div class="row"><input id="nt" class="grow" type="text" maxlength="47"><button class="primary" id="ntGo">Send</button></div></section>`}
+function sceneCard(a){const btn=a.scenes.map((s,i)=>`<button data-scene="${i}" class="${i===a.scene?"primary":""}">${esc(s.name)}</button>`).join("");
+  return `<section class="card"><h2>Light</h2><div class="row">${btn}</div><div class="row" style="margin-top:10px"><button data-act="${a.on?"off":"on"}">${a.on?"Turn off":"Turn on"}</button></div>
+  <label>Brightness: <b>${a.brightness}</b>%</label><input type="range" id="bri" min="1" max="100" value="${a.brightness}"><p class="note">${esc(a.auto_dim_note||"")}</p></section>`}
+function sensorCard(a){const rows=a.readings.map(r=>`<li><span>${esc(r.quantity)}</span><b>${r.ok?esc(r.value+" "+r.unit):"no reading"}</b></li>`).join("");
+  const t=a.trend||[];let svg="";if(t.length>1){const mn=Math.min(...t),mx=Math.max(...t),sp=(mx-mn)||1;svg=`<svg class="spark" viewBox="0 0 ${t.length-1} 60" preserveAspectRatio="none"><polyline fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke" points="${t.map((v,i)=>i+","+(56-52*(v-mn)/sp)).join(" ")}"/></svg>`}
+  return `<section class="card"><h2>Readings</h2><ul class="list">${rows}</ul>${svg?`<p class="note">${esc(a.trend_label||"")}</p>`+svg:""}${a.warning?`<p class="chip bad">${esc(a.warning)}</p>`:""}<p class="note">Readings, not calibrated measurements.</p></section>`}
+function bind(){
+  document.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>act(b.dataset.act));
+  document.querySelectorAll("[data-play]").forEach(b=>b.onclick=()=>act("play_story",{id:b.dataset.play}));
+  document.querySelectorAll("[data-scene]").forEach(b=>b.onclick=()=>act("scene",{index:+b.dataset.scene}));
+  document.querySelectorAll("[data-ack]").forEach(b=>b.onclick=()=>act("notify_clear",{id:+b.dataset.ack}));
+  document.querySelectorAll("[data-remove]").forEach(b=>b.onclick=()=>{if(confirm("Remove "+b.dataset.name+"? Its voice clip is deleted too."))act("fav_remove",{id:+b.dataset.remove,confirm:true})});
+  document.querySelectorAll("[data-rename]").forEach(b=>b.onclick=()=>{const v=prompt("Name for this favourite",b.dataset.name||"");if(v===null)return;const t=v.trim();
+    if(t&&confirm("Save the name "+t+"?"))act("fav_rename",{id:+b.dataset.rename,name:t,confirm:true})});
+  document.querySelectorAll("[data-listen]").forEach(b=>b.onclick=async()=>{const r=await fetch("/api/clip?id="+b.dataset.listen,{headers:{"X-GS-PIN":PIN}});
+    if(!r.ok){say("The clip could not be played.","bad");return}const url=URL.createObjectURL(await r.blob());const au=new Audio(url);au.onended=()=>URL.revokeObjectURL(url);au.play()});
+  const add=$("#addName");if(add)add.onclick=()=>{const v=$("#newName").value.trim();if(!v)return;if(confirm("Save "+v+" as a favourite?"))act("fav_add",{name:v,confirm:true})};
+  const ea=$("#eraseAll");if(ea)ea.onclick=()=>{const v=prompt("This deletes every favourite and voice clip. Type ERASE to confirm.");if(v==="ERASE")act("fav_erase_all",{confirm:"ERASE"})};
+  const vol=$("#vol");if(vol)vol.onchange=()=>act("set_volume",{volume:+vol.value});
+  const nlOn=$("#nlOn"),nlMin=$("#nlMin"),nlLev=$("#nlLev");
+  if(nlOn){const send=extra=>act("night_light",Object.assign({enabled:nlOn.checked,minutes:+nlMin.value,level:+nlLev.value},extra||{}));
+    nlOn.onchange=()=>send();nlMin.oninput=()=>$("#nlMinV").textContent=nlMin.value;nlMin.onchange=()=>send();nlLev.oninput=()=>$("#nlLevV").textContent=nlLev.value;nlLev.onchange=()=>send();
+    $("#nlNow").onclick=()=>send({on:!STATE.app.night_light.on})}
+  const nt=$("#ntGo");if(nt)nt.onclick=()=>{const v=$("#nt").value.trim();if(v)act("notify",{text:v})};
+  const bri=$("#bri");if(bri)bri.onchange=()=>act("brightness",{percent:+bri.value});
+}
+async function ota(){
+  const f=$("#fwFile").files[0],s=$("#sigFile").files[0];if(!f||!s){say("Choose the firmware .bin and its .sig file.","bad");return}
+  if(!confirm("Install "+f.name+"? The device restarts after the update."))return;
+  const sig=(await s.text()).trim();const fd=new FormData();fd.append("firmware",f,f.name);say("Uploading...","");
+  const r=await fetch("/api/ota",{method:"POST",headers:{"X-GS-PIN":PIN,"X-GS-Signature":sig},body:fd});const j=await r.json().catch(()=>({}));say(j.message||"",r.ok?"ok":"bad");
+}
+$("#identify").onclick=()=>act("identify");
+$("#restart").onclick=()=>{if(confirm("Restart the device?"))act("restart")};
+$("#forget").onclick=()=>{if(confirm("Forget the home Wi-Fi? The device restarts into its setup hotspot."))act("forget_wifi",{confirm:true})};
+$("#reset").onclick=()=>{const v=prompt("This clears everything the device remembers: favourites, voice clips and settings. Type RESET to confirm.");if(v==="RESET")act("reset_memory",{confirm:"RESET"})};
+start();
+</script>
+</body>
+</html>

@@ -1,0 +1,368 @@
+{
+ "schema": "gadget-electrical/1",
+ "backplane": "backplane-v1",
+ "provisional": "firmware test fixture",
+ "core": {
+  "ref": "U1",
+  "module": "CORE_ESP32S3_DEVKITC1_N8R8"
+ },
+ "instances": [
+  {
+   "ref": "U1",
+   "module": "CORE_ESP32S3_DEVKITC1_N8R8",
+   "feature": null,
+   "slot": "U1"
+  },
+  {
+   "ref": "BTN1",
+   "module": "TOUCH_TTP223_SMALL_15X11",
+   "feature": "head_touch",
+   "slot": "J_IO1",
+   "harness": {
+    "cable": "JST-PH 3p",
+    "length_mm": 150
+   }
+  },
+  {
+   "ref": "DISP1",
+   "module": "OLED_130_SH1106_I2C",
+   "feature": "face",
+   "slot": "J_I2C1",
+   "harness": {
+    "cable": "JST-PH 4p",
+    "length_mm": 150
+   }
+  },
+  {
+   "ref": "LED1",
+   "module": "LED_RING_12_WS2812_50MM",
+   "feature": "glow",
+   "slot": "J_LED",
+   "harness": {
+    "cable": "JST-PH 3p",
+    "length_mm": 150
+   }
+  },
+  {
+   "ref": "SPK1",
+   "module": "SPK_28MM_8R_2W",
+   "feature": "speaker",
+   "slot": "J_SPK",
+   "harness": {
+    "cable": "JST-PH 2p",
+    "length_mm": 150
+   }
+  },
+  {
+   "ref": "MIC1",
+   "module": "MIC_INMP441_I2S",
+   "feature": "mic",
+   "slot": "J_MIC",
+   "harness": {
+    "cable": "JST-PH 6p",
+    "length_mm": 150
+   }
+  },
+  {
+   "ref": "AMP1",
+   "module": "AMP_MAX98357A_I2S",
+   "feature": null,
+   "slot": "A1",
+   "harness": {
+    "cable": "JST-PH 9p",
+    "length_mm": 150
+   }
+  }
+ ],
+ "slots_used": [
+  "J_PWR",
+  "U1",
+  "J_IO1",
+  "J_I2C1",
+  "J_LED",
+  "J_SPK",
+  "J_MIC",
+  "A1"
+ ],
+ "gpio": {
+  "I2C_SDA": 8,
+  "I2C_SCL": 9,
+  "SPI_SCK": 12,
+  "SPI_MOSI": 11,
+  "SPI_MISO": 13,
+  "SD_CS": 10,
+  "DISP_CS": 14,
+  "DISP_DC": 21,
+  "DISP_RST": 18,
+  "DISP_BL": 17,
+  "I2S_SPK_BCLK": 15,
+  "I2S_SPK_LRC": 16,
+  "I2S_SPK_DIN": 7,
+  "AMP_SD": 39,
+  "I2S_MIC_SCK": 41,
+  "I2S_MIC_WS": 42,
+  "I2S_MIC_SD": 40,
+  "IO1_SIG": 4,
+  "IO2_SIG": 5,
+  "IO3_SIG": 6,
+  "LED_DIN": 2,
+  "USB_DP": 20,
+  "USB_DN": 19,
+  "UART0_TX": 43,
+  "UART0_RX": 44,
+  "BOOT_IO0": 0
+ },
+ "buses": [
+  {
+   "type": "i2c",
+   "sda": 8,
+   "scl": 9,
+   "pullups": "4.7 k to +3V3 (R4, R5)",
+   "slots": [
+    "J_I2C1",
+    "J_I2C2",
+    "J_I2C3"
+   ],
+   "devices": [
+    {
+     "ref": "DISP1",
+     "addr": null
+    }
+   ]
+  },
+  {
+   "type": "spi",
+   "host": "SPI2/FSPI",
+   "sck": 12,
+   "mosi": 11,
+   "miso": 13,
+   "cs": {
+    "S1": 10,
+    "J_DISP": 14
+   },
+   "note": "FSPI IO_MUX pins (CLK 12, D 11, Q 13); CS pins via GPIO matrix",
+   "slots": [
+    "S1",
+    "J_DISP"
+   ]
+  },
+  {
+   "type": "i2s_tx",
+   "port": "I2S0",
+   "bclk": 15,
+   "ws": 16,
+   "dout": 7,
+   "enable": 39,
+   "slots": [
+    "A1"
+   ]
+  },
+  {
+   "type": "i2s_rx",
+   "port": "I2S1",
+   "bclk": 41,
+   "ws": 42,
+   "din": 40,
+   "slots": [
+    "J_MIC"
+   ]
+  },
+  {
+   "type": "rmt_led",
+   "gpio": 2,
+   "level_shift": "U3 74AHCT1G125 at 5 V",
+   "slots": [
+    "J_LED"
+   ]
+  },
+  {
+   "type": "gpio",
+   "slots": {
+    "J_IO1": 4,
+    "J_IO2": 5,
+    "J_IO3": 6
+   }
+  },
+  {
+   "type": "usb",
+   "dp": 20,
+   "dn": 19,
+   "slots": [
+    "J_PWR"
+   ]
+  }
+ ],
+ "nets": [],
+ "connections": [
+  {
+   "from": "BTN1.GND",
+   "to": "BP1.J_IO1.1",
+   "via": "J_IO1 harness",
+   "net": "GND"
+  },
+  {
+   "from": "BTN1.3V3",
+   "to": "BP1.J_IO1.2",
+   "via": "J_IO1 harness",
+   "net": "+3V3"
+  },
+  {
+   "from": "BTN1.SIG",
+   "to": "BP1.J_IO1.3",
+   "via": "J_IO1 harness",
+   "net": "IO1_SIG"
+  },
+  {
+   "from": "DISP1.GND",
+   "to": "BP1.J_I2C1.1",
+   "via": "J_I2C1 harness",
+   "net": "GND"
+  },
+  {
+   "from": "DISP1.3V3",
+   "to": "BP1.J_I2C1.2",
+   "via": "J_I2C1 harness",
+   "net": "+3V3"
+  },
+  {
+   "from": "DISP1.SDA",
+   "to": "BP1.J_I2C1.3",
+   "via": "J_I2C1 harness",
+   "net": "I2C_SDA"
+  },
+  {
+   "from": "DISP1.SCL",
+   "to": "BP1.J_I2C1.4",
+   "via": "J_I2C1 harness",
+   "net": "I2C_SCL"
+  },
+  {
+   "from": "LED1.GND",
+   "to": "BP1.J_LED.1",
+   "via": "J_LED harness",
+   "net": "GND"
+  },
+  {
+   "from": "LED1.5V",
+   "to": "BP1.J_LED.2",
+   "via": "J_LED harness",
+   "net": "+5V"
+  },
+  {
+   "from": "LED1.DIN",
+   "to": "BP1.J_LED.3",
+   "via": "J_LED harness",
+   "net": "LED_DIN_5V"
+  },
+  {
+   "from": "SPK1.SPK+",
+   "to": "BP1.J_SPK.1",
+   "via": "J_SPK harness",
+   "net": "SPK_P"
+  },
+  {
+   "from": "SPK1.SPK-",
+   "to": "BP1.J_SPK.2",
+   "via": "J_SPK harness",
+   "net": "SPK_N"
+  },
+  {
+   "from": "MIC1.GND",
+   "to": "BP1.J_MIC.1",
+   "via": "J_MIC harness",
+   "net": "GND"
+  },
+  {
+   "from": "MIC1.3V3",
+   "to": "BP1.J_MIC.2",
+   "via": "J_MIC harness",
+   "net": "+3V3"
+  },
+  {
+   "from": "MIC1.SCK",
+   "to": "BP1.J_MIC.3",
+   "via": "J_MIC harness",
+   "net": "I2S_MIC_SCK"
+  },
+  {
+   "from": "MIC1.WS",
+   "to": "BP1.J_MIC.4",
+   "via": "J_MIC harness",
+   "net": "I2S_MIC_WS"
+  },
+  {
+   "from": "MIC1.SD",
+   "to": "BP1.J_MIC.5",
+   "via": "J_MIC harness",
+   "net": "I2S_MIC_SD"
+  },
+  {
+   "from": "MIC1.LR",
+   "to": "BP1.J_MIC.6",
+   "via": "J_MIC harness",
+   "net": "GND"
+  },
+  {
+   "from": "AMP1.LRC",
+   "to": "BP1.A1.1",
+   "via": "A1 harness",
+   "net": "I2S_SPK_LRC"
+  },
+  {
+   "from": "AMP1.BCLK",
+   "to": "BP1.A1.2",
+   "via": "A1 harness",
+   "net": "I2S_SPK_BCLK"
+  },
+  {
+   "from": "AMP1.DIN",
+   "to": "BP1.A1.3",
+   "via": "A1 harness",
+   "net": "I2S_SPK_DIN"
+  },
+  {
+   "from": "AMP1.SD",
+   "to": "BP1.A1.5",
+   "via": "A1 harness",
+   "net": "AMP_SD"
+  },
+  {
+   "from": "AMP1.GND",
+   "to": "BP1.A1.6",
+   "via": "A1 harness",
+   "net": "GND"
+  },
+  {
+   "from": "AMP1.VIN",
+   "to": "BP1.A1.7",
+   "via": "A1 harness",
+   "net": "+5V"
+  },
+  {
+   "from": "AMP1.VO+",
+   "to": "BP1.A1.VO+",
+   "via": "A1 harness",
+   "net": "SPK_P"
+  },
+  {
+   "from": "AMP1.VO-",
+   "to": "BP1.A1.VO-",
+   "via": "A1 harness",
+   "net": "SPK_N"
+  }
+ ],
+ "power": {
+  "rails": [
+   {
+    "name": "+5V",
+    "source": "USB-C via F1"
+   },
+   {
+    "name": "+3V3",
+    "source": "devkit regulator"
+   }
+  ],
+  "budget": [],
+  "ok": true
+ }
+}

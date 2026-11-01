@@ -1,0 +1,327 @@
+{
+ "schema": "gadget-electrical/1",
+ "backplane": "backplane-v1",
+ "provisional": "firmware test fixture",
+ "core": {
+  "ref": "U1",
+  "module": "CORE_ESP32S3_DEVKITC1_N8R8"
+ },
+ "instances": [
+  {
+   "ref": "U1",
+   "module": "CORE_ESP32S3_DEVKITC1_N8R8",
+   "feature": null,
+   "slot": "U1"
+  },
+  {
+   "ref": "DISP1",
+   "module": "LCD_200_ST7789_240X320_WAVESHARE",
+   "feature": "screen",
+   "slot": "J_DISP",
+   "harness": {
+    "cable": "JST-PH 8p",
+    "length_mm": 150
+   }
+  },
+  {
+   "ref": "LED1",
+   "module": "LED_RING_12_WS2812_50MM",
+   "feature": "ring",
+   "slot": "J_LED",
+   "harness": {
+    "cable": "JST-PH 3p",
+    "length_mm": 150
+   }
+  },
+  {
+   "ref": "BTN1",
+   "module": "BUTTON_TACTILE_KY004",
+   "feature": "ack_button",
+   "slot": "J_IO1",
+   "harness": {
+    "cable": "JST-PH 3p",
+    "length_mm": 150
+   }
+  },
+  {
+   "ref": "BZ1",
+   "module": "BUZZER_PASSIVE_TRANSISTOR_MODULE",
+   "feature": "buzzer",
+   "slot": "J_IO2",
+   "harness": {
+    "cable": "JST-PH 3p",
+    "length_mm": 150
+   }
+  },
+  {
+   "ref": "RTC1",
+   "module": "RTC_DS3231_ZS042",
+   "feature": null,
+   "slot": "J_I2C2",
+   "harness": {
+    "cable": "JST-PH 4p",
+    "length_mm": 150
+   }
+  }
+ ],
+ "slots_used": [
+  "J_PWR",
+  "U1",
+  "J_DISP",
+  "J_LED",
+  "J_IO1",
+  "J_IO2",
+  "J_I2C2"
+ ],
+ "gpio": {
+  "I2C_SDA": 8,
+  "I2C_SCL": 9,
+  "SPI_SCK": 12,
+  "SPI_MOSI": 11,
+  "SPI_MISO": 13,
+  "SD_CS": 10,
+  "DISP_CS": 14,
+  "DISP_DC": 21,
+  "DISP_RST": 18,
+  "DISP_BL": 17,
+  "I2S_SPK_BCLK": 15,
+  "I2S_SPK_LRC": 16,
+  "I2S_SPK_DIN": 7,
+  "AMP_SD": 39,
+  "I2S_MIC_SCK": 41,
+  "I2S_MIC_WS": 42,
+  "I2S_MIC_SD": 40,
+  "IO1_SIG": 4,
+  "IO2_SIG": 5,
+  "IO3_SIG": 6,
+  "LED_DIN": 2,
+  "USB_DP": 20,
+  "USB_DN": 19,
+  "UART0_TX": 43,
+  "UART0_RX": 44,
+  "BOOT_IO0": 0
+ },
+ "buses": [
+  {
+   "type": "i2c",
+   "sda": 8,
+   "scl": 9,
+   "pullups": "4.7 k to +3V3 (R4, R5)",
+   "slots": [
+    "J_I2C1",
+    "J_I2C2",
+    "J_I2C3"
+   ],
+   "devices": [
+    {
+     "ref": "RTC1",
+     "addr": null
+    }
+   ]
+  },
+  {
+   "type": "spi",
+   "host": "SPI2/FSPI",
+   "sck": 12,
+   "mosi": 11,
+   "miso": 13,
+   "cs": {
+    "S1": 10,
+    "J_DISP": 14
+   },
+   "note": "FSPI IO_MUX pins (CLK 12, D 11, Q 13); CS pins via GPIO matrix",
+   "slots": [
+    "S1",
+    "J_DISP"
+   ]
+  },
+  {
+   "type": "i2s_tx",
+   "port": "I2S0",
+   "bclk": 15,
+   "ws": 16,
+   "dout": 7,
+   "enable": 39,
+   "slots": [
+    "A1"
+   ]
+  },
+  {
+   "type": "i2s_rx",
+   "port": "I2S1",
+   "bclk": 41,
+   "ws": 42,
+   "din": 40,
+   "slots": [
+    "J_MIC"
+   ]
+  },
+  {
+   "type": "rmt_led",
+   "gpio": 2,
+   "level_shift": "U3 74AHCT1G125 at 5 V",
+   "slots": [
+    "J_LED"
+   ]
+  },
+  {
+   "type": "gpio",
+   "slots": {
+    "J_IO1": 4,
+    "J_IO2": 5,
+    "J_IO3": 6
+   }
+  },
+  {
+   "type": "usb",
+   "dp": 20,
+   "dn": 19,
+   "slots": [
+    "J_PWR"
+   ]
+  }
+ ],
+ "nets": [],
+ "connections": [
+  {
+   "from": "DISP1.VCC",
+   "to": "BP1.J_DISP.1",
+   "via": "J_DISP harness",
+   "net": "+3V3"
+  },
+  {
+   "from": "DISP1.GND",
+   "to": "BP1.J_DISP.2",
+   "via": "J_DISP harness",
+   "net": "GND"
+  },
+  {
+   "from": "DISP1.DIN",
+   "to": "BP1.J_DISP.3",
+   "via": "J_DISP harness",
+   "net": "SPI_MOSI"
+  },
+  {
+   "from": "DISP1.CLK",
+   "to": "BP1.J_DISP.4",
+   "via": "J_DISP harness",
+   "net": "SPI_SCK"
+  },
+  {
+   "from": "DISP1.CS",
+   "to": "BP1.J_DISP.5",
+   "via": "J_DISP harness",
+   "net": "DISP_CS"
+  },
+  {
+   "from": "DISP1.DC",
+   "to": "BP1.J_DISP.6",
+   "via": "J_DISP harness",
+   "net": "DISP_DC"
+  },
+  {
+   "from": "DISP1.RST",
+   "to": "BP1.J_DISP.7",
+   "via": "J_DISP harness",
+   "net": "DISP_RST"
+  },
+  {
+   "from": "DISP1.BL",
+   "to": "BP1.J_DISP.8",
+   "via": "J_DISP harness",
+   "net": "DISP_BL"
+  },
+  {
+   "from": "LED1.GND",
+   "to": "BP1.J_LED.1",
+   "via": "J_LED harness",
+   "net": "GND"
+  },
+  {
+   "from": "LED1.5V",
+   "to": "BP1.J_LED.2",
+   "via": "J_LED harness",
+   "net": "+5V"
+  },
+  {
+   "from": "LED1.DIN",
+   "to": "BP1.J_LED.3",
+   "via": "J_LED harness",
+   "net": "LED_DIN_5V"
+  },
+  {
+   "from": "BTN1.GND",
+   "to": "BP1.J_IO1.1",
+   "via": "J_IO1 harness",
+   "net": "GND"
+  },
+  {
+   "from": "BTN1.3V3",
+   "to": "BP1.J_IO1.2",
+   "via": "J_IO1 harness",
+   "net": "+3V3"
+  },
+  {
+   "from": "BTN1.SIG",
+   "to": "BP1.J_IO1.3",
+   "via": "J_IO1 harness",
+   "net": "IO1_SIG"
+  },
+  {
+   "from": "BZ1.GND",
+   "to": "BP1.J_IO2.1",
+   "via": "J_IO2 harness",
+   "net": "GND"
+  },
+  {
+   "from": "BZ1.3V3",
+   "to": "BP1.J_IO2.2",
+   "via": "J_IO2 harness",
+   "net": "+3V3"
+  },
+  {
+   "from": "BZ1.SIG",
+   "to": "BP1.J_IO2.3",
+   "via": "J_IO2 harness",
+   "net": "IO2_SIG"
+  },
+  {
+   "from": "RTC1.GND",
+   "to": "BP1.J_I2C2.1",
+   "via": "J_I2C2 harness",
+   "net": "GND"
+  },
+  {
+   "from": "RTC1.3V3",
+   "to": "BP1.J_I2C2.2",
+   "via": "J_I2C2 harness",
+   "net": "+3V3"
+  },
+  {
+   "from": "RTC1.SDA",
+   "to": "BP1.J_I2C2.3",
+   "via": "J_I2C2 harness",
+   "net": "I2C_SDA"
+  },
+  {
+   "from": "RTC1.SCL",
+   "to": "BP1.J_I2C2.4",
+   "via": "J_I2C2 harness",
+   "net": "I2C_SCL"
+  }
+ ],
+ "power": {
+  "rails": [
+   {
+    "name": "+5V",
+    "source": "USB-C via F1"
+   },
+   {
+    "name": "+3V3",
+    "source": "devkit regulator"
+   }
+  ],
+  "budget": [],
+  "ok": true
+ }
+}

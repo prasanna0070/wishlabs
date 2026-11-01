@@ -1,0 +1,74 @@
+{
+ "schema": "gadget-spec/1",
+ "name": "Desk Buddy",
+ "slug": "desk-buddy",
+ "tagline": "fixture",
+ "audience": {
+  "child_directed": false,
+  "age_years": null
+ },
+ "region": "IN",
+ "features": [
+  {
+   "id": "head_touch",
+   "module": "TOUCH_TTP223_SMALL_15X11",
+   "face": "front",
+   "at": [
+    0,
+    40
+   ],
+   "label": "Touch to say hello"
+  },
+  {
+   "id": "face",
+   "module": "OLED_130_SH1106_I2C",
+   "face": "front",
+   "at": [
+    0,
+    50
+   ],
+   "label": "Face"
+  },
+  {
+   "id": "glow",
+   "module": "LED_RING_12_WS2812_50MM",
+   "face": "front",
+   "at": [
+    0,
+    60
+   ],
+   "label": "Glow ring"
+  },
+  {
+   "id": "speaker",
+   "module": "SPK_28MM_8R_2W",
+   "face": "front",
+   "at": [
+    0,
+    70
+   ],
+   "label": "Speaker"
+  },
+  {
+   "id": "mic",
+   "module": "MIC_INMP441_I2S",
+   "face": "front",
+   "at": [
+    0,
+    80
+   ],
+   "label": "Clap microphone"
+  }
+ ],
+ "electronics": {
+  "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+  "extra_modules": []
+ },
+ "behaviour": {
+  "template": "desk_companion",
+  "summary": "fixture",
+  "settings": {
+   "clap_detect": true
+  }
+ }
+}

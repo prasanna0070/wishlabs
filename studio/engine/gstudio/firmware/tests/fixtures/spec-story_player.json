@@ -1,0 +1,77 @@
+{
+ "schema": "gadget-spec/1",
+ "name": "Luna Owl",
+ "slug": "luna-owl",
+ "tagline": "fixture",
+ "audience": {
+  "child_directed": true,
+  "age_years": 5
+ },
+ "region": "IN",
+ "features": [
+  {
+   "id": "story_button",
+   "module": "BUTTON_ARCADE_30MM_SNAPIN",
+   "face": "front",
+   "at": [
+    0,
+    40
+   ],
+   "label": "Story button"
+  },
+  {
+   "id": "night_light",
+   "module": "LED_WS2812B_1PX_MODULE",
+   "face": "front",
+   "at": [
+    0,
+    50
+   ],
+   "label": "Night light and listening light"
+  },
+  {
+   "id": "speaker",
+   "module": "SPK_40MM_4R_3W",
+   "face": "front",
+   "at": [
+    0,
+    60
+   ],
+   "label": "Speaker"
+  },
+  {
+   "id": "mic",
+   "module": "MIC_INMP441_I2S",
+   "face": "front",
+   "at": [
+    0,
+    70
+   ],
+   "label": "Microphone hole"
+  },
+  {
+   "id": "eyes",
+   "module": "OLED_096_SSD1306_I2C",
+   "face": "front",
+   "at": [
+    0,
+    80
+   ],
+   "label": "Animated eyes"
+  }
+ ],
+ "electronics": {
+  "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+  "extra_modules": []
+ },
+ "behaviour": {
+  "template": "story_player",
+  "summary": "fixture",
+  "settings": {
+   "capture_mode": "child_voice_clip",
+   "names_for_audio": [
+    "Anya"
+   ]
+  }
+ }
+}

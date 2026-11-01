@@ -1,0 +1,62 @@
+{
+ "schema": "gadget-spec/1",
+ "name": "Room Weather",
+ "slug": "room-weather",
+ "tagline": "fixture",
+ "audience": {
+  "child_directed": false,
+  "age_years": null
+ },
+ "region": "IN",
+ "features": [
+  {
+   "id": "screen",
+   "module": "OLED_096_SSD1306_I2C",
+   "face": "front",
+   "at": [
+    0,
+    40
+   ],
+   "label": "Screen"
+  },
+  {
+   "id": "climate",
+   "module": "TEMPHUM_AHT20_ADAFRUIT_4566",
+   "face": "front",
+   "at": [
+    0,
+    50
+   ],
+   "label": "Temperature and humidity"
+  },
+  {
+   "id": "warn_light",
+   "module": "LED_WS2812B_1PX_MODULE",
+   "face": "front",
+   "at": [
+    0,
+    70
+   ],
+   "label": "Warning light"
+  },
+  {
+   "id": "page_button",
+   "module": "BUTTON_TACTILE_KY004",
+   "face": "front",
+   "at": [
+    0,
+    80
+   ],
+   "label": "Next page"
+  }
+ ],
+ "electronics": {
+  "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+  "extra_modules": []
+ },
+ "behaviour": {
+  "template": "sensor_display",
+  "summary": "fixture",
+  "settings": {}
+ }
+}
