@@ -7,8 +7,8 @@
 **/*.pyc
 **/.venv/
 .git/
-builder/
-tools/
+/builder/
+/tools/
 engine/gstudio/cad/
 engine/gstudio/pcb/
 engine/gstudio/firmware/

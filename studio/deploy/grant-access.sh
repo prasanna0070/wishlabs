@@ -25,4 +25,11 @@ if gcloud run services describe gstudio-builder --region=asia-south1 --project=$
 else
   echo "builder not deployed yet: re-run this script after it is"
 fi
+if gcloud run services describe gstudio-web --region=asia-south1 --project=$P >/dev/null 2>&1; then
+  # The web app is public at the network level; its own access-key login gates every /api route.
+  gcloud run services add-iam-policy-binding gstudio-web --region=asia-south1 --project=$P --member=allUsers --role=roles/run.invoker --format=none
+  echo "web made publicly reachable (app login still required)"
+else
+  echo "web not deployed yet: re-run this script after it is"
+fi
 echo "done"
