@@ -1,8 +1,8 @@
 # Cloud Build for gstudio-web. Context: studio/. Used by deploy/web.sh.
 steps:
   - name: gcr.io/cloud-builders/docker
-    args: ["build", "-f", "web/server/Dockerfile", "-t", "${_IMAGE}", "."]
-images: ["${_IMAGE}"]
+    args: ["build", "-f", "web/server/Dockerfile", "-t", "${_IMAGE}", "-t", "${_LATEST}", "."]
+images: ["${_IMAGE}", "${_LATEST}"]
 options:
   machineType: E2_HIGHCPU_8
 timeout: 1800s

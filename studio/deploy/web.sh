@@ -17,7 +17,7 @@ IMAGE=$REGION-docker.pkg.dev/$P/gstudio/$SVC:$TAG
 
 gcloud builds submit "$STUDIO" --project=$P --region=$REGION \
   --config="$STUDIO/deploy/web.cloudbuild.yaml" --ignore-file="$STUDIO/deploy/web.gcloudignore" \
-  --substitutions=_IMAGE=$IMAGE
+  --substitutions=_IMAGE=$IMAGE,_LATEST=$REGION-docker.pkg.dev/$P/gstudio/$SVC:latest
 echo "image: $IMAGE"
 [ "${1:-}" = "--build" ] && exit 0
 
