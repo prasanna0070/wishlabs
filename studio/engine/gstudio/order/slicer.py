@@ -157,6 +157,204 @@ def bed_fit(size_mm: list[float], bed: tuple[float, float, float]) -> tuple[bool
     return False, 0
 
 
+# ------------------------------------------------------------------ print orientation (live failure 2026-11-02)
+# A part that does not fit as exported (e.g. a 212.7 mm tall shell on a 210 mm Z printer) is tipped 90 degrees about X or
+# Y, then turned about Z if that helps, so its longest side lies along the 250 mm axis. Angles follow the right-hand rule
+# about the CAD axes (+Z up, front faces -Y, +X is the robot's left), as PrusaSlicer's --rotate-x / --rotate-y apply them.
+TRAPPED_LIMIT_MM2 = 500.0  # above this a tipped part is sliced with TIPPED_OVERRIDE
+# PrusaSlicer leaves bridges unsupported by default (dont_support_bridges = 1) and slice.ini builds supports from the plate
+# only; a ceiling over the part's own cavity needs both relaxed or it prints as a long unsupported bridge
+TIPPED_OVERRIDE = {"support_material_buildplate_only": "0", "dont_support_bridges": "0"}
+# Every tipped pose is one the CAD did not design for, so none may price a long span as a bridge in mid air: with the stock
+# profile an open-rear 120 x 80 x 212.7 mm box laid on its open back sliced to 0 g of support (its 115 x 208 mm front wall
+# "bridged") and beat face down (dev VM, 2026-11-02). Tipped parts are always sliced with supports under bridges.
+BRIDGE_OVERRIDE = {"dont_support_bridges": "0"}
+TIPS = (
+    # key, rotate_x_deg, rotate_y_deg, plain words (which face goes on the bed)
+    ("rear_down", -90, 0, "lying on its back, the rear face on the bed"),
+    ("left_down", 0, 90, "lying on its left side (the robot's left, +X) on the bed"),
+    ("right_down", 0, -90, "lying on its right side (the robot's right, -X) on the bed"),
+    ("front_down", 90, 0, "lying face down, the front on the bed"),
+)
+
+
+def _rotation(rx_deg: float, ry_deg: float, rz_deg: float = 0.0):
+    """3x3 matrix applying rotate X, then Y, then Z (right-hand rule, degrees)."""
+    import numpy as np
+
+    def R(axis: int, deg: float):
+        c, s = math.cos(math.radians(deg)), math.sin(math.radians(deg))
+        c, s = round(c, 12), round(s, 12)
+        m = np.eye(3)
+        i, j = [(1, 2), (2, 0), (0, 1)][axis]
+        m[i, i], m[i, j], m[j, i], m[j, j] = c, -s, s, c
+        return m
+    return R(2, rz_deg) @ R(1, ry_deg) @ R(0, rx_deg)
+
+
+def bed_contact_mm2(tris) -> float:
+    """Area of the flat triangles lying on the bed (within 0.2 mm of the lowest point, normal within 8 deg of vertical)."""
+    import numpy as np
+
+    t = np.asarray(tris, dtype=float).reshape(-1, 3, 3)
+    zmin = float(t[:, :, 2].min())
+    n = np.cross(t[:, 1] - t[:, 0], t[:, 2] - t[:, 0])
+    a = np.linalg.norm(n, axis=1)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        nz = np.abs(n[:, 2]) / np.where(a > 0, a, 1.0)
+    flat = (nz > 0.99) & (t[:, :, 2].max(axis=1) < zmin + 0.2)
+    return round(float(a[flat].sum() / 2.0), 1)
+
+
+def overhang_stats(tris, cell: float = 3.0, per_mm2: float = 1.0, min_drop: float = 1.0, steep: float = 0.77) -> dict:
+    """Mesh estimates for one print orientation (not slicer results):
+      trapped_overhang_mm2  down-facing area flatter than 40 deg from horizontal (the CAD designs 45 deg roofs to print
+                            without support, so those do not count) with part material under it (an
+                            up-facing surface lower in the same column); the
+                            profile builds supports from the build plate only, so this prints as an unsupported ceiling
+      support_column_cm3    the other down-facing area times its height over the bed: a proxy for support material
+    Surfaces are sampled at about `per_mm2` points per mm2 (every triangle at least once) and binned on a `cell` mm X/Y grid,
+    so each cell holds about nine samples of every surface crossing it."""
+    import numpy as np
+
+    t = np.asarray(tris, dtype=float).reshape(-1, 3, 3)
+    n = np.cross(t[:, 1] - t[:, 0], t[:, 2] - t[:, 0])
+    a2 = np.linalg.norm(n, axis=1)
+    keep = a2 > 1e-12
+    t, n, a2 = t[keep], n[keep], a2[keep]
+    if len(t) == 0:
+        return {"trapped_overhang_mm2": 0.0, "support_column_cm3": 0.0}
+    area = a2 / 2.0
+    per_mm2 = min(per_mm2, 3_000_000 / max(float(area.sum()), 1.0))  # bounded work for very large parts
+    k = np.maximum(1, np.ceil(area * per_mm2)).astype(int)
+    idx = np.repeat(np.arange(len(t)), k)
+    rng = np.random.default_rng(0)
+    u, v = rng.random(len(idx)), rng.random(len(idx))
+    flip = u + v > 1.0
+    u[flip], v[flip] = 1.0 - u[flip], 1.0 - v[flip]
+    T = t[idx]
+    P = T[:, 0] + (T[:, 1] - T[:, 0]) * u[:, None] + (T[:, 2] - T[:, 0]) * v[:, None]
+    w = (area / k)[idx]
+    nz = (n[:, 2] / a2)[idx]
+    zmin = float(P[:, 2].min())
+    ij = np.floor((P[:, :2] - P[:, :2].min(0)) / cell).astype(np.int64)
+    key = ij[:, 0] * (int(ij[:, 1].max()) + 1) + ij[:, 1]
+    uniq, inv = np.unique(key, return_inverse=True)
+    # part material under a point shows as an up-facing surface below it in the same column (the top of what is below);
+    # counting any surface would let a sloped overhang shadow itself inside one cell
+    up = nz > 0.2
+    low = np.full(len(uniq), np.inf)
+    np.minimum.at(low, inv[up], P[up, 2])
+    down = (nz < -steep) & (P[:, 2] > zmin + 0.2)
+    trapped = down & (low[inv] < P[:, 2] - min_drop)
+    free = down & ~trapped
+    return {"trapped_overhang_mm2": round(float(w[trapped].sum()), 1),
+            "support_column_cm3": round(float((w[free] * (P[free, 2] - zmin)).sum()) / 1000.0, 1)}
+
+
+def choose_orientation(tris, bed: tuple[float, float, float]) -> dict:
+    """The print orientation for a part: as exported (turned about Z if needed) when that fits, otherwise the 90 degree tip
+    about X or Y that fits with, in order: the least overhang trapped over the part itself (supports come from the build
+    plate only), the least support column under the rest, the largest flat area on the bed (ties: rear, left, right,
+    front). Estimates from the mesh; the slicer then measures the real supports. Never invents a fit: `fits` is False when
+    no tip fits either."""
+    import numpy as np
+
+    t = np.asarray(tris, dtype=float).reshape(-1, 3, 3)
+    size = (t.reshape(-1, 3).max(0) - t.reshape(-1, 3).min(0)).tolist()
+    ok, rz = bed_fit(size, bed)
+    if ok:
+        return {"key": "as_exported", "tipped": False, "fits": True, "rotate_x_deg": 0, "rotate_y_deg": 0, "rotate_z_deg": rz,
+                "label": "as exported" + (", turned 90 deg about Z" if rz else ""), "printed_size_mm": [round(v, 1) for v in
+                                                                                                     (size if not rz else [size[1], size[0], size[2]])]}
+    cands = []
+    for key, rx, ry, words in TIPS:
+        R = _rotation(rx, ry)
+        t2 = t @ R.T
+        sz = (t2.reshape(-1, 3).max(0) - t2.reshape(-1, 3).min(0)).tolist()
+        fits, rz2 = bed_fit(sz, bed)
+        printed = [sz[1], sz[0], sz[2]] if rz2 else sz
+        c = {"key": key, "tipped": True, "fits": fits, "rotate_x_deg": rx, "rotate_y_deg": ry, "rotate_z_deg": rz2, "label": words,
+             "printed_size_mm": [round(v, 1) for v in printed]}
+        if fits:
+            c["bed_contact_mm2"] = bed_contact_mm2(t2)
+            c.update(overhang_stats(t2))
+        cands.append(c)
+    fitting = [c for c in cands if c["fits"]]
+    shown = ("key", "fits", "rotate_x_deg", "rotate_y_deg", "rotate_z_deg", "label", "printed_size_mm", "trapped_overhang_mm2",
+             "support_column_cm3", "bed_contact_mm2")
+    if not fitting:
+        return {"key": "none", "tipped": False, "fits": False, "rotate_x_deg": 0, "rotate_y_deg": 0, "rotate_z_deg": 0,
+                "label": "no orientation fits", "printed_size_mm": [round(v, 1) for v in size],
+                "candidates": [{k: c.get(k) for k in shown if k in c} for c in cands]}
+
+    def near_best(cs, key, rel, floor):  # keep the candidates within a tolerance of the best value of `key`
+        lo = min(c[key] for c in cs)
+        tol = max(floor, rel * max(c[key] for c in cs))
+        return [c for c in cs if c[key] <= lo + tol]
+    pool = near_best(fitting, "trapped_overhang_mm2", 0.02, 200.0)
+    pool = near_best(pool, "support_column_cm3", 0.05, 5.0)
+    best = dict(max(pool, key=lambda c: (c["bed_contact_mm2"], -cands.index(c))))
+    best["candidates"] = [{k: c.get(k) for k in shown if k in c} for c in cands]
+    best["basis"] = ("least overhang trapped over the part (supports from the build plate only), then the least support column, then "
+                     "the largest flat area on the bed; mesh estimates, the slicer then measures the real supports")
+    return best
+
+
+def orient_mesh(tris, o: dict):
+    """The triangles rotated as `o` says, resting on Z=0 and centred on X/Y = 0 (the way the CAD exports its STLs)."""
+    import numpy as np
+
+    t = np.asarray(tris, dtype=float).reshape(-1, 3, 3) @ _rotation(o["rotate_x_deg"], o["rotate_y_deg"], o["rotate_z_deg"]).T
+    v = t.reshape(-1, 3)
+    lo, hi = v.min(0), v.max(0)
+    shift = np.array([-(lo[0] + hi[0]) / 2, -(lo[1] + hi[1]) / 2, -lo[2]])
+    return t + shift
+
+
+def write_stl(path: str | Path, tris) -> Path:
+    """Binary STL of triangles [[v0, v1, v2], ...] (facet normals recomputed)."""
+    import numpy as np
+
+    t = np.asarray(tris, dtype=np.float64).reshape(-1, 3, 3)
+    n = np.cross(t[:, 1] - t[:, 0], t[:, 2] - t[:, 0])
+    ln = np.linalg.norm(n, axis=1, keepdims=True)
+    n = np.divide(n, ln, out=np.zeros_like(n), where=ln > 0)
+    rec = np.zeros(len(t), dtype=np.dtype([("n", "<f4", 3), ("v", "<f4", (3, 3)), ("a", "<u2")]))
+    rec["n"], rec["v"] = n, t
+    path = Path(path)
+    with open(path, "wb") as fh:
+        fh.write(b"Gadget Studio oriented print mesh".ljust(80, b" "))
+        fh.write(struct.pack("<I", len(t)))
+        fh.write(rec.tobytes())
+    return path
+
+
+def orientation_sentence(o: dict, as_exported_mm: list[float], bed: tuple[float, float, float], supports: bool | None = None,
+                         support_g: float | None = None, supports_on_part: bool = False) -> str:
+    """Plain words for a tipped part: how it lies, whether the slicer added supports, the rotation to apply, and why."""
+    turns = []
+    if o.get("rotate_x_deg"):
+        turns.append(f"{o['rotate_x_deg']:+d} deg about X")
+    if o.get("rotate_y_deg"):
+        turns.append(f"{o['rotate_y_deg']:+d} deg about Y")
+    if o.get("rotate_z_deg"):
+        turns.append(f"then {o['rotate_z_deg']} deg about Z")
+    x, y, z = as_exported_mm
+    why = (f"as exported it is {z:.1f} mm tall and the printer's Z is {bed[2]:.0f} mm" if z > bed[2]
+           else f"as exported it is {x:.1f} x {y:.1f} mm on a {bed[0]:.0f} x {bed[1]:.0f} mm bed")
+    ps = o.get("printed_size_mm") or []
+    sup = " with supports" if supports else " and the slicer did not add support material" if supports is False else ""
+    trapped = float(o.get("trapped_overhang_mm2") or 0)
+    inside = (f". About {trapped / 100:.0f} cm2 then faces down over the part itself (mesh estimate), so supports must also stand "
+              "on the part there (this part is sliced with supports allowed on the part and under bridges): remove them from "
+              "inside and check that surface" if supports_on_part else
+              f". About {trapped / 100:.0f} cm2 then faces down over the part itself (mesh estimate), where supports from the build "
+              "plate cannot reach: check it in the sliced preview" if trapped > TRAPPED_LIMIT_MM2 else "")
+    return (f"prints on its side, not upright{sup}: {o['label']}. In your slicer rotate it {', '.join(turns)} (right-hand rule, "
+            f"it then takes {' x '.join(f'{v:.1f}' for v in ps)} mm of the build volume) because {why}{inside}")
+
+
 # ------------------------------------------------------------------ G-code parsing
 
 _E = re.compile(r"\bE(-?\d*\.?\d+)")
@@ -273,46 +471,175 @@ def slice_part(stl: Path, work: Path, ini: Path = INI, exe: str | None = None, t
                 "on_bed": abs(info["bounds_min"][2]) <= 0.05})
     fits, rot = bed_fit(info["size_mm"], bed)
     rec["fits_bed"], rec["rotate_z_deg"] = fits, rot
+    rec["fits_bed_as_exported"] = fits
     rec["bed_mm"] = list(bed)
+    src = stl
+    orient = None
     if not fits:
+        # tip it 90 deg about X or Y before giving up (live failure 2026-11-02: a 212.7 mm tall shell, 210 mm Z)
+        try:
+            orient = choose_orientation(read_stl_triangles(stl), bed)
+        except ImportError:  # pragma: no cover - numpy is always on the builder
+            orient = None
+        if orient and orient["fits"]:  # _slice_tipped slices every tip that fits and writes the chosen <stem>.oriented.stl
+            rec["fits_bed"], rec["rotate_z_deg"] = True, orient["rotate_z_deg"]
+        rec["orientation"] = orient
+    else:
+        rec["orientation"] = {"key": "as_exported", "tipped": False, "fits": True, "rotate_x_deg": 0, "rotate_y_deg": 0,
+                              "rotate_z_deg": rot, "label": "as exported" + (", turned 90 deg about Z" if rot else ""),
+                              "printed_size_mm": [round(v, 1) for v in (info["size_mm"] if not rot else
+                                                                        [info["size_mm"][1], info["size_mm"][0], info["size_mm"][2]])]}
+    rec["tipped"] = bool(orient and orient.get("tipped") and orient.get("fits"))
+    if not rec["fits_bed"]:
         rec["error"] = (f"part is {info['size_mm'][0]:.1f} x {info['size_mm'][1]:.1f} x {info['size_mm'][2]:.1f} mm and does not fit the "
-                        f"{bed[0]:.0f} x {bed[1]:.0f} x {bed[2]:.0f} mm build volume in this orientation")
+                        f"{bed[0]:.0f} x {bed[1]:.0f} x {bed[2]:.0f} mm build volume in any orientation (as exported, turned about Z, "
+                        "or tipped 90 deg onto its back, front or either side)")
         return rec
     exe = exe or find_slicer()
     if not exe:
         rec["error"] = "prusa-slicer not found on PATH (set GS_PRUSA_SLICER)"
         return rec
+    if rec["tipped"]:
+        return _slice_tipped(rec, stl, work, ini, exe, timeout, prof, info, bed, orient, keep_gcode)
     gcode = work / (stl.stem + ".gcode")
-    cmd = [exe, "--export-gcode", "--load", str(ini), "--output", str(gcode)]
-    if rot:
-        cmd += ["--rotate", str(rot)]
-    cmd.append(str(stl))
-    env = dict(os.environ)
-    env.setdefault("HOME", str(work))
-    t0 = time.perf_counter()
-    try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
-    except subprocess.TimeoutExpired:
-        rec["error"] = f"slicer timed out after {timeout:.0f} s"
-        return rec
-    rec["slice_seconds"] = round(time.perf_counter() - t0, 2)
-    log = (r.stdout or "") + (r.stderr or "")
-    (work / (stl.stem + ".slicer.log")).write_text(" ".join(cmd) + "\n\n" + log)
-    rec["slicer_warnings"] = sorted({ln.strip() for ln in log.splitlines()
-                                     if re.search(r"warning|error|empty layer|not ?manifold|repaired", ln, re.I)})[:20]
-    if r.returncode != 0 or not gcode.exists():
-        rec["error"] = f"slicer exit code {r.returncode}: " + (log.strip().splitlines() or ["no output"])[-1][:300]
-        return rec
-    stats = parse_gcode(gcode, float(prof.get("filament_diameter", 1.75)), float(prof.get("filament_density", 1.27)))
-    if "filament_g" not in stats or stats.get("print_h") is None:
-        rec["error"] = "slicer G-code had no filament/time summary"
+    res = _run_slicer(exe, ini, src, gcode, rot, timeout, prof, work / (stl.stem + ".slicer.log"), work)
+    rec.update({k: v for k, v in res.items() if k != "stats"})
+    if "error" in res:
         return rec
     # the tail summary block is the evidence record for these numbers
     (work / (stl.stem + ".slice.txt")).write_text(_summary_block(gcode))
     if not keep_gcode:
         gcode.unlink(missing_ok=True)
-    rec.update(stats)
+    rec.update(res["stats"])
     rec["ok"] = True
+    return rec
+
+
+def _run_slicer(exe: str, ini: Path, src: Path, gcode: Path, rot: int, timeout: float, prof: dict, log_path: Path,
+                home: Path) -> dict:
+    """One PrusaSlicer run: {slice_seconds, slicer_warnings, stats} or {..., error}. The command line and output go to log_path."""
+    cmd = [exe, "--export-gcode", "--load", str(ini), "--output", str(gcode)]
+    if rot:
+        cmd += ["--rotate", str(rot)]
+    cmd.append(str(src))
+    env = dict(os.environ)
+    env.setdefault("HOME", str(home))
+    t0 = time.perf_counter()
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=env)
+    except subprocess.TimeoutExpired:
+        return {"error": f"slicer timed out after {timeout:.0f} s"}
+    res: dict = {"slice_seconds": round(time.perf_counter() - t0, 2)}
+    log = (r.stdout or "") + (r.stderr or "")
+    log_path.write_text(" ".join(cmd) + "\n\n" + log)
+    res["slicer_warnings"] = sorted({ln.strip() for ln in log.splitlines()
+                                     if re.search(r"warning|error|empty layer|not ?manifold|repaired", ln, re.I)})[:20]
+    if r.returncode != 0 or not gcode.exists():
+        res["error"] = f"slicer exit code {r.returncode}: " + (log.strip().splitlines() or ["no output"])[-1][:300]
+        return res
+    stats = parse_gcode(gcode, float(prof.get("filament_diameter", 1.75)), float(prof.get("filament_density", 1.27)))
+    if "filament_g" not in stats or stats.get("print_h") is None:
+        res["error"] = "slicer G-code had no filament/time summary"
+        return res
+    res["stats"] = stats
+    return res
+
+
+def _tipped_profile(ini: Path, path: Path, stem: str, o: dict) -> tuple[Path, dict]:
+    """The profile a tipped orientation is sliced (and priced) with, written to `path` (it ships with the part): the stock
+    profile with supports under bridges (BRIDGE_OVERRIDE), and when part of it faces down over the part itself, where
+    build-plate-only supports cannot reach, with supports allowed on the part too (TIPPED_OVERRIDE)."""
+    trapped = float(o.get("trapped_overhang_mm2") or 0)
+    cm2 = trapped / 100
+    on_part = trapped > TRAPPED_LIMIT_MM2
+    keys = TIPPED_OVERRIDE if on_part else BRIDGE_OVERRIDE
+    if on_part:
+        why = (f"tipped onto its side with about {cm2:.0f} cm2 facing down over the part itself, where supports from the build "
+               "plate cannot reach (mesh estimate)")
+        note = (f"tipped onto its side with about {cm2:.0f} cm2 facing down over the part (mesh estimate), so supports may stand "
+                "on the part and go under bridges")
+    else:
+        why = "tipped onto its side, a pose the CAD did not design for, so no span may print as an unsupported bridge"
+        note = "tipped onto its side (a pose the CAD did not design for), so supports go under bridges"
+    lines = [ln for ln in Path(ini).read_text().splitlines() if ln.split("=", 1)[0].strip() not in keys]
+    path.write_text("\n".join(lines) + f"\n# gstudio.order.slicer override for {stem}: {note}\n"
+                    + "".join(f"{k} = {v}\n" for k, v in keys.items()))
+    return path, {**keys, "file": path.name, "why": why}
+
+
+def supports_on_part(override: dict | None) -> bool:
+    return isinstance(override, dict) and str(override.get("support_material_buildplate_only")) == "0"
+
+
+def _slice_tipped(rec: dict, stl: Path, work: Path, ini: Path, exe: str, timeout: float, prof: dict, info: dict,
+                  bed: tuple[float, float, float], orient: dict, keep_gcode: bool) -> dict:
+    """A part that fits only tipped onto a side: slice every 90 degree tip that fits, each with the profile it would print
+    with, and keep the shortest print (within 3 % is a tie: then the least filament, supports included, then the largest
+    flat area on the bed). The mesh ranking in choose_orientation
+    picked the worst of the four for the live shell (on its right side: 867 g with 541 g of support, 58.9 h, 11.7 cm2 on
+    the bed) where face down sliced to 470 g, 151 g of support, 38.3 h (dev VM, 2026-11-02), so the slicer decides."""
+    tris = read_stl_triangles(stl)
+    fitting = [c for c in orient.get("candidates") or [] if c.get("fits")]
+
+    def one(c: dict) -> dict:
+        d = work / f"{stl.stem}.tip-{c['key']}"
+        d.mkdir(parents=True, exist_ok=True)
+        src = write_stl(d / f"{stl.stem}.oriented.stl", orient_mesh(tris, c))
+        ini_c, ov = _tipped_profile(ini, d / f"{stl.stem}.slice.ini", stl.stem, c)
+        res = _run_slicer(exe, ini_c, src, d / f"{stl.stem}.gcode", 0, timeout, prof, d / f"{stl.stem}.slicer.log", work)
+        return {"cand": c, "dir": d, "override": ov, "res": res}
+
+    with cf.ThreadPoolExecutor(max_workers=max(1, len(fitting))) as pool:
+        runs = list(pool.map(one, fitting))
+    for r in runs:  # every candidate's measured numbers stay on the record
+        st = r["res"].get("stats") or {}
+        r["cand"]["sliced"] = ({"print_h": st.get("print_h"), "filament_g": st.get("filament_g"), "support_g": st.get("support_g"),
+                                "profile": ("supports allowed on the part and under bridges" if supports_on_part(r["override"])
+                                            else "supports from the build plate, also under bridges")}
+                               if st else {"error": r["res"].get("error")})
+    ok = [r for r in runs if "stats" in r["res"]]
+    if not ok:
+        bad = runs[0]["res"] if runs else {"error": "no tipped orientation to slice"}
+        rec.update({k: v for k, v in bad.items() if k != "stats"})
+        rec["orientation"] = orient
+        return rec
+    order = [c["key"] for c in fitting]
+    h_min = min(float(r["res"]["stats"]["print_h"]) for r in ok)
+    # within 3 % (+0.1 h) of the shortest counts as a tie: a solid 167.6 x 97.6 x 212.7 mm box sliced 51.3 h on a side and
+    # 51.8 h flat but 15 g lighter flat, so the tie goes to the least filament, then the largest flat area on the bed
+    pool = [r for r in ok if float(r["res"]["stats"]["print_h"]) <= h_min * 1.03 + 0.1]
+    best = min(pool, key=lambda r: (round(float(r["res"]["stats"]["filament_g"])), -float(r["cand"].get("bed_contact_mm2") or 0),
+                                    order.index(r["cand"]["key"])))
+    d = best["dir"]
+    # the chosen orientation's files under the part's own names (the log keeps the command exactly as it ran)
+    shutil.copyfile(d / f"{stl.stem}.oriented.stl", work / f"{stl.stem}.oriented.stl")
+    shutil.copyfile(d / f"{stl.stem}.slicer.log", work / f"{stl.stem}.slicer.log")
+    gcode = d / f"{stl.stem}.gcode"
+    (work / (stl.stem + ".slice.txt")).write_text(_summary_block(gcode))
+    if keep_gcode:
+        shutil.copyfile(gcode, work / (stl.stem + ".gcode"))
+    shutil.copyfile(d / f"{stl.stem}.slice.ini", work / f"{stl.stem}.slice.ini")  # a tipped part always has its own profile
+    rec["profile_override"] = {**best["override"], "file": f"{stl.stem}.slice.ini"}
+    for r in runs:
+        shutil.rmtree(r["dir"], ignore_errors=True)
+    o = {**best["cand"], "tipped": True, "fits": True, "candidates": orient.get("candidates"),
+         "basis": ("sliced every 90 degree tip that fits, each with the profile it prints with (supports under bridges, and "
+                   f"allowed on the part where the mesh shows more than {TRAPPED_LIMIT_MM2 / 100:.0f} cm2 facing down over the part "
+                   "itself), and kept "
+                   "the shortest print (within 3 % counts as a tie), then the least filament (supports included), then the "
+                   "largest flat area on the bed; slicer measurements, see candidates[].sliced"),
+         "mesh_pick": orient.get("key")}
+    o.pop("sliced", None)
+    res = best["res"]
+    rec.update({k: v for k, v in res.items() if k != "stats"})
+    rec.update(res["stats"])
+    rec["ok"] = True
+    rec["rotate_z_deg"] = o["rotate_z_deg"]
+    o["sentence"] = orientation_sentence(o, info["size_mm"], bed, res["stats"].get("supports"), res["stats"].get("support_g"),
+                                         supports_on_part=supports_on_part(best["override"]))
+    o["method"] = ("the order stage rotated the mesh before slicing (gstudio.order.slicer.orient_mesh); the delivered "
+                   f"print/{stl.name} stays as the CAD exported it")
+    rec["orientation"] = o
     return rec
 
 

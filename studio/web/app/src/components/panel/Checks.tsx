@@ -55,7 +55,7 @@ export function ChecksCard({ version, expanded = false }: { version: Version; ex
       <div className="checks-top">
         <ShieldCheck size={20} className={s.failed ? "bad" : "ok"} />
         <div className="grow">
-          <strong>Gadget Studio checks</strong>
+          <strong>Wish Labs checks</strong>
           <div className="muted small">
             {s.failed ? `${s.failed} failed` : bad ? `${s.warning} warning${s.warning === 1 ? "" : "s"}` : "No issues found in completed checks"} · {s.passed || 0} passed
             {s.not_run ? ` · ${s.not_run} not run` : ""}

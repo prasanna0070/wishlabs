@@ -169,7 +169,9 @@ def test_order_share_checklist(authed, client):
     r = authed.patch(f"/api/projects/{pid}/checklist", json={"assembly": {"print-shell": True}})
     assert r.json()["checklist"]["assembly"] == {"print-shell": True}
     # share
-    tok = authed.post(f"/api/projects/{pid}/share").json()["token"]
+    sh = authed.post(f"/api/projects/{pid}/share").json()
+    tok = sh["token"]
+    assert sh["url"] == f"/studio/s/{tok}"           # the SPA lives under /studio (wish.plugbook.si/studio)
     assert authed.post(f"/api/projects/{pid}/share").json()["token"] == tok
     authed.post("/api/logout")
     client.cookies.clear()

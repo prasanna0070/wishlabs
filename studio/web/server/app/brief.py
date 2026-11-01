@@ -78,7 +78,7 @@ def parts_from_spec(spec: dict, names: dict[str, dict]) -> list[dict]:
 
 # ---------------------------------------------------------------------------------------------- size
 def glb_bbox_mm(glb: bytes | None, prefix: str = "PRINT_") -> dict | None:
-    """Overall size of the printed nodes in a Gadget Studio preview GLB (metres, gadget z up -> glTF +Y).
+    """Overall size of the printed nodes in a Wish Labs preview GLB (metres, gadget z up -> glTF +Y).
     Uses accessor min/max of each node's POSITION; nodes with a rotation are skipped (None when nothing usable)."""
     if not glb or glb[:4] != b"glTF" or len(glb) < 20:
         return None

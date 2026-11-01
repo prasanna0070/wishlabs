@@ -1,5 +1,5 @@
 #!/bin/bash
-# Gadget Studio: put both Cloud Run services live. Claude's auto mode refuses production deploys,
+# Wish Labs (code name gstudio): put both Cloud Run services live. Claude's auto mode refuses production deploys,
 # IAM grants and secret writes, so Prasanna runs this once:   ! bash studio/deploy/go-live.sh
 #
 # 1. deploys gstudio-builder (private, heavy pipeline image, pinned by digest)
@@ -50,6 +50,7 @@ for i in 1 2 3 4 5 6; do curl -fsS "$URL/api/health" >/dev/null 2>&1 && break; s
 echo "web health:     $(curl -fsS "$URL/api/health" || echo FAILED)"
 echo "builder health: $(curl -fsS -m 300 -H "Authorization: Bearer $TOKEN" "$BUILDER_URL/health" | head -c 300 || echo FAILED)"
 echo
-echo "Gadget Studio is live: $URL"
+echo "Wish Labs studio is live: $URL (redirects to $URL/studio/)"
+echo "On the main site (after deploy/wish-studio-routes.sh): https://wish.plugbook.si/studio/"
 echo "Log in with the access key (it was copied to your clipboard the first time this ran;"
 echo "to copy it again: gcloud secrets versions access latest --secret=gstudio-access-key --project=$P | pbcopy)"

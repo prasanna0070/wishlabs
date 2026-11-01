@@ -1,7 +1,8 @@
 /* Site settings. Rename the brand here, in one place: every [data-brand] element and the page title read it. */
 (function () {
   var BRAND = "Wish Labs";
-  var STUDIO_URL = "https://gstudio-web-xxxxxxxxxx-el.a.run.app";
+  /* The studio app is on this same domain (wish.plugbook.si/studio/, routed by the load balancer). */
+  var STUDIO_URL = "/studio/";
 
   /* The six example designs. Names, audience chips, one-liners and "you might type" sentences are the
      design agents' copy (studio/landing/index.html); colours are each spec.json "colors". */

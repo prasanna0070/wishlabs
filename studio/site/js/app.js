@@ -161,10 +161,37 @@ input.addEventListener("blur", () => { if (!input.value.trim()) { userMode = fal
 input.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); form.requestSubmit ? form.requestSubmit() : form.submit(); }
 });
+/* "Make a wish" opens the studio with the wish in its composer: /studio/?wish=<text> (the studio fills the box, caps
+   it at WISH_MAX characters and never sends it by itself). The visitor's own words win; with an empty box it is the
+   example being typed. Copy-to-clipboard is only the fallback when that link cannot be built. */
+const WISH_MAX = 500;
+let currentGadget = SITE.GADGETS[0];
+const capWish = (s) => Array.from(s).slice(0, WISH_MAX).join("").trim();
+const currentWish = () => input.value.trim() || ("I wish for " + currentGadget.wish);
+function studioHref(wish) {
+  try {
+    const u = new URL(SITE.STUDIO_URL, window.location.href);
+    if (wish) u.searchParams.set("wish", capWish(wish));
+    return u.origin === window.location.origin ? u.pathname + u.search : u.toString();
+  } catch (err) {
+    return null;
+  }
+}
+/* The other "Make a wish" links carry the wish too, once the visitor has typed one. */
+function syncStudioLinks() {
+  const href = studioHref(input.value.trim());
+  if (href) $$("[data-studio-link]").forEach((a) => a.setAttribute("href", href));
+}
+input.addEventListener("input", syncStudioLinks);
 form.addEventListener("submit", (e) => {
   e.preventDefault();
   const v = input.value.trim();
   if (fx) fx.burstAt($(".wish-go", form), { count: 60, speed: 10 });
+  const href = studioHref(currentWish());
+  if (href) {
+    setTimeout(() => { window.location.href = href; }, RM ? 0 : 450);
+    return;
+  }
   const go = () => { window.location.href = SITE.STUDIO_URL; };
   if (v && navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(v).then(() => { toast("Your wish is copied. Paste it into the studio."); setTimeout(go, 1300); }, () => setTimeout(go, 400));
@@ -227,6 +254,7 @@ async function heroLoop(hero) {
   await wait(900);
   for (;;) {
     const g = list[i];
+    currentGadget = g;
     if (i !== 0 || wishTxt.textContent !== g.wish) {
       if (hero) hero.prepare(g);
       await typeIn(g.wish);

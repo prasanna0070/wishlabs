@@ -57,6 +57,19 @@ async def logout(request: Request):
     return res
 
 
+@router.get("/api/session")
+async def session(request: Request):
+    """The SPA's start-up probe: always 200, so a signed-out visitor (every landing-page "Make a wish") does not get
+    a 401 logged in the browser console. /api/me keeps its 401 contract."""
+    from datetime import datetime, timezone
+
+    exp = request.app.state.signer.verify(request.cookies.get(COOKIE))
+    if exp is None:
+        return JSONResponse({"authenticated": False, "expires": None}, headers={"Cache-Control": "no-store"})
+    return JSONResponse({"authenticated": True, "expires": datetime.fromtimestamp(exp, timezone.utc).isoformat()
+                         .replace("+00:00", "Z")}, headers={"Cache-Control": "no-store"})
+
+
 # ------------------------------------------------------------------ share
 async def _shared(request: Request, token: str) -> dict:
     svc = svc_of(request)

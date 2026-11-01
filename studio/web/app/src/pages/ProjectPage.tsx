@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useProject } from "../store/project";
 import { useUI } from "../store/ui";
 import { Header } from "../components/Header";
@@ -44,9 +44,9 @@ export function ProjectPage({ shared = false }: { shared?: boolean }) {
   }, [project, shared, send]);
 
   useEffect(() => {
-    if (project) document.title = `${project.name || "Untitled gadget"} · Gadget Studio`;
+    if (project) document.title = `${project.name || "Untitled gadget"} · Wish Labs`;
     return () => {
-      document.title = "Gadget Studio";
+      document.title = "Wish Labs";
     };
   }, [project?.name]);
 
@@ -64,9 +64,9 @@ export function ProjectPage({ shared = false }: { shared?: boolean }) {
     return (
       <div className="empty">
         <h3>{error}</h3>
-        <a className="btn" href="/">
+        <Link className="btn" to="/">
           Back to projects
-        </a>
+        </Link>
       </div>
     );
   if (!project) return null;

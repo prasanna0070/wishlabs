@@ -48,6 +48,8 @@ export async function request<T = any>(method: string, url: string, body?: unkno
 export const api = {
   health: () => request("GET", "/api/health"),
   me: () => request<{ authenticated: boolean; expires: string }>("GET", "/api/me"),
+  /** Start-up probe: always 200 ({authenticated: false} when signed out), so no 401 lands in the console. */
+  session: () => request<{ authenticated: boolean; expires: string | null }>("GET", "/api/session"),
   login: (key: string) => request<{ ok: boolean }>("POST", "/api/login", { key }),
   logout: () => request("POST", "/api/logout"),
 

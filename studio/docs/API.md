@@ -32,6 +32,7 @@ Conventions:
 | POST | `/api/login` | `{"key": "<access key>"}` | 200 `{"ok": true, "expires": "<iso>"}` + `Set-Cookie: gs_session=...; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000` (+ `Secure` on https). 401 on a bad key. 429 after 10 bad keys from one IP in 10 minutes. |
 | POST | `/api/logout` | none | 200 `{"ok": true}`, cookie cleared |
 | GET | `/api/me` | none | 200 `{"authenticated": true, "expires": "<iso>"}` or 401 |
+| GET | `/api/session` | none | always 200: `{"authenticated": true, "expires": "<iso>"}` or `{"authenticated": false, "expires": null}`; `Cache-Control: no-store`. The SPA's start-up probe, so a signed-out visitor gets no 401 in the browser console. |
 | GET | `/api/health` | none | 200 `{"ok": true, "version": "0.1.0", "builder": "remote\|local\|fake", "agent": "gemini\|scripted", "store": "gcs\|local", "engine": true}` |
 
 The key comes from env `ACCESS_KEY` (Cloud Run maps Secret Manager `gstudio-access-key` into it), or is read from
@@ -338,12 +339,17 @@ Non-binding: nothing is charged or reserved; `request.status_text` says so; the 
 
 | Method | Path | Response |
 |---|---|---|
-| POST | `/api/projects/{pid}/share` | `{"token": "s_...", "url": "/s/s_..."}` (idempotent) |
+| POST | `/api/projects/{pid}/share` | `{"token": "s_...", "url": "/studio/s/s_..."}` (idempotent) |
 | DELETE | `/api/projects/{pid}/share` | `{"ok": true}` (revokes; old links 404) |
 | GET | `/api/share/{token}` | read-only `Project` (no `order_requests`, `share`, `turn`), `"read_only": true`, asset URLs already rewritten to `/api/share/{token}/...` |
 | GET, HEAD | `/api/share/{token}/v/{n}/files/{path}`, `/api/share/{token}/v/{n}/export`, `/api/share/{token}/concepts/{cid}/{file}` | as the private routes |
 
-The SPA route `/s/{token}` renders the project read-only.
+The SPA route `/studio/s/{token}` renders the project read-only. The SPA is served under `/studio/` (Vite base
+`/studio/`, router basename `/studio`); `/api/*` stays at the root of the same origin. On https://wish.plugbook.si the
+load balancer sends `/studio`, `/studio/*` and `/api/*` to gstudio-web and everything else to the landing page; on the
+run.app URL, `/` and the old SPA routes (`/login`, `/p/...`, `/s/...`) redirect (307) to their `/studio` equivalents.
+`/studio/?wish=<text>` pre-fills the new-project composer (at most 500 characters, kept through sign-in, never sent
+automatically).
 
 ## 8. Agent behaviour the UI can rely on
 

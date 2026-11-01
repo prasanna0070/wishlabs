@@ -958,12 +958,15 @@ def support_note(cad_note: Optional[str], st: dict, prof: Optional[dict] = None)
         expected = m.group(1).strip()
     orient = _SUPPORT_CLAIM.sub("", cad_note).strip(" ;,") or "as exported: the STL already rests on the bed at Z=0 in its print orientation"
     g = float(st.get("support_g") or 0)
-    plate_only = (prof or {}).get("support_material_buildplate_only") == "1"
+    override = st.get("profile_override") if isinstance(st.get("profile_override"), dict) else {}
+    plate_only = (override.get("support_material_buildplate_only") or (prof or {}).get("support_material_buildplate_only")) == "1"
     if st.get("ok") is False:
         return orient, "supports unknown: the part did not slice"
     if g > 0:
         txt = (f"needs supports: {g:g} g of support material sliced (PrusaSlicer auto supports"
-               + (", from the build plate only" if plate_only else "") + ")")
+               + ((", from the build plate only" + (" and under bridges" if str(override.get("dont_support_bridges")) == "0" else ""))
+                  if plate_only else ", allowed to stand on the part and under bridges" if override else "")
+               + ")")
         if expected:
             txt += f"; the CAD expected supports for {expected}"
         elif re.search(r"(?i)\bno supports?\b", cad_note):
@@ -987,6 +990,11 @@ def build_printed(slice_parts: dict, components: dict | None, spec: dict, materi
         cp = c.get("print") if isinstance(c.get("print"), dict) else {}
         kind = "test_coupon" if stem.startswith("TEST_") else "print"
         note = first(cp, "orientation_note") or first(c, "orientation_note", "print_orientation", "orientation") or orient.get(stem)
+        so = st.get("orientation") if isinstance(st.get("orientation"), dict) else {}
+        tipped = bool(st.get("tipped") and so.get("fits"))
+        cad_note = note
+        if tipped:  # the slicer tipped it: the CAD's upright note no longer describes how it prints
+            note = so.get("sentence") or f"prints on its side, {so.get('label')}"
         onote, snote = support_note(note if isinstance(note, str) else None, st, prof)
         cad_mat = first(cp, "material")
         row = {
@@ -1009,9 +1017,17 @@ def build_printed(slice_parts: dict, components: dict | None, spec: dict, materi
             "sliced": bool(st.get("ok")),
             "orientation_note": f"{onote[:1].upper()}{onote[1:]}; {snote}.",
             "support_note": snote,
-            "orientation_basis": ("cad orientation; supports from the slicer" if note else
+            "orientation_basis": ("tipped by the order stage because the part does not fit the printer as exported; supports from the "
+                                  "slicer" + (f"; the CAD planned: {cad_note}" if isinstance(cad_note, str) and cad_note else "")
+                                  if tipped else "cad orientation; supports from the slicer" if note else
                                   "default orientation (the CAD stage gave no reason); supports from the slicer"),
         }
+        if tipped:
+            row["print_orientation"] = {k: so.get(k) for k in ("key", "label", "rotate_x_deg", "rotate_y_deg", "rotate_z_deg",
+                                                                "printed_size_mm", "sentence")}
+            row["tipped"] = True
+        if isinstance(st.get("profile_override"), dict):
+            row["profile_override"] = st["profile_override"]
         if not st.get("ok"):
             row["error"] = st.get("error")
         if kind == "test_coupon":

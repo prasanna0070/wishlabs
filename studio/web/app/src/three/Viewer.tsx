@@ -82,7 +82,7 @@ export function decorName(nodeName: string): string | null {
 export function baseName(name: string | null | undefined): string | null {
   return name ? name.split("#decor")[0] : null;
 }
-const PRIMARY = new THREE.Color("#3046D9");
+const PRIMARY = new THREE.Color("#6D4BFF");
 const GHOST = new THREE.Color("#C9C6BE");
 const WHITE = new THREE.Color("#FFFFFF");
 
@@ -405,7 +405,7 @@ function Model(props: ViewerProps & { onPrepared: (p: Prepared) => void; onExten
             : undefined
         }
       />
-      <box3Helper ref={selBox as any} args={[new THREE.Box3(), new THREE.Color("#3046D9")]} visible={false} />
+      <box3Helper ref={selBox as any} args={[new THREE.Box3(), new THREE.Color("#6D4BFF")]} visible={false} />
       {(props.partLabels && hl) || props.labels?.length ? (
         <AnchorProjector
           prep={prep}
@@ -619,7 +619,7 @@ function Cables({ routes, offset, dim }: { routes: (CableRoute & { highlight?: b
           const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
           const radius = Math.max(0.8, (r.diameter || r.diameterEnvelopeMm || 3) / 2);
           const geo = new THREE.TubeGeometry(curve, Math.min(400, pts.length * 12), radius, 10, false);
-          return { key: r.id || `cable-${i}`, geo, color: r.color || "#3046D9", hl: r.highlight !== false };
+          return { key: r.id || `cable-${i}`, geo, color: r.color || "#6D4BFF", hl: r.highlight !== false };
         }),
     [routes, offset],
   );
@@ -646,7 +646,7 @@ function DimBox({ prep, hidden }: { prep: Prepared; hidden?: Set<string> }) {
   const fmt = (v: number) => `${Math.round(v * 10) / 10} mm`;
   return (
     <>
-      <box3Helper args={[box, new THREE.Color("#3046D9")]} />
+      <box3Helper args={[box, new THREE.Color("#6D4BFF")]} />
       <Html position={[(min.x + max.x) / 2, min.y, max.z]} center zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
         <span className="dimtag">W {fmt(s.x)}</span>
       </Html>

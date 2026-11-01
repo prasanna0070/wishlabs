@@ -1,5 +1,13 @@
 // URL builders for version files, exports and concept assets, for both the owner view and share links.
 
+/** Where the SPA is mounted ("/studio", from Vite's base). Router paths are relative to it; /api stays at the root. */
+export const STUDIO_BASE = (import.meta.env.BASE_URL || "/").replace(/\/+$/, "");
+
+/** The full read-only share link for a token: https://<host>/studio/s/<token>. */
+export function shareUrl(token: string, origin: string = location.origin): string {
+  return `${origin}${STUDIO_BASE}/s/${token}`;
+}
+
 export interface Ctx {
   pid: string;
   share?: string | null; // share token: read-only view

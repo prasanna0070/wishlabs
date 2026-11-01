@@ -3,11 +3,11 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Check, ChevronDown, Copy, Download, FileText, History, Link2, Redo2, RotateCcw, Undo2, Eye, AlertCircle, TriangleAlert } from "lucide-react";
 import { useProject, currentVersion, isBuilding } from "../store/project";
 import { api } from "../lib/api";
-import { exportUrl } from "../lib/urls";
+import { exportUrl, shareUrl } from "../lib/urls";
 import { dateTime, timeAgo } from "../lib/format";
 import { briefFor, designChangedSinceBrief, originText } from "../lib/versions";
 import type { Brief, Version } from "../lib/types";
-import { Dialog, Dropdown, Spinner, Toast } from "./ui";
+import { Dialog, Dropdown, Logo, Spinner, Toast } from "./ui";
 import { BriefView } from "./BriefView";
 import { VersionDialog } from "./VersionDialog";
 import type { TabId } from "./panel/RightPanel";
@@ -52,9 +52,22 @@ export function Header({ onTab: _onTab }: { onTab: (t: TabId) => void }) {
 
   return (
     <header className="ws-header">
-      <Link to={readOnly ? "/" : "/"} className="icon-btn" aria-label="Back to home" title="Back to home">
-        <ArrowLeft size={18} />
-      </Link>
+      {readOnly ? (
+        // A signed-out viewer of a share link: the mark and name lead to the Wish Labs landing page ("/" on
+        // wish.plugbook.si), not into the sign-in screen.
+        <a href="/" className="ws-brand" aria-label="Wish Labs home" title="Wish Labs">
+          <Logo size={24} />
+        </a>
+      ) : (
+        <>
+          <Link to="/" className="icon-btn" aria-label="Back to home" title="Back to home">
+            <ArrowLeft size={18} />
+          </Link>
+          <span className="ws-mark" title="Wish Labs">
+            <Logo size={22} withText={false} />
+          </span>
+        </>
+      )}
       {editing ? (
         <input
           ref={input}
@@ -80,8 +93,8 @@ export function Header({ onTab: _onTab }: { onTab: (t: TabId) => void }) {
         </h1>
       )}
       {readOnly ? (
-        <span className="pill">
-          <Eye size={13} /> Read-only share
+        <span className="pill ro-pill" title="Read-only share">
+          <Eye size={13} /> <span className="lbl">Read-only share</span>
         </span>
       ) : null}
       <div className="grow" />
@@ -313,7 +326,7 @@ function ShareDialog({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const url = token ? `${location.origin}/s/${token}` : "";
+  const url = token ? shareUrl(token) : "";
 
   const create = async () => {
     setBusy(true);

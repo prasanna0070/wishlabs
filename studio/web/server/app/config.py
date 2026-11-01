@@ -7,6 +7,8 @@ from pathlib import Path
 
 GCP_PROJECT = "your-gcp-project"
 SERVER_VERSION = "0.1.0"
+# The SPA is served under this path (https://wish.plugbook.si/studio); /api stays at the root.
+SPA_BASE = "/studio"
 
 
 def _default_studio_root() -> Path:

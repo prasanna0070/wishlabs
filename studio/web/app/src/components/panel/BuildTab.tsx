@@ -141,7 +141,7 @@ function StepStage({ track, steps, build, comps, versionN }: { track: Track; ste
       ? routeList.map((r) => {
           const c = conns.find((x) => (r.from && x.from?.startsWith(r.from.split(".")[0])) || (r.to && x.from?.startsWith(r.to.split(".")[0])));
           const highlight = !step?.highlight?.length || step.highlight.some((h) => (r.id && h.includes(r.id)) || (r.to && h.includes(r.to.split(".")[0])) || /REFERENCE_Cable/i.test(h));
-          return { ...r, color: r.color || colorHex(c?.color) || "#3046D9", highlight };
+          return { ...r, color: r.color || colorHex(c?.color) || "#6D4BFF", highlight };
         })
       : null;
 

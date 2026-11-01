@@ -14,6 +14,7 @@ from ..auth import require_session
 from ..brief import assemble_brief
 from ..builds import BuildBusy, enrich_status
 from ..changes import changes_text, describe
+from ..config import SPA_BASE
 from ..plan import base_nudges, from_engine, reuse_plan
 from ..projects import NotFound, find_version, make_message, vkey
 from ..sse import EventChannel, sse_response
@@ -621,7 +622,7 @@ async def share_create(request: Request, pid: str):
         def mut(pp):
             pp["share"] = {"token": tok, "created": now_iso()}
         await _update(request, pid, mut)
-    return {"token": tok, "url": f"/s/{tok}"}
+    return {"token": tok, "url": f"{SPA_BASE}/s/{tok}"}
 
 
 @router.delete("/api/projects/{pid}/share")

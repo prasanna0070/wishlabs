@@ -138,6 +138,39 @@ FAKES = {
         def run(ctx):
             raise RuntimeError("boolean union failed")
     """,
+    # live failure 2026-11-02: a print part the slicer cannot take makes the order stage fail; the build must end as a
+    # clean failed build carrying that message (the web client then crashed on .get of the summary's error string)
+    "cad_unprintable": """
+        import json
+        from gsfake.cad import box
+        def run(ctx):
+            (ctx.out / "print").mkdir(exist_ok=True)
+            (ctx.out / "cad").mkdir(exist_ok=True)
+            box(ctx.out / "print" / "PRINT_Shell.stl", 300, 220, 50)   # fits no orientation of 250 x 210 x 210
+            comps = {"PRINT_Shell": {"kind": "PRINT", "bbox": [-150, 150, -110, 110, 0, 50], "volume_mm3": 3300000.0},
+                     "PURCHASE_CoreBoard": {"kind": "PURCHASE", "module_id": "core_mod", "ref": "U1", "bbox": [-10, 10, -5, 5, 2, 8]}}
+            (ctx.out / "cad" / "components.json").write_text(json.dumps(comps))
+            return {"message": "1 print part"}
+    """,
+    # the live shell's case: 212.7 mm tall on a 210 mm Z printer, open at the rear; it must be tipped, sliced and quoted
+    "cad_tall": """
+        import json
+        import trimesh
+        def run(ctx):
+            (ctx.out / "print").mkdir(exist_ok=True)
+            (ctx.out / "cad").mkdir(exist_ok=True)
+            outer = trimesh.creation.box((120, 80, 212.7))
+            outer.apply_translation((0, 0, 106.35))
+            inner = trimesh.creation.box((115.2, 80, 207.9))
+            inner.apply_translation((0, 2.41, 106.35))            # open rear face (+Y), 2.4 mm walls elsewhere
+            m = trimesh.boolean.difference([outer, inner], engine="manifold")
+            m.export(ctx.out / "print" / "PRINT_Shell.stl")
+            comps = {"PRINT_Shell": {"kind": "PRINT", "bbox": [-60, 60, -40, 40, 0, 212.7], "volume_mm3": float(m.volume),
+                                     "orientation_note": "upright on its flat base"},
+                     "PURCHASE_CoreBoard": {"kind": "PURCHASE", "module_id": "core_mod", "ref": "U1", "bbox": [-10, 10, -5, 5, 2, 8]}}
+            (ctx.out / "cad" / "components.json").write_text(json.dumps(comps))
+            return {"message": "1 print part"}
+    """,
     "cad_partial": """
         import json
         from gsfake.cad import box
@@ -482,3 +515,58 @@ def test_min21_a_changed_tests_status_makes_build_json_not_reproducible(fakes, t
     s2 = build({}, tmp_path, opts(fakes, only="package", mods={"pcb": f"{fakes}.firmware_print"}))
     ps = s2["stages"]["package"]["summary"]
     assert ps["build_json_reproducible"] is False and any("tests" in p for p in ps["problems"])
+
+
+# ---------------------------------------------------------------- live failure 2026-11-02 (Storybot Pal)
+
+
+def test_failed_order_stage_gives_a_clean_failed_build_with_the_real_message(fakes, tmp_path):
+    s = build({}, tmp_path, opts(fakes, mods={"cad": f"{fakes}.cad_unprintable", "pcb": f"{fakes}.firmware_print",
+                                              "manual": f"{fakes}.manual_final", "finalize": f"{fakes}.manual_final"}))
+    st = states(s)
+    assert st["order"] == "failed", s["stages"]["order"]
+    for sid in ("manual", "checks", "finalize", "docs", "package"):          # the later stages all ran, as in the live build
+        assert st[sid] == "done", (sid, s["stages"][sid])
+    err = s["stages"]["order"]["error"]
+    assert err.startswith("parts list written, but no quote: 1 print part(s) could not be sliced: PRINT_Shell:") and "any orientation" in err
+    assert s["state"] == "error" and s["error"].startswith("1 stage(s) failed: order: parts list written, but no quote")
+    assert "AttributeError" not in json.dumps(s, default=str)
+    status = json.loads((tmp_path / "status.json").read_text())
+    assert status["state"] == "error" and status["failed"] == ["order"] and status["error"] == s["error"]
+    assert any(m["text"].startswith("Print slicing and price failed: parts list written, but no quote") for m in status["messages"])
+    b = json.loads((tmp_path / "build.json").read_text())
+    assert b["order"]["status"] == "NOT_QUOTED" and "could not be sliced" in b["order"]["reason"]
+    assert not (tmp_path / "order" / "quote.json").exists()
+    dc = json.loads((tmp_path / "checks" / "digital-checks.json").read_text())
+    assert any(c["id"] == "stage:order" and c["status"] == "failed" for c in dc["checks"])
+    # what the builder hands the web client: the summary JSON, "error" a plain string (not the {code, message} envelope)
+    assert isinstance(json.loads(json.dumps(s, default=str))["error"], str)
+
+
+@pytest.mark.skipif(__import__("gstudio.order.slicer", fromlist=["x"]).find_slicer() is None, reason="prusa-slicer not installed")
+def test_too_tall_shell_is_tipped_face_down_sliced_and_quoted(fakes, tmp_path):
+    pytest.importorskip("trimesh")
+    s = build({}, tmp_path, opts(fakes, mods={"cad": f"{fakes}.cad_tall", "pcb": f"{fakes}.firmware_print"}))
+    assert states(s)["order"] == "done", s["stages"]["order"]
+    ss = json.loads((tmp_path / "print" / "slice-stats.json").read_text())["parts"]["PRINT_Shell"]
+    assert ss["ok"] and ss["tipped"] and ss["fits_bed"] and not ss["fits_bed_as_exported"]
+    o = ss["orientation"]
+    # open rear: face down leaves the cavity open upward (no trapped ceiling, no support column); on its back the whole
+    # inside of the front would need supports, on a side the other side wall is a ceiling over the part
+    assert o["key"] == "front_down" and o["rotate_x_deg"] == 90 and o["rotate_z_deg"] == 90, o
+    assert o["printed_size_mm"][0] == pytest.approx(212.7, abs=0.1) and o["printed_size_mm"][2] == pytest.approx(80, abs=0.1)
+    cand = {c["key"]: c for c in o["candidates"]}
+    assert cand["left_down"]["trapped_overhang_mm2"] > 10000 and cand["rear_down"]["support_column_cm3"] > 100
+    assert ss["top_z_mm"] <= 80.5
+    assert "prints on its side" in o["sentence"] and "+90 deg about X" in o["sentence"] and "212.7 mm tall" in o["sentence"]
+    q = json.loads((tmp_path / "order" / "quote.json").read_text())
+    assert q["delivered_price_inr"]["pilot_one_off"] > 0
+    chk = {c["id"]: c for c in s["stages"]["order"]["summary"]["checks"]}
+    assert chk["bed-fit:PRINT_Shell"]["status"] == "warning" and "prints on its side" in chk["bed-fit:PRINT_Shell"]["detail"]
+    assert chk["sliced:PRINT_Shell"]["status"] == "passed"
+    row = next(r for r in json.loads((tmp_path / "build.json").read_text())["printed"] if r["name"] == "PRINT_Shell")
+    assert row["tipped"] and row["print_orientation"]["key"] == "front_down"
+    assert row["orientation_note"].startswith("Prints on its side") and "upright on its flat base" not in row["orientation_note"]
+    texts = [m["text"] for m in json.loads((tmp_path / "status.json").read_text())["messages"]]
+    assert any("PRINT_Shell does not fit the printer upright, so it prints on its side" in t for t in texts)
+    assert "prints on its side" in (tmp_path / "PROJECT.md").read_text()

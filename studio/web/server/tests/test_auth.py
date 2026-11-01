@@ -45,6 +45,22 @@ def test_tampered_cookie_rejected(client):
     assert client.get("/api/me").status_code == 401
 
 
+def test_session_probe_is_always_200(client):
+    # signed out: 200 with authenticated false (no 401 in the browser console for landing-page visitors)
+    r = client.get("/api/session")
+    assert r.status_code == 200 and r.json() == {"authenticated": False, "expires": None}
+    assert "no-store" in r.headers.get("cache-control", "")
+    client.cookies.set(COOKIE, "v1.9999999999.abcd.deadbeef")
+    assert client.get("/api/session").json()["authenticated"] is False
+    client.cookies.clear()
+    client.post("/api/login", json={"key": KEY})
+    j = client.get("/api/session").json()
+    assert j["authenticated"] is True and j["expires"].endswith("Z")
+    client.post("/api/logout")
+    client.cookies.clear()
+    assert client.get("/api/session").json()["authenticated"] is False
+
+
 def test_logout(client):
     client.post("/api/login", json={"key": KEY})
     assert client.post("/api/logout").status_code == 200

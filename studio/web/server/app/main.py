@@ -6,11 +6,11 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .auth import AccessKey, LoginLimiter, SessionSigner
-from .config import SERVER_VERSION, Settings
+from .config import SERVER_VERSION, SPA_BASE, Settings
 from .routes import device as device_routes
 from .routes import projects as project_routes
 from .routes import public as public_routes
@@ -18,16 +18,22 @@ from .services import Services
 
 log = logging.getLogger("gstudio.web")
 
-NO_SPA = """<!doctype html><html><head><meta charset="utf-8"><title>Gadget Studio</title></head>
+NO_SPA = """<!doctype html><html><head><meta charset="utf-8"><title>Wish Labs</title></head>
 <body style="font-family:system-ui;background:#F6F5F1;color:#1B1F24;padding:40px">
-<h1>Gadget Studio API</h1><p>The web app is not built into this server. API: <code>/api/health</code>.</p></body></html>"""
+<h1>Wish Labs API</h1><p>The web app is not built into this server. API: <code>/api/health</code>.</p></body></html>"""
+
+
+def _studio_url(path: str, query: str) -> str:
+    """Same-origin URL under the SPA base (never protocol-relative): "p/x" -> "/studio/p/x?query"."""
+    url = f"{SPA_BASE}/{path.lstrip('/')}"
+    return f"{url}?{query}" if query else url
 
 
 def create_app(settings: Settings | None = None, services: Services | None = None) -> FastAPI:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     settings = settings or (services.settings if services else Settings.from_env())
     svc = services or Services(settings)
-    app = FastAPI(title="Gadget Studio", version=SERVER_VERSION, docs_url="/api/docs", openapi_url="/api/openapi.json",
+    app = FastAPI(title="Wish Labs", version=SERVER_VERSION, docs_url="/api/docs", openapi_url="/api/openapi.json",
                   redoc_url=None)
     app.state.svc = svc
     app.state.signer = SessionSigner(AccessKey(settings), settings.session_days)
@@ -59,16 +65,32 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
     async def api_404(rest: str):
         return JSONResponse({"error": {"code": "not_found", "message": "No such API route."}}, status_code=404)
 
-    @app.api_route("/{full_path:path}", methods=["GET", "HEAD"], include_in_schema=False)
+    # The SPA lives under SPA_BASE (/studio): wish.plugbook.si sends /studio, /studio/* and /api/* here and every
+    # other path to the landing page. The run.app URL redirects its old routes (/, /login, /p/..., /s/...) there.
+    # /studio itself is the SPA's home too: the router (basename /studio) links "home" there, without a slash.
+    @app.api_route(SPA_BASE, methods=["GET", "HEAD"], include_in_schema=False)
+    async def spa_root():
+        return await spa("")
+
+    @app.api_route(SPA_BASE + "/{full_path:path}", methods=["GET", "HEAD"], include_in_schema=False)
     async def spa(full_path: str):
         if static is None or index is None or not index.exists():
-            return HTMLResponse(NO_SPA)
-        if full_path:
+            return HTMLResponse(NO_SPA, headers={"Cache-Control": "no-cache"})
+        if full_path and full_path != "index.html":
             cand = (static / full_path).resolve()
             if cand.is_file() and static.resolve() in cand.parents:
                 cache = ("public, max-age=31536000, immutable" if full_path.startswith("assets/")
                          else "public, max-age=300")
                 return FileResponse(cand, headers={"Cache-Control": cache})
+            if full_path.startswith("assets/"):  # a missing hashed bundle: never answer it with index.html
+                return Response("Not found", status_code=404, media_type="text/plain",
+                                headers={"Cache-Control": "no-cache"})
         return FileResponse(index, headers={"Cache-Control": "no-cache"})
+
+    @app.api_route("/{full_path:path}", methods=["GET", "HEAD"], include_in_schema=False)
+    async def old_route(request: Request, full_path: str):
+        if full_path == "api" or full_path.startswith("api/"):  # e.g. HEAD on an unknown API path
+            return JSONResponse({"error": {"code": "not_found", "message": "No such API route."}}, status_code=404)
+        return RedirectResponse(_studio_url(full_path, request.url.query), status_code=307)
 
     return app

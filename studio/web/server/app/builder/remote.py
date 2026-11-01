@@ -95,8 +95,19 @@ class RemoteBuilder:
                 body["concept_id"] = brief["concept_id"]
         for attempt in range(60):
             res = await self._post("/build", body, self.settings.build_timeout_s)
-            if (res.get("error") or {}).get("code") == "rate_limited":
-                await asyncio.sleep(15)
-                continue
+            if not isinstance(res, dict):
+                return {"ok": False, "error": f"builder /build returned {type(res).__name__}, not an object"}
+            err = res.get("error")
+            # Two shapes come back: the builder's error envelope {"error": {"code", "message"}} and the engine's build summary,
+            # whose "error" is a plain string when a stage failed ("1 stage(s) failed: order: ..."). Calling .get on that
+            # string raised AttributeError and replaced the real stage message in status.json (live failure 2026-11-02).
+            if isinstance(err, dict):
+                if err.get("code") == "rate_limited":
+                    await asyncio.sleep(15)
+                    continue
+                return {**res, "ok": False, "error": str(err.get("message") or err.get("code") or "builder error"),
+                        "code": err.get("code")}
+            if "state" in res and "ok" not in res:  # an engine build summary: ok only when every stage finished
+                res = {**res, "ok": res.get("state") == "done"}
             return res
         return {"ok": False, "error": "no builder slot became free in 15 minutes"}

@@ -139,7 +139,224 @@ def test_slice_reports_supports_for_overhang(tmp_path):
 
 def test_too_big_part_is_reported_not_sliced(tmp_path):
     r = slicer.slice_part(box_stl(tmp_path / "PRINT_Huge.stl", 300, 220, 50), tmp_path / "w")
-    assert r["ok"] is False and "does not fit" in r["error"]
+    assert r["ok"] is False and "does not fit" in r["error"] and "any orientation" in r["error"]
+    assert r["orientation"]["fits"] is False and not r["tipped"]
+
+
+# ---------------------------------------------------------------- tall parts (live failure 2026-11-02, Storybot Pal)
+
+BED = (250.0, 210.0, 210.0)
+
+
+def test_orientation_as_exported_when_it_fits(tmp_path):
+    o = slicer.choose_orientation(slicer.read_stl_triangles(box_stl(tmp_path / "a.stl", 100, 240, 50)), BED)
+    assert o["key"] == "as_exported" and not o["tipped"] and o["rotate_z_deg"] == 90 and o["printed_size_mm"] == [240, 100, 50]
+
+
+def test_tall_part_is_tipped_so_its_longest_side_lies_along_the_250_mm_axis(tmp_path):
+    """The live shell was 167.6 x 97.6 x 212.7 mm on a 210 mm Z printer: a solid box of that size must be tipped."""
+    tris = slicer.read_stl_triangles(box_stl(tmp_path / "tall.stl", 167.6, 97.6, 212.7))
+    o = slicer.choose_orientation(tris, BED)
+    assert o["fits"] and o["tipped"] and o["key"] == "rear_down" and (o["rotate_x_deg"], o["rotate_y_deg"]) == (-90, 0)
+    assert o["printed_size_mm"] == pytest.approx([212.7, 167.6, 97.6], abs=0.05)  # longest side along X (250 mm)
+    m = slicer.orient_mesh(tris, o)
+    lo, hi = m.reshape(-1, 3).min(0), m.reshape(-1, 3).max(0)
+    assert lo[2] == pytest.approx(0, abs=1e-6) and (hi - lo).tolist() == pytest.approx([212.7, 167.6, 97.6], abs=1e-3)
+    assert slicer.bed_fit((hi - lo).tolist(), BED) == (True, 0)
+    words = slicer.orientation_sentence(o, [167.6, 97.6, 212.7], BED, supports=True)
+    assert words.startswith("prints on its side, not upright with supports: lying on its back")
+    assert "-90 deg about X, then 90 deg about Z" in words and "212.7 mm tall and the printer's Z is 210 mm" in words
+
+
+def test_open_shell_is_tipped_with_its_cavity_open_to_the_build_plate(tmp_path):
+    """Supports come from the build plate only: a tipped shell must not leave a side wall as a ceiling over the part."""
+    trimesh = pytest.importorskip("trimesh")
+    outer = trimesh.creation.box((120, 80, 212.7))
+    outer.apply_translation((0, 0, 106.35))
+    inner = trimesh.creation.box((115.2, 80, 207.9))
+    inner.apply_translation((0, 2.41, 106.35))
+    m = trimesh.boolean.difference([outer, inner], engine="manifold")
+    o = slicer.choose_orientation(m.triangles, BED)
+    cand = {c["key"]: c for c in o["candidates"]}
+    assert o["key"] == "front_down", cand
+    assert cand["left_down"]["trapped_overhang_mm2"] > 10000 and cand["right_down"]["trapped_overhang_mm2"] > 10000
+    assert cand["front_down"]["trapped_overhang_mm2"] < 200 and cand["rear_down"]["support_column_cm3"] > 100
+
+
+def test_printed_row_says_a_tipped_part_prints_on_its_side():
+    o = {"key": "front_down", "tipped": True, "fits": True, "rotate_x_deg": 90, "rotate_y_deg": 0, "rotate_z_deg": 90,
+         "label": "lying face down, the front on the bed", "printed_size_mm": [212.7, 167.6, 97.6]}
+    o["sentence"] = slicer.orientation_sentence(o, [167.6, 97.6, 212.7], BED, supports=True)
+    st = {"PRINT_Shell": {"file": "PRINT_Shell.stl", "ok": True, "filament_g": 300.0, "print_h": 20.0, "supports": True, "support_g": 41.0,
+                          "size_mm": [167.6, 97.6, 212.7], "fits_bed": True, "rotate_z_deg": 90, "tipped": True, "orientation": o}}
+    comps = {"PRINT_Shell": {"kind": "PRINT", "print": {"orientation_note": "upright on its flat base: face and decor print on vertical walls"}}}
+    row = bom.build_printed(st, comps, SPEC, "PETG", None, slicer.read_profile())[0]
+    assert row["tipped"] and row["print_orientation"]["rotate_x_deg"] == 90
+    assert row["orientation_note"].startswith("Prints on its side, not upright with supports: lying face down")
+    assert "upright on its flat base" not in row["orientation_note"] and "upright on its flat base" in row["orientation_basis"]
+    assert "needs supports: 41 g" in row["support_note"]
+    from gstudio.manual.steps import print_notes
+    assert any(b.startswith("Prints on its side, not upright with supports") for b in print_notes(row))
+
+
+@needs_slicer
+def test_slice_tall_part_on_its_side(tmp_path):
+    stl = box_stl(tmp_path / "PRINT_Tall.stl", 167.6, 97.6, 212.7)
+    r = slicer.slice_part(stl, tmp_path / "w")
+    assert r["ok"], r
+    assert r["tipped"] and r["fits_bed"] and r["fits_bed_as_exported"] is False
+    assert r["top_z_mm"] == pytest.approx(97.6, abs=0.3)          # sliced lying down, not 212.7 mm tall
+    assert r["orientation"]["sentence"].startswith("prints on its side, not upright")
+    assert (tmp_path / "w" / "PRINT_Tall.oriented.stl").exists() and "PRINT_Tall.oriented.stl" in (tmp_path / "w" / "PRINT_Tall.slicer.log").read_text()
+    # every tip that fits was sliced and the shortest print kept (slicer measurements, not the mesh ranking)
+    # (a solid box: all four within about 1 % in time, so the lighter flat print wins the tie; dev VM 2026-11-02 sliced
+    # 51.8 h / 815.9 g lying on its back or front against 51.3 h / 831.3 g on a side)
+    sl = {c["key"]: c["sliced"] for c in r["orientation"]["candidates"] if c["fits"]}
+    assert len(sl) == 4 and r["print_h"] <= min(v["print_h"] for v in sl.values()) * 1.03 + 0.1, sl
+    assert r["filament_g"] == min(v["filament_g"] for v in sl.values()), sl
+    assert not list((tmp_path / "w").glob("PRINT_Tall.tip-*"))
+
+
+def test_tipped_part_keeps_the_orientation_the_slicer_measures_shortest(tmp_path, monkeypatch):
+    """Live shell (2026-11-02): the mesh ranking laid it on its right side, which sliced to 58.9 h with 541 g of support,
+    while face down sliced to 38.3 h with 151 g. Every tip that fits is sliced and the shortest print is kept, whatever the
+    mesh ranking picked (for this box it picks rear_down)."""
+    stl = box_stl(tmp_path / "PRINT_Tall.stl", 167.6, 97.6, 212.7)
+    hours = {"rear_down": 52.6, "left_down": 59.1, "right_down": 58.9, "front_down": 38.3}   # the live shell's sliced hours
+    calls = []
+
+    def fake(exe, ini, src, gcode, rot, timeout, prof, log_path, home):
+        key = Path(src).parent.name.split(".tip-")[1]
+        calls.append(key)
+        gcode.write_text(f"; filament used [g] = {hours[key] * 10}\n")
+        log_path.write_text(f"{exe} --load {ini} {src}\n")
+        return {"slice_seconds": 0.1, "slicer_warnings": [],
+                "stats": {"print_h": hours[key], "filament_g": hours[key] * 10, "support_g": 1.0, "supports": True}}
+    monkeypatch.setattr(slicer, "_run_slicer", fake)
+    r = slicer.slice_part(stl, tmp_path / "w", exe="prusa-slicer")
+    assert r["ok"] and r["tipped"] and sorted(calls) == sorted(hours)
+    o = r["orientation"]
+    assert o["key"] == "front_down" and o["mesh_pick"] == "rear_down" and (o["rotate_x_deg"], o["rotate_z_deg"]) == (90, 90)
+    assert r["print_h"] == 38.3 and {c["key"]: c["sliced"]["print_h"] for c in o["candidates"]} == hours
+    assert "lying face down" in o["sentence"] and "+90 deg about X, then 90 deg about Z" in o["sentence"]
+    w = tmp_path / "w"
+    assert slicer.stl_info(w / "PRINT_Tall.oriented.stl")["size_mm"] == pytest.approx([212.7, 167.6, 97.6], abs=0.01)
+    assert "PRINT_Tall.tip-front_down" in (w / "PRINT_Tall.slicer.log").read_text() and not list(w.glob("PRINT_Tall.tip-*"))
+    assert (w / "PRINT_Tall.slice.txt").read_text().startswith("; filament used [g] = 383")
+
+
+@needs_slicer
+def test_open_shell_on_its_open_back_cannot_win_by_bridging_its_front_wall(tmp_path):
+    """With the stock profile (no supports under bridges) the open-rear box laid on its open back sliced to 0 g of support,
+    its 115 x 208 mm front wall printed as a bridge in mid air, and beat face down on time. Every tipped pose is sliced with
+    supports under bridges, so face down (cavity open upward, nothing to support) wins and that profile ships."""
+    trimesh = pytest.importorskip("trimesh")
+    outer = trimesh.creation.box((120, 80, 212.7))
+    outer.apply_translation((0, 0, 106.35))
+    inner = trimesh.creation.box((115.2, 80, 207.9))
+    inner.apply_translation((0, 2.41, 106.35))
+    m = trimesh.boolean.difference([outer, inner], engine="manifold")
+    stl = tmp_path / "PRINT_Shell.stl"
+    m.export(stl)
+    r = slicer.slice_part(stl, tmp_path / "w")
+    assert r["ok"] and r["tipped"] and r["orientation"]["key"] == "front_down", r["orientation"]
+    cand = {c["key"]: c["sliced"] for c in r["orientation"]["candidates"]}
+    assert cand["rear_down"]["support_g"] > 50 and cand["rear_down"]["print_h"] > cand["front_down"]["print_h"], cand
+    assert r["support_g"] < 1 and r["top_z_mm"] <= 80.5
+    ov = r["profile_override"]
+    assert ov["dont_support_bridges"] == "0" and "support_material_buildplate_only" not in ov and not slicer.supports_on_part(ov)
+    prof = slicer.read_profile(tmp_path / "w" / ov["file"])
+    assert prof["dont_support_bridges"] == "0" and prof["support_material_buildplate_only"] == "1"
+
+
+@needs_slicer
+def test_tipped_part_with_a_ceiling_over_itself_is_sliced_with_supports_on_the_part(tmp_path):
+    """The live shell on its side leaves its upper side wall as a ceiling over the cavity: build-plate-only supports cannot
+    reach it, so that part is sliced (and priced) with supports allowed on the part, and the override ships with it."""
+    trimesh = pytest.importorskip("trimesh")
+    outer = trimesh.creation.box((120, 80, 215))
+    outer.apply_translation((0, 0, 107.5))
+    inner = trimesh.creation.box((110, 70, 205))
+    inner.apply_translation((0, 0, 107.5))
+    m = trimesh.boolean.difference([outer, inner], engine="manifold")     # closed hollow box: every tip has a ceiling
+    stl = tmp_path / "PRINT_Hollow.stl"
+    m.export(stl)
+    r = slicer.slice_part(stl, tmp_path / "w")
+    assert r["ok"] and r["tipped"], r
+    assert r["orientation"]["trapped_overhang_mm2"] > slicer.TRAPPED_LIMIT_MM2
+    ov = r["profile_override"]
+    assert ov["support_material_buildplate_only"] == "0"
+    prof = slicer.read_profile(tmp_path / "w" / ov["file"])
+    assert prof["support_material_buildplate_only"] == "0" and prof["dont_support_bridges"] == "0" and r["support_g"] > 1
+    # the run that was kept loaded the override (sliced in its own tip folder, shipped as <stem>.slice.ini)
+    assert ov["file"] == "PRINT_Hollow.slice.ini"
+    assert (f"--load {tmp_path / 'w' / ('PRINT_Hollow.tip-' + r['orientation']['key']) / ov['file']}"
+            in (tmp_path / "w" / "PRINT_Hollow.slicer.log").read_text())
+    assert "supports allowed on the part and under bridges" in r["orientation"]["sentence"]
+    row = bom.build_printed({"PRINT_Hollow": r}, {}, SPEC, "PETG", None, slicer.read_profile())[0]
+    assert "allowed to stand on the part" in row["support_note"] and "build plate only" not in row["support_note"]
+
+
+@needs_slicer
+def test_order_stage_quotes_a_too_tall_shell_by_tipping_it(tmp_path):
+    """Order-stage regression of the live failure: no 'does not fit ... in this orientation', a quote, a plain warning."""
+    from gstudio import order
+    from gstudio.pipeline import _FallbackContext
+
+    out = tmp_path / "out"
+    (out / "print").mkdir(parents=True)
+    box_stl(out / "print" / "PRINT_Shell.stl", 167.6, 97.6, 212.7)
+    (out / "cad").mkdir()
+    (out / "cad" / "components.json").write_text(json.dumps(COMPS))
+
+    class S:
+        def to_json_dict(self, include_derived=True):
+            return json.loads(json.dumps(SPEC))
+
+    summary = order.run(_FallbackContext(S(), FakeLib(), out, {"fast": True, "price_check": "off"}))
+    assert summary["delivered_price_inr"]["pilot_one_off"] > 0 and summary["tipped"]["PRINT_Shell"]["label"].startswith("lying")
+    chk = {c["id"]: c for c in summary["checks"]}
+    assert chk["bed-fit:PRINT_Shell"]["status"] == "warning" and "prints on its side, not upright" in chk["bed-fit:PRINT_Shell"]["detail"]
+    assert chk["sliced:PRINT_Shell"]["status"] == "passed" and chk["quote"]["status"] in ("passed", "warning")
+    ss = json.loads((out / "print" / "slice-stats.json").read_text())["parts"]["PRINT_Shell"]
+    assert ss["orientation"]["rotate_x_deg"] in (90, -90) or ss["orientation"]["rotate_y_deg"] in (90, -90)
+    row = next(r for r in json.loads((out / "build.json").read_text())["printed"] if r["name"] == "PRINT_Shell")
+    assert row["tipped"] and row["orientation_note"].startswith("Prints on its side")
+
+
+def _cad_bed_fit_case(tmp_path, shell_tipped: bool, shell_on_bed: bool = True, cover_fits: bool = True):
+    from gstudio import checks as C
+
+    out = tmp_path / "out"
+    (out / "print").mkdir(parents=True)
+    (out / "cad").mkdir()
+    meshes = {"PRINT_Shell": {"fits_bed": False, "on_bed": shell_on_bed}, "PRINT_RearCover": {"fits_bed": cover_fits, "on_bed": True}}
+    (out / "cad" / "digital-checks.json").write_text(json.dumps({"checks": [{"id": "print_watertight", "status": "passed",
+                                                                            "data": {"meshes": meshes}}]}))
+    parts = {"PRINT_Shell": {"ok": True, "on_bed": shell_on_bed, "tipped": shell_tipped, "supports": True, "support_g": 151.19,
+                             "orientation": {"label": "lying face down, the front on the bed"}},
+             "PRINT_RearCover": {"ok": True, "on_bed": True, "tipped": False}}
+    (out / "print" / "slice-stats.json").write_text(json.dumps({"parts": parts}))
+    cs = [C.check("bed_fit", "Each print lies on z=0 in its stated orientation and fits a 250 x 210 x 210 mm bed", "failed",
+                  "do not fit or not on the bed: ['PRINT_Shell']", stage="cad"),
+          C.check("unsupported_ceiling", "No printed part has more than 500 mm2 ...", "failed", "PRINT_Shell", stage="cad")]
+    C.reconcile_tipped_prints(cs, out)
+    return {c["id"]: c for c in cs}
+
+
+def test_cad_bed_fit_failure_becomes_a_warning_when_the_order_stage_tipped_and_sliced_the_part(tmp_path):
+    """Live build 2026-11-02: the order stage printed the shell on its side, yet the CAD's bed_fit check still failed it."""
+    cs = _cad_bed_fit_case(tmp_path, shell_tipped=True)
+    assert cs["bed_fit"]["status"] == "warning"
+    assert "prints it on its side" in cs["bed_fit"]["detail"] and "PRINT_Shell lying face down" in cs["bed_fit"]["detail"]
+    assert "151.19 g of support" in cs["bed_fit"]["detail"]
+    assert cs["unsupported_ceiling"]["status"] == "failed"         # only bed_fit is reconciled
+
+
+def test_cad_bed_fit_failure_stays_when_the_part_was_not_tipped_or_another_part_does_not_fit(tmp_path):
+    assert _cad_bed_fit_case(tmp_path / "a", shell_tipped=False)["bed_fit"]["status"] == "failed"
+    assert _cad_bed_fit_case(tmp_path / "b", shell_tipped=True, cover_fits=False)["bed_fit"]["status"] == "failed"
+    assert _cad_bed_fit_case(tmp_path / "c", shell_tipped=True, shell_on_bed=False)["bed_fit"]["status"] == "failed"
 
 
 # ---------------------------------------------------------------- parts list

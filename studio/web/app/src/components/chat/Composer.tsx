@@ -140,7 +140,7 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
         </div>
       </form>
       {err ? <div className="composer-err">{err}</div> : null}
-      <div className="disclaimer">Gadget Studio can make mistakes. Double-check builds and responses.</div>
+      <div className="disclaimer">Wish Labs can make mistakes. Double-check builds and responses.</div>
     </div>
   );
 });

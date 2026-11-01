@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowUp, Box, CloudRain, LogOut, Moon, Plus, Sprout, Trash2, Eye } from "lucide-react";
 import { api } from "../lib/api";
 import type { Mode, ProjectSummary } from "../lib/types";
@@ -8,6 +8,7 @@ import { useAuth } from "../store/auth";
 import { Logo, Spinner, Dropdown } from "../components/ui";
 import { ModeSelect } from "../components/ModeSelect";
 import { readAttachment } from "../components/chat/Composer";
+import { searchWithoutWish, takeWish } from "../lib/wish";
 
 const EXAMPLES = [
   { icon: Moon, label: "Bedtime story robot", name: "Bedtime Story Robot", prompt: "I want a cute robot that tells my daughter bedtime stories and remembers her favourite characters." },
@@ -26,7 +27,28 @@ export function HomePage() {
   const ta = useRef<HTMLTextAreaElement>(null);
   const file = useRef<HTMLInputElement>(null);
   const nav = useNavigate();
+  const loc = useLocation();
   const setAuthed = useAuth((s) => s.setAuthed);
+  const wishTaken = useRef(false);
+
+  // A wish from the landing page (?wish=..., or kept through sign-in) fills the composer. It is never sent for the
+  // user: they read it, edit it and press Start themselves.
+  useEffect(() => {
+    if (wishTaken.current) return;
+    wishTaken.current = true;
+    const w = takeWish(loc.search);
+    if (loc.search.includes("wish=")) nav({ pathname: loc.pathname, search: searchWithoutWish(loc.search) }, { replace: true });
+    if (!w) return;
+    setText(w);
+    setName(undefined);
+    requestAnimationFrame(() => {
+      const el = ta.current;
+      if (el) {
+        el.focus();
+        el.setSelectionRange(el.value.length, el.value.length);
+      }
+    });
+  }, [loc.pathname, loc.search, nav]);
 
   useEffect(() => {
     api.projects().then(

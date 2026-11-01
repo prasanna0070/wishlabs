@@ -148,7 +148,7 @@ export function PreviewTab({ version }: TabProps) {
           <strong>{mode === "draft" ? "3D draft · Work in progress" : `Building v${version.n}`}</strong>
           <span className="muted">
             {mode === "draft"
-              ? "Gadget Studio is working on this draft. It may still change; your saved version is unchanged."
+              ? "Wish Labs is working on this draft. It may still change; your saved version is unchanged."
               : mode === "previous"
                 ? `Showing v${last?.n} until the new shell is ready.`
                 : mode === "concept"

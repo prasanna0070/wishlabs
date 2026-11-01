@@ -168,6 +168,10 @@ def run(ctx) -> dict:
             if src.exists():
                 shutil.copyfile(src, ev / src.name)
             st["evidence"] = f"print/slice/{stem}.slice.txt" if src.exists() else None
+            ov = st.get("profile_override")
+            if isinstance(ov, dict) and (work / str(ov.get("file"))).exists():  # this part's own profile, so its numbers reproduce
+                shutil.copyfile(work / str(ov["file"]), ev / str(ov["file"]))
+                ov["file"] = f"print/slice/{ov['file']}"
         shutil.copyfile(slicer.INI, pdir / "slice.ini")
         bed = list(slicer.bed_from_profile(prof))
         prints = {k: v for k, v in stats_parts.items() if k.startswith("PRINT_")}
@@ -193,13 +197,22 @@ def run(ctx) -> dict:
         _write(pdir / "slice-stats.json", slice_stats)
         for stem, st in stats_parts.items():
             size = " x ".join(f"{float(v):.1f}" for v in st.get("size_mm") or []) or "unknown"
-            checks.append(_check(f"bed-fit:{stem}", f"{stem} fits the {printer['class']} ({bed[0]:.0f} x {bed[1]:.0f} x {bed[2]:.0f} mm)",
-                                 st.get("fits_bed"), f"size {size} mm" + (f", turned {st['rotate_z_deg']} deg about Z" if st.get("rotate_z_deg") else ""),
-                                 "QB-10", artifact="print/slice-stats.json"))
+            o = st.get("orientation") if isinstance(st.get("orientation"), dict) else {}
+            title = f"{stem} fits the {printer['class']} ({bed[0]:.0f} x {bed[1]:.0f} x {bed[2]:.0f} mm)"
+            if st.get("tipped"):  # fits only tipped onto a side: say so plainly, as a warning (the CAD planned it upright)
+                checks.append(_check(f"bed-fit:{stem}", title, None,
+                                     f"size {size} mm as exported, too big to print that way; it "
+                                     + (o.get("sentence") or f"prints on its side, {o.get('label')}"),
+                                     "QB-10", artifact="print/slice-stats.json", status="warning"))
+            else:
+                checks.append(_check(f"bed-fit:{stem}", title, st.get("fits_bed"),
+                                     f"size {size} mm" + (f", turned {st['rotate_z_deg']} deg about Z" if st.get("rotate_z_deg") else ""),
+                                     "QB-10", artifact="print/slice-stats.json"))
             checks.append(_check(f"on-bed:{stem}", f"{stem} rests on Z=0", st.get("on_bed"), "STL minimum Z within 0.05 mm of the bed", "QB-10",
                                  artifact=f"print/{stem}.stl"))
             checks.append(_check(f"sliced:{stem}", f"{stem} slices", bool(st.get("ok")),
                                  (f"{st.get('filament_g')} g, {st.get('print_time')}, supports {'yes' if st.get('supports') else 'no'}"
+                                  + (f", sliced {o.get('label')}" if st.get("tipped") else "")
                                   if st.get("ok") else str(st.get("error"))), "QB-11", artifact="print/slice-stats.json"))
     printed = bom.build_printed(stats_parts, components, spec, slicer.profile_material(prof), cad_rec.get("summary"), prof)
 
@@ -250,6 +263,8 @@ def run(ctx) -> dict:
     summary = {"purchased": len(purchased), "printed": len(printed), "slicer": slicer_name,
                "print_g": round(sum(v["filament_g"] for v in prints_ok.values()), 1),
                "print_h": round(sum(v["print_h"] for v in prints_ok.values()), 2),
+               "tipped": {k: {"label": (v.get("orientation") or {}).get("label"), "supports": v.get("supports")}
+                          for k, v in stats_parts.items() if v.get("tipped")},
                "problems": problems, "checks": checks}
     if cad_failed_now or not prints_ok or prints_bad:
         why = ("the CAD stage failed in this build, so its print files are partial and unvalidated" if cad_failed_now
@@ -305,7 +320,8 @@ def run(ctx) -> dict:
                     "lead_time_days": [q["lead_time_days"]["low"], q["lead_time_days"]["high"]],
                     "seconds": round(time.perf_counter() - t0, 2),
                     "message": (f"{len(purchased)} purchased rows, {len(prints_ok)} print part(s) {summary['print_g']:.0f} g / "
-                                f"{summary['print_h']:.1f} h, one-off ₹{q['delivered_price_inr']['pilot_one_off']:,} ({q['status']})")})
+                                f"{summary['print_h']:.1f} h, one-off ₹{q['delivered_price_inr']['pilot_one_off']:,} ({q['status']})"
+                                + (f"; prints on its side: {words(sorted(summary['tipped']))}" if summary["tipped"] else ""))})
     ctx.artifacts["order.quote"] = str(out / "order" / "quote.json")
     ctx.artifacts["print.slice_stats"] = str(pdir / "slice-stats.json")
     ctx.progress(STAGE, "done", 100)

@@ -27,6 +27,7 @@ from __future__ import annotations
 import math
 from typing import Any, Optional
 
+from .envelope import fit_orientations, full_envelope
 from .errors import SpecError
 from .spec import (
     BlobBody, DCartridge, DHardware, DHarness, DInstance, Derived, Feature, RevolveBody, SilhouetteBody, Spec,
@@ -36,6 +37,7 @@ from .version import ENGINE_VERSION
 
 SIZE_MIN, SIZE_MAX = 60.0, 260.0
 BED = (250.0, 210.0, 210.0)
+ENVELOPE_MARGIN = 3.0  # mm per axis kept in hand when the envelope is a distance-field estimate (blob, revolve)
 CLEAR = 3.0  # cartridge clearance to the inner wall
 APERTURE_MARGIN = 3.0
 LENGTH_CLASSES = (100, 150, 200, 300)
@@ -518,24 +520,45 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
 
     # ---------------------------------------------------------------- geometry
     geom = ShellGeometry(sp)
-    x0, x1, y0, y1, z0, z1 = geom.bbox
-    # ears / decor that stick out of the body
-    for d in sp.decor:
-        if d.type == "ear":
-            xs = [d.at[0]] + ([-d.at[0]] if d.side == "both" else [])
-            for xe in xs:
-                x0, x1 = min(x0, xe - d.size[0] / 2), max(x1, xe + d.size[0] / 2)
-            z1 = max(z1, d.at[1] + d.size[1] / 2)
+    # the full envelope the CAD builds: its own outline spline plus every ear and antenna where decor.apply_ears puts them
+    # (live failure 2026-11-02: the old estimate said 148 x 105 x 195 mm for a shell the CAD made 167.6 x 97.6 x 212.7 mm)
+    env = full_envelope(sp, geom)
+    x0, x1, y0, y1, z0, z1 = env["bbox"]
+    warnings += [f"envelope: {n}" for n in env["notes"]]
     size = (x1 - x0, y1 - y0, z1 - z0)
     for axis, v in zip("XYZ", size):
         if v < SIZE_MIN - 1e-6:
             _err(errors, "body", f"overall size along {axis} is {v:.0f} mm; minimum is {SIZE_MIN:g} mm", "make the body bigger", "size")
         if v > SIZE_MAX + 1e-6:
             _err(errors, "body", f"overall size along {axis} is {v:.0f} mm; maximum is {SIZE_MAX:g} mm", "scale the body down", "size")
-    srt = sorted(size, reverse=True)
-    if srt[0] > BED[0] or srt[1] > BED[1] or srt[2] > BED[2]:
-        _err(errors, "body", f"body {size[0]:.0f} x {size[1]:.0f} x {size[2]:.0f} mm does not fit the 250 x 210 x 210 mm printer bed",
-             "scale it down so the longest side is <= 250 mm and the other two <= 210 mm", "bed")
+    # silhouette bodies reproduce the CAD within ~0.3 mm; the distance-field estimate of blob/revolve bodies ran up to 2.7 mm
+    # small (desk-buddy ears vs its CAD preview, 2026-11-02), so those keep 3 mm per axis in hand for the printer fit
+    fit_margin = 0.0 if env["source"].startswith("CAD spline") else ENVELOPE_MARGIN
+    fit = fit_orientations(tuple(v + fit_margin for v in size), BED)
+    body_top = env["body_bbox"][5]
+    ear_top = max((e["bounds"][3] for e in env["ears"]), default=None)
+    sticks = (f"; the ears/antennae reach z {ear_top:.0f} mm, {ear_top - body_top:.0f} mm above the {body_top:.0f} mm body top"
+              if ear_top is not None and ear_top > body_top + 0.5 else "")
+    dims = f"{size[0]:.0f} x {size[1]:.0f} x {size[2]:.0f} mm"
+    if not fit["any"]:
+        k = math.floor(fit["scale_to_fit"] * 0.98 * 100) / 100  # 2 % margin on the CAD estimate
+        _err(errors, "body", f"the full envelope (body, ears and antennae, as the CAD builds them) is {dims} and does not fit the "
+             f"{BED[0]:.0f} x {BED[1]:.0f} x {BED[2]:.0f} mm printer in any orientation{sticks}",
+             f"scale the whole design by {k:.2f} or less (multiply every body.outline point, body.depth and every decor and feature "
+             f"size and position by {k:.2f}) so the longest side is <= {BED[0]:.0f} mm and the other two <= {BED[1]:.0f} mm"
+             + (", or make the ears/antennae shorter (decor size[1])" if sticks else ""), "bed")
+    elif not fit["upright"]:
+        k = math.floor(fit["scale_to_fit_upright"] * 0.98 * 100) / 100
+        top_ok = BED[2] - 2.0  # 2 mm margin on the CAD estimate
+        tall_only = size[2] + fit_margin > BED[2] and fit["scale_to_fit_upright"] >= min(1.0, BED[2] / (size[2] + fit_margin)) - 1e-9
+        if sticks and tall_only and body_top <= top_ok:  # only the ears/antennae push it over: the cheap repair first
+            how = (f"make the ears/antennae at least {math.ceil(ear_top - top_ok)} mm shorter (decor size[1]) so the top stays at or "
+                   f"below {top_ok:.0f} mm, or scale the whole design by {k:.2f} (then re-check the feature layout)")
+        else:
+            how = f"scale the whole design by {k:.2f} (then re-check the feature layout) or keep the top at or below {top_ok:.0f} mm"
+        warnings.append(f"bed: the full envelope (incl. ears/antennae) is {dims}{sticks}; it does not fit the {BED[0]:.0f} x "
+                        f"{BED[1]:.0f} x {BED[2]:.0f} mm printer upright, so the shell prints on its side with supports. To print it "
+                        f"upright, {how}")
 
     # ---------------------------------------------------------------- cartridge placement
     cart = bp["cartridge"]
@@ -798,7 +821,11 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
         except Exception as exc:  # never crash normalize
             warnings.append(f"LED cap for the +5V drop budget not evaluated: {exc}")
     report = {"ok": not errors, "errors": errors, "warnings": warnings, "added": added, "nudges": nudges,
-              "size_mm": [_r(v) for v in size], "instances": [i["ref"] for i in inst],
+              "size_mm": [_r(v) for v in size],
+              "envelope": {"bbox": [_r(v) for v in (x0, x1, y0, y1, z0, z1)], "source": env["source"],
+                           "fits_upright": fit["upright"], "fits_any_orientation": fit["any"],
+                           "ears": [{k: (list(map(_r, v)) if k == "bounds" else v) for k, v in e.items()} for e in env["ears"]]},
+              "instances": [i["ref"] for i in inst],
               "slots": {i["ref"]: i.get("slot") for i in inst if i.get("slot")}}
     if raise_on_error and errors:
         raise SpecError(errors)

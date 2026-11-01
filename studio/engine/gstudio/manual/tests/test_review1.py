@@ -493,3 +493,36 @@ def test_figures_json_round_trip():
                                      arrow_comps=["A"])])
     g = figure_from_json(json.loads(json.dumps(figure_to_json(f))))
     assert figure_to_json(g) == figure_to_json(f)
+
+
+# --------------------------------------------------------------------------------------------- live failure 2026-11-02
+def test_tipped_shell_is_shown_and_told_as_printing_on_its_side(tmp_path):
+    """Storybot Pal: the order stage tipped the shell (too tall for the printer as exported). The print-bed figure showed it
+    upright under "each part in the orientation it was exported in" while the print table said to print it on its side."""
+    from gstudio.manual.steps import Planner
+
+    def tip(out):
+        b = json.loads((out / "build.json").read_text())
+        for p in b["printed"]:
+            if p["name"] == "PRINT_Shell":
+                p.update({"tipped": True, "supports": True,
+                          "print_orientation": {"key": "front_down", "label": "lying face down, the front on the bed"}})
+        (out / "build.json").write_text(json.dumps(b))
+    data, A, issues, steps = prepared(v3_ctx(tmp_path, tip))
+    fig = Planner(A, issues).bed_figure()
+    sub = fig.panels[0].subtitle
+    assert "orientation it was exported in" not in sub and "prints on its side instead" in sub, sub
+    lab = next(lb for lb in fig.panels[0].labels if lb.comp == "PRINT_Shell")
+    assert "prints on its side" in lab.text.replace("\n", " "), lab.text
+    others = [lb for lb in fig.panels[0].labels if lb.comp != "PRINT_Shell"]
+    assert others and not any("prints on its side" in lb.text.replace("\n", " ") for lb in others)
+    body = step(steps, "print-parts").instruction
+    assert "`print/PRINT_Shell.stl` does not fit the printer as exported" in body and "prints on its side" in body
+
+
+def test_bed_figure_unchanged_when_nothing_is_tipped(tmp_path):
+    from gstudio.manual.steps import Planner
+
+    data, A, issues, _ = prepared(v3_ctx(tmp_path))
+    fig = Planner(A, issues).bed_figure()
+    assert fig.panels[0].subtitle == "Each part in the orientation it was exported in (the side resting on the bed is down)"

@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { api } from "./lib/api";
+import { STUDIO_BASE } from "./lib/urls";
 import { useAuth } from "./store/auth";
 import { LoginPage } from "./pages/Login";
 import { HomePage } from "./pages/Home";
@@ -23,13 +24,13 @@ function Gate({ children }: { children: ReactNode }) {
 export function App() {
   const setAuthed = useAuth((s) => s.setAuthed);
   useEffect(() => {
-    api.me().then(
+    api.session().then(
       (r) => setAuthed(!!r?.authenticated),
       () => setAuthed(false),
     );
   }, [setAuthed]);
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={STUDIO_BASE || "/"}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/s/:token/:tab?" element={<ProjectPage shared />} />

@@ -1,4 +1,4 @@
-/* Gadget Studio design tokens (ARCHITECTURE §10) and base styles.
+/* Wish Labs design tokens (ARCHITECTURE §10) and base styles.
    Layout measurements follow docs/ref/benchmark-ui.md (radii 6/10/12, 56px header, 44px sub-headers, 500px chat);
    colours and fonts are our own. */
 
@@ -13,10 +13,10 @@
   --ink-2: #4B515A;
   --ink-3: #767C85;
   --ink-4: #A3A7AE;
-  --primary: #3046D9;
-  --primary-hover: #2638B8;
-  --primary-press: #1F2F9C;
-  --primary-soft: #EAEDFC;
+  --primary: #6D4BFF; /* the site's button violet (wish.plugbook.si); #7C5CFF is the brand mark */
+  --primary-hover: #5B3DF5;
+  --primary-press: #4A2FD6;
+  --primary-soft: #EEE9FF;
   --primary-ink: #FFFFFF;
   --success: #1F8A5B;
   --success-soft: #E4F2EA;
@@ -114,7 +114,7 @@ h4 {
 }
 
 ::selection {
-  background: #D8DDFA;
+  background: #DED5FF;
 }
 
 .muted {
@@ -269,7 +269,7 @@ h4 {
 .textarea:focus,
 .select:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(48, 70, 217, 0.12);
+  box-shadow: 0 0 0 3px rgba(109, 75, 255, 0.12);
 }
 .input.invalid {
   border-color: var(--danger);
@@ -345,7 +345,7 @@ input[type="range"] {
 .pill.primary {
   background: var(--primary-soft);
   color: var(--primary);
-  border-color: #D3D9F7;
+  border-color: #DCD3FF;
 }
 .pill.plain {
   background: transparent;
@@ -525,7 +525,7 @@ input[type="range"] {
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  border: 2px solid rgba(48, 70, 217, 0.2);
+  border: 2px solid rgba(109, 75, 255, 0.2);
   border-top-color: var(--primary);
   animation: spin 0.8s linear infinite;
   flex: none;

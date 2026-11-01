@@ -207,7 +207,14 @@ def write_guide(data: ManualData, A: Assembly, steps: list[Step], visuals: dict[
     for p in data.printed():
         printed[str(p.get("name") or str(p.get("file", "")).split("/")[-1].rsplit(".", 1)[0])] = p
     if A.prints:
-        L.append("Printed parts (files in `print/`, already in print orientation; weights, times and supports from the slicer):")
+        tipped = sorted(k for k, p in printed.items() if p.get("tipped"))
+        if tipped:  # the order stage tipped a part that does not fit the printer as exported (live failure 2026-11-02)
+            L.append("Printed parts (files in `print/`; weights, times and supports from the slicer). "
+                     + ", ".join(f"`{t}`" for t in tipped) + (" does" if len(tipped) == 1 else " do")
+                     + " not fit the printer as exported: rotate as its Orientation cell says, so it prints on its side; "
+                     "every other file is already in print orientation:")
+        else:
+            L.append("Printed parts (files in `print/`, already in print orientation; weights, times and supports from the slicer):")
         L.append("")
         L.append("| Part | File | Material | Colour | Weight | Time | Supports | Orientation |")
         L.append("|---|---|---|---|---|---|---|---|")

@@ -116,6 +116,7 @@ def render(b: Bundle) -> str:
 
     # ---- frame
     size = size_from_components(b.components) or list((b.derived.get("size_mm") or [])) or None
+    tipped = [p for p in b.build.get("printed") or [] if isinstance(p, dict) and p.get("tipped")]
     L += ["", "## Frame conventions", "",
           "- Units are millimetres. +Z is up and the gadget stands on the table plane Z=0.",
           "- The front faces -Y. +X is the viewer's right when looking at the front, which is the gadget's own left. "
@@ -123,7 +124,17 @@ def render(b: Bundle) -> str:
           "- The origin is the centre of the footprint at the table plane.",
           f"- Overall size: {size[0]:.0f} W x {size[1]:.0f} D x {size[2]:.0f} H mm" + (" (CAD assembly bounding box, cable envelopes excluded)." if b.components else " (normalizer estimate; CAD not available).")
           if size else "- Overall size: not available (no CAD output).",
-          "- Print files in `print/` are already in print orientation, resting on Z=0; the CAD assembly keeps world coordinates.",
+          ("- Print files in `print/` are already in print orientation, resting on Z=0; the CAD assembly keeps world coordinates."
+           if not tipped else
+           "- Print files in `print/` rest on Z=0 as the CAD exported them; the CAD assembly keeps world coordinates. "
+           + ", ".join(f"`{p.get('name')}`" for p in tipped) + " does not fit the printer that way and prints on its side: "
+           + "; ".join(f"{p.get('name')}: {(p.get('print_orientation') or {}).get('label')}, rotated "
+                       + ", then ".join(f"{int(v):+d} deg about {ax}" for ax, v in (
+                           ("X", (p.get("print_orientation") or {}).get("rotate_x_deg")),
+                           ("Y", (p.get("print_orientation") or {}).get("rotate_y_deg")),
+                           ("Z", (p.get("print_orientation") or {}).get("rotate_z_deg"))) if v)
+                       for p in tipped)
+           + " (see `print/slice-stats.json`)."),
           "- Component names carry their role: `PRINT_` printed, `PURCHASE_` bought, `REFERENCE_` display-only (cables, keep-outs), "
           "`TEST_` fit coupon (print only). The names join `cad/components.json`, `build.json` parts and the manual steps."]
 

@@ -833,6 +833,8 @@ class Planner:
         meshes: list[MeshSpec] = []
         labels: list[LabelSpec] = []
         color = self.A.shell.color if self.A.shell else (0.55, 0.78, 0.75)
+        tipped = {str(r.get("name")) for r in self.d.printed() if r.get("tipped")}
+        tipped_h: list[str] = []
         for p in files:
             nm = p.stem
             c = self.d.comps.get(nm)
@@ -840,12 +842,19 @@ class Planner:
             meshes.append(MeshSpec(path=str(p), color=col, name=nm))
             human = (self.n.human(c) if c else camel_words(nm).capitalize())
             tail = "fit test, not a gadget part" if nm.upper().startswith("TEST_") else self.support_word(nm)
+            if nm in tipped:  # the order stage tipped it: this exported pose is not how it prints (live failure 2026-11-02)
+                tail = f"prints on its side (too big as shown); {tail}"
+                tipped_h.append(human[:1].lower() + human[1:])
             labels.append(LabelSpec(text="\n".join(wrap(f"{human}: {tail}", 30, 3)), comp=nm, priority=1))
         if not meshes:
             return None
+        sub = "Each part in the orientation it was exported in (the side resting on the bed is down)"
+        if tipped_h:
+            sub = ("Each part as exported; the " + join_and(tipped_h) + (" prints" if len(tipped_h) == 1 else " print")
+                   + " on its side instead (rotate it as the print table says)")
         return FigureSpec(
             file="manual/print-bed.png", title="Print the supplied STL files without scaling",
-            panels=[PanelSpec(subtitle="Each part in the orientation it was exported in (the side resting on the bed is down)",
+            panels=[PanelSpec(subtitle=sub,
                               meshes=meshes, view_dir=(0.3, -0.75, 0.85), focus_meshes=True, labels=labels,
                               label_room=0.05)],
             footer="Saved print meshes (print/*.stl) laid side by side; not a packed print job | supports not shown",
@@ -944,9 +953,18 @@ class Planner:
         lines = [self.print_line(c) for c in prints]
         settings = print_settings(self.d)
         colour = (self.d.spec.get("colors") or {}).get("body_name")
+        tipped_rows = [r for r in self.d.printed() if r.get("tipped")]
+        tipped = sorted(str(r.get("name")) for r in tipped_rows)
+        how = ("Print the shell only after the bench test has passed. Print each file from `print/` as exported: it is already "
+               "in its print orientation, resting on the bed. Do not scale or rotate it.")
+        if tipped:  # the order stage tipped a part that does not fit the printer as exported (live failure 2026-11-02)
+            how = ("Print the shell only after the bench test has passed. Do not scale any file. "
+                   + join_and([f"`print/{t}.stl`" for t in tipped]) + (" does" if len(tipped) == 1 else " do")
+                   + " not fit the printer as exported: rotate it in your slicer as its line below says, so it prints on its side"
+                   + (" with the slicer's supports" if all(r.get("supports") for r in tipped_rows) else "")
+                   + ". Print every other file as exported: it is already in its print orientation, resting on the bed.")
         body = (
-            "Print the shell only after the bench test has passed. Print each file from `print/` as exported: it is already "
-            "in its print orientation, resting on the bed. Do not scale or rotate it.\n\n" + "\n".join(lines) + "\n\n"
+            how + "\n\n" + "\n".join(lines) + "\n\n"
             + (f"{settings}\n\n" if settings else "")
             + (f"The design colour is {colour}. " if colour else "")
             + "Remove all support material. Deburr every opening (grille holes, windows, button and screw holes) "
@@ -1737,6 +1755,13 @@ def print_settings(data) -> str:
     if ini.get("bed_temperature"):
         b.append(f"bed {ini['bed_temperature'].split(',')[0]} °C")
     s = "**Print settings** (from `print/slice.ini`, the profile the weights and times above were sliced with): " + ", ".join(b) + "."
+    over = [p for p in data.printed() if isinstance(p.get("profile_override"), dict)]
+    for p in over:  # a part the order stage sliced with its own profile (e.g. tipped onto its side over its own cavity)
+        o = p["profile_override"]
+        where = [w for w, on in (("allowed on the part", str(o.get("support_material_buildplate_only")) == "0"),
+                                 ("under bridges", str(o.get("dont_support_bridges")) == "0")) if on]
+        s += (f" `{p.get('name')}` was sliced with `{o.get('file')}` instead: the same settings with supports "
+              + " and ".join(where or ["as the file says"]) + f", because it is {o.get('why')}.")
     mats = {str(p.get("material") or "").split()[0].upper() for p in data.printed() if p.get("material")}
     ft = ini.get("filament_type", "").split(";")[0].upper()
     if ft and mats and ft not in mats:

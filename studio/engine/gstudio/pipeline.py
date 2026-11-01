@@ -312,8 +312,11 @@ def completion_line(sid: str, label: str, state: str, summary: Any, message: str
         return ", ".join(bits) + "."
     if sid == "order" and isinstance(s.get("delivered_price_inr"), dict):
         dp = s["delivered_price_inr"]
+        tipped = s.get("tipped") if isinstance(s.get("tipped"), dict) else {}
         return (f"Sliced the print parts ({s.get('print_g', 0):.0f} g, {s.get('print_h', 0):.1f} h) and priced the build: about "
-                f"₹{dp.get('pilot_one_off', 0):,} for a one-off, ₹{dp.get('steady_state', 0):,} at volume (an estimate, incl. GST).")
+                f"₹{dp.get('pilot_one_off', 0):,} for a one-off, ₹{dp.get('steady_state', 0):,} at volume (an estimate, incl. GST)."
+                + "".join(f" {k} does not fit the printer upright, so it prints on its side ({(v or {}).get('label')})"
+                          + (" with supports." if (v or {}).get("supports") else ".") for k, v in sorted(tipped.items())))
     if sid == "manual":
         st = s.get("steps")
         st = len(st) if isinstance(st, list) else st

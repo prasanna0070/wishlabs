@@ -1319,6 +1319,30 @@ def file_checks(out: Path, records: dict) -> list[dict]:
 # ============================================================================ stage entry
 
 
+def reconcile_tipped_prints(checks: list[dict], out: Path) -> None:
+    """The CAD checks every print STL as exported. A part too big for the printer that way, which the order stage then tipped
+    onto a side and sliced (live failure 2026-11-02, Storybot Pal), does print: the CAD's bed_fit failure for it becomes a
+    warning that says how it prints, like the order stage's own bed-fit check. If any part in the failure was not tipped and
+    sliced, or is off the bed, the check stays failed."""
+    ss = (read_json(out / "print" / "slice-stats.json", {}) or {}).get("parts") or {}
+    tipped = {k: v for k, v in ss.items() if isinstance(v, dict) and v.get("tipped") and v.get("ok") and v.get("on_bed")}
+    if not tipped:
+        return
+    cad = read_json(out / "cad" / "digital-checks.json", {}) or {}
+    wt = next((c for c in cad.get("checks") or [] if isinstance(c, dict) and c.get("id") == "print_watertight"), {})
+    meshes = (wt.get("data") or {}).get("meshes") or {}
+    bad = [n for n, v in meshes.items() if isinstance(v, dict) and (not v.get("fits_bed") or not v.get("on_bed"))]
+    if not bad or any(n not in tipped or not meshes[n].get("on_bed") for n in bad):
+        return
+    how = "; ".join(f"{n} {(tipped[n].get('orientation') or {}).get('label')}"
+                    + (f", {tipped[n].get('support_g'):g} g of support sliced" if tipped[n].get("supports") else "") for n in bad)
+    for c in checks:
+        if c.get("stage") == "cad" and c.get("id") == "bed_fit" and c.get("status") == "failed":
+            c["status"] = "warning"
+            c["detail"] = plain(f"{c.get('detail')}; too big for the printer as exported, so the order stage prints it on its side "
+                                f"and sliced and priced it that way ({how}; print/slice-stats.json)")
+
+
 def summarize(checks: list[dict]) -> dict:
     return {s: sum(1 for c in checks if c["status"] == s) for s in ("passed", "failed", "warning", "not_run")}
 
@@ -1353,6 +1377,7 @@ def run(ctx) -> dict:
         if not c.get("artifact"):
             c["artifact"] = default_artifact(c.get("stage", "pipeline"), str(c.get("id")))
         c["detail"] = plain(c.get("detail"))
+    reconcile_tipped_prints(all_checks, out)
 
     build["tests"] = final_tests(build.get("tests") or [], all_checks, spec, records, out)
     write_json(out / "build.json", build)
