@@ -138,6 +138,63 @@ def _keepout_fits(probeC, x0, y0, floor, kp, kh, cl, opening) -> bool:
 
 
 # ================================================================================================ rear cover
+LIP_GAP = 0.25  # mm between a cover piece that reaches into the shell (lip, screw tube) and the shell's inner wall
+
+
+def _polys(g) -> list:
+    if g is None or g.is_empty:
+        return []
+    if isinstance(g, Polygon):
+        return [g]
+    return [p for p in getattr(g, "geoms", []) if isinstance(p, Polygon) and not p.is_empty]
+
+
+def tube_room(probeC, csec: Polygon, y_s: float, depth: float = 3.0) -> Optional[Polygon]:
+    """(x, z) region a cover piece may fill between the boss tops (y_s - depth) and the seam: the cavity section at both
+    ends, LIP_GAP inside the shell's inner wall. None when a section is missing (the caller keeps the plain tube)."""
+    lo = largest(probeC.section("y", y_s - depth))
+    if csec.is_empty or lo.is_empty:
+        return None
+    room = _polys(csec.buffer(-LIP_GAP).intersection(lo.buffer(-LIP_GAP)))
+    return max(room, key=lambda p: p.area) if room else None
+
+
+def _xz_slab(poly: Polygon, y0: float, y1: float) -> cq.Solid:
+    """Exact prism of an (x, z) polygon's outer ring from y0 to y1 (> y0): planar facets, no spline fit."""
+    w = cq.Wire.makePolygon([V(px, y0, pz) for px, pz in list(poly.exterior.coords)[:-1]], close=True)
+    return cq.Solid.extrudeLinear(cq.Face.makeFromWires(w), V(0, y1 - y0, 0))
+
+
+def cover_tube(O, x: float, z: float, y_ins: float, y_s: float, y_out: float, rb: float, room: Optional[Polygon],
+               r_min: float) -> tuple[cq.Shape, bool]:
+    """The cover's screw tube, from its joint face on the shell boss (y_ins) out through the cover. Returns (solid, clipped).
+
+    The boss centre sits bg.wall + rb - 0.6 inside the outer surface (so the shell boss fuses with its wall), so on bodies
+    without a flat rear rim (blob, revolve) the tube's circle reaches 0.6 mm into the shell wall. Behind the seam that is
+    the cover's own wall; in front of it (y_ins..y_s) it is the shell's: 3-4 mm3 per screw of PRINT_Shell / PRINT_RearCover
+    collision, which held the quote of every such design (live 2026-11-20, p_fzumtfr9a5dn). There the tube is clipped to
+    `room` (the cavity, LIP_GAP inside the wall), as the lip is. Kept as the plain cylinder when it already fits, or when
+    clipping would leave less than r_min around the screw axis."""
+    full = cyl_axis((x, y_ins, z), (0, 1, 0), y_out - y_ins + 2, rb).intersect(
+        O.intersect(cq.Solid.makeBox(2000, y_out - y_ins + 5, 2000, V(-1000, y_ins, -1000))))
+    circ = Point(x, z).buffer(rb, quad_segs=24)
+    if room is None or room.buffer(1e-6).contains(circ):
+        return full, False
+    keep = _polys(circ.intersection(room))
+    if not keep or not max(keep, key=lambda p: p.area).contains(Point(x, z).buffer(r_min, quad_segs=24)):
+        return full, False
+    cut = [p for p in _polys(Point(x, z).buffer(rb + 0.5, quad_segs=24).difference(room)) if p.area > 1e-4]
+    if not cut:
+        return full, False
+    try:  # 0.1 mm below the joint face so no cutter face coincides with it; flush with the seam above
+        tube = full.cut(*[_xz_slab(p, y_ins - 0.1, y_s) for p in cut]).clean()
+        if tube.isValid() and len(tube.Solids()) == 1:
+            return tube, True
+    except Exception:  # noqa: BLE001 - any OCC failure keeps the old tube (the collision check then reports it)
+        pass
+    return full, False
+
+
 def seam_y(body: dict, bg, probeC, floor: float, bp: dict) -> float:
     bb = bg.outer.BoundingBox()
     if bg.family == "silhouette":
@@ -188,6 +245,8 @@ def rear_cover(O, C, y_s: float, probeO, probeC, bg, floor, fz, keep_boxes, usb_
     pts = _spread(cands, n_screws, start_key=lambda a: a[:, 1])
     if len(pts) < 3:
         sp.warnings.append(f"rear cover: only {len(pts)} screw positions found clear of internals")
+    room = tube_room(probeC, csec, y_s)
+    n_clipped = 0
     lip_outer = csec.buffer(-0.25)
     lip_inner = csec.buffer(-0.25 - 1.6)
     lip = lip_outer.difference(lip_inner).difference(sbox(-1e3, -1e3, 1e3, floor + 12))
@@ -210,7 +269,9 @@ def rear_cover(O, C, y_s: float, probeO, probeC, bg, floor, fz, keep_boxes, usb_
         grip = y_head - y_ins
         Ls, hole_depth = pick_screw(grip, scr["lengths"], ins["hole_depth"])
         sp.shell_cuts.append(cyl_axis((x, y_ins + 0.01, z), (0, -1, 0), hole_depth, ins["hole_d"] / 2))
-        sp.other_adds.append(cyl_axis((x, y_ins, z), (0, 1, 0), y_out - y_ins + 2, rb).intersect(O.intersect(cq.Solid.makeBox(2000, y_out - y_ins + 5, 2000, V(-1000, y_ins, -1000)))))
+        tube, clipped = cover_tube(O, x, z, y_ins, y_s, y_out, rb, room, scr["clear_d"] / 2 + 1.0)
+        n_clipped += int(clipped)
+        sp.other_adds.append(tube)
         sp.other_cuts.append(cyl_axis((x, y_ins - 1, z), (0, 1, 0), y_out - y_ins + 10, scr["clear_d"] / 2))
         sp.other_cuts.append(cyl_axis((x, y_head, z), (0, 1, 0), 30, scr["head_d"] / 2 + 0.35))
         sp.fasteners.append(Fastener("insert", "HeatSetInserts", np.array([x, y_ins, z]), np.array([0, -1.0, 0]), ins["length"], ins["od"], "cover insert"))
@@ -271,6 +332,8 @@ def rear_cover(O, C, y_s: float, probeO, probeC, bg, floor, fz, keep_boxes, usb_
         sp.info["vent_slots"] = len(slots)
     sp.info.update({"seam_y": round(y_s, 2), "cover_screws": len(pts), "lip_segments": len(lip_parts), "lip_root_segments": len(root_parts),
                     "lip_gap_mm": 0.25, "lip_thickness_mm": 1.6, "lip_depth_mm": 3.0})
+    if n_clipped:
+        sp.info["cover_tubes_clipped_to_cavity"] = n_clipped
     return sp
 
 
