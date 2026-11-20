@@ -118,8 +118,17 @@ def screen_quad(sc: dict) -> dict:
     UV = np.array([[0, 1], [1, 1], [1, 0], [0, 0]], float)
     T = np.array([[0, 1, 2], [0, 2, 3]], np.int64)
     px = (128, 64) if sc.get("kind") != "lcd" else (320, 240)
-    return {"sub": "Screen", "verts": P, "normals": N, "tris": T, "uv": UV, "png": idle_face_png(sc.get("kind", "oled"), px),
+    return {"sub": "Screen", "verts": P, "normals": N, "tris": T, "uv": UV, "png": _screen_png(sc, px),
             "color": (0.0, 0.0, 0.0), "emissive": True}
+
+
+def _screen_png(sc: dict, px) -> bytes:
+    """The idle face, or a plain readout for a screen marked {"face": False} (pack freeform, cad/screens.py)."""
+    if sc.get("face") is False:
+        from .screens import readout_png
+
+        return readout_png(sc.get("kind", "oled"), px)
+    return idle_face_png(sc.get("kind", "oled"), px)
 
 
 def write_glb(path: Path, nodes: list, generator: str = "Wish Labs CAD") -> dict:
@@ -349,7 +358,7 @@ def write_screen_pngs(cad_dir: Path, model) -> list:
         d.mkdir(parents=True, exist_ok=True)
         f = d / f"{ref}-idle.png"
         px = (128, 64) if sc.get("kind") != "lcd" else (320, 240)
-        f.write_bytes(idle_face_png(sc.get("kind", "oled"), px))
+        f.write_bytes(_screen_png(sc, px))
         sc["texture"] = f"cad/screens/{f.name}"
         out.append(str(f))
     return out

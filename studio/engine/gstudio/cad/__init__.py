@@ -210,6 +210,9 @@ def preview(spec: Any, lib: Any = None, out: Any = ".", size=(1024, 1024)) -> di
     E.write_glb(out / "preview.glb", glb_nodes, generator="Wish Labs CAD preview")
     from .render_cli import render_subprocess
 
+    from .screens import mark as _mark_screens
+
+    screens = _mark_screens(screens, params)              # pack freeform: no idle face on a faceless design
     r = render_subprocess(out / "preview.glb", out, ("hero",), screens, "rear_cover", size[0], timeout=60.0, name="preview.png")
     png = r.get("hero")
     if not png:

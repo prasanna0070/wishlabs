@@ -172,7 +172,11 @@ def _decals(pl, screens):
         c, u, v, n = (np.asarray(sc[k], float) for k in ("c", "u", "v", "n"))
         w, h = float(sc["w"]), float(sc["h"])
         shapes = []
-        if sc.get("kind") == "lcd":
+        if sc.get("face") is False:      # pack freeform, a design without a face: a plain readout (cad/screens.py)
+            from .screens import readout_shapes
+
+            shapes = readout_shapes(w, h)
+        elif sc.get("kind") == "lcd":
             for sx in (-1, 1):
                 eye = affinity.scale(Point(sx * 0.2 * w, 0.06 * h).buffer(1, 32), 0.11 * w, 0.2 * h)
                 pup = affinity.scale(Point(sx * 0.2 * w + 0.015 * w, 0.0).buffer(1, 32), 0.055 * w, 0.11 * h)

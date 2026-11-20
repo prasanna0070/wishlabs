@@ -92,6 +92,8 @@ def scale_spec(spec: dict, s: float) -> dict:
         body["depth"] = _r(body["depth"] * s)
     if body.get("edge_round") is not None:
         body["edge_round"] = _r(body["edge_round"] * s)
+    if isinstance(body.get("csg"), dict):                  # pack freeform: every length in the csg tree
+        body["csg"] = scale_csg(body["csg"], s)
     for pr in body.get("primitives") or []:
         for k in ("center", "size"):
             if isinstance(pr.get(k), list):
@@ -114,6 +116,52 @@ def scale_spec(spec: dict, s: float) -> dict:
                 if g.get(k) is not None:
                     g[k] = _r(g[k] * s)
     return out
+
+
+# csg node keys that are lengths (contract _notes/freeform-contract.md section 3); rot and axis are not
+CSG_LENGTHS = ("size", "round", "r", "h", "r1", "r2", "R", "points", "to", "blend")
+
+
+def scale_csg(node: Any, s: float) -> Any:
+    """A csg tree with every length times s: the engine's gstudio.csg.scale_tree when it is there, else the same rule
+    here (sizes, radii, heights, rounds, blends, outline points and move offsets; turns and axes stay)."""
+    try:
+        from gstudio import csg as _csg  # noqa: PLC0415 - the engine owns the language
+
+        fn = getattr(_csg, "scale_tree", None)
+        if callable(fn):
+            t = copy.deepcopy(node)
+            r = fn(t, s)
+            return t if r is None else r
+    except Exception:  # noqa: BLE001 - engine without the pack: scale here
+        pass
+    return _scale_node(copy.deepcopy(node), s)
+
+
+def _scale_node(node: Any, s: float) -> Any:
+    if isinstance(node, list):
+        return [_scale_node(n, s) for n in node]
+    if not isinstance(node, dict):
+        return node
+    out = {}
+    for k, v in node.items():
+        if k in ("node", "nodes", "minus"):
+            out[k] = _scale_node(v, s)
+        elif k in CSG_LENGTHS:
+            out[k] = _scale_len(v, s)
+        else:
+            out[k] = v
+    return out
+
+
+def _scale_len(v: Any, s: float) -> Any:
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, (int, float)):
+        return _r(v * s)
+    if isinstance(v, list):
+        return [_scale_len(x, s) for x in v]
+    return v
 
 
 def describe_tweak(patch: dict | None, scale: float | None) -> str:

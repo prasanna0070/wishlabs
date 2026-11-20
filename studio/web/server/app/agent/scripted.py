@@ -271,7 +271,7 @@ class ScriptedBrain:
                 "concepts": cs}
         for _ in range(self.svc.settings.max_repair_rounds + 1):
             res = await turn.call_tool("propose_concepts", copy.deepcopy(args))
-            if res.terminal or not res.response.get("set_failures"):
+            if res.terminal or not (res.response.get("set_failures") or res.response.get("render_failures")):
                 return
 
     @staticmethod

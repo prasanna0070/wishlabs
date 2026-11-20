@@ -72,6 +72,14 @@ class GeminiBrain:
     def thoughts_on(self, model: str) -> bool:
         return bool(getattr(self.svc.settings, "agent_thoughts", True)) and model not in self.no_thoughts
 
+    def _packs_on(self) -> frozenset:
+        """The packs that are on (the propose_concepts wording follows pack `freeform`); none when unknown."""
+        fn = getattr(self.prompts, "packs_on", None)
+        try:
+            return frozenset(fn()) if callable(fn) else frozenset()
+        except Exception:  # noqa: BLE001
+            return frozenset()
+
     def _config(self, allowed: list[str], thoughts: bool = False, images: bool = False, wish: str | None = None):
         from google.genai import types
 
@@ -80,7 +88,7 @@ class GeminiBrain:
             system_instruction=with_rules(self.prompts.system_prompt(wish), images),   # image rules only with images
             temperature=1.0,
             max_output_tokens=32768,
-            tools=[types.Tool(function_declarations=declarations(allowed))],
+            tools=[types.Tool(function_declarations=declarations(allowed, self._packs_on()))],
             tool_config=types.ToolConfig(function_calling_config=types.FunctionCallingConfig(mode="AUTO")),
             automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         )

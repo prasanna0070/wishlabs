@@ -21,6 +21,20 @@ PROMPT = (
 )
 
 
+# Pack `freeform`: a concept with no face decor (an appliance or plain product) is photographed as a plain product, so
+# the image model never adds eyes or a mouth the object does not have. With the pack off PROMPT is used, unchanged.
+PROMPT_PLAIN = (
+    "Plain studio product photograph of exactly this object as a finished matte 3D-printed PETG product, "
+    "body colour {body} ({body_hex}), details in {detail_hex}. Soft daylight from the upper left, seamless warm "
+    "off-white backdrop, gentle contact shadow on a plain light desk surface, 50 mm lens, front three-quarter view "
+    "matching the reference camera. It is a product, not a character: do not add a face, eyes, a mouth, cheeks or "
+    "any character features, and do not make its openings, buttons, lights or screen read as a face. Keep the exact "
+    "silhouette, proportions, holes, buttons, trays, slots and speaker grille of the reference render; do not add or "
+    "remove features, do not add text, logos, cables, people, hands or props. Fine visible print layer lines are "
+    "fine. This is {title}: {blurb}"
+)
+
+
 # The user's own product photo or sketch (image brief kind product_photo or sketch) may set the photo's mood. It never
 # changes the object: the render stays the only source of shape.
 STYLE_NOTE = ("[STYLE REFERENCE: the user's own {what}. Borrow only its colour mood, materials and finish where they "
@@ -28,19 +42,27 @@ STYLE_NOTE = ("[STYLE REFERENCE: the user's own {what}. Borrow only its colour m
               "the object is exactly the reference render above.]")
 
 
+def photo_prompt(spec: dict, title: str, blurb: str, plain: bool = False) -> str:
+    """The text part of the photo request: PROMPT (live), or PROMPT_PLAIN for a plain product (pack `freeform`)."""
+    colors = spec.get("colors") or {}
+    return (PROMPT_PLAIN if plain else PROMPT).format(
+        body=colors.get("body_name") or "the body colour", body_hex=colors.get("body", ""),
+        detail_hex=colors.get("detail", "dark grey"), title=title, blurb=blurb)
+
+
 class ImageGen:
     def __init__(self, settings: Settings):
         self.settings = settings
 
     async def photo_from_render(self, render_png: bytes, spec: dict, title: str, blurb: str,
-                                on_usage=None, style_ref: tuple[bytes, str] | None = None) -> tuple[bytes | None, str]:
+                                on_usage=None, style_ref: tuple[bytes, str] | None = None,
+                                plain: bool = False) -> tuple[bytes | None, str]:
         """Returns (image bytes or None, note). Never raises. style_ref: (JPEG, kind) of the user's own product photo
-        or sketch, used for colour mood and finish only (app/agent/image_rules.style_reference)."""
+        or sketch, used for colour mood and finish only (app/agent/image_rules.style_reference). plain (pack
+        `freeform`, a concept without a face): plain product photography with no added face (PROMPT_PLAIN)."""
         if not self.settings.photos:
             return None, "Photos are switched off; showing the CAD render."
-        colors = spec.get("colors") or {}
-        prompt = PROMPT.format(body=colors.get("body_name") or "the body colour", body_hex=colors.get("body", ""),
-                               detail_hex=colors.get("detail", "dark grey"), title=title, blurb=blurb)
+        prompt = photo_prompt(spec, title, blurb, plain)
         try:
             return await asyncio.wait_for(self._call(render_png, prompt, on_usage, style_ref),
                                           self.settings.image_timeout_s)
