@@ -1,0 +1,219 @@
+{
+ "schema": "gadget-spec/1",
+ "name": "Aura Focus Bot",
+ "slug": "aura-focus-bot",
+ "tagline": "Your cute desk assistant for peaceful focus sessions",
+ "audience": {
+  "child_directed": false,
+  "age_years": null
+ },
+ "region": "IN",
+ "colors": {
+  "body": "#8CC9C0",
+  "accent": "#FFF6EA",
+  "detail": "#2B3A42",
+  "body_name": "pale mint",
+  "accent_name": "warm cream",
+  "detail_name": "slate grey"
+ },
+ "body": {
+  "wall": 2.4,
+  "edge_round": 16.0,
+  "feet": 4,
+  "family": "silhouette",
+  "outline": [
+   [
+    -55.0,
+    0.0
+   ],
+   [
+    55.0,
+    0.0
+   ],
+   [
+    58.0,
+    20.0
+   ],
+   [
+    58.0,
+    60.0
+   ],
+   [
+    52.0,
+    110.0
+   ],
+   [
+    45.0,
+    140.0
+   ],
+   [
+    30.0,
+    160.0
+   ],
+   [
+    0.0,
+    165.0
+   ],
+   [
+    -30.0,
+    160.0
+   ],
+   [
+    -45.0,
+    140.0
+   ],
+   [
+    -52.0,
+    110.0
+   ],
+   [
+    -58.0,
+    60.0
+   ],
+   [
+    -58.0,
+    20.0
+   ]
+  ],
+  "depth": 100.0,
+  "split": "rear_cover"
+ },
+ "decor": [
+  {
+   "at": [
+    35.0,
+    150.0
+   ],
+   "color": "body",
+   "type": "ear",
+   "style": "antenna",
+   "side": "both",
+   "size": [
+    12.0,
+    18.0
+   ],
+   "thickness": null,
+   "tilt": 0.0,
+   "roundness": null
+  },
+  {
+   "at": [
+    34.0,
+    115.0
+   ],
+   "color": "accent",
+   "type": "blush",
+   "size": [
+    10.0,
+    6.0
+   ],
+   "relief": "emboss",
+   "depth": 0.6,
+   "side": "both"
+  },
+  {
+   "at": [
+    0.0,
+    60.0
+   ],
+   "color": "detail",
+   "type": "mouth",
+   "style": "smile",
+   "size": [
+    12.0,
+    5.0
+   ],
+   "relief": "engrave",
+   "depth": 0.8
+  }
+ ],
+ "features": [
+  {
+   "id": "timer_display",
+   "module": "OLED_130_SH1106_I2C",
+   "face": "front",
+   "at": [
+    0.0,
+    140.0
+   ],
+   "label": "Timer countdown screen",
+   "grille": null,
+   "rotate": 0
+  },
+  {
+   "id": "tummy_light",
+   "module": "LED_RING_12_WS2812_50MM",
+   "face": "front",
+   "at": [
+    0.0,
+    92.0
+   ],
+   "label": "Calming tummy glow ring",
+   "grille": null,
+   "rotate": 0
+  },
+  {
+   "id": "start_button",
+   "module": "BUTTON_TACTILE_KY004",
+   "face": "front",
+   "at": [
+    0.0,
+    48.0
+   ],
+   "label": "Tap tummy to start focus",
+   "grille": null,
+   "rotate": 0
+  },
+  {
+   "id": "sounder",
+   "module": "SPK_28MM_8R_2W",
+   "face": "top",
+   "at": [
+    0.0,
+    20.0
+   ],
+   "label": "Chime speaker",
+   "grille": {
+    "pattern": "hex_holes",
+    "w": 25.2,
+    "h": 25.2,
+    "hole": 2.6,
+    "pitch": 4.4
+   },
+   "rotate": 0
+  }
+ ],
+ "electronics": {
+  "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+  "extra_modules": [],
+  "power": {
+   "input": "usb_c_5v",
+   "adapter_in_box": true
+  }
+ },
+ "behaviour": {
+  "template": "notifier_clock",
+  "summary": "Counts down a 25 minute focus session while glowing calm colors and sounding a gentle chime at the end.",
+  "settings": {
+   "volume_default": 35,
+   "volume_max": 60,
+   "long_press_ms": 600,
+   "led_max_percent": 45,
+   "network": "parent_page",
+   "setup_hotspot_minutes": 15,
+   "mic_gain_shift": 13,
+   "timezone": "IST-5:30",
+   "ntp_server": "in.pool.ntp.org",
+   "clock_24h": true,
+   "quiet_hours_start": "22:00",
+   "quiet_hours_end": "07:00",
+   "notification_chime": true,
+   "ring_brightness": 30,
+   "default_notice_minutes": 60
+  }
+ },
+ "safety": {
+  "flags": [],
+  "notes": ""
+ }
+}

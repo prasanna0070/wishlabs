@@ -1475,7 +1475,8 @@
      "accepts": [
       "BL",
       "BLK",
-      "LED"
+      "LED",
+      "BUSY"
      ],
      "at": [
       32.85,
@@ -1541,7 +1542,9 @@
     "pressure",
     "distance",
     "imu",
-    "rtc"
+    "rtc",
+    "nfc",
+    "air_quality"
    ],
    "pins": [
     {
@@ -1670,7 +1673,9 @@
     "pressure",
     "distance",
     "imu",
-    "rtc"
+    "rtc",
+    "nfc",
+    "air_quality"
    ],
    "pins": [
     {
@@ -1797,7 +1802,9 @@
     "motion",
     "light_sensor",
     "endstop",
-    "hall"
+    "hall",
+    "soil_moisture",
+    "level_switch"
    ],
    "pins": [
     {
@@ -1855,6 +1862,7 @@
       "D0",
       "A0",
       "AO",
+      "AOUT",
       "NO",
       "SW"
      ],
@@ -1916,7 +1924,9 @@
     "motion",
     "light_sensor",
     "endstop",
-    "hall"
+    "hall",
+    "soil_moisture",
+    "level_switch"
    ],
    "pins": [
     {
@@ -1974,6 +1984,7 @@
       "D0",
       "A0",
       "AO",
+      "AOUT",
       "NO",
       "SW"
      ],
@@ -2035,7 +2046,9 @@
     "motion",
     "light_sensor",
     "endstop",
-    "hall"
+    "hall",
+    "soil_moisture",
+    "level_switch"
    ],
    "pins": [
     {
@@ -2093,6 +2106,7 @@
       "D0",
       "A0",
       "AO",
+      "AOUT",
       "NO",
       "SW"
      ],
@@ -2149,7 +2163,8 @@
    },
    "accepts_roles": [
     "led",
-    "servo"
+    "servo",
+    "servo_continuous"
    ],
    "pins": [
     {
@@ -2419,7 +2434,9 @@
     "pressure",
     "distance",
     "imu",
-    "rtc"
+    "rtc",
+    "nfc",
+    "air_quality"
    ],
    "pins": [
     {

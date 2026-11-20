@@ -40,6 +40,7 @@ class EngineBridge:
     # ------------------------------------------------------------------ loading
     def _load(self) -> None:
         if self._loaded:
+            self._refresh_packs()
             return
         with self._lock:
             if self._loaded:
@@ -63,6 +64,82 @@ class EngineBridge:
             if self.import_error:
                 log.warning("engine partly unavailable: %s", self.import_error)
             self._loaded = True
+
+    def _packs_mod(self):
+        """gstudio.packs (CATALOG-PLAN 0.5), or None while the engine has no pack switch."""
+        try:
+            return importlib.import_module("gstudio.packs")
+        except Exception:  # noqa: BLE001
+            return None
+
+    def _refresh_packs(self) -> None:
+        """Rebuild the Library when the set of packs that are on changed (enabled.json edited, env differs)."""
+        lib = self.library
+        was = getattr(lib, "packs_on", None)
+        pm = self._packs_mod() if was is not None else None
+        if pm is None:
+            return
+        try:
+            now = pm.enabled_set(getattr(lib, "dir", None) or self.settings.library_dir)
+        except Exception:  # noqa: BLE001
+            return
+        if now != was:
+            with self._lock:
+                if getattr(self.library, "packs_on", None) != now:
+                    try:
+                        self.library = self._make_library()
+                    except Exception as exc:  # noqa: BLE001
+                        log.warning("library reload for packs failed: %s", exc)
+
+    def packs_on(self) -> frozenset:
+        """Names of the packs that are on (empty when the engine has no pack switch)."""
+        self._load()
+        pm = self._packs_mod()
+        try:
+            return frozenset(pm.enabled_set(self.settings.library_dir)) if pm else frozenset()
+        except Exception:  # noqa: BLE001
+            return frozenset()
+
+    def pack_prompt_rules(self) -> list[tuple[str, list[str]]]:
+        """[(pack, rules)] of the packs that are on (library/packs/<name>.json prompt_rules)."""
+        self._load()
+        pm = self._packs_mod()
+        try:
+            return list(pm.prompt_rules(self.settings.library_dir)) if pm else []
+        except Exception as exc:  # noqa: BLE001
+            log.warning("pack prompt rules unavailable: %s", exc)
+            return []
+
+    def pack_example_paths(self) -> list[Path]:
+        """library/packs/examples/<pack>/<slug>/spec.json of the packs that are on."""
+        self._load()
+        pm = self._packs_mod()
+        try:
+            return list(pm.example_specs(self.settings.library_dir)) if pm else []
+        except Exception:  # noqa: BLE001
+            return []
+
+    def pack_files_signature(self) -> tuple:
+        """What the cached system prompt depends on beyond the library file: the switch and every pack file."""
+        on = tuple(sorted(self.packs_on()))
+        files = []
+        d = self.settings.library_dir / "packs"
+        if d.is_dir():
+            for f in sorted(d.rglob("*.json")):
+                try:
+                    files.append((str(f), f.stat().st_mtime_ns))
+                except OSError:
+                    continue
+        return (on, tuple(files))
+
+    def role_available(self, role: str) -> bool:
+        """True when the agent can design with a part of this role (pack parts only while their pack is on)."""
+        self._load()
+        fn = getattr(self.library, "role_available", None)
+        try:
+            return bool(fn(role)) if callable(fn) else False
+        except Exception:  # noqa: BLE001
+            return False
 
     def _make_library(self):
         Library = getattr(self.lib_mod, "Library")
@@ -132,10 +209,12 @@ class EngineBridge:
             need_w = (kx1 - kx0) + 2 * clear + 2 * wall
             need_d = (ky1 - ky0) + clear + float(cart.get("rear_gap_mm", 0.2)) + 2 * wall
             h = kz + wall
+            gadget_only = " (gadgets only: a printed object has no electronics)" if "printed" in self.packs_on() else ""
             lines += [
-                f"- Core cartridge: it lies flat on the inner floor at the rear. The body must be at least {need_w:.0f} mm "
+                f"- Core cartridge{gadget_only}: it lies flat on the inner floor at the rear. The body must be at least {need_w:.0f} mm "
                 f"wide and {need_d:.0f} mm deep (front to back) over its first {h:.0f} mm of height, so plan a body depth "
-                f"of {need_d + 10:.0f} mm or more and a wide, flat-bottomed lower body.",
+                f"of {need_d + 10:.0f} mm or more and a wide, flat-bottomed lower body. On a silhouette body the front "
+                "and rear edge rounds eat into that floor: add the edge_round to the depth (or keep edge_round small).",
                 f"- Modules behind the front wall must clear the cartridge: a module that reaches below z = {h + 2:.0f} "
                 "collides unless the body is deeper; put deep modules (big button, 40 mm speaker) higher on the face.",
                 f"- Openings (feature apertures, grilles) need {gap:.0f} mm clear between each other and from engraved "
@@ -163,11 +242,47 @@ class EngineBridge:
                          "diffuser) as its light feature (the validator swaps a small LED for it). Plan a clear band "
                          f"about {fh + 10:g} mm tall for it across the front face, with the speaker below it and the "
                          "eyes above it, or put it on the top; keep it clear of every other kit.")
+        try:
+            lines += self._port_rules()
+        except Exception as exc:  # noqa: BLE001
+            log.info("port rules unavailable: %s", exc)
+        printed = "printed" in self.packs_on()
         lines += ["- Outline points at least 1 mm apart; do not repeat the first point at the end.",
-                  "- Overall size 60-260 mm on every axis, depth included."]
+                  "- Overall size 60-260 mm on every axis, depth included"
+                  + (" (a printed object with no electronics: 20-260 mm)." if printed else ".")]
         return "\n".join(lines)
 
+    def _port_rules(self) -> list[str]:
+        """Port capacity in plain words, from the parts the agent can use now (pack parts only while their pack is on);
+        normalize enforces it (slot_full, i2c_clash)."""
+        lib = self.library
+        if lib is None or not hasattr(lib, "agent_visible"):
+            return []
+        io: list[str] = []
+        five: list[str] = []
+        for m in lib.modules:
+            if not lib.agent_visible(m):
+                continue
+            slots = list((m.get("backplane_v1") or {}).get("slots") or [])
+            word = PORT_WORDS.get(m.get("role")) or str((m.get("manual") or {}).get("word") or m.get("role") or "").replace("_", " ")
+            if slots and all(str(x).startswith("J_IO") for x in slots):
+                if word and word not in io:
+                    io.append(word)
+            elif slots == ["J_LED"] and word and word not in five:
+                five.append(word)
+        if not io and not five:
+            return []
+        txt = "- Ports (the validator rejects more): "
+        if io:
+            txt += f"3 simple ports shared by {_and(io)}; "
+        txt += "3 I2C ports, and every I2C part needs its own address"
+        if five:
+            txt += f"; one 5 V port for {' or '.join(five)}" + (", so a design has only one of them" if len(five) > 1 else "")
+        return [txt + "."]
+
     def raw_modules(self) -> list[dict]:
+        """Library rows straight from the JSON; rows of packs that are off are left out (CATALOG-PLAN 0.5.3), and
+        every pack row is left out when the engine cannot say which packs are on (fail closed)."""
         d = self.settings.library_dir
         mods: list[dict] = []
         files = [d / "modules.json"] if (d / "modules.json").exists() else sorted(d.glob("modules-*.json"))
@@ -179,6 +294,10 @@ class EngineBridge:
             if isinstance(data, dict):
                 data = data.get("modules", [])
             mods.extend(m for m in data if isinstance(m, dict) and m.get("id"))
+        if any(m.get("pack") for m in mods):
+            on = self.packs_on()
+            pm = self._packs_mod()
+            mods = [m for m in mods if not m.get("pack") or (pm is not None and pm.visible(m, on=on))]
         return mods
 
     def _library_from_json(self) -> str:
@@ -395,6 +514,16 @@ class EngineBridge:
 
 
 DEFAULT_STAGES = ("normalize", "electrical", "cad", "pcb", "firmware", "order", "manual", "checks", "docs", "package")
+
+
+PORT_WORDS = {"button": "buttons", "touch": "touch pads", "buzzer": "a buzzer", "motion": "a PIR motion sensor",
+              "hall": "a magnet (hall) sensor", "endstop": "an end-stop switch", "light_sensor": "an LDR light sensor",
+              "led": "an LED ring or pixel", "servo": "a servo arm", "servo_continuous": "a continuous servo",
+              "soil_moisture": "a soil probe", "level_switch": "a float switch"}
+
+
+def _and(words: list[str]) -> str:
+    return words[0] if len(words) == 1 else ", ".join(words[:-1]) + " and " + words[-1]
 
 
 def nudges_from(r: Any) -> list:

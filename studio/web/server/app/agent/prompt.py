@@ -3,6 +3,7 @@ underlying files change, since the engine and library are being written alongsid
 from __future__ import annotations
 
 import json
+import re
 import threading
 from pathlib import Path
 
@@ -63,8 +64,7 @@ HONESTY = """# Honesty rules (provenance or silence)
 - Label anything unverified: "estimate", "not modeled", "physical check still needed". Never say something was
   physically tested, is certified, is safe for children, or "works" in the real world. Digital checks are not
   physical tests.
-- Only catalog parts exist. If the user wants something the catalog cannot do (motors, wheels, batteries, cameras,
-  mains power, outdoor use), say so plainly and offer the closest buildable thing.
+{CANNOT}
 - When unsure what the user means, ask (within the question limit) instead of guessing."""
 
 SAFETY = """# Safety rules
@@ -95,7 +95,7 @@ SAFETY = """# Safety rules
 - Microphone only when the user wants voice input. It listens only while a button is held, a light shows when it
   is listening, audio is processed on the device, and no audio is sent to the cloud. For children: no cloud audio
   at all. Add "LOCAL_VOICE_CAPTURE" to safety.flags when a mic is present.
-- Nothing mobile, no heaters, no strong actuators, nothing safety-critical. Indoor desk or bedside use."""
+{MOVING}"""
 
 DESIGN = """# Design rules for cute, printable, safe objects
 - Subject first: keep the subject the user named (e.g. robot) recognisable in all Expected concepts and in at
@@ -133,6 +133,33 @@ DESIGN = """# Design rules for cute, printable, safe objects
 
 MAX_EXAMPLES = 4
 
+# CATALOG-PLAN E3: the "cannot build" list and the motion sentence follow what the library offers right now
+CANNOT_ALWAYS = ["batteries", "cameras", "mains power", "heaters", "outdoor or wet use", "vehicles", "medical devices",
+                 "water pumps", "weighing scales"]
+SERVO_SENTENCE = ("- One small servo arm is possible; it uses the only 5 V port, so that design has no LED ring or pixel; "
+                  "never in a child-directed design.\n"
+                  "- Servo settings (behaviour.settings; whole numbers within these bounds, defaults in brackets): "
+                  "desk_companion servo_wave_on_tap (true), servo_wave_deg 10-60 (35), servo_waves 1-5 (2), "
+                  "servo_rest_deg 0-180 (90), servo_speed_deg_s 30-360 (120); notifier_clock servo_on_notice (true), "
+                  "servo_open_deg 0-180 (90), servo_rest_deg 0-180 (0), servo_hold_s 1-30 (3), servo_speed_deg_s "
+                  "30-360 (120).")
+SAY_YES = """# Wishes we can build: say yes to these
+- A night light that turns on softly when a baby stirs and goes off by itself: ambient_light with the PIR_AM312_MINI
+  motion sensor and an LED ring, NIGHT_USE in safety.flags, behaviour.settings.motion_wake true and off_after_minutes
+  (for example 5): it switches itself off after that many quiet minutes and wakes on movement.
+- A medicine reminder: notifier_clock with a display, a light and a button to mark a reminder as done. Say it is a
+  reminder, never dosing or medical advice.{SCHEDULE}"""
+SCHEDULE_OFF = (" Reminders reach it from a phone through the gadget's own page on the home Wi-Fi; it does not keep a "
+                "timetable of its own yet.")
+SCHEDULE_ON = (" It keeps a daily timetable: behaviour.settings.schedule is a list of up to 8 entries "
+               '{"time": "HH:MM" (24-hour), "text": "1-24 characters"} (plain English letters, digits, spaces or '
+               'punctuation; one entry per time), e.g. [{"time": "09:00", "text": "Morning pills"}].')
+PLANT_SAY_YES = ("- A plant or water monitor (soil probe, float switch) on sensor_display. \"Tells my phone\" means the "
+                 "gadget's own page on the home Wi-Fi: there are no push messages.")
+STOPWORDS = {"the", "and", "for", "with", "that", "this", "when", "from", "into", "your", "you", "are", "can", "its",
+             "has", "have", "which", "what", "will", "who", "would", "like", "want", "make", "made", "need", "little",
+             "small", "big", "very", "one", "two", "some", "our", "out", "not", "but", "all", "any", "how", "also", "just"}
+
 
 class PromptBuilder:
     def __init__(self, bridge, settings):
@@ -149,25 +176,63 @@ class PromptBuilder:
                 return p
         return None
 
-    def example_paths(self) -> list[Path]:
-        """Several worked examples of different forms, so the agent does not anchor on one bear: examples/*/spec.json
-        (bedtime-robot first) and the hand-made designs in landing/designs/*/spec.json, at most MAX_EXAMPLES."""
+    def _pack_examples(self) -> list[Path]:
+        fn = getattr(self.bridge, "pack_example_paths", None)
+        try:
+            return list(fn()) if callable(fn) else []
+        except Exception:  # noqa: BLE001
+            return []
+
+    def candidate_paths(self) -> list[Path]:
+        """Every worked example the agent may see: examples/*/spec.json (bedtime-robot first), the hand-made designs in
+        landing/designs/*/spec.json, then the examples of the packs that are on (library/packs/examples/<pack>/)."""
         first = self._example_path()
         out = [first] if first else []
         for d in (self.settings.examples_dir, self.settings.studio_root / "landing" / "designs"):
             if d.is_dir():
                 out += [p for p in sorted(d.glob("*/spec.json")) if p not in out]
-        return out[:MAX_EXAMPLES]
+        out += [p for p in self._pack_examples() if p not in out]
+        return out
+
+    def example_paths(self, wish: str | None = None) -> list[Path]:
+        """Several worked examples of different forms, so the agent does not anchor on one bear: bedtime-robot first,
+        then the examples whose name, tagline or slug share the most words with the wish (in candidate order when the
+        wish matches nothing or is not known), at most MAX_EXAMPLES."""
+        cands = self.candidate_paths()
+        if not cands:
+            return []
+        head, rest = cands[:1], cands[1:]
+        words = _words(wish or "")
+        if words:
+            scored = [(-len(words & _words(self._example_text(p))), k, p) for k, p in enumerate(rest)]
+            rest = [p for _, _, p in sorted(scored, key=lambda t: (t[0], t[1]))]
+        return (head + rest)[:MAX_EXAMPLES]
+
+    def _example_text(self, p: Path) -> str:
+        sp = self._read_example(p) or {}
+        return " ".join(str(sp.get(k) or "") for k in ("name", "tagline", "slug")) + " " + p.parent.name
+
+    def _read_example(self, p: Path) -> dict | None:
+        try:
+            sp = json.loads(p.read_text())
+        except (OSError, json.JSONDecodeError):
+            return None
+        return sp if isinstance(sp, dict) else None
 
     def _sig(self) -> tuple:
         paths = [self.settings.library_dir / "modules.json", self.settings.engine_dir / "gstudio" / "spec.py",
-                 self.settings.docs_dir / "ARCHITECTURE.md", *self.example_paths()]
+                 self.settings.docs_dir / "ARCHITECTURE.md", *self.candidate_paths()]
         sig = []
         for p in paths:
             try:
                 sig.append((str(p), p.stat().st_mtime_ns) if p else None)
             except OSError:
                 sig.append(None)
+        packs = getattr(self.bridge, "pack_files_signature", None)
+        try:
+            sig.append(packs() if callable(packs) else None)  # the pack switch and every pack file
+        except Exception:  # noqa: BLE001
+            sig.append(None)
         return tuple(sig)
 
     def example_spec(self) -> dict | None:
@@ -189,34 +254,114 @@ class PromptBuilder:
             self._fallback = spec if ok else {}
         return self._fallback or None
 
-    def system_prompt(self) -> str:
+    # ------------------------------------------------------------------ what the catalog can do (CATALOG-PLAN E3)
+    def _can(self, role: str) -> bool:
+        fn = getattr(self.bridge, "role_available", None)
+        try:
+            return bool(fn(role)) if callable(fn) else False
+        except Exception:  # noqa: BLE001
+            return False
+
+    def _packs_on(self) -> frozenset:
+        fn = getattr(self.bridge, "packs_on", None)
+        try:
+            return frozenset(fn()) if callable(fn) else frozenset()
+        except Exception:  # noqa: BLE001
+            return frozenset()
+
+    def capability_blocks(self) -> dict[str, str]:
+        """The sentences that follow the library: the refusal list, the motion rule, the say-yes lines and the rules
+        of every pack that is on (empty when no pack is on)."""
+        servo = self._can("servo") or self._can("servo_continuous")
+        on = self._packs_on()
+        cannot = ([] if servo else ["motors or other moving parts"]) + CANNOT_ALWAYS
+        soil = self._can("soil_moisture") or self._can("level_switch")
+        honesty = (f"- Only catalog parts exist. We cannot build: {', '.join(cannot)}. If the user wants one of these "
+                   "or anything else the catalog cannot do, say so plainly and offer the closest buildable thing.\n"
+                   "- Sensors do only what the chosen app reads: sensor_display shows temperature, humidity, pressure, "
+                   f"light and distance readings{', soil moisture and a water-level warning' if soil else ''}; "
+                   "ambient_light uses a light sensor to dim and a PIR motion sensor to wake; notifier_clock keeps time "
+                   "with the clock module; desk_companion and story_player read no sensors. Leave out a sensor the app "
+                   "does not read and never promise what it would do (for example a distance sensor that checks a bowl).\n"
+                   "- Every gadget runs one of our firmware apps (story_player, desk_companion, notifier_clock, "
+                   "ambient_light, sensor_display). When part of a wish needs something no app does (for example "
+                   "looking words up online, a talking dictionary, or understanding speech), the hardware can still be "
+                   "designed: say plainly in your first reply and again in the concepts message which part it cannot do "
+                   "yet (e.g. \"It will not look words up or understand speech yet.\"), and never describe the "
+                   "concepts as doing it.")
+        moving = "- Nothing mobile, no heaters, nothing safety-critical. Indoor desk or bedside use.\n" + (
+            SERVO_SENTENCE if servo else "- No motors or other actuators.")
+        # the timetable ships with hack/cat-b-sched: switch `schedule` (or the motion pack, whose examples need it)
+        say_yes = SAY_YES.replace("{SCHEDULE}", SCHEDULE_ON if ("schedule" in on or servo) else SCHEDULE_OFF)
+        if self._can("soil_moisture") or self._can("level_switch"):
+            say_yes += "\n" + PLANT_SAY_YES
+        rules = []
+        fn = getattr(self.bridge, "pack_prompt_rules", None)
+        try:
+            for pack, items in (fn() if callable(fn) else []):
+                rules += [f"- {r}" for r in items]
+        except Exception:  # noqa: BLE001
+            rules = []
+        packs = ("# Parts and objects added this week (digital checks only; not built physically yet)\n" + "\n".join(rules)
+                 if rules else "")
+        return {"honesty": honesty, "moving": moving, "say_yes": say_yes, "packs": packs}
+
+    def _static(self) -> tuple:
+        """(text before the examples, text after) from the files; cached until any of them changes."""
         sig = self._sig()
         with self._lock:
             if self._cache and self._cache[0] == sig:
                 return self._cache[1]
             schema = self.bridge.spec_schema_text()
             table = self.bridge.library_table()
-            blocks = []
-            for p in self.example_paths():
-                try:
-                    sp = json.loads(p.read_text())
-                except (OSError, json.JSONDecodeError):
-                    continue
-                kind = f"{(sp.get('body') or {}).get('family')} body, {(sp.get('behaviour') or {}).get('template')}"
-                blocks.append(f"## {sp.get('name') or p.parent.name} ({kind})\n" + json.dumps(sp, separators=(",", ":")))
-            if not blocks:
-                ex = self.example_spec()
-                blocks = [json.dumps(ex, separators=(",", ":"))] if ex else []
-            ex_text = "\n".join(blocks) or "(No example available yet: follow the schema exactly.)"
-            text = "\n\n".join([
-                ROLE, FLOW, VOICE, HONESTY, SAFETY, DESIGN,
+            cap = self.capability_blocks()
+            design = DESIGN
+            if "printed" in self._packs_on():  # printed objects (pack `printed`) may be as small as 20 mm per axis
+                design = design.replace("Every axis 60-260 mm;", "Every axis 60-260 mm (a printed object: 20-260 mm);")
+            blocks = [ROLE, FLOW, VOICE, HONESTY.replace("{CANNOT}", cap["honesty"]), SAFETY.replace("{MOVING}", cap["moving"]),
+                      cap["say_yes"], design]
+            if cap["packs"]:
+                blocks.append(cap["packs"])
+            blocks += [
                 "# Spec schema (gadget-spec/1). Unknown keys are rejected; every number has bounds.\n" + schema,
                 "# Parts catalog (the only parts that exist). Use these ids exactly.\n" + table,
                 "# Hard fit rules (from the engine; the validator rejects specs that break them)\n"
                 + self.bridge.fit_rules_text(),
-                "# Worked example specs (they validate: copy key names and value formats exactly. They show "
-                "different forms; do not reuse one body, feature layout or decor for more than one concept)\n"
-                + ex_text,
-            ])
-            self._cache = (sig, text)
-            return text
+            ]
+            head = "\n\n".join(blocks)
+            self._cache = (sig, head)
+            return head
+
+    def system_prompt(self, wish: str | None = None) -> str:
+        """The agent's system instruction. `wish` (the user's own words) picks which worked examples are shown."""
+        head = self._static()
+        blocks = []
+        for p in self.example_paths(wish):
+            sp = self._read_example(p)
+            if sp is None:
+                continue
+            tmpl = (sp.get("behaviour") or {}).get("template") or "printed, no electronics"
+            kind = f"{(sp.get('body') or {}).get('family')} body, {tmpl}"
+            blocks.append(f"## {sp.get('name') or p.parent.name} ({kind})\n" + json.dumps(sp, separators=(",", ":")))
+        if not blocks:
+            ex = self.example_spec()
+            blocks = [json.dumps(ex, separators=(",", ":"))] if ex else []
+        ex_text = "\n".join(blocks) or "(No example available yet: follow the schema exactly.)"
+        return head + "\n\n" + (
+            "# Worked example specs (they validate: copy key names and value formats exactly. They show "
+            "different forms; do not reuse one body, feature layout or decor for more than one concept)\n" + ex_text)
+
+
+def _words(text: str) -> set[str]:
+    return {w for w in re.findall(r"[a-z]+", str(text).lower()) if len(w) >= 3 and w not in STOPWORDS}
+
+
+def wish_of(project: dict | None) -> str:
+    """The user's own words that started the project (the first user text messages), for example selection."""
+    out = []
+    for m in (project or {}).get("chat") or []:
+        if m.get("role") == "user" and m.get("kind") == "text" and str(m.get("text") or "").strip():
+            out.append(str(m["text"]).strip())
+            if len(out) >= 2:
+                break
+    return " ".join(out)[:2000]

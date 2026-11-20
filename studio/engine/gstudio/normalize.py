@@ -27,15 +27,16 @@ from __future__ import annotations
 import math
 from typing import Any, Optional
 
-from .envelope import fit_orientations, full_envelope
+from .envelope import fit_orientations, full_envelope, rounded_extrusion_sdf, silhouette_rounds
 from .errors import SpecError
 from .spec import (
-    BlobBody, DCartridge, DHardware, DHarness, DInstance, Derived, Feature, RevolveBody, SilhouetteBody, Spec,
-    cross_check, load_spec, outline_points, polygon_area,
+    PRINTED_MIN_SIZE, SCULPT_KINDS, _rot_matrix, BlobBody, DCartridge, DHardware, DHarness, DInstance, Derived, Feature, RevolveBody, SilhouetteBody,
+    Spec, cross_check, load_spec, outline_points, polygon_area,
 )
 from .version import ENGINE_VERSION
 
 SIZE_MIN, SIZE_MAX = 60.0, 260.0
+SIZE_MIN_PRINTED = PRINTED_MIN_SIZE  # 20 mm per axis for kind printed (gstudio.printed uses it instead of SIZE_MIN)
 BED = (250.0, 210.0, 210.0)
 ENVELOPE_MARGIN = 3.0  # mm per axis kept in hand when the envelope is a distance-field estimate (blob, revolve)
 CLEAR = 3.0  # cartridge clearance to the inner wall
@@ -107,6 +108,14 @@ def _ellipse_sdf(px, py, rx, ry):
 
 
 def _prim_sdf(pr, x, y, z):
+    if _sculpted(pr):  # pack `sculpt` (CATALOG-PLAN 0.5.5, E4)
+        try:
+            from .sdf_ext import prim_sdf as _ext  # package D: turned primitives and cone, torus, tube
+        except ImportError:
+            _ext = None
+        if _ext is not None:
+            return _ext(pr, x, y, z)
+        return _turned_box_sdf(pr, x, y, z)  # without sdf_ext: the turned bounding box (never smaller than the shape)
     (cx, cy, cz), (sx, sy, sz) = pr.center, pr.size
     p = [x - cx, y - cy, z - cz]
     h = [sx / 2, sy / 2, sz / 2]
@@ -132,6 +141,33 @@ def _prim_sdf(pr, x, y, z):
     return math.sqrt(sum(v * v for v in q)) - r
 
 
+def _sculpted(pr) -> bool:
+    return pr.kind in SCULPT_KINDS or any(getattr(pr, "rot", None) or ())
+
+
+def _prim_bounds(pr) -> tuple:
+    """World bounds of a blob primitive: package D's exact sdf_ext.prim_bounds for sculpted ones when it has landed,
+    else the primitive's own (turned, conservative) bounding box."""
+    if _sculpted(pr):
+        try:
+            from .sdf_ext import prim_bounds as _bounds
+        except ImportError:
+            _bounds = None
+        if _bounds is not None:
+            return tuple(_bounds(pr))
+    return pr.aabb()
+
+
+def _turned_box_sdf(pr, x, y, z):
+    """Exact distance to the primitive's bounding box turned by pr.rot (a box SDF in the primitive's own frame)."""
+    (cx, cy, cz), (sx, sy, sz) = pr.center, pr.size
+    R = _rot_matrix(getattr(pr, "rot", None) or (0.0, 0.0, 0.0))
+    d = (x - cx, y - cy, z - cz)
+    p = [sum(R[j][i] * d[j] for j in range(3)) for i in range(3)]  # R^T d
+    q = [abs(p[i]) - h for i, h in enumerate((sx / 2, sy / 2, sz / 2))]
+    return math.sqrt(sum(max(v, 0.0) ** 2 for v in q)) + min(max(q), 0.0)
+
+
 class ShellGeometry:
     """Approximate outer shape of the body as a signed distance field (mm, world coordinates)."""
 
@@ -141,10 +177,12 @@ class ShellGeometry:
         self.body = b
         self.wall = b.wall
         self.family = b.family
+        self.rounds = None  # silhouette (front, rear) perimeter rounds, for fit_sdf
         if isinstance(b, SilhouetteBody):
             self.poly = Poly2D(outline_points(b, 6))
             x0, x1, _, z1 = self.poly.bb
             self.bbox = (x0, x1, -b.depth / 2, b.depth / 2, 0.0, z1)
+            self.rounds = silhouette_rounds(b)
         elif isinstance(b, RevolveBody):
             pts = list(b.profile)
             n = len(pts)
@@ -153,7 +191,7 @@ class ShellGeometry:
             rmax = max(r for r, _ in pts)
             self.bbox = (-rmax, rmax, -rmax * b.squash_y, rmax * b.squash_y, 0.0, max(z for _, z in pts))
         else:
-            boxes = [p.aabb() for p in b.primitives]
+            boxes = [_prim_bounds(p) for p in b.primitives]
             self.bbox = (min(q[0] for q in boxes), max(q[1] for q in boxes), min(q[2] for q in boxes),
                          max(q[3] for q in boxes), 0.0, max(q[5] for q in boxes))
         # inner floor: the shell's own bottom skin (rear_cover) or the top of the CAD's 3.5 mm base plate (base_plate)
@@ -170,6 +208,13 @@ class ShellGeometry:
             return d * min(1.0, b.squash_y) if d < 0 else d
         d = min(_prim_sdf(p, x, y, z) for p in b.primitives)
         return max(d, -z)
+
+    def fit_sdf(self, x: float, y: float, z: float) -> float:
+        """outer_sdf with a silhouette's front and rear perimeter rounds (envelope.rounded_extrusion_sdf), for fit checks
+        next to those rounds: the core cartridge sits on the floor right behind the front-bottom round."""
+        if self.rounds is not None:
+            return rounded_extrusion_sdf(self.poly.sdf(x, z), y, self.body.depth, self.rounds[0], self.rounds[1])
+        return self.outer_sdf(x, y, z)
 
     def inside(self, x: float, y: float, z: float, margin: float = 0.0) -> bool:
         """True when the point lies in the inner cavity with `margin` mm to the inner wall surface."""
@@ -244,20 +289,61 @@ TEMPLATE_RULES = {
                      "recommend": [("led", "a night-light LED feature")]},
     "desk_companion": {"need": [("display", "a display feature for the face")], "need_any": [(("button", "touch"), "a button or touch control")],
                        "recommend": [("speaker", "a speaker for chimes"), ("led", "a light")]},
-    "notifier_clock": {"need": [("display", "a display feature for the time"), ("led", "an LED feature for notifications")],
+    # need_any: (roles, why, why when a role's pack is off): roles with no visible library row are left out of the fix
+    "notifier_clock": {"need": [("display", "a display feature for the time")],
+                       "need_any": [(("led", "servo"), "an LED or a servo flag for notifications", "an LED feature for notifications")],
                        "recommend": [("buzzer", "a buzzer or speaker for alerts")]},
     "ambient_light": {"need": [("led", "an LED (ring or strip) feature")], "need_any": [(("button", "touch"), "a button or touch control")],
                       "recommend": [("light_sensor", "a light sensor for auto-dim")]},
     "sensor_display": {"need": [("display", "a display feature")],
-                       "need_any": [(("temp_humidity", "pressure", "light_sensor"), "at least one environment sensor")]},
+                       "need_any": [(("temp_humidity", "pressure", "light_sensor", "soil_moisture", "level_switch", "air_quality"),
+                                     "at least one sensor (environment, air quality, soil moisture or water level)",
+                                     "at least one environment sensor")]},
+    # pack motion2 (CATALOG-PLAN E4): a known tag or a button opens a servo latch for a few seconds
+    "latch": {"need": [("servo", "a servo arm for the latch")],
+              "need_any": [(("nfc", "button", "touch"), "a tag reader, button or touch control to open it",
+                            "a button or touch control to open it")]},
 }
+ACTUATOR_ROLES = ("servo", "servo_continuous")  # CATALOG-PLAN E1.5: never in a child-directed design
+# parts that only the sensor_display firmware reads (pack `sensing`, hand-off c-to-e 3): elsewhere they would be bought,
+# wired and never read
+SENSOR_DISPLAY_ONLY = {"soil_moisture": "soil probe", "level_switch": "float switch"}
+
+
+def _role_available(lib, role: str) -> bool:
+    """True when the agent can design with a row of this role (its parts table lists it; pack rows only while on)."""
+    fn = getattr(lib, "role_available", None)
+    if callable(fn):
+        return bool(fn(role))
+    return any((x.get("backplane_v1") or {}).get("supported") for x in lib.by_role(role))
 
 
 # =============================================================================================== main
+def _bare_report(errors: list[dict]) -> dict:
+    """The report shape for a spec that cannot be normalized at all (same keys as a full report)."""
+    return {"ok": not errors, "errors": errors, "warnings": [], "added": [], "nudges": [], "size_mm": [0.0, 0.0, 0.0],
+            "envelope": {"bbox": [0.0] * 6, "source": "none", "fits_upright": False, "fits_any_orientation": False, "ears": []},
+            "instances": [], "slots": {}}
+
+
 def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]:
     sp = load_spec(spec) if not isinstance(spec, Spec) else spec
+    if getattr(sp, "kind", "gadget") == "printed":  # CATALOG-PLAN 0.5.5: printed objects (pack `printed`, gstudio.printed)
+        try:
+            from .printed import normalize_printed
+        except ImportError:
+            errs = list(cross_check(sp)) + [{"path": "kind", "msg": "a printed object with no electronics (kind 'printed') is "
+                                             "not available yet", "fix": "design a gadget (kind 'gadget')", "code": "not_available"}]
+            if raise_on_error:
+                raise SpecError(errs)
+            return sp, _bare_report(errs)
+        return normalize_printed(sp, lib, raise_on_error)
     sp = sp.model_copy(deep=True)
     errors: list[dict] = list(cross_check(sp))
+    if sp.behaviour is None:  # a gadget needs behaviour (cross_check says so); nothing else can be checked without it
+        if raise_on_error:
+            raise SpecError(errors)
+        return sp, _bare_report(errors)
     warnings: list[str] = []
     added: list[str] = []
     bp = lib.backplane
@@ -351,9 +437,20 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
             cand = ", ".join(x["id"] for x in lib.by_role(role) if (x.get("aperture") or {}).get("feature_allowed")
                              and (x.get("backplane_v1") or {}).get("supported"))
             _err(errors, "features", f"{tmpl} needs {why}", f"add a feature with module {cand}" if cand else None, "template_requirement")
-    for roles, why in rules.get("need_any", []):
+    for rule in rules.get("need_any", []):
+        roles, why = rule[0], rule[1]
         if not any(r in roles_present for r in roles):
-            _err(errors, "features", f"{tmpl} needs {why}", f"add a feature whose module role is one of {', '.join(roles)}", "template_requirement")
+            avail = [r for r in roles if _role_available(lib, r)] or list(roles)
+            if len(avail) < len(roles) and len(rule) > 2:
+                why = rule[2]
+            cand = [x["id"] for r in avail for x in lib.by_role(r) if (x.get("aperture") or {}).get("feature_allowed")
+                    and (x.get("backplane_v1") or {}).get("supported")]
+            _err(errors, "features", f"{tmpl} needs {why}", f"add a feature whose module role is one of {', '.join(avail)}"
+                 + (f" (e.g. {', '.join(cand[:6])})" if cand else ""), "template_requirement")
+    only = [SENSOR_DISPLAY_ONLY[r] for r in sorted(set(roles_present) & set(SENSOR_DISPLAY_ONLY))]
+    if only and tmpl != "sensor_display":
+        _err(errors, "behaviour.template", f"a {' and a '.join(only)} {'are' if len(only) > 1 else 'is'} read only by the "
+             "sensor_display behaviour", "set behaviour.template to sensor_display, or remove that part", "template_requirement")
     for role, why in rules.get("recommend", []):
         if role not in roles_present:
             warnings.append(f"{tmpl}: consider {why}")
@@ -408,6 +505,13 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
     if sp.audience.child_directed and "CHILD_DIRECTED" not in flags:
         flags.add("CHILD_DIRECTED")
         added.append("safety.flags: CHILD_DIRECTED (audience.child_directed is true)")
+    if sp.audience.child_directed:
+        moving = [(f"features[{k}].module", feat_mods[f.id]) for k, f in enumerate(sp.features)
+                  if (feat_mods.get(f.id) or {}).get("role") in ACTUATOR_ROLES]
+        moving += [(f"electronics.extra_modules[{k}]", m) for k, m in extra_mods if m.get("role") in ACTUATOR_ROLES]
+        for pth, m in moving:
+            _err(errors, pth, f"no moving parts in a child-directed design: {m['id']} is a {m.get('role')}", "remove the servo",
+                 "actuator_child")
     for _, m in extra_mods:
         if m["id"] == "RTC_DS3231_ZS042":
             if sp.audience.child_directed:
@@ -526,6 +630,18 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
     x0, x1, y0, y1, z0, z1 = env["bbox"]
     warnings += [f"envelope: {n}" for n in env["notes"]]
     size = (x1 - x0, y1 - y0, z1 - z0)
+    if getattr(getattr(sp, "mount", None), "kind", "desk") == "wall":  # pack `mount`: room for the keyholes (d-to-e 3)
+        from . import envelope as _envelope
+
+        wk_fn = getattr(_envelope, "wall_keyhole_room", None)  # package D's pure-Python check, when it has landed
+        if callable(wk_fn):
+            try:
+                wk = wk_fn(sp) or {}
+                if not wk.get("ok", True):
+                    _err(errors, "mount", str(wk.get("why") or "no room for the wall keyholes on the back"), wk.get("fix"),
+                         "wall_mount_room")
+            except Exception as exc:  # never crash normalize
+                warnings.append(f"wall keyhole room not checked: {exc}")
     for axis, v in zip("XYZ", size):
         if v < SIZE_MIN - 1e-6:
             _err(errors, "body", f"overall size along {axis} is {v:.0f} mm; minimum is {SIZE_MIN:g} mm", "make the body bigger", "size")
@@ -588,6 +704,11 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
             need_w = (kx1 - kx0) + 2 * CLEAR + 2 * geom.wall
             need_d = (ky1 - ky0) + CLEAR + rear_gap + 2 * geom.wall
             fix = f"make the lower body at least {need_w:.0f} mm wide and {need_d:.0f} mm deep for the first {kz + floor:.0f} mm of height"
+            if isinstance(sp.body, SilhouetteBody) and "base-plate opening" not in why:
+                alt = _silhouette_cartridge_fix(sp, W, (kx0, kx1, ky0, ky1), floor, kz, rear_gap, kb, bosses,
+                                                cart["board_bottom_above_floor"], cart["holes"], usb_bx)
+                if alt:
+                    fix = f"{alt} (the front edge round takes room at the floor); or {fix}"
             if "base-plate opening" in why:
                 fix = (f"the board goes in through the base-plate opening: make the flat bottom at least {kx1 - kx0 + 2 * geom.wall:.0f} x "
                        f"{ky1 - ky0 + 2 * geom.wall:.0f} mm (smaller bottom fillets), or use split rear_cover")
@@ -675,6 +796,9 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
     nudges = kit_conflicts(sp, lib, placed, fboxes)
     for c in kit_shell_conflicts(sp, lib, geom, placed):
         _err(errors, f"features[{sp.features.index(sp.feature(c['feature']))}].at", c["msg"], c["fix"], "kit_shell")
+    if sp.body.split == "rear_cover":
+        for c in kit_seam_conflicts(sp, lib, geom, placed, seam_y(geom, W, floor)):
+            _err(errors, f"features[{sp.features.index(sp.feature(c['feature']))}].at", c["msg"], c["fix"], "kit_seam")
     for c in nudges:
         if frozenset((c["a"], c["b"])) in clashed:
             continue
@@ -740,6 +864,10 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
             dist = (abs(start[0] - end[0]) + abs(start[1] - end[1]) + abs(start[2] - end[2])) * ROUTE_FACTOR + ROUTE_SLACK
         else:
             dist = 150.0
+        if ((lib.get(i["module"]).get("aperture") or {}).get("needs")) == "cable_exit":
+            # the part sits outside the shell (soil probe, float switch): its lead continues through the cable exit to the
+            # pot or tank, so it always gets the longest class (hand-off c-to-e 2); reach outside = 300 mm - route
+            dist = max(dist, float(LENGTH_CLASSES[-1]))
         cls = next((c for c in LENGTH_CLASSES if c >= dist), None)
         if cls is None:
             _err(errors, i.get("path", "features"), f"{i['ref']} is about {dist:.0f} mm of cable from {slot_id}; the longest harness is 300 mm",
@@ -907,11 +1035,12 @@ def _module_end(m: dict) -> str:
 # REVIEW-1 MAJ-12: one purchased row per screw length (library SCREW_<thread>X<len>_SHCS_A2, each with its own SKU) and the
 # insert that is actually bought (INSERT_HEATSET_M2_5X4_MEC8005, pack of 10). `id` is the CAD fastener group name, so the
 # parts list joins PURCHASE_<group> by name; `module` is the library row that is bought.
-MODULE_POSTS = {"speaker": 3, "touch": 0}
+MODULE_POSTS = {"speaker": 3, "touch": 0, "servo": 0, "servo_continuous": 0}  # servo: its own tab screws into pilot holes (B hand-off 1)
 # planned lengths: cartridge from backplane-v1 (boss.screw_length_mm); cover and module clamp lengths are what the CAD's
 # pick_screw rule chose on the benchmark shells (12 and 8); the CAD picks per design and its components.json size wins
 PLANNED_SCREW_LEN = {"CoverScrews": 12, "PlateScrews": 12, "ModuleScrews": 8, "SupportPostScrews": 6}
 PURCHASED_INSERT = "INSERT_HEATSET_M2_5X4_MEC8005"
+WALL_SCREW_SET = "WALL_SCREW_PLUG_SET_4X25"  # pack `mount` row (package D)
 PURCHASED_FEET = "FEET_RUBBER_8X2_5_SUNROM_4436"  # REVIEW-1 MIN-25 (integration): Indian retail feet (Sunrom 4436) replace the IndiaMART-only 3M row
 
 
@@ -970,6 +1099,13 @@ def planned_hardware(sp: Spec, lib, feat_mods: dict, inst: list, harness: list, 
     if feet and sp.body.feet:
         hw.append(DHardware(id="Feet", name="adhesive bumper foot", qty=sp.body.feet, group="Feet", use="underside",
                             module=feet["id"], catalog_row=feet.get("catalog_row")))
+    mt = getattr(sp, "mount", None)  # pack `mount` (hand-off d-to-e 2): the wall screws and plugs are bought, not printed
+    if mt is not None and getattr(mt, "kind", "desk") == "wall" and lib.has(WALL_SCREW_SET):
+        w = lib.get(WALL_SCREW_SET)
+        n = int(getattr(mt, "screws", 2) or 2)
+        hw.append(DHardware(id="WallScrews", name="wall screw + wall plug set", qty=n, size="about 4 x 25 mm screw + plug",
+                            group="WallScrews", use=f"one screw in a wall plug per keyhole ({n} keyholes in the rear cover)",
+                            module=w["id"], catalog_row=w.get("catalog_row")))
     ties = first("ties")
     if ties and harness:
         hw.append(DHardware(id="CableTies", name="cable tie 100 x 2.5 mm", qty=max(3, len(harness) + 1) + 1, group="CableTies",
@@ -1041,18 +1177,19 @@ def _place_cartridge(geom: ShellGeometry, W, plan, floor, kz, rear_gap, kb=0.0, 
     if y_cap is not None and y0 > y_cap:
         y0 = y_cap
 
-    def fits(yo):
+    def fits(yo, z_bottom=1.0):
         xs = _lin(wx0 - CLEAR, wx1 + CLEAR, (wx1 - wx0 + 2 * CLEAR) / 8)
         ys = _lin(yo + ky0 - CLEAR, yo + ky1 + CLEAR - 0.3, (ky1 - ky0 + 2 * CLEAR - 0.3) / 8)
-        zs = (floor + 1.0, floor + kz * 0.5, floor + kz)
+        # checked against the cavity with the silhouette's edge rounds (fit_sdf), like gstudio.cad.enclosure
+        zs = (floor + z_bottom, floor + kz * 0.5, floor + kz)
         for z in zs:
             for x in xs:
                 for yy in (ys[0], ys[-1]):
-                    if geom.outer_sdf(x, yy, z) > -geom.wall:
+                    if geom.fit_sdf(x, yy, z) > -geom.wall:
                         return False, f"wall reached at x={x:.0f}, y={yy:.0f}, z={z:.0f}"
             for yy in ys:
                 for x in (xs[0], xs[-1]):
-                    if geom.outer_sdf(x, yy, z) > -geom.wall:
+                    if geom.fit_sdf(x, yy, z) > -geom.wall:
                         return False, f"wall reached at x={x:.0f}, y={yy:.0f}, z={z:.0f}"
         if base_plate:
             pxs = _lin(wx0, wx1, (wx1 - wx0) / 8)
@@ -1069,15 +1206,46 @@ def _place_cartridge(geom: ShellGeometry, W, plan, floor, kz, rear_gap, kb=0.0, 
         return True, ""
 
     first, opening = "", False
-    for _ in range(80):
-        ok, why = fits(y0)
-        if ok:
-            box = (wx0, wx1, y0 + ky0, y0 + ky1, floor, floor + kz)
-            return y0, box, ""
-        first = first or why  # the reason at the rear-most position is the meaningful one
-        opening = opening or "base-plate opening" in why
-        y0 -= step
+    y_start = y0
+    # pass 1 from 1 mm above the floor (every design that fitted before keeps its place); when no position fits, pass 2
+    # from the keep-out's own bottom (backplane-v1 keepout_bottom_above_floor: below it only the 4 printed bosses reach
+    # the floor, and they blend into the wall). Same two passes as gstudio.cad.enclosure.place_cartridge.
+    for z_bottom in ((1.0, float(kb)) if kb and kb > 1.0 else (1.0,)):
+        y0 = y_start
+        for _ in range(80):
+            ok, why = fits(y0, z_bottom)
+            if ok:
+                box = (wx0, wx1, y0 + ky0, y0 + ky1, floor, floor + kz)
+                return y0, box, ""
+            first = first or why  # the reason at the rear-most position is the meaningful one
+            opening = opening or "base-plate opening" in why
+            y0 -= step
     return None, None, first + ("; the plan also never fits the base-plate opening" if opening and "base-plate opening" not in first else "")
+
+
+def _silhouette_cartridge_fix(sp: Spec, W, plan, floor, kz, rear_gap, kb, bosses, boss_top, holes, usb_bx) -> str:
+    """The smallest listed change that lets the core cartridge fit a silhouette: a smaller edge_round or a deeper body
+    (a few candidates only; normalize stays fast). '' when none of them helps."""
+    b = sp.body
+    holes_y = max(h["at"][1] for h in holes)
+
+    def fits_with(**upd) -> bool:
+        g2 = ShellGeometry(sp.model_copy(update={"body": b.model_copy(update=upd)}))
+        cap = seam_y(g2, W, floor) - SEAM_BOSS_MARGIN - holes_y if b.split == "rear_cover" else None
+        y2, _, _ = _place_cartridge(g2, W, plan, floor, kz, rear_gap, kb, bosses, boss_top, cap, usb_bx=usb_bx)
+        return y2 is not None
+
+    out = []
+    er = float(b.edge_round)
+    for r in sorted({round(er * k) for k in (0.75, 0.6, 0.45)} | {6, 4}, reverse=True):
+        if 2 <= r < er and fits_with(edge_round=float(r)):
+            out.append(f"set body.edge_round to {r} or less")
+            break
+    for dd in (6, 10, 16, 24):
+        if fits_with(depth=float(b.depth) + dd):
+            out.append(f"make body.depth at least {b.depth + dd:g} mm")
+            break
+    return " or ".join(out)
 
 
 def boss_warnings(geom: ShellGeometry, bosses, y_off, floor, boss_top) -> list[str]:
@@ -1256,6 +1424,45 @@ def kit_shell_conflicts(sp: Spec, lib, geom: "ShellGeometry", features: list, to
                                f"x {px:.0f}, y {py:.0f}, z {pz:.0f}",
                         "fix": f"move {f.id} toward the middle of the {f.face} face, away from the rounded edge "
                                f"(by {math.ceil(bad + 2):.0f} mm or more)"})
+    return out
+
+
+SEAM_LIP_REACH = 3.0 + 0.5  # the rear cover's locating lip (and its screw tubes) reach 3 mm in front of the seam, + 0.5 gap
+
+
+def kit_seam_conflicts(sp: Spec, lib, geom: "ShellGeometry", features: list, y_seam: float) -> list[dict]:
+    """Top, left and right kits on a rear_cover design whose parts or shell pads reach the rear cover: the cover's lip
+    sits SEAM_LIP_REACH mm in front of the seam all round the inner wall, so anything of a kit further back collides
+    with the cover or is cut by the seam. Live 2026-11-20 (focus-lamp p_r4yikwxy497q): a top speaker at y 20 whose clamp
+    ring reached y 48.8 with the seam at 42.6 (PRINT_RearCover / PRINT_SpeakerRing and shell / cover collisions).
+    Rear-face kits are refused separately (rear_cover_face). Needs gstudio.cad.footprint; [] without it."""
+    FP = _footprint_module()
+    if FP is None:
+        return []
+    limit = y_seam - SEAM_LIP_REACH
+    out = []
+    for f in features:
+        if f.face not in ("top", "left", "right"):
+            continue
+        try:
+            boxes = FP.kit_footprint(f, None, others=features, skin=sp.body.wall, lib_get=lib.get)
+        except Exception:
+            continue
+        t = geom.surface_depth(f.face, f.at[0], f.at[1])
+        if t is None:
+            continue
+        o, d = geom._ray(f.face, f.at[0], f.at[1], 400.0)
+        s_surf = (o[0] + d[0] * t, o[1] + d[1] * t, o[2] + d[2] * t)[{"left": 0, "right": 0, "top": 2}[f.face]]
+        ys = [FP.to_world(b, s_surf)[3] for b in boxes if b.get("kind") != "clearance"]
+        if not ys or max(ys) <= limit:
+            continue
+        over = max(ys) - limit
+        axis = 1 if f.face == "top" else 0  # the face coordinate that runs along y (top: at = [x, y]; sides: at = [y, z])
+        out.append({"feature": f.id, "mm": round(over, 1),
+                    "msg": f"{f.id}: its kit reaches y {max(ys):.0f}, into the removable rear cover (seam at y {y_seam:.0f}; the "
+                           f"cover's lip reaches 3 mm in front of the seam)",
+                    "fix": f"move {f.id} toward the front: at[{axis}] <= {f.at[axis] - math.ceil(over + 1):.0f} on the {f.face} face, "
+                           "or use body.split base_plate"})
     return out
 
 

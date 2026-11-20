@@ -113,20 +113,37 @@ def place_cartridge(bp: dict, split: str, floor: float, probeC, y_s_max: Optiona
         if y0 > lim:
             y0 = lim
     kp, kh, cl = keepout_plan(bp)
-    for step in range(0, 80):
-        ok = _keepout_fits(probeC, x0, y0, floor, kp, kh, cl, opening)
-        if ok:
+    # the keep-out's real bottom (backplane-v1: board underside minus 1.5 mm for pin ends, 4.9 mm above the floor); below
+    # it only the 4 printed bosses reach the floor, and they blend into the wall
+    kb = float((bp.get("cartridge") or {}).get("keepout_bottom_above_floor", 1.0) or 1.0)
+    y_start = y0
+    placed = False
+    # pass 1 from 1 mm above the floor (unchanged placements); pass 2, only when nothing fits, from the keep-out's own
+    # bottom. normalize._place_cartridge runs the same two passes.
+    for z_bottom in ((1.0, kb) if kb > 1.0 else (1.0,)):
+        y0 = y_start
+        for step in range(0, 80):
+            if _keepout_fits(probeC, x0, y0, floor, kp, kh, cl, opening, z_bottom):
+                placed = True
+                break
+            y0 -= 1.0
+        if placed:
             break
-        y0 -= 1.0
-    else:
-        warns.append("the core cartridge keep-out does not fit inside the shell with clearance; check digital-checks")
+    if not placed:
+        # No position fits with the full clearance. Stepping forward only went further from where the rear seam and
+        # the USB-C opening need the board (live 2026-11-20, focus-lamp p_r4yikwxy497q: the board ended 80 mm in front
+        # of the shell, 871 mm3 of PRINT_Shell / backplane collision). Keep the start position, which normalize
+        # checked; the collision gate reports what really touches.
+        y0 = y_start
+        warns.append("the core cartridge keep-out does not fit inside the shell with its 3 mm clearance (a large front or "
+                     "bottom round leaves no room at the floor); the board stays where the rear seam puts it; check digital-checks")
     return x0, y0, warns
 
 
-def _keepout_fits(probeC, x0, y0, floor, kp, kh, cl, opening) -> bool:
+def _keepout_fits(probeC, x0, y0, floor, kp, kh, cl, opening, z_bottom: float = 1.0) -> bool:
     xs = np.linspace(x0 + kp[0] - cl, x0 + kp[1] + cl, 9)
     ys = np.linspace(y0 + kp[2] - cl, y0 + kp[3] + cl - 0.3, 9)
-    zs = [floor + 1.0, floor + kh * 0.5, floor + kh]
+    zs = [floor + z_bottom, floor + kh * 0.5, floor + kh]
     pts = [(x, y, z) for z in zs for x in xs for y in (ys[0], ys[-1])] + [(x, y, z) for z in zs for y in ys for x in (xs[0], xs[-1])]
     inside = probeC.contains(np.array(pts))
     if not bool(np.all(inside)):

@@ -6,6 +6,7 @@ trace needs (see trace.py).
 """
 from __future__ import annotations
 
+import re
 from typing import Any
 
 PHYSICAL_SHOWN = 3
@@ -104,6 +105,32 @@ def checks_sentence(c: dict) -> str:
     return "Digital checks: " + ", ".join(bits) + "."
 
 
+def part_label(name: Any) -> str:
+    """A CAD part name in plain words: PRINT_RearCover -> Rear cover, PURCHASE_CoreBoard -> Core board; other names
+    stay as they are."""
+    n = str(name or "").strip()
+    for pre in ("PRINT_", "PURCHASE_"):
+        if n.startswith(pre) and len(n) > len(pre):
+            words = re.findall(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|[0-9]+", n[len(pre):]) or [n[len(pre):]]
+            n = " ".join(words)
+            return n[:1].upper() + n[1:].lower()
+    return n
+
+
+def _held_reason(w: Any) -> str:
+    """One reason the quote is held, readable: a collision pair {parts, mm3} -> "Shell / Rear cover (95 mm3)"."""
+    if not isinstance(w, dict):
+        return str(w)
+    if w.get("message"):
+        return str(w["message"])
+    parts = w.get("parts") or w.get("pair")
+    if isinstance(parts, (list, tuple)) and parts:
+        txt = " / ".join(part_label(p) for p in parts)
+        mm3 = _num(w.get("mm3"))
+        return txt + (f" ({mm3:.0f} mm3)" if mm3 is not None else "")
+    return ", ".join(f"{k} {v}" for k, v in w.items()) or "collision check"
+
+
 def price_of(build: dict, quote: Any) -> dict:
     order = build.get("order") if isinstance(build, dict) else None
     inr = _num((order or {}).get("list_price_inr"))
@@ -119,8 +146,7 @@ def price_of(build: dict, quote: Any) -> dict:
         status = status or quote.get("status")
     if str(status or "").upper() == "HELD":
         why = (quote.get("held_because") if isinstance(quote, dict) else None) or (order or {}).get("held_because")
-        why_s = "; ".join(str(w.get("message") or w.get("pair") or w) if isinstance(w, dict) else str(w)
-                          for w in why[:3]) if isinstance(why, list) and why else ""
+        why_s = "; ".join(_held_reason(w) for w in why[:3]) if isinstance(why, list) and why else ""
         return {"inr": None, "status": "HELD",
                 "label": "Price held until the design passes its collision check" + (f" ({why_s})" if why_s else "")}
     if inr is None:
@@ -208,7 +234,12 @@ def build_summary(name: str, status: dict | None, build: dict | None, manifest: 
     steps = [s for s in build.get("steps") or [] if isinstance(s, dict)]
     files = [f.get("path", "") for f in (manifest or {}).get("files") or [] if isinstance(f, dict)]
     imgs = image_counts(extra.get("manual_summary"), files)
-    if printed:
+    spec = extra.get("spec") if isinstance(extra.get("spec"), dict) else {}
+    kind = "printed" if spec.get("kind") == "printed" else "gadget"  # CATALOG-PLAN E4: the viewer hides wiring tabs
+    if printed and kind == "printed":
+        made.append(f"{name}: {len(printed)} print part{'s' if len(printed) != 1 else ''} with STEP and STL files "
+                    "(a printed object with no electronics)")
+    elif printed:
         made.append(f"{name}'s printed shell: {len(printed)} print part{'s' if len(printed) != 1 else ''} "
                     "with STEP and STL files")
     if any(f.startswith("pcb/") for f in files) or build.get("pcb"):
@@ -323,7 +354,7 @@ def build_summary(name: str, status: dict | None, build: dict | None, manifest: 
         lines.append("Nothing from this attempt should be ordered or printed. You can ask me to change the design, "
                      "or try the build again.")
         one = f"Build failed{where}"
-    payload = {"state": state, "made": made, "checks": checks, "price": price, "physical_checks": physical,
+    payload = {"state": state, "kind": kind, "made": made, "checks": checks, "price": price, "physical_checks": physical,
                "notes": notes, "requirements": reqs, "buildable": buildable,
                "verdict_message": status.get("verdict_message") if buildable is False else None}
     return payload, "\n".join(lines).strip(), one
