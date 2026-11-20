@@ -305,6 +305,9 @@ TEMPLATE_RULES = {
                             "a button or touch control to open it")]},
 }
 ACTUATOR_ROLES = ("servo", "servo_continuous")  # CATALOG-PLAN E1.5: never in a child-directed design
+# parts that only the sensor_display firmware reads (pack `sensing`, hand-off c-to-e 3): elsewhere they would be bought,
+# wired and never read
+SENSOR_DISPLAY_ONLY = {"soil_moisture": "soil probe", "level_switch": "float switch"}
 
 
 def _role_available(lib, role: str) -> bool:
@@ -444,6 +447,10 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
                     and (x.get("backplane_v1") or {}).get("supported")]
             _err(errors, "features", f"{tmpl} needs {why}", f"add a feature whose module role is one of {', '.join(avail)}"
                  + (f" (e.g. {', '.join(cand[:6])})" if cand else ""), "template_requirement")
+    only = [SENSOR_DISPLAY_ONLY[r] for r in sorted(set(roles_present) & set(SENSOR_DISPLAY_ONLY))]
+    if only and tmpl != "sensor_display":
+        _err(errors, "behaviour.template", f"a {' and a '.join(only)} {'are' if len(only) > 1 else 'is'} read only by the "
+             "sensor_display behaviour", "set behaviour.template to sensor_display, or remove that part", "template_requirement")
     for role, why in rules.get("recommend", []):
         if role not in roles_present:
             warnings.append(f"{tmpl}: consider {why}")
