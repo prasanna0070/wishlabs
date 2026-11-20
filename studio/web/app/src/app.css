@@ -482,6 +482,7 @@ body.resizing iframe, body.resizing canvas { pointer-events: none; }
   .ws-header { overflow-x: auto; }
   .ws-header .lbl, .taking-shape, .saved { display: none; }
   .ws-brand .logo-word { display: none; }
+  .ws-brand .logo-mark-small { display: inline-flex !important; }
   .ws-header { gap: 4px; padding: 0 8px; }
   .ws-header .btn { padding: 0 9px; }
   .title-btn { max-width: 100%; }
