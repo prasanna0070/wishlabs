@@ -7,6 +7,7 @@ import { ContactShadows, Environment, Grid, Html, Lightformer, OrbitControls, us
 import * as THREE from "three";
 import type { CableRoute, Camera } from "../lib/types";
 import { placeLabels, type Rect } from "../lib/place";
+import { sectionPlane, type Section } from "./section";
 
 export interface ViewerHandle {
   zoom: (factor: number) => void;
@@ -45,6 +46,7 @@ export interface ViewerProps {
   separate?: boolean;
   showBox?: boolean;
   sizeRef?: SizeRef;
+  section?: Section | null; // Section view: one cut plane through the model's parts (section.ts); null = whole model
   camera?: Camera | null;
   labels?: Label[] | null;
   partLabels?: boolean;
@@ -85,6 +87,10 @@ export function baseName(name: string | null | undefined): string | null {
 const PRIMARY = new THREE.Color("#6D4BFF");
 const GHOST = new THREE.Color("#C9C6BE");
 const WHITE = new THREE.Color("#FFFFFF");
+// Section view: the faces seen through the cut (a part's back faces) in the flat accent colour, so a cut wall reads
+// as solid
+const CUT = PRIMARY;
+const CAP_NAME = "__section_cap";
 
 interface Comp {
   name: string;
@@ -125,6 +131,7 @@ function prepare(scene: THREE.Object3D, autoFlat: boolean): Prepared {
           opacity: c.opacity,
           transparent: c.transparent,
           emissive: c.emissive ? c.emissive.clone() : null,
+          side: c.side,
         };
         return c;
       };
@@ -219,6 +226,20 @@ function forEachMat(m: THREE.Mesh, fn: (mat: THREE.MeshStandardMaterial) => void
   for (const x of mats) fn(x as THREE.MeshStandardMaterial);
 }
 
+/** A mesh's Section view twin (back faces in the cut colour) hides while the part is see-through (x-ray, ghost). */
+function syncCap(m: THREE.Mesh) {
+  const cap = m.children.find((x) => x.name === CAP_NAME);
+  if (!cap) return;
+  const mats = Array.isArray(m.material) ? m.material : [m.material];
+  cap.visible = !mats.some((x) => x.transparent && x.opacity < 1);
+}
+
+/** True when the object and every parent up to `root` are visible (three's raycaster ignores visibility). */
+function shown(o: THREE.Object3D | null, root: THREE.Object3D): boolean {
+  for (; o && o !== root; o = o.parent) if (!o.visible) return false;
+  return true;
+}
+
 // ---------------------------------------------------------------- model
 
 function Model(props: ViewerProps & { onPrepared: (p: Prepared) => void; onExtent?: (b: THREE.Box3 | null) => void }) {
@@ -228,6 +249,13 @@ function Model(props: ViewerProps & { onPrepared: (p: Prepared) => void; onExten
   const [hover, setHover] = useState<string | null>(null);
   const selBox = useRef<THREE.Box3Helper | null>(null);
   const invalidate = useThree((s) => s.invalidate);
+  const gl = useThree((s) => s.gl);
+  // Section view: one world-space plane shared by every model material, and one flat back-face material for the caps
+  const sec = props.section || null;
+  const plane = useMemo(() => new THREE.Plane(), []);
+  const capMat = useMemo(() => new THREE.MeshBasicMaterial({ color: CUT, side: THREE.BackSide, clippingPlanes: [plane] }), [plane]);
+  useEffect(() => () => capMat.dispose(), [capMat]);
+  const extent = useRef<THREE.Box3 | null>(null); // exploded or separated layout, else null (assembled = prep.box)
 
   useEffect(() => {
     props.onPrepared(prep);
@@ -281,6 +309,7 @@ function Model(props: ViewerProps & { onPrepared: (p: Prepared) => void; onExten
           m.renderOrder = transparent ? 2 : 0;
           m.castShadow = state !== "ghost";
         });
+        syncCap(m);
       }
     }
     invalidate();
@@ -323,10 +352,55 @@ function Model(props: ViewerProps & { onPrepared: (p: Prepared) => void; onExten
       const worldBase = parent.localToWorld(c.baseLocal.clone());
       c.target.copy(parent.worldToLocal(worldBase.add(delta)));
     }
-    props.onExtent?.(slots || (props.explode ?? 0) > 0 ? ext : null);
+    extent.current = slots || (props.explode ?? 0) > 0 ? ext : null;
+    props.onExtent?.(extent.current);
     invalidate();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prep, props.explode, props.separate]);
+
+  // Section view: clip every model material with one plane across the current layout (assembled, exploded or
+  // separated; the plane stays put while parts glide) and give each mesh a back-face twin in the flat cut colour.
+  // Off = no planes, no twins: the scene is exactly what it was before the toggle.
+  useEffect(() => {
+    const on = !!sec;
+    if (sec) {
+      sectionPlane(sec.axis, sec.t, sec.flip, extent.current && !extent.current.isEmpty() ? extent.current : prep.box, plane);
+      gl.localClippingEnabled = true;
+    }
+    for (const c of prep.comps) {
+      for (const m of c.meshes) {
+        const mats = Array.isArray(m.material) ? m.material : [m.material];
+        for (const mat of mats) {
+          const b = mat.userData.base;
+          mat.clippingPlanes = on ? [plane] : null;
+          // a double-sided face would paint over the cut colour: front faces only while cutting
+          const side = on ? THREE.FrontSide : b?.side ?? mat.side;
+          if (mat.side !== side) {
+            mat.side = side;
+            mat.needsUpdate = true;
+          }
+        }
+        const pickOnly = mats.every((x) => !x.visible); // decor pick meshes (prepare): raycast only, never drawn
+        let cap = m.children.find((x) => x.name === CAP_NAME) as THREE.Mesh | undefined;
+        if (on && !pickOnly && !cap) {
+          cap = new THREE.Mesh(m.geometry, capMat);
+          cap.name = CAP_NAME;
+          m.add(cap);
+        } else if (!on && cap) m.remove(cap);
+        syncCap(m);
+      }
+    }
+    invalidate();
+  }, [prep, sec?.axis, sec?.t, sec?.flip, !!sec, props.explode, props.separate, plane, capMat, gl, invalidate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // with a cut on, a click or hover belongs to the first hit on the kept side; R3F's own list keeps only the nearest hit
+  // per mesh (often on the clipped side), so cast again. Hidden parts and hidden twins are skipped.
+  const keptHits = (e: { ray: THREE.Ray; camera: THREE.Camera }): THREE.Intersection[] => {
+    const rc = new THREE.Raycaster();
+    rc.ray.copy(e.ray);
+    rc.camera = e.camera;
+    return rc.intersectObject(prep.root, true).filter((it) => plane.distanceToPoint(it.point) >= -0.01 && shown(it.object, prep.root));
+  };
 
   useFrame((_, dt) => {
     // frameloop is "demand": keep asking for frames only while parts are still moving
@@ -365,13 +439,18 @@ function Model(props: ViewerProps & { onPrepared: (p: Prepared) => void; onExten
           props.selectable
             ? (e: ThreeEvent<MouseEvent>) => {
                 e.stopPropagation();
-                const c = compOf(e.object);
+                const hits: THREE.Intersection[] = sec ? keptHits(e) : e.intersections || [];
+                if (sec && !hits.length) {
+                  props.onSelect?.(null); // the click went through the cut into empty space
+                  return;
+                }
+                const c = compOf(sec ? hits[0].object : e.object);
                 if (!c || !c.node.visible) return;
                 // a hit on a decor region (ears, face plate...) selects that decor item; coincident shell faces tie, so
                 // look through every intersection within 0.6 mm of the nearest one
-                const near = e.intersections?.[0]?.distance;
+                const near = hits[0]?.distance;
                 let decor: string | null = null;
-                for (const it of e.intersections || []) {
+                for (const it of hits) {
                   if (near != null && it.distance - near > 0.6) break;
                   let o: THREE.Object3D | null = it.object;
                   while (o && !decor) {
@@ -390,7 +469,7 @@ function Model(props: ViewerProps & { onPrepared: (p: Prepared) => void; onExten
           props.selectable
             ? (e: ThreeEvent<PointerEvent>) => {
                 e.stopPropagation();
-                const c = compOf(e.object);
+                const c = compOf(sec ? keptHits(e)[0]?.object ?? null : e.object);
                 setHover(c?.name || null);
                 document.body.style.cursor = c ? "pointer" : "";
               }

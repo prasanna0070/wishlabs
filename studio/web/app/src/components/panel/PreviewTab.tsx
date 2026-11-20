@@ -6,6 +6,7 @@ import { fileUrl, rewriteShareUrl } from "../../lib/urls";
 import { humanPart, kindLine, partKind } from "../../lib/format";
 import type { Components } from "../../lib/types";
 import { Viewer, ViewerControls, type ModelInfo, type SizeRef, type ViewerHandle } from "../../three/Viewer";
+import { SECTION_AXES, SECTION_DEFAULT, sectionWords, type Section } from "../../three/section";
 import { BuildProgressCard } from "../chat/Messages";
 import { TweakDrawer } from "./TweakDrawer";
 import { SoundCard } from "./SoundCard";
@@ -47,6 +48,8 @@ export function PreviewTab({ version }: TabProps) {
   const [sizeRefOn, setSizeRefOn] = useState(false);
   const [sizeRef, setSizeRef] = useState<SizeRef>("auto");
   const [partsOn, setPartsOn] = useState(false);
+  const [sectionOn, setSectionOn] = useState(false);
+  const [section, setSection] = useState<Section>(SECTION_DEFAULT);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<string | null>(null);
   const [info, setInfo] = useState<ModelInfo | null>(null);
@@ -95,6 +98,7 @@ export function PreviewTab({ version }: TabProps) {
   useEffect(() => {
     setSelected(null);
     setHidden(new Set());
+    setSection((s) => ({ ...s, t: SECTION_DEFAULT.t })); // a new model starts with the cut in its middle
   }, [url]);
 
   const sizeText = info?.size ? `${info.size[0]} mm × ${info.size[1]} mm × ${info.size[2]} mm` : null;
@@ -110,6 +114,7 @@ export function PreviewTab({ version }: TabProps) {
     ["Transparent", xray, setXray],
     ["Dimensions", dimsOn, setDimsOn],
     ["Size reference", sizeRefOn, setSizeRefOn],
+    ["Section view", sectionOn, setSectionOn],
     ["Model parts", partsOn, setPartsOn],
   ];
   return (
@@ -132,6 +137,7 @@ export function PreviewTab({ version }: TabProps) {
             <option value="person">Person</option>
           </select>
         ) : null}
+        {sectionOn ? <SectionControls value={section} onChange={setSection} disabled={!url} /> : null}
         <div className="grow" />
         {!readOnly && version.state === "done" ? (
           <button className={`btn sm${tweakOpen ? " active" : ""}`} onClick={() => setTweakOpen(!tweakOpen)} aria-expanded={tweakOpen}>
@@ -177,6 +183,7 @@ export function PreviewTab({ version }: TabProps) {
             separate={separate}
             showBox={dimsOn}
             sizeRef={sizeRefOn ? sizeRef : "none"}
+            section={sectionOn && url ? section : null}
             hidden={hidden}
             selectable={!building || mode === "draft"}
             selected={selected}
@@ -272,6 +279,48 @@ export function PreviewTab({ version }: TabProps) {
       </div>
       <SoundCard project={project} version={version} ctx={ctx} readOnly={readOnly} compact />
     </div>
+  );
+}
+
+/** Section view controls (shown while the toggle is on): the cut axis, the cut position across the model and Flip. */
+export function SectionControls({ value, onChange, disabled = false }: { value: Section; onChange: (s: Section) => void; disabled?: boolean }) {
+  const pct = Math.round(value.t * 100);
+  return (
+    <span className="section-ctl" role="group" aria-label="Section view controls">
+      <span className="seg" role="group" aria-label="Cut axis">
+        {SECTION_AXES.map((a) => (
+          <button
+            key={a.axis}
+            type="button"
+            className={value.axis === a.axis ? "on" : ""}
+            aria-pressed={value.axis === a.axis}
+            aria-label={a.title}
+            title={a.title}
+            disabled={disabled}
+            onClick={() => onChange({ ...value, axis: a.axis })}
+          >
+            {a.label}
+          </button>
+        ))}
+      </span>
+      <input
+        type="range"
+        min={0}
+        max={1}
+        step={0.01}
+        value={value.t}
+        onChange={(e) => onChange({ ...value, t: +e.target.value })}
+        aria-label="Section position"
+        aria-valuetext={sectionWords(value)}
+        disabled={disabled}
+      />
+      <span className="section-pct" aria-hidden="true">
+        {`${pct}%`}
+      </span>
+      <button type="button" className={`btn sm${value.flip ? " active" : ""}`} aria-pressed={value.flip} title="Show the other side of the cut" disabled={disabled} onClick={() => onChange({ ...value, flip: !value.flip })}>
+        Flip
+      </button>
+    </span>
   );
 }
 
