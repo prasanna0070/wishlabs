@@ -98,7 +98,14 @@ def test_blk2_every_supported_cabled_module_gets_an_exact_row(lib):
             row = lib.get(sel["module"])
             assert row["module_end"]["family"] == (sel["module_end_family"] if sel["module_end_family"] != "factory_prewired"
                                                    else row["backplane_end"]["family"]), m["id"]
-    assert gaps == known_gaps  # qwiic / bare leads / solder pads: made to drawing from the base lead (warned)
+    # rows of packs that are on may add gaps they declare themselves (packs/<name>.json known_harness_gaps, CATALOG-PLAN E1)
+    from gstudio import packs as _packs
+
+    declared = set()
+    for name, f in _packs.pack_files(lib.dir):
+        if name in lib.packs_on:
+            declared |= set(json.loads(f.read_text(encoding="utf-8")).get("known_harness_gaps") or [])
+    assert gaps - declared == known_gaps  # qwiic / bare leads / solder pads: made to drawing from the base lead (warned)
 
 
 # ------------------------------------------------------------------------------------------------ BLK-3 / MAJ-4 (electrical side)
