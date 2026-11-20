@@ -11218,7 +11218,9 @@
   "sku": "GS-H-PH3-PH3-100",
   "sku_kind": "drawing",
   "length_mm": 100,
-  "fits": [],
+  "fits": [
+   "FLOAT_SWITCH_VERTICAL_PP"
+  ],
   "design_harness": true,
   "backplane_harness": {
    "backplane_connector": "JST-PH 2.0 3p (J_IO1/J_IO2/J_IO3)",
@@ -11434,7 +11436,9 @@
   "sku": "GS-H-PH3-PH3-150",
   "sku_kind": "drawing",
   "length_mm": 150,
-  "fits": [],
+  "fits": [
+   "FLOAT_SWITCH_VERTICAL_PP"
+  ],
   "design_harness": true,
   "backplane_harness": {
    "backplane_connector": "JST-PH 2.0 3p (J_IO1/J_IO2/J_IO3)",
@@ -11650,7 +11654,9 @@
   "sku": "GS-H-PH3-PH3-200",
   "sku_kind": "drawing",
   "length_mm": 200,
-  "fits": [],
+  "fits": [
+   "FLOAT_SWITCH_VERTICAL_PP"
+  ],
   "design_harness": true,
   "backplane_harness": {
    "backplane_connector": "JST-PH 2.0 3p (J_IO1/J_IO2/J_IO3)",
@@ -11866,7 +11872,9 @@
   "sku": "GS-H-PH3-PH3-300",
   "sku_kind": "drawing",
   "length_mm": 300,
-  "fits": [],
+  "fits": [
+   "FLOAT_SWITCH_VERTICAL_PP"
+  ],
   "design_harness": true,
   "backplane_harness": {
    "backplane_connector": "JST-PH 2.0 3p (J_IO1/J_IO2/J_IO3)",
@@ -12711,6 +12719,7 @@
   "fits": [
    "BUTTON_TACTILE_KY004",
    "HALL_KY003_A3144",
+   "SOIL_CAP_V12_ANALOG",
    "TOUCH_TTP223_SMALL_15X11"
   ],
   "design_harness": true,
@@ -13362,6 +13371,7 @@
   "fits": [
    "BUTTON_TACTILE_KY004",
    "HALL_KY003_A3144",
+   "SOIL_CAP_V12_ANALOG",
    "TOUCH_TTP223_SMALL_15X11"
   ],
   "design_harness": true,
@@ -14013,6 +14023,7 @@
   "fits": [
    "BUTTON_TACTILE_KY004",
    "HALL_KY003_A3144",
+   "SOIL_CAP_V12_ANALOG",
    "TOUCH_TTP223_SMALL_15X11"
   ],
   "design_harness": true,
@@ -14664,6 +14675,7 @@
   "fits": [
    "BUTTON_TACTILE_KY004",
    "HALL_KY003_A3144",
+   "SOIL_CAP_V12_ANALOG",
    "TOUCH_TTP223_SMALL_15X11"
   ],
   "design_harness": true,
@@ -27310,6 +27322,970 @@
    "cable": null,
    "supported": true,
    "why": "mechanical or consumable; no electrical port"
+  }
+ },
+ {
+  "id": "SERVO_SG90_ARM",
+  "catalog_row": "P-motion-1",
+  "catalog_id": null,
+  "role": "servo",
+  "name": "Micro servo TowerPro SG90 with a printed arm or flap",
+  "reference_product": {
+   "maker": "TowerPro",
+   "mpn_or_model": "SG90",
+   "product_url": "https://robocraze.com/products/sg90-micro-servo-motor",
+   "datasheet_url": "https://static.rapidonline.com/pdf/37-1330t.pdf"
+  },
+  "dims_mm": {
+   "x": 32.2,
+   "y": 12.2,
+   "z": 31,
+   "notes": "The same purchased SG90 as SERVO_SG90_TOWERPRO. x = across the mounting tabs, y = case width, z = base to the top of the horn (Rapid/TowerPro drawing: case 22.2 x 11.8 mm, 16 mm base to the tab line). In the shell the case sits behind the wall, centred on the feature position, with the output shaft 5.9 mm toward local +u; the horn and the printed arm or flap are outside."
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "holes",
+   "holes": [
+    {
+     "x": 2.2,
+     "y": 0,
+     "d": 2.0
+    },
+    {
+     "x": 30.0,
+     "y": 0,
+     "d": 2.0
+    }
+   ],
+   "hole_origin": "left end of the tab span on the servo centreline, top view",
+   "notes": "Two tab holes about 27.8 mm apart (estimate, not on a drawing read). The shell has two printed bosses with 1.6 mm pilot holes for the two self-tapping screws supplied with the servo; screw size UNVERIFIED (physical check)."
+  },
+  "pins": [
+   {
+    "name": "GND",
+    "func": "gnd",
+    "notes": "brown"
+   },
+   {
+    "name": "V+",
+    "func": "5v",
+    "notes": "red; rated 4.8 V"
+   },
+   {
+    "name": "SIG",
+    "func": "pwm",
+    "notes": "orange; 50 Hz servo pulse"
+   }
+  ],
+  "module_connector": {
+   "type": "wire_leads",
+   "pin_order": [
+    "GND",
+    "V+",
+    "SIG"
+   ],
+   "location": "lead exits the case end; 3-way 2.54 mm female servo plug"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-XH 2.5 3p (J_LED)",
+   "wires": [
+    {
+     "module_pin": "GND",
+     "color": "brown"
+    },
+    {
+     "module_pin": "V+",
+     "color": "red"
+    },
+    {
+     "module_pin": "SIG",
+     "color": "orange"
+    }
+   ],
+   "length_mm": 150,
+   "mapping": "electrical.py maps module pins to slot pins by name (see backplane-v1 slot pin 'accepts')"
+  },
+  "aperture": {
+   "needs": "shaft_hole",
+   "size_mm": {
+    "w": 8,
+    "h": 8,
+    "d": 0
+   },
+   "notes": "8 mm hole for the output shaft and the horn hub (horn hub size UNVERIFIED); the printed arm turns outside, parallel to the face.",
+   "feature_allowed": true,
+   "required": true
+  },
+  "electrical": {
+   "supply_v": "4.8-5",
+   "logic_v": "3.3 (buffered to 5 V on J_LED)",
+   "current_ma_typ": 150.0,
+   "current_ma_max": 700.0,
+   "bus": "gpio",
+   "notes": "150 / 700 mA is the SG90-class planning figure the power budget used before (no datasheet current found)",
+   "supply_rail": "+5V",
+   "current_basis": "estimate"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": "LEDC 50 Hz on the J_LED signal (GPIO2 through the 74AHCT1G125 buffer): gs_board.cpp servo_write, moved non-blocking by gs_motion.cpp (wave on tap, open on a schedule). No library."
+  },
+  "kicad": {
+   "backplane_footprint": "Connector_JST:JST_XH_B3B-XH-A_1x03_P2.50mm_Vertical",
+   "notes": "J_LED (the only 5 V port): a design has this servo or an addressable LED, not both."
+  },
+  "sourcing_in": [
+   {
+    "vendor": "Robocraze",
+    "url": "https://robocraze.com/products/sg90-micro-servo-motor",
+    "price_inr_seen": 106,
+    "seen_on": "2026-11-01",
+    "status": "page_read",
+    "gst": null,
+    "pack_size": null,
+    "sku": null,
+    "stock": "unknown",
+    "checked_at": "2026-11-01",
+    "checked_at_precision": "date",
+    "fulfilment_country": "IN",
+    "retail": true,
+    "host_ok": true,
+    "selected": true,
+    "selection_reason": {
+     "rule": "host matches vendor > same part > retail > has URL > not out of stock > page read > price seen > ships from IN > library order",
+     "why": [
+      "price read on the vendor's page (others: search snippets)"
+     ],
+     "alternatives": 2
+    }
+   },
+   {
+    "vendor": "Quartz Components",
+    "url": "https://quartzcomponents.com/products/tower-pro-sg90-servo-9-gms-mini-micro-servo-motor",
+    "price_inr_seen": 86,
+    "seen_on": "2026-11-01",
+    "status": "search_snippet",
+    "gst": null,
+    "pack_size": null,
+    "sku": null,
+    "stock": "unknown",
+    "checked_at": "2026-11-01",
+    "checked_at_precision": "date",
+    "fulfilment_country": "IN",
+    "retail": true,
+    "host_ok": true
+   },
+   {
+    "vendor": "ThinkRobotics",
+    "url": "https://thinkrobotics.com/products/sg90-9g-micro-servo-motor",
+    "price_inr_seen": 139.99,
+    "seen_on": "2026-11-01",
+    "status": "search_snippet",
+    "gst": null,
+    "pack_size": null,
+    "sku": null,
+    "stock": "unknown",
+    "checked_at": "2026-11-01",
+    "checked_at_precision": "date",
+    "fulfilment_country": "IN",
+    "retail": true,
+    "host_ok": true
+   }
+  ],
+  "price_inr_planning": [
+   100,
+   250
+  ],
+  "evidence": [
+   "https://static.rapidonline.com/pdf/37-1330t.pdf",
+   "https://robocraze.com/products/sg90-micro-servo-motor.js",
+   "https://servodatabase.com/servo/towerpro/sg90"
+  ],
+  "uncertain": [
+   "running/stall current not found from a primary source: 150/700 mA is a planning figure, not a measured current",
+   "tab hole spacing/diameter estimated; screw size of the supplied self-tapping screws not checked",
+   "horn hub size and horn hole spacing not dimensioned (the CAD horn is an estimate)",
+   "SG90 clones vary in tab and spline geometry",
+   "nothing in this row was built or measured: physical check still needed"
+  ],
+  "manual": {
+   "word": "servo arm",
+   "noun": "servo",
+   "part_kind": "actuator",
+   "mount_type": "tab screws"
+  },
+  "merge": {
+   "role": "servo",
+   "prefix": "SRV",
+   "placement": "feature",
+   "designable": true,
+   "port": {
+    "port": "led",
+    "slots": [
+     "J_LED"
+    ],
+    "cable": {
+     "family": "JST-XH 2.5",
+     "pins": 3
+    },
+    "supported": true,
+    "why": "J_LED is the only 5 V port: 5 V supply and a 5 V PWM signal from the buffered GPIO2. A design can have an addressable LED or a servo, not both. The servo's own 2.54 mm plug needs an XH-3 to servo-plug adapter lead."
+   },
+   "prewire": null
+  },
+  "source_file": "packs/motion.json",
+  "pack": "motion",
+  "category": "actuator",
+  "aliases": [],
+  "ref_prefix": "SRV",
+  "face_mm": [
+   32.2,
+   12.2
+  ],
+  "depth_mm": 31,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": null,
+  "requires_soldering_basis": "unknown: the library does not say whether the header comes fitted",
+  "backplane_v1": {
+   "port": "led",
+   "slots": [
+    "J_LED"
+   ],
+   "cable": {
+    "family": "JST-XH 2.5",
+    "pins": 3
+   },
+   "supported": true,
+   "why": "J_LED is the only 5 V port: 5 V supply and a 5 V PWM signal from the buffered GPIO2. A design can have an addressable LED or a servo, not both. The servo's own 2.54 mm plug needs an XH-3 to servo-plug adapter lead."
+  }
+ },
+ {
+  "id": "SERVO_MG90S_ARM",
+  "catalog_row": "P-motion-2",
+  "catalog_id": null,
+  "role": "servo",
+  "name": "Micro servo MG90S (metal gear) with a printed arm or flap",
+  "reference_product": {
+   "maker": "TowerPro / generic",
+   "mpn_or_model": "MG90S",
+   "product_url": "https://evelta.com/mg90s-metal-gear-rc-micro-servo-9g-for-450-rc-robot-helicopter/",
+   "datasheet_url": null
+  },
+  "dims_mm": {
+   "x": 32.2,
+   "y": 12.5,
+   "z": 31,
+   "notes": "Case 22.4 x 12.5 x 22.8 mm, 13.5 g (Evelta description). x = across the mounting tabs and z = base to the top of the horn are taken as SG90-class values (UNVERIFIED for MG90S). Mounted like SERVO_SG90_ARM."
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "holes",
+   "holes": [
+    {
+     "x": 2.2,
+     "y": 0,
+     "d": 2.0
+    },
+    {
+     "x": 30.0,
+     "y": 0,
+     "d": 2.0
+    }
+   ],
+   "hole_origin": "left end of the tab span on the servo centreline, top view",
+   "notes": "Tab span and hole spacing not on the pages read (UNVERIFIED, SG90-class used). Two printed bosses take the self-tapping screws supplied with the servo."
+  },
+  "pins": [
+   {
+    "name": "GND",
+    "func": "gnd",
+    "notes": "brown (UNVERIFIED)"
+   },
+   {
+    "name": "V+",
+    "func": "5v",
+    "notes": "red"
+   },
+   {
+    "name": "SIG",
+    "func": "pwm",
+    "notes": "orange; 50 Hz servo pulse"
+   }
+  ],
+  "module_connector": {
+   "type": "wire_leads",
+   "pin_order": [
+    "GND",
+    "V+",
+    "SIG"
+   ],
+   "location": "lead exits the case end; 3-way 2.54 mm female servo plug"
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-XH 2.5 3p (J_LED)",
+   "wires": [
+    {
+     "module_pin": "GND",
+     "color": "brown"
+    },
+    {
+     "module_pin": "V+",
+     "color": "red"
+    },
+    {
+     "module_pin": "SIG",
+     "color": "orange"
+    }
+   ],
+   "length_mm": 150,
+   "mapping": "electrical.py maps module pins to slot pins by name (see backplane-v1 slot pin 'accepts')"
+  },
+  "aperture": {
+   "needs": "shaft_hole",
+   "size_mm": {
+    "w": 8,
+    "h": 8,
+    "d": 0
+   },
+   "notes": "8 mm hole for the output shaft and the horn hub (horn hub size UNVERIFIED); the printed arm turns outside, parallel to the face.",
+   "feature_allowed": true,
+   "required": true
+  },
+  "electrical": {
+   "supply_v": "4.8-6",
+   "logic_v": "3.3 (buffered to 5 V on J_LED)",
+   "current_ma_typ": 130.0,
+   "current_ma_max": 800.0,
+   "bus": "gpio",
+   "notes": "130 / 800 mA is a class proxy (FS90R datasheet-class values at 6 V); no MG90S current on the pages read",
+   "supply_rail": "+5V",
+   "current_basis": "estimate"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": "LEDC 50 Hz on the J_LED signal (GPIO2 through the 74AHCT1G125 buffer): gs_board.cpp servo_write, moved non-blocking by gs_motion.cpp. No library."
+  },
+  "kicad": {
+   "backplane_footprint": "Connector_JST:JST_XH_B3B-XH-A_1x03_P2.50mm_Vertical",
+   "notes": "J_LED (the only 5 V port): a design has this servo or an addressable LED, not both."
+  },
+  "sourcing_in": [
+   {
+    "vendor": "Evelta",
+    "url": "https://evelta.com/mg90s-metal-gear-rc-micro-servo-9g-for-450-rc-robot-helicopter/",
+    "price_inr_seen": 236.25,
+    "seen_on": "2026-11-20",
+    "status": "page_read",
+    "gst": "incl",
+    "pack_size": null,
+    "sku": null,
+    "stock": "unknown",
+    "stock_basis": "the source row said: unclear",
+    "checked_at": "2026-11-20",
+    "checked_at_precision": "date",
+    "fulfilment_country": "IN",
+    "retail": true,
+    "host_ok": true,
+    "selected": true,
+    "selection_reason": {
+     "rule": "host matches vendor > same part > retail > has URL > not out of stock > page read > price seen > ships from IN > library order",
+     "why": [
+      "price read on the vendor's page (others: search snippets)"
+     ],
+     "alternatives": 2
+    }
+   },
+   {
+    "vendor": "Robocraze",
+    "url": "https://robocraze.com/products/mg90s-servo-motor",
+    "price_inr_seen": 159,
+    "seen_on": "2026-11-20",
+    "status": "search_snippet",
+    "gst": null,
+    "pack_size": null,
+    "sku": null,
+    "stock": "unknown",
+    "checked_at": "2026-11-20",
+    "checked_at_precision": "date",
+    "fulfilment_country": "IN",
+    "retail": true,
+    "host_ok": true
+   },
+   {
+    "vendor": "ElectronicsComp",
+    "url": "https://www.electronicscomp.com/mg90s-metal-gear-servo-motor",
+    "price_inr_seen": 99,
+    "seen_on": "2026-11-20",
+    "status": "search_snippet",
+    "gst": "excl",
+    "pack_size": null,
+    "sku": null,
+    "stock": "unknown",
+    "checked_at": "2026-11-20",
+    "checked_at_precision": "date",
+    "fulfilment_country": "IN",
+    "retail": true,
+    "host_ok": true
+   }
+  ],
+  "price_inr_planning": [
+   120,
+   300
+  ],
+  "evidence": [
+   "https://evelta.com/mg90s-metal-gear-rc-micro-servo-9g-for-450-rc-robot-helicopter/"
+  ],
+  "uncertain": [
+   "current figures: 130/800 mA is a class proxy, not an MG90S measurement",
+   "tab span, hole spacing and horn size taken as SG90-class",
+   "wire colours",
+   "torque claims differ by seller; clone quality varies",
+   "nothing in this row was built or measured: physical check still needed"
+  ],
+  "manual": {
+   "word": "servo arm",
+   "noun": "servo",
+   "part_kind": "actuator",
+   "mount_type": "tab screws"
+  },
+  "merge": {
+   "role": "servo",
+   "prefix": "SRV",
+   "placement": "feature",
+   "designable": true,
+   "port": {
+    "port": "led",
+    "slots": [
+     "J_LED"
+    ],
+    "cable": {
+     "family": "JST-XH 2.5",
+     "pins": 3
+    },
+    "supported": true,
+    "why": "J_LED is the only 5 V port: 5 V supply and a 5 V PWM signal from the buffered GPIO2. A design can have an addressable LED or a servo, not both. Stall current spikes on USB 5 V: never let the arm stall against a stop."
+   },
+   "prewire": null
+  },
+  "source_file": "packs/motion.json",
+  "pack": "motion",
+  "category": "actuator",
+  "aliases": [],
+  "ref_prefix": "SRV",
+  "face_mm": [
+   32.2,
+   12.5
+  ],
+  "depth_mm": 31,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": null,
+  "requires_soldering_basis": "unknown: the library does not say whether the header comes fitted",
+  "backplane_v1": {
+   "port": "led",
+   "slots": [
+    "J_LED"
+   ],
+   "cable": {
+    "family": "JST-XH 2.5",
+    "pins": 3
+   },
+   "supported": true,
+   "why": "J_LED is the only 5 V port: 5 V supply and a 5 V PWM signal from the buffered GPIO2. A design can have an addressable LED or a servo, not both. Stall current spikes on USB 5 V: never let the arm stall against a stop."
+  }
+ },
+ {
+  "id": "SOIL_CAP_V12_ANALOG",
+  "catalog_row": "P-sensing-1",
+  "catalog_id": null,
+  "role": "soil_moisture",
+  "name": "Capacitive soil moisture probe v1.2 (analog out)",
+  "reference_product": {
+   "maker": "Generic (DFRobot SEN0193 clone)",
+   "mpn_or_model": "Capacitive Soil Moisture Sensor v1.2",
+   "product_url": "https://probots.co.in/soil-moisture-sensor-capacitive-v1-2.html",
+   "datasheet_url": null
+  },
+  "dims_mm": {
+   "x": 98,
+   "y": 23,
+   "z": 4,
+   "notes": "98 x 23 x 4 mm, 15 g (Probots page). The probe sits outside the shell: probe end in the soil, electronics end above it; only its lead enters the shell, through a cable exit."
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "Not mounted in the shell: pushed into the pot's soil up to its line. Its lead passes a strain-relieved cable exit in the shell wall."
+  },
+  "pins": [
+   {
+    "name": "AO",
+    "func": "analog",
+    "notes": "analog out, lower when the soil is wetter (relative reading, per-unit calibration); listed as AOUT by vendors"
+   },
+   {
+    "name": "VCC",
+    "func": "3v3",
+    "notes": "3.3-5.5 V (Probots page); powered from the J_IO 3.3 V pin"
+   },
+   {
+    "name": "GND",
+    "func": "gnd",
+    "notes": ""
+   }
+  ],
+  "module_connector": {
+   "type": "header_2.54",
+   "pin_order": [
+    "AO",
+    "VCC",
+    "GND"
+   ],
+   "location": "3-pin socket on the electronics end",
+   "notes": "Probots lists 'PH2.54-3P', 'Supports 3-Pin Gravity Sensor interface' (Gravity order signal, +, -). The physical order and whether a Dupont 1x3 harness end mates this socket are UNVERIFIED (first article)."
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 3p (J_IO1/J_IO2/J_IO3)",
+   "wires": [
+    {
+     "module_pin": "GND",
+     "color": "black"
+    },
+    {
+     "module_pin": "VCC",
+     "color": "red"
+    },
+    {
+     "module_pin": "AO",
+     "color": "white"
+    }
+   ],
+   "length_mm": 300,
+   "mapping": "electrical.py maps module pins to slot pins by name (see backplane-v1 slot pin 'accepts')"
+  },
+  "aperture": {
+   "needs": "cable_exit",
+   "size_mm": {
+    "w": 9.5,
+    "h": 5.5,
+    "d": 0
+   },
+   "notes": "9.5 x 5.5 mm exit slot through the shell wall, sized to pass the cable's JST-PH 3-pin port plug, with an inner strain-relief clamp (two posts and a cable-tie slot); the probe stays outside, water stays outside the shell.",
+   "feature_allowed": true,
+   "required": true
+  },
+  "electrical": {
+   "supply_v": "3.3-5.5",
+   "logic_v": "analog 0-3.3 V at a 3.3 V supply (range UNVERIFIED)",
+   "current_ma_typ": 5.0,
+   "current_ma_max": 5.0,
+   "bus": "gpio",
+   "supply_rail": "+3V3",
+   "current_basis": "library"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": "analogRead on the J_IO SIG (ADC1: GPIO4/5/6, usable with Wi-Fi on), 16-sample average, mapped to 0-100 % between the dry and wet calibration readings (sensor_display settings soil_raw_dry, soil_raw_wet), clamped."
+  },
+  "kicad": {
+   "backplane_footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+   "notes": "Plugs into J_IO1..3; no backplane change."
+  },
+  "sourcing_in": [
+   {
+    "vendor": "Probots",
+    "url": "https://probots.co.in/soil-moisture-sensor-capacitive-v1-2.html",
+    "price_inr_seen": 89,
+    "seen_on": "2026-11-20",
+    "status": "page_read",
+    "stock": "in_stock",
+    "gst": "incl",
+    "sku": "PRO1003",
+    "pack_size": null,
+    "checked_at": "2026-11-20",
+    "checked_at_precision": "date",
+    "fulfilment_country": "IN",
+    "retail": true,
+    "host_ok": true,
+    "selected": true,
+    "selection_reason": {
+     "rule": "host matches vendor > same part > retail > has URL > not out of stock > page read > price seen > ships from IN > library order",
+     "why": [
+      "price read on the vendor's page (others: search snippets)"
+     ],
+     "alternatives": 1
+    }
+   },
+   {
+    "vendor": "Robocraze",
+    "url": "https://robocraze.com/products/analog-capacitive-soil-moisture-sensor",
+    "price_inr_seen": 55,
+    "seen_on": "2026-11-20",
+    "status": "search_snippet",
+    "gst": null,
+    "pack_size": null,
+    "sku": null,
+    "stock": "unknown",
+    "stock_basis": "not recorded",
+    "checked_at": "2026-11-20",
+    "checked_at_precision": "date",
+    "fulfilment_country": "IN",
+    "retail": true,
+    "host_ok": true
+   }
+  ],
+  "price_inr_planning": [
+   55,
+   130
+  ],
+  "evidence": [
+   "https://probots.co.in/soil-moisture-sensor-capacitive-v1-2.html",
+   "https://hackaday.com/2019/07/27/a-capacitive-soil-sensor-hack-for-lower-voltage-supplies",
+   "https://makiuto.github.io/p/capacitive-soil-moisture-sensors-don-t-work-correctly-fix-for-v2-0-v1-2-ard.html"
+  ],
+  "uncertain": [
+   "clone boards with an NE555 (needs 4.5 V) or with no regulator can misbehave at 3.3 V: incoming check at 3.3 V before fitting",
+   "some boards miss the R4-to-GND link (hackmd note), so the reading never settles",
+   "the reading is relative, not volumetric water content: per-unit dry/wet calibration",
+   "the electronics end is not waterproof: it must stay above the soil (conformal coat recommended)",
+   "the Probots listing heading says V2.0 while its title and URL say V1.2 (same SKU PRO1003)",
+   "connector pin order and the Dupont 1x3 fit on the board's socket (first article)",
+   "Robocraze price is a search snippet, not a page read",
+   "the exit slot is sized for a JST-PH 3-pin plug (about 8.0 x 4.5 mm, nominal): passing it is a physical check",
+   "never built or measured by us: all checks are digital"
+  ],
+  "manual": {
+   "word": "soil probe",
+   "noun": "soil probe",
+   "part_kind": "component",
+   "mount_type": "cable exit",
+   "face_part": "probe",
+   "selftest": "the soil reading changes when the probe goes into damp soil",
+   "care": "Push the probe into the soil only up to its line; keep the electronics end above the soil and dry.",
+   "fit": "Unplug its cable from the cartridge if it is still plugged in from the bench test. Feed the cable's port plug through the cable exit of the {name} from outside, so the probe itself stays outside the shell. Inside, lay the cable between the two posts and close one cable tie through both post slots over it. Do not pull on the cable to seat it."
+  },
+  "merge": {
+   "role": "soil_moisture",
+   "prefix": "SOIL",
+   "placement": "feature",
+   "designable": true,
+   "face_mm": [
+    20,
+    12
+   ],
+   "depth_mm": 15,
+   "port": {
+    "port": "io",
+    "slots": [
+     "J_IO1",
+     "J_IO2",
+     "J_IO3"
+    ],
+    "cable": {
+     "family": "JST-PH 2.0",
+     "pins": 3
+    },
+    "supported": true,
+    "why": "J_IO SIG = GPIO4/5/6 = ESP32-S3 ADC1, readable with Wi-Fi on; 3.3 V supply only (clone probes that need 5 V fail the incoming check)."
+   },
+   "prewire": null
+  },
+  "source_file": "packs/sensing.json",
+  "pack": "sensing",
+  "category": "sensor",
+  "aliases": [],
+  "ref_prefix": "SOIL",
+  "merge_notes": [
+   "face_mm/depth_mm from the pack row's merge block (in-shell envelope)"
+  ],
+  "face_mm": [
+   20,
+   12
+  ],
+  "depth_mm": 15,
+  "harness_clearance_mm": 10.0,
+  "requires_soldering": null,
+  "requires_soldering_basis": "unknown: the library does not say whether the header comes fitted",
+  "backplane_v1": {
+   "port": "io",
+   "slots": [
+    "J_IO1",
+    "J_IO2",
+    "J_IO3"
+   ],
+   "cable": {
+    "family": "JST-PH 2.0",
+    "pins": 3
+   },
+   "supported": true,
+   "why": "J_IO SIG = GPIO4/5/6 = ESP32-S3 ADC1, readable with Wi-Fi on; 3.3 V supply only (clone probes that need 5 V fail the incoming check)."
+  },
+  "backplane_harness_library": {
+   "backplane_connector": "JST_PH_2.0_3P (J_IO1..3)",
+   "wires": [
+    {
+     "module_pin": "GND",
+     "color": "black"
+    },
+    {
+     "module_pin": "VCC",
+     "color": "red"
+    },
+    {
+     "module_pin": "AO",
+     "color": "white"
+    }
+   ],
+   "length_mm": 300
+  }
+ },
+ {
+  "id": "FLOAT_SWITCH_VERTICAL_PP",
+  "catalog_row": "P-sensing-2",
+  "catalog_id": null,
+  "role": "level_switch",
+  "name": "Vertical float level switch (PP, dry reed contact)",
+  "reference_product": {
+   "maker": "Generic",
+   "mpn_or_model": "Water level float sensor switch, vertical",
+   "product_url": "https://probots.co.in/water-level-float-sensor-switch-with-digital-output.html",
+   "datasheet_url": null
+  },
+  "dims_mm": {
+   "x": null,
+   "y": null,
+   "z": null,
+   "notes": "Not on the page read. UNVERIFIED typical: M10 stem, about 52-58 mm long, about 24 mm float. It sits outside the shell, in the tank; only its lead enters the shell, through a cable exit."
+  },
+  "pcb_thickness_mm": null,
+  "mount": {
+   "type": "none",
+   "holes": [],
+   "hole_origin": "n/a",
+   "notes": "Not mounted in the shell: fitted in the tank (a clip-on holder over the rim is preferred to a hole in the tank). Its lead passes a strain-relieved cable exit in the shell wall."
+  },
+  "pins": [
+   {
+    "name": "SIG",
+    "func": "gpio_in_pullup",
+    "notes": "reed contact lead 1; read with the ESP32 internal pull-up"
+   },
+   {
+    "name": "GND",
+    "func": "gnd",
+    "notes": "reed contact lead 2"
+   }
+  ],
+  "module_connector": {
+   "type": "wire_leads",
+   "pin_order": [
+    "SIG",
+    "GND"
+   ],
+   "location": "two bare leads from the stem",
+   "notes": "Cable Length: 8cm (Probots page, read 2026-11-20). Dry contact: either lead can be SIG."
+  },
+  "backplane_harness": {
+   "backplane_connector": "JST-PH 2.0 3p (J_IO1/J_IO2/J_IO3)",
+   "wires": [
+    {
+     "module_pin": "GND",
+     "color": "black"
+    },
+    {
+     "module_pin": "SIG",
+     "color": "white"
+    }
+   ],
+   "length_mm": 300,
+   "mapping": "electrical.py maps module pins to slot pins by name (see backplane-v1 slot pin 'accepts')"
+  },
+  "aperture": {
+   "needs": "cable_exit",
+   "size_mm": {
+    "w": 9.5,
+    "h": 5.5,
+    "d": 0
+   },
+   "notes": "9.5 x 5.5 mm exit slot through the shell wall, sized to pass the cable's JST-PH 3-pin port plug, with an inner strain-relief clamp (two posts and a cable-tie slot); the float stays outside, water stays outside the shell.",
+   "feature_allowed": true,
+   "required": true
+  },
+  "electrical": {
+   "supply_v": "n/a (dry contact; rated 100 V DC, 0.5 A, 50 W per Probots)",
+   "logic_v": "3.3 via the internal pull-up",
+   "current_ma_typ": 0.1,
+   "current_ma_max": 0.1,
+   "bus": "gpio",
+   "supply_rail": "+3V3",
+   "current_basis": "library"
+  },
+  "firmware": {
+   "arduino_libraries": [],
+   "driver_notes": "INPUT_PULLUP on the J_IO SIG, debounced (water sloshes). Contact closed = water up (OK); open = tank low. An unplugged or broken lead reads as low, so a fault warns instead of staying quiet."
+  },
+  "kicad": {
+   "backplane_footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+   "notes": "Plugs into J_IO1..3 (pins 1 GND and 3 SIG); no backplane change."
+  },
+  "sourcing_in": [
+   {
+    "vendor": "Probots",
+    "url": "https://probots.co.in/water-level-float-sensor-switch-with-digital-output.html",
+    "price_inr_seen": 175,
+    "seen_on": "2026-11-20",
+    "status": "page_read",
+    "stock": "in_stock",
+    "gst": "incl",
+    "sku": "PRO757",
+    "pack_size": null,
+    "checked_at": "2026-11-20",
+    "checked_at_precision": "date",
+    "fulfilment_country": "IN",
+    "retail": true,
+    "host_ok": true,
+    "selected": true,
+    "selection_reason": {
+     "rule": "host matches vendor > same part > retail > has URL > not out of stock > page read > price seen > ships from IN > library order",
+     "why": [
+      "price read on the vendor's page (others: search snippets)"
+     ],
+     "alternatives": 1
+    }
+   },
+   {
+    "vendor": "Robocraze",
+    "url": "https://robocraze.com/products/magnetic-float-sensor-fs37a-vertical",
+    "price_inr_seen": 117,
+    "seen_on": "2026-11-20",
+    "status": "search_snippet",
+    "gst": null,
+    "pack_size": null,
+    "sku": null,
+    "stock": "unknown",
+    "stock_basis": "not recorded",
+    "checked_at": "2026-11-20",
+    "checked_at_precision": "date",
+    "fulfilment_country": "IN",
+    "retail": true,
+    "host_ok": true
+   }
+  ],
+  "price_inr_planning": [
+   100,
+   200
+  ],
+  "evidence": [
+   "https://probots.co.in/water-level-float-sensor-switch-with-digital-output.html"
+  ],
+  "uncertain": [
+   "dimensions and stem thread",
+   "normally open or closed depends on how the float is fitted (Probots: 'NO and NC of this float sensor will depend on the placement of the float sensor'): fit it so the contact closes when the water is up; the self-test shows the live state",
+   "whether the listing's 'digital output' means anything beyond a reed contact",
+   "the Robocraze price is a search snippet, not a page read (ElectronicsComp Rs 99 ex GST snippet left out: vendor not in the merge list)",
+   "the exit slot is sized for a JST-PH 3-pin plug (about 8.0 x 4.5 mm, nominal): passing it is a physical check",
+   "never built or measured by us: all checks are digital"
+  ],
+  "manual": {
+   "word": "float switch",
+   "noun": "float switch",
+   "part_kind": "component",
+   "mount_type": "cable exit",
+   "face_part": "float",
+   "selftest": "the water reading says OK with the float lifted and LOW with it hanging down",
+   "care": "Fit the float so the contact closes when the water is up; keep the gadget itself away from the water.",
+   "fit": "Unplug its cable from the cartridge if it is still plugged in from the bench test. Feed the cable's port plug through the cable exit of the {name} from outside, so the float itself stays outside the shell. Inside, lay the cable between the two posts and close one cable tie through both post slots over it. Do not pull on the cable to seat it."
+  },
+  "merge": {
+   "role": "level_switch",
+   "prefix": "LVL",
+   "placement": "feature",
+   "designable": true,
+   "face_mm": [
+    20,
+    12
+   ],
+   "depth_mm": 15,
+   "port": {
+    "port": "io",
+    "slots": [
+     "J_IO1",
+     "J_IO2",
+     "J_IO3"
+    ],
+    "cable": {
+     "family": "JST-PH 2.0",
+     "pins": 3
+    },
+    "supported": true,
+    "why": "Dry contact between port pins 1 (GND) and 3 (SIG), read with the internal pull-up; the 3V3 pin is not used."
+   },
+   "prewire": {
+    "by": "factory",
+    "lead": "JST-PH 2.0 3p 300 mm",
+    "pads": [
+     "lead 1 (SIG)",
+     "lead 2 (GND)"
+    ],
+    "slot": "J_IO1, J_IO2 or J_IO3",
+    "note": "The factory solders a JST-PH 3-pin lead (stock: CABLE_JSTPH_3P_<len> with the module-end housing cut off; length = the design's harness length class) to the float's two leads, sleeves the joints with heat-shrink and leaves the 3V3 wire cut back and insulated. It plugs into the J_IO port. The maker never solders."
+   }
+  },
+  "source_file": "packs/sensing.json",
+  "pack": "sensing",
+  "category": "sensor",
+  "aliases": [],
+  "ref_prefix": "LVL",
+  "merge_notes": [
+   "face_mm/depth_mm from the pack row's merge block (in-shell envelope)"
+  ],
+  "face_mm": [
+   20,
+   12
+  ],
+  "depth_mm": 15,
+  "harness_clearance_mm": 10.0,
+  "prewire": {
+   "by": "factory",
+   "lead": "JST-PH 2.0 3p 300 mm",
+   "pads": [
+    "lead 1 (SIG)",
+    "lead 2 (GND)"
+   ],
+   "slot": "J_IO1, J_IO2 or J_IO3",
+   "note": "The factory solders a JST-PH 3-pin lead (stock: CABLE_JSTPH_3P_<len> with the module-end housing cut off; length = the design's harness length class) to the float's two leads, sleeves the joints with heat-shrink and leaves the 3V3 wire cut back and insulated. It plugs into the J_IO port. The maker never solders."
+  },
+  "requires_soldering": false,
+  "factory_soldering": true,
+  "requires_soldering_basis": "the factory pre-wires it (see prewire); the maker never solders",
+  "backplane_v1": {
+   "port": "io",
+   "slots": [
+    "J_IO1",
+    "J_IO2",
+    "J_IO3"
+   ],
+   "cable": {
+    "family": "JST-PH 2.0",
+    "pins": 3
+   },
+   "supported": true,
+   "why": "Dry contact between port pins 1 (GND) and 3 (SIG), read with the internal pull-up; the 3V3 pin is not used."
+  },
+  "backplane_harness_library": {
+   "backplane_connector": "JST_PH_2.0_3P (J_IO1..3); factory pre-wired lead, 3V3 position empty",
+   "wires": [
+    {
+     "module_pin": "GND",
+     "color": "black"
+    },
+    {
+     "module_pin": "SIG",
+     "color": "white"
+    }
+   ],
+   "length_mm": 300
   }
  }
 ]
