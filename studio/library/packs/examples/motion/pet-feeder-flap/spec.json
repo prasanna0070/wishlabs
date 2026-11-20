@@ -21,10 +21,10 @@
     {"id": "fed_button", "module": "BUTTON_ARCADE_30MM_SNAPIN", "face": "front", "at": [-36, 74], "label": "Fed button: clears the reminder"},
     {"id": "food_flap", "module": "SERVO_MG90S_ARM", "face": "front", "at": [18, 64], "label": "Food flap"}
   ],
-  "electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8", "extra_modules": ["RTC_DS3231_ZS042"], "power": {"input": "usb_c_5v", "adapter_in_box": false}},
+  "electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8", "extra_modules": [], "power": {"input": "usb_c_5v", "adapter_in_box": false}},
   "behaviour": {
     "template": "notifier_clock",
-    "summary": "Shows the time and the next and last feed. At 08:00 and 19:00 it shows a feeding reminder and swings the printed flap open for 3 seconds, then closes it. Press the button to clear the reminder. The flap fits your own food chute: portion size is a physical check, not promised, and it does not weigh the bowl.",
+    "summary": "Shows the time (from the internet over the home Wi-Fi) and the next and last feed. At 08:00 and 19:00 it shows a feeding reminder and swings the printed flap open for 3 seconds, then closes it. Press the button to clear the reminder. The flap fits your own food chute: portion size is a physical check, not promised, and it does not weigh the bowl.",
     "settings": {"schedule": [{"time": "08:00", "text": "Breakfast"}, {"time": "19:00", "text": "Dinner"}],
                  "servo_on_notice": true, "servo_open_deg": 90, "servo_rest_deg": 0, "servo_hold_s": 3, "servo_speed_deg_s": 120}
   },
