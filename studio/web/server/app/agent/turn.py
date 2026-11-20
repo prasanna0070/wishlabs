@@ -33,6 +33,7 @@ CONCEPT_RULE_ROUNDS = 2
 # failed; not after the turn has run this long (the turn lock is TURN_STALE_S), and never for a builder outage.
 RENDER_REPAIR_ROUNDS = 2
 FREEFORM_EXTRA_ROUNDS = 1      # csg specs need one more spec repair round than the live budget (max_repair_rounds)
+FORMAT_SLIP = re.compile(r"Input should be a valid (dictionary|list|tuple|string|number|integer|boolean)")
 RENDER_REPAIR_MAX_AGE_S = 8 * 60
 CSG_HINT = (" For a csg body, change the node each error names (its path, e.g. body.csg.nodes[1]); if a concept's csg "
             "body has failed twice, give that concept a silhouette, revolve or blob body instead.")
@@ -84,14 +85,30 @@ def _unstring(x: Any) -> Any:
 
 def _unstring_specs(args: dict) -> dict:
     """Pack freeform: decode JSON text nested in the spec arguments of a tool call (a live run lost a whole repair
-    round to "body.csg: Input should be a valid dictionary" on every concept)."""
+    round to "body.csg: Input should be a valid dictionary" on every concept), and undo the lossless part of another
+    glitch seen live: an object sent as the list of its keys (electronics.power ["adapter_in_box", "input"] has only
+    defaults to lose; behaviour.settings [] is {})."""
     out = dict(args)
     if "spec" in out:
-        out["spec"] = _unstring(_as_spec(out["spec"]))
+        out["spec"] = _respec(out["spec"])
     if isinstance(out.get("concepts"), list):
-        out["concepts"] = [dict(c, spec=_unstring(_as_spec(c.get("spec")))) if isinstance(c, dict) and "spec" in c
+        out["concepts"] = [dict(c, spec=_respec(c.get("spec"))) if isinstance(c, dict) and "spec" in c
                            else c for c in out["concepts"]]
     return out
+
+
+def _respec(spec: Any) -> Any:
+    spec = _unstring(_as_spec(spec))
+    if not isinstance(spec, dict):
+        return spec
+    el, beh = spec.get("electronics"), spec.get("behaviour")
+    if isinstance(el, dict) and isinstance(el.get("power"), list) and all(isinstance(k, str) for k in el["power"]):
+        el = dict(el)
+        el.pop("power")
+        spec = dict(spec, electronics=el)
+    if isinstance(beh, dict) and beh.get("settings") == []:
+        spec = dict(spec, behaviour=dict(beh, settings={}))
+    return spec
 
 
 def _plain(x: Any) -> Any:
@@ -637,9 +654,9 @@ class Turn:
         good = [e for e in self.concept_pool.values() if e["result"].get("ok")]
         infra = any(r.get("infra") for r in results)
         freeform = self.freeform()
-        if freeform:                            # how often each concept sent in THIS call has failed the check
+        if freeform:            # how often each concept sent in THIS call failed on its design (not on a format slip)
             for c, r in zip(items, results):
-                if not r.get("ok"):
+                if not r.get("ok") and any(not FORMAT_SLIP.search(str(e)) for e in r.get("errors") or ["invalid"]):
                     self.spec_fails[str(c.get("title") or "").strip()[:60].lower()] += 1
         if bad:
             flat = [f"{t}: {e}" for t, es in bad.items() for e in es]

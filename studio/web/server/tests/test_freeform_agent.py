@@ -564,3 +564,36 @@ def test_stringified_spec_parts_only_decoded_with_the_pack(tmp_path, monkeypatch
         assert (first.get("ok") is True) is decoded
         if not decoded:
             assert any("features" in e for e in first["errors"])
+
+
+def test_keys_only_objects_are_repaired_where_nothing_is_lost():
+    from app.agent.turn import _unstring_specs
+
+    sp = {"electronics": {"core": "X", "power": ["adapter_in_box", "input"]},
+          "behaviour": {"template": "sensor_display", "settings": []}}
+    out = _unstring_specs({"concepts": [{"title": "A", "spec": sp}]})["concepts"][0]["spec"]
+    assert out["electronics"] == {"core": "X"} and out["behaviour"]["settings"] == {}
+    keep = {"behaviour": {"settings": ["names_for_audio"]}}          # values would be lost: left for the validator
+    assert _unstring_specs({"spec": keep})["spec"] == keep
+
+
+def test_format_slips_do_not_count_toward_the_family_fallback(tmp_path, monkeypatch):
+    class SlipBrain(_RenderBrain):
+        async def run(self, turn):
+            base, other = self._specs()
+            slip = copy.deepcopy(other)
+            slip["features"] = {"not": "a list"}              # a format slip, not a design failure
+            cs = [{"title": "Desk Robot", "tier": "expected", "blurb": "a robot desk station", "spec": base},
+                  {"title": "Wedge Robot", "tier": "wildcard", "blurb": "a wedge robot", "spec": slip}]
+            for _ in range(3):
+                r = await turn.call_tool("propose_concepts", {"message": "Choose the robot shape.", "concepts": cs})
+                self.calls.append(r.response)
+                if r.terminal:
+                    return
+                cs = cs[1:]
+
+    c, svc = _client(tmp_path, monkeypatch, "sensing,schedule,freeform", CSG_ERR)
+    svc.brain = SlipBrain(svc)
+    with c:
+        _run(c)
+        assert not any("failed twice" in (x.get("instruction") or "") for x in svc.brain.calls)

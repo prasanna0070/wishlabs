@@ -208,7 +208,8 @@ and runs every check; an error names the node path: fix that node and resend.
 - Cuts stay inside: keep at least 6 mm of material under and around every tray, slot or groove, never cut through
   a wall or across the joint of two union pieces (that splits the shape into pieces), and keep each cut box well
   inside the outline it carves.
-- Features sit on flat or gently curved areas of their face, away from cuts, blends and edges.
+- Features sit on flat or gently curved areas of their face, away from cuts, blends and edges. Modules on opposite
+  faces meet in the middle: put a rear sensor beside or below the screen's spot, not right behind it.
 - Prefer 3-15 nodes; a union blend of 4-12 mm makes the parts read as one product.
 - An edit to a csg body changes only the node that carries the asked shape (a deeper tray: its cut box moved down; a
   wider base: the plinth's size) and keeps every other node exactly as it is.
