@@ -455,8 +455,17 @@ def build(params: dict, progress: Optional[Callable] = None, on_draft: Optional[
         ycav0 = bb.ymin + bg.skin_front + 2.0  # clear of the front skin plane; the gap to the wall stays a short bridge
         ycav1 = (y_s - 3.6) if split == "rear_cover" and y_s is not None else (bb.ymax - wall - 2.0)  # clear of the cover lip
         fin_keep = list(keep_boxes)
+        plate_fz = []
+        if split == "base_plate":
+            # The base plate is its own part, and the fins come out of the cavity, which the plate opening extends down
+            # to the cavity floor: they reached through the plate, its screw pads, tie anchors and screw heads
+            # (939 mm3 PRINT_Shell / PRINT_BasePlate on p_wbgxdewi897y v2). They now stop above the plate and clear of
+            # everything standing on it (each keep box gets the fins' 1 mm margin).
+            fin_keep.append([-1e3, 1e3, -1e3, 1e3, -1e3, t_bp])
+            fin_keep += [bbox(s) for s in floor_adds + sp.other_adds]
+            plate_fz = list(sp.fasteners)
         hd = fz["screw"]["head_d"] / 2 + 0.6
-        for f_ in [f for k in kits for f in k.fasteners] + cart.fasteners:  # screws and inserts are kit parts too
+        for f_ in [f for k in kits for f in k.fasteners] + cart.fasteners + plate_fz:  # screws and inserts are kit parts too
             a_ = unit(f_.axis)
             ends = [np.asarray(f_.head) - a_ * (fz["screw"]["head_h"] + 0.5), np.asarray(f_.head) + a_ * (f_.length + 0.5)]
             lo_, hi_ = np.minimum(*ends) - hd, np.maximum(*ends) + hd
