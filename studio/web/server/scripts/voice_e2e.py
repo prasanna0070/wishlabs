@@ -35,6 +35,8 @@ LINES = [
     "Yes, go ahead and make it now.",
     "That is everything. Please make it.",
 ]
+if os.environ.get("E2E_LINES"):  # a JSON list of the speaker's lines (tools/hack-ready/integrate_smoke.sh)
+    LINES = [str(x) for x in json.loads(os.environ["E2E_LINES"])]
 RATE = 16000
 FRAME = RATE * 2 // 10            # 100 ms of 16-bit mono
 

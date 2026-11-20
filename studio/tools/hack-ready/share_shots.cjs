@@ -64,6 +64,11 @@ async function layoutChecks(page) {
       headerText: (document.querySelector(".ws-header")?.textContent || "").replace(/\s+/g, " ").slice(0, 200),
       concepts: document.querySelectorAll(".ov-concept").length,
       mounted: { voice: !!document.querySelector("#ov-voice"), sound: !!document.querySelector("#ov-sound") },
+      voiceCards: document.querySelectorAll(".vw-card").length,
+      voiceText: (document.querySelector("#ov-voice")?.textContent || "").replace(/\s+/g, " ").slice(0, 500),
+      voiceAudio: document.querySelector("#ov-voice audio")?.getAttribute("src") || null,
+      soundText: (document.querySelector("#ov-sound")?.textContent || "").replace(/\s+/g, " ").slice(0, 500),
+      soundComposeButtons: [...document.querySelectorAll("#ov-sound button")].filter((b) => /compose/i.test(b.textContent || "")).length,
     };
   });
 }
@@ -93,7 +98,13 @@ async function overview(browser, size) {
   await sleep(1200);
   await shot(page, rec, `${size}-1-top`);
   rec.layout = await layoutChecks(page);
-  for (const id of ["ov-concepts", "ov-model", "ov-engineering", "ov-price", "ov-ai"]) {
+  for (const id of ["ov-voice", "ov-concepts", "ov-model", "ov-sound", "ov-engineering", "ov-price", "ov-ai"]) {
+    // the feature cards (ov-voice, ov-sound) render nothing when the project has no spoken wish or sound
+    const present = await page.evaluate((x) => (document.getElementById(x)?.getBoundingClientRect().height || 0) > 0, id);
+    if (!present) {
+      rec.notes.push(`${id}: not shown`);
+      continue;
+    }
     await page.evaluate((x) => document.getElementById(x)?.scrollIntoView({ block: "start" }), id);
     if (id === "ov-model") {
       const ok = await page.waitForSelector('.ov-viewer .viewer[data-ready="1"]', { timeout: 90000 }).then(() => true, () => false);
