@@ -37,6 +37,7 @@ MAX_LEN = 260.0
 MAX_BLEND = 40.0
 FOOTPRINT_MIN = {"gadget": 1500.0, "printed": 400.0}  # mm2 of footprint on the table (15 cm2 / 4 cm2)
 NAME_MAX = 40
+TABLE_EXTRA = 1.0  # mm a rounded piece standing on the table reaches below it beyond its round (the table rule)
 
 PRIMS = ("box", "cylinder", "cone", "sphere", "torus", "extrude", "revolve")
 COMBOS = ("move", "union", "cut", "intersect")
@@ -712,8 +713,8 @@ class Extrude(Prim):
             P = P[::-1]
         self.hgt, self.axis = float(h), axis or "z"
         rc = max(0.0, min(float(rnd or 0.0), self.hgt / 2 - 0.5))
-        if table is not None and self.axis != "z" and rc > 0.05:  # profile points on the table go below it by the round
-            P = [(a, b - rc) if abs(b - table) < 1e-6 else (a, b) for a, b in P]
+        if table is not None and self.axis != "z" and rc > 0.05:  # profile points on the table go below it (round + 1 mm)
+            P = [(a, b - rc - TABLE_EXTRA) if abs(b - table) < 1e-6 else (a, b) for a, b in P]
         self.points = P
         self.round_corner = rc
         if rc > 0.05:
@@ -724,7 +725,7 @@ class Extrude(Prim):
             self.start, self.cmds, self.outline, self.round_cap = None, None, list(P), 0.0
         self.poly = Poly(self.outline)
         if self.axis == "z":
-            self.w0, self.w1 = (-rc if table is not None and rc > 0.05 else 0.0), self.hgt
+            self.w0, self.w1 = (-(rc + TABLE_EXTRA) if table is not None and rc > 0.05 else 0.0), self.hgt
         else:
             self.w0, self.w1 = -self.hgt / 2, self.hgt / 2
         self.bbox = self.world_box([self.lift(a, b, w) for a, b in P for w in (self.w0, self.w1)])
@@ -896,15 +897,15 @@ def _build(node: dict, path: str, R, t, name_hint: Optional[str] = None) -> Node
     if op == "box":
         b = Box(node["size"], node.get("round"), R, t, path, nm)
         if upright and b.round > 0.0 and abs(t[2]) < 1e-6:  # TABLE RULE: a rounded piece standing on z = 0 keeps a flat,
-            sx, sy, sz = b.size  # square-edged bottom: it reaches below the table by its round (cut off there)
-            r = b.round
-            b = Box((sx, sy, sz + r), r, R, (t[0], t[1], t[2] - r), path, nm)
+            sx, sy, sz = b.size  # square-edged bottom: it reaches below the table by its round + 1 mm (cut off there, through
+            e = b.round + TABLE_EXTRA  # its flat sides: a cut along the round's tangent line made a STEP that hung on import)
+            b = Box((sx, sy, sz + e), b.round, R, (t[0], t[1], t[2] - e), path, nm)
         return b
     if op == "cylinder":
         c = Cylinder(node["r"], node["h"], node.get("round"), R, t, path, nm)
         if upright and c.round > 0.0 and abs(t[2]) < 1e-6:
-            r = c.round
-            c = Cylinder(c.r, c.hgt + r, r, R, (t[0], t[1], t[2] - r), path, nm)
+            e = c.round + TABLE_EXTRA
+            c = Cylinder(c.r, c.hgt + e, c.round, R, (t[0], t[1], t[2] - e), path, nm)
         return c
     if op == "sphere":
         return Sphere(node["r"], R, t, path, nm)

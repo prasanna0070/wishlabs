@@ -1164,7 +1164,12 @@ def preview(spec: Any, out: str | Path) -> dict:
     fn = getattr(cad, "preview", None)
     if not callable(fn):
         return {"ok": False, "png": None, "glb": None, "warnings": [], "errors": ["preview: gstudio.cad.preview is not available yet"]}
-    r = fn(sp, lib, out) or {}
+    try:
+        r = fn(sp, lib, out) or {}
+    except Exception as exc:  # noqa: BLE001
+        if type(exc).__name__ != "CsgBuildError":  # pack `freeform`: a csg CAD failure is a repairable spec error
+            raise
+        return {"ok": False, "png": None, "glb": None, "warnings": [], "errors": [str(exc)]}
     png, glb = r.get("png"), r.get("glb")
     ok = bool(png and Path(png).exists())
     return {"ok": ok, "png": str(png) if png else None, "glb": str(glb) if glb else None,

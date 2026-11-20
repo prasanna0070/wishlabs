@@ -368,9 +368,25 @@ def csg_body(body: dict) -> BodyGeom:
     r_bottom = 0.0
     if er > 0.5:
         bottom = [e for e in acc.Edges() if abs(e.Center().z) < 1e-3]
-        acc, r_bottom = try_fillet(acc, bottom, er, min_r=0.8)
+        # A fillet of radius e along a bottom corner arc of radius rho is a torus with R = rho - e, r = e: at e = rho / 2
+        # it degenerates (horn torus) and the STEP of the shell then hangs on re-import (desk console, 2026-11-20); so
+        # e stays below 0.45 x the tightest bottom arc (a ring torus).
+        radii = []
+        for e in bottom:
+            try:
+                gt = e.geomType()
+                if gt == "CIRCLE":
+                    radii.append(float(e.radius()))
+                elif gt == "ELLIPSE":
+                    radii.append(float(e._geomAdaptor().Ellipse().MinorRadius()))
+            except Exception:  # noqa: BLE001
+                continue
+        e_r = min(er, 0.45 * min(radii)) if radii else er
+        if e_r >= 0.8:
+            acc, r_bottom = try_fillet(acc, bottom, e_r, min_r=0.8)
         if r_bottom + 1e-6 < er:
-            warns.append(f"bottom edge_round {er:g} reduced to {r_bottom:.1f} mm")
+            why = f" (the tightest bottom corner has a {min(radii):.1f} mm radius)" if radii and e_r < er else ""
+            warns.append(f"bottom edge_round {er:g} reduced to {r_bottom:.1f} mm{why}")
     acc = fix_shape(acc)
     # cavity: inset tree, floor at z = wall
     cav = _solid(shape.root, -wall, {})
