@@ -67,6 +67,7 @@ Where we beat the benchmark:
 
 ```
 browser SPA (web/app)  ──>  gstudio-web (Cloud Run, public, login gate)
+   mic 16 kHz PCM  <──WS──>   ├─ voice wish: Gemini Live (Vertex, us-central1) ──> submit_wish ──> project + 1st turn
                               ├─ agent: Gemini on Vertex (global) with tools ──> design spec
                               ├─ concepts: builder /preview render ──> Nano Banana photoreal image
                               ├─ project store: GCS  gs://$BUCKET/projects/<pid>/...
@@ -406,6 +407,15 @@ Project state is in `gs://$BUCKET/projects/<pid>/project.json`:
 - The system prompt holds the spec JSON schema, the `summary_for_llm()` library table, design rules for cute,
   printable, safe consumer objects, blueprint safety rules, and one worked example spec.
 - Validation errors from the builder go back to the model for up to 3 repair rounds.
+
+**Voice wish** (web-backend, `app/voice_live.py`, API.md §7a): "Talk to make a wish". The browser streams the
+microphone over a WebSocket; the server bridges it to a Gemini Live session (`gemini-live-2.5-flash-native-audio`,
+`us-central1`, fallback `gemini-3.8-live`; input and output transcription on; credentials stay on the server). Live
+asks at most 3 short questions, confirms, and calls `submit_wish(wish, details)`; the server creates the project with
+`ProjectRepo.create` and runs its first turn through the normal chat path (`Turn`), so the design flow is not forked.
+The transcript (and, if the speaker opts in, their trimmed recording) is stored as `project.voice` and shown by
+`VoiceWishCard` in the project and on share links; the call is one `kind: "live"` entry in the usage receipts. Limits:
+login, same origin, one call per sign-in, hourly caps per sign-in and per instance, 3 minutes per call, fail closed.
 
 **Frontend** (React SPA): the layout replicates the benchmark's (see docs/ref/benchmark-ui.md):
 - left: the chat;

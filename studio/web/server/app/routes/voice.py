@@ -3,14 +3,16 @@ read-only share). Session logic and limits: app/voice_live.py."""
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
+import re
 
-from fastapi import APIRouter, Depends, Request, WebSocket
+from fastapi import APIRouter, Depends, Request, Response, WebSocket
 
 from ..auth import COOKIE, require_session
 from ..voice_live import AUDIO_KEY, LiveSettings, VoiceHub, VoiceSession, login_id, origin_ok, vertex_live
-from .common import err, load_project, serve_store_file, svc_of
+from .common import err, load_project, svc_of
 
 log = logging.getLogger("gstudio.voice")
 
@@ -95,11 +97,29 @@ async def share_voice_file(request: Request, token: str, name: str):
 
 
 async def _serve(request: Request, p: dict, name: str):
+    """The recording, with byte ranges: Safari's <audio> asks for bytes=0-1 first and will not play a file served
+    without 206 Partial Content. The file is small (at most a few MB), so it is read whole."""
     voice = p.get("voice") or {}
     if f"voice/{name}" != AUDIO_KEY or not voice.get("audio_url"):
         raise err(404, "not_found", "File not found.")
-    return await serve_store_file(request, f"projects/{p['id']}/{AUDIO_KEY}", immutable=False)
+    data = await asyncio.to_thread(svc_of(request).store.read_bytes, f"projects/{p['id']}/{AUDIO_KEY}")
+    if not data:
+        raise err(404, "not_found", "File not found.")
+    etag = '"' + hashlib.sha256(data).hexdigest()[:32] + '"'
+    headers = {"Cache-Control": "private, max-age=300", "ETag": etag, "Accept-Ranges": "bytes"}
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+    size = len(data)
+    m = re.fullmatch(r"\s*bytes=(\d*)-(\d*)\s*", request.headers.get("range") or "")
+    if m and (m.group(1) or m.group(2)):
+        if m.group(1):
+            start = int(m.group(1))
+            end = min(int(m.group(2)), size - 1) if m.group(2) else size - 1
+        else:                                       # bytes=-N: the last N bytes
+            start, end = max(0, size - int(m.group(2))), size - 1
+        if start >= size or start > end:
+            return Response(status_code=416, headers={**headers, "Content-Range": f"bytes */{size}"})
+        return Response(content=data[start:end + 1], status_code=206, media_type="audio/wav",
+                        headers={**headers, "Content-Range": f"bytes {start}-{end}/{size}"})
+    return Response(content=data, media_type="audio/wav", headers=headers)
 
-
-def svc(request: Request):  # pragma: no cover - kept for symmetry with other route modules
-    return svc_of(request)

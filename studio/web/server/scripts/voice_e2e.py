@@ -6,6 +6,7 @@ after each of Live's turns, and checks that submit_wish made a project with its 
 the stored recording (owner and share link) and the 'live' AI receipt. Evidence goes to $OUT.
 
   BASE=http://127.0.0.1:9201 KEY_FILE=<0600 file> OUT=_out/voice-e2e python web/server/scripts/voice_e2e.py
+  python web/server/scripts/voice_e2e.py --mic-wav <path>     # only write the fake-microphone WAV for voice-ui.cjs
 Costs one Live session (about a minute) and a few TTS calls.
 """
 from __future__ import annotations
@@ -164,7 +165,20 @@ async def converse(http: Http, lines: list[bytes], log: list) -> dict:
             "lines_said": state["next"]}
 
 
+def mic_wav(path: str) -> int:
+    """A WAV for Chromium's fake microphone (--use-file-for-fake-audio-capture=<wav>%noloop): the lines with pauses
+    long enough for Live to connect, greet and answer in between."""
+    lines = [tts(x) for x in LINES[:4]]
+    gap = lambda s: b"\x00\x00" * int(RATE * s)  # noqa: E731
+    pcm = gap(9) + lines[0] + gap(8) + lines[1] + gap(9) + lines[2] + gap(10) + lines[3] + gap(30)
+    Path(path).write_bytes(wav(pcm, RATE))
+    print(json.dumps({"mic_wav": path, "seconds": round(len(pcm) / (RATE * 2), 1)}))
+    return 0
+
+
 def main() -> int:
+    if len(sys.argv) > 2 and sys.argv[1] == "--mic-wav":
+        return mic_wav(sys.argv[2])
     OUT.mkdir(parents=True, exist_ok=True)
     key = Path(os.environ["KEY_FILE"]).read_text().strip()
     print("synthesising", len(LINES), "lines with", TTS_MODEL, flush=True)

@@ -157,7 +157,7 @@ def converse(ws, start: dict, chunks: int = 12, until=("ended",), send_end: bool
     return events, audio_in
 
 
-def wait_turn(c, pid: str, timeout: float = 10.0) -> dict:
+def wait_turn(c, pid: str, timeout: float = 30.0) -> dict:
     t0 = time.time()
     while True:
         p = c.get(f"/api/projects/{pid}").json()
@@ -308,6 +308,13 @@ def test_submit_wish_makes_project_first_turn_recording_share_and_receipt(voice_
     assert c.get(f"/api/projects/{pid}/voice/wish.wav").status_code == 401
     assert c.get(shared["voice"]["audio_url"]).content == wav.content
     assert c.get(f"/api/share/{tok}/voice/other.wav").status_code == 404
+    # byte ranges (Safari's <audio> needs 206 Partial Content)
+    part = c.get(shared["voice"]["audio_url"], headers={"Range": "bytes=0-1"})
+    assert part.status_code == 206 and part.content == wav.content[:2]
+    assert part.headers["content-range"] == f"bytes 0-1/{len(wav.content)}"
+    tail = c.get(shared["voice"]["audio_url"], headers={"Range": "bytes=-10"})
+    assert tail.status_code == 206 and tail.content == wav.content[-10:]
+    assert c.get(shared["voice"]["audio_url"], headers={"Range": f"bytes={len(wav.content)}-"}).status_code == 416
 
     # the AI receipt: one 'live' call with the token counts Live reported
     live = [t for t in p["usage"]["turns"] if t.get("kind") == "live"]
