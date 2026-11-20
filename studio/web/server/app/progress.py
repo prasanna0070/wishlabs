@@ -6,7 +6,8 @@ list with timestamps, and the latest thought summaries (the last ~3 KB). It is d
 the turn already writes that object, and extra writes there would race with chat and concept updates.
 
 Writes are throttled (at most one per MIN_INTERVAL_S, plus a heartbeat every HEARTBEAT_S so a reader can tell the turn
-is alive), run off the event loop, and never fail the turn. The record is marked done or error when the turn ends.
+is alive), run off the event loop, and never fail the turn. The record is marked done or error when the turn ends, in
+the background and by compare-and-swap, so a newer turn's record is never overwritten.
 It is read only by GET /api/projects/{pid}/turn (signed-in); share links never see it.
 """
 from __future__ import annotations
@@ -26,6 +27,7 @@ SCHEMA = "gstudio-turn-progress/1"
 TURN_STALE_S = 15 * 60          # the turn lock in project.json blocks a new turn this long (agent/turn.py)
 MIN_INTERVAL_S = 2.0            # at most one write per this many seconds while the turn runs
 HEARTBEAT_S = 20.0              # rewrite at least this often, so `updated` shows the turn is alive
+LIVE_S = 60.0                   # a running record rewritten this recently: the turn is alive (3 heartbeats)
 MAX_THOUGHTS = 3000             # characters of thought summaries kept (the newest)
 MAX_STEPS = 24
 MAX_LABEL = 160
@@ -205,18 +207,35 @@ class TurnProgress:
             await self._write()
             last = time.monotonic()
 
-    async def _write(self) -> None:
+    async def _write(self, final: bool = False) -> None:
         self.rec["updated"] = now_iso()
         data = copy.deepcopy(self.rec)                  # snapshot on the loop thread; the write runs in a worker
         try:
-            await asyncio.to_thread(self.store.write_json, self.key, data)
+            if final:                                   # compare-and-swap: never over a newer turn's record
+                await asyncio.to_thread(self.store.update_json, self.key, lambda cur: self._final(cur, data))
+            else:
+                await asyncio.to_thread(self.store.write_json, self.key, data)
             self.writes += 1
+        except _Newer:
+            log.info("progress: %s already holds a newer turn's record; %s's final record is not written", self.pid,
+                     data["turn_id"])
         except Exception as exc:  # noqa: BLE001 - progress is best effort
             log.warning("progress write failed for %s: %s", self.pid, str(exc)[:200])
 
+    def _final(self, cur, data: dict) -> dict:
+        """update_json callback for the final record. The next turn (a Retry, another tab) may start the moment this
+        one clears its lock; once it has written its own record, that record must stay (review R3)."""
+        if isinstance(cur, dict) and cur.get("schema") == SCHEMA and cur.get("turn_id") not in (None, data["turn_id"]):
+            if self.writes:                             # the record was this turn's, so someone wrote after it
+                raise _Newer()
+            mine, theirs = parse_iso(data.get("started")), parse_iso(cur.get("started"))
+            if mine and theirs and theirs > mine:       # never written by this turn: only a newer turn's record wins
+                raise _Newer()
+        return data
+
     async def finish(self, state: str = "done") -> None:
         """Mark the record done (or error) and write it once more. Waits for a write already in flight, so the final
-        record is always the last one written by this turn."""
+        record is always the last one written by this turn; it is not written over a newer turn's record."""
         if self._closed:
             return
         self._closed = True
@@ -229,17 +248,35 @@ class TurnProgress:
                 await self._task
             except Exception:  # noqa: BLE001
                 log.exception("progress writer failed")
-        await self._write()
+        await self._write(final=True)
+
+    def finish_later(self, state: str = "done") -> asyncio.Task:
+        """finish() in the background: the turn's last events (project, done) and the unlocked composer must not wait
+        for the store. The turn lock is cleared before this, so nothing that reads the turn needs this write first."""
+        task = asyncio.create_task(self.finish(state))
+        _finishing.add(task)
+        task.add_done_callback(_finishing.discard)
+        return task
+
+
+class _Newer(Exception):
+    """The record already holds a newer turn's progress (raised inside update_json, so nothing is written)."""
+
+
+_finishing: set[asyncio.Task] = set()                  # final writes running in the background (strong references)
 
 
 def turn_view(lock: dict | None, rec: dict | None, stale_s: float = TURN_STALE_S) -> dict:
     """GET /api/projects/{pid}/turn: whether a turn runs (the lock in project.json) and what it is doing (the record).
-    A lock older than stale_s is reported as stale: the turn stopped unexpectedly and a new message may be sent."""
+    A lock older than stale_s is reported as stale (the turn stopped unexpectedly; a new message may be sent), unless
+    its own record is still being rewritten: a Deep concept turn past 15 minutes is alive, so it stays running.
+    `quiet` marks a running turn whose record has had no write for LIVE_S (3 missed heartbeats): it has probably
+    stopped (an instance restart), although the lock only expires at stale_s."""
     lock = lock if isinstance(lock, dict) and lock.get("id") else None
     rec = rec if isinstance(rec, dict) and rec.get("schema") == SCHEMA else None
     out = {"running": False, "stale": False, "state": "idle", "turn_id": None, "started": None, "age_s": None,
            "step": None, "steps": [], "thoughts": "", "user_message_id": None, "action": None, "mode": None,
-           "updated": None, "quiet_s": None, "error": None}
+           "updated": None, "quiet_s": None, "quiet": False, "error": None}
 
     def from_rec(r: dict) -> None:
         out.update(step=r.get("step"), steps=list(r.get("steps") or [])[-MAX_STEPS:],
@@ -250,11 +287,15 @@ def turn_view(lock: dict | None, rec: dict | None, stale_s: float = TURN_STALE_S
 
     if lock:
         age = seconds_since(lock.get("started"))
-        stale = age >= stale_s
+        mine = rec if rec and rec.get("turn_id") == lock["id"] else None
+        quiet_for = seconds_since(mine.get("updated")) if mine and mine.get("state") == "running" else None
+        alive = quiet_for is not None and quiet_for < LIVE_S
+        stale = age >= stale_s and not alive
         out.update(running=not stale, stale=stale, state="stale" if stale else "running", turn_id=lock["id"],
-                   started=lock.get("started"), age_s=round(min(age, 1e7), 1))
-        if rec and rec.get("turn_id") == lock["id"]:
-            from_rec(rec)
+                   started=lock.get("started"), age_s=round(min(age, 1e7), 1),
+                   quiet=not stale and quiet_for is not None and quiet_for >= LIVE_S)
+        if mine:
+            from_rec(mine)
         else:                                           # the lock is newer than the record: the turn is just starting
             out.update(step="Reading your message",
                        steps=[{"label": "Reading your message", "ts": lock.get("started")}])

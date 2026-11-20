@@ -380,8 +380,10 @@ class Turn:
             await self.update(mut)
         except Exception:  # noqa: BLE001
             log.exception("could not clear turn marker")
-        if self.progress is not None:          # after the lock is cleared: a reader then reloads the finished project
-            await self.progress.finish("error" if self.failed else "done")
+        if self.progress is not None:
+            # after the lock is cleared, and in the background: GET /turn already reports the turn ended (no lock), and
+            # the last events (project, done) must not wait for a slow store write (a GCS hiccup)
+            self.progress.finish_later("error" if self.failed else "done")
         if self.usage:
             log.info("turn %s usage: %s", self.id, {k: rec[k] for k in ("input_tokens", "output_tokens",
                                                                        "thinking_tokens", "images", "cost_usd_est")})
@@ -391,10 +393,10 @@ class Turn:
         self.progress = TurnProgress(self.svc.store, self.pid, self.id, started=self.started,
                                      action=self.action or "text", mode=self.mode,
                                      user_message_id=(self.user_message or {}).get("id"))
-        self.progress.start()
-        await self.emit("turn.start", {"turn_id": self.id, "started": self.started or now_iso(),
-                                       "user_message": self.user_message})
-        try:
+        try:                                    # from here on, end() always clears the lock and stops the writer
+            self.progress.start()
+            await self.emit("turn.start", {"turn_id": self.id, "started": self.started or now_iso(),
+                                           "user_message": self.user_message})
             if self.direct == "approve_brief":
                 await self.approve_brief()
             elif self.direct == "retry_build":
