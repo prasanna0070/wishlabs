@@ -362,11 +362,18 @@ def _words(text: str) -> set[str]:
 
 
 def wish_of(project: dict | None) -> str:
-    """The user's own words that started the project (the first user text messages), for example selection."""
+    """The user's own words that started the project (the first user text messages), for example selection. A project
+    that started from an image adds what the agent read from it (the image brief's title, purpose, form and feature
+    lines; never text_seen), so an image sent without words still picks the closest worked examples. The wish only
+    ranks our own example files: none of its words reach the prompt."""
     out = []
     for m in (project or {}).get("chat") or []:
         if m.get("role") == "user" and m.get("kind") == "text" and str(m.get("text") or "").strip():
             out.append(str(m["text"]).strip())
             if len(out) >= 2:
                 break
-    return " ".join(out)[:2000]
+    brief = (project or {}).get("image_brief")
+    if isinstance(brief, dict):
+        out += [str(brief.get(k) or "").strip() for k in ("title", "purpose", "form_factor")]
+        out += [str(f.get("text") or "").strip() for f in brief.get("features") or [] if isinstance(f, dict)]
+    return " ".join(x for x in out if x)[:2000]

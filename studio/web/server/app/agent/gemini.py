@@ -226,6 +226,7 @@ class GeminiBrain:
             contents.append(types.Content(role="user", parts=responses))
             p = await turn.project()
             allowed = turn.allowed(p)
+            wish = wish_of(p)                           # an image brief recorded this round now picks the examples
             owed = any(not r.function_response.response.get("ok") for r in responses)
             await turn.status("Fixing the design" if owed else "Thinking")
         await turn.fail("I went round in circles on that one. Could you say it another way?", code="too_many_steps")
