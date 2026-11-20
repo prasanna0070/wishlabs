@@ -2,6 +2,8 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "re
 import { useNavigate } from "react-router-dom";
 import { ArrowUp, Mic, Paperclip, Plus, X } from "lucide-react";
 import { useProject } from "../../store/project";
+import { useNow } from "../../lib/hooks";
+import { agoText } from "../../lib/working";
 import { ModeSelect } from "../ModeSelect";
 import { Spinner } from "../ui";
 import { VoiceWishDialog } from "../voice/VoiceWishDialog";
@@ -38,6 +40,7 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
   const [talking, setTalking] = useState(false);
   const nav = useNavigate();
   const running = !!turn?.running;
+  useNow(15000, running); // re-render so "started N min ago" stays current
   // "Talk" while the project is still empty: the voice chat becomes this project's first message
   const canTalk = project.chat.length === 0 && !running && !project.voice;
 
@@ -80,6 +83,12 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
 
   return (
     <div className="composer-wrap">
+      {running ? (
+        // a turn is running (here or on the server after a reload): sending now would only get a 409
+        <div className="composer-busy" role="status">
+          <Spinner /> Still working on your last message (started {agoText((Date.now() - turn!.startedAt) / 1000)})
+        </div>
+      ) : null}
       <form
         className={`composer${drag ? " drag" : ""}`}
         onSubmit={(e) => {

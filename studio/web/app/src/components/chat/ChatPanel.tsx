@@ -31,6 +31,8 @@ export function ChatPanel({ full, split, onTab: _onTab, voiceCard = true }: { fu
   const project = useProject((s) => s.project)!;
   const turn = useProject((s) => s.turn);
   const sendError = useProject((s) => s.sendError);
+  const sendErrorCode = useProject((s) => s.sendErrorCode);
+  const watchTurn = useProject((s) => s.watchTurn);
   const readOnly = useProject((s) => s.readOnly);
   const ctx = useProject((s) => s.ctx);
   const { setChatHidden, panelHidden, setPanelHidden } = useUI();
@@ -71,7 +73,8 @@ export function ChatPanel({ full, split, onTab: _onTab, voiceCard = true }: { fu
   }, [lastUser]);
 
   const empty = project.chat.length === 0;
-  const pendingTurn = turn?.running && !turn.userMsgId;
+  // a turn with no message of its own to sit under (just sent, or followed from the server): show it at the end
+  const pendingTurn = (turn?.running || turn?.stale) && !turn.userMsgId;
 
   return (
     <section className={`chat${full ? " full" : ""}`} aria-label="Project conversation">
@@ -120,7 +123,25 @@ export function ChatPanel({ full, split, onTab: _onTab, voiceCard = true }: { fu
               <TurnActivity t={turn!} />
             </div>
           ) : null}
-          {sendError ? <div className="callout danger">{sendError}</div> : null}
+          {sendError ? (
+            sendErrorCode === "conflict" ? (
+              <div className="callout warning send-error-row" role="status">
+                <span className="grow">{sendError}</span>
+                <button
+                  type="button"
+                  className="btn sm"
+                  onClick={() => {
+                    watchTurn();
+                    window.setTimeout(() => list.current?.querySelector(".working-card")?.scrollIntoView({ block: "center", behavior: "smooth" }), 250);
+                  }}
+                >
+                  Show progress
+                </button>
+              </div>
+            ) : (
+              <div className="callout danger">{sendError}</div>
+            )
+          ) : null}
         </div>
       </div>
       {away ? (

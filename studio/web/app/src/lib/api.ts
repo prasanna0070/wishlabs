@@ -1,6 +1,7 @@
 // Thin fetch client for /api (same origin, cookie auth). Any 401 flips the auth store to "show login".
 import { useAuth } from "../store/auth";
 import type { Mode, Project, ProjectSummary, Version, VersionDetail } from "./types";
+import type { TurnView } from "./working";
 
 export class ApiError extends Error {
   status: number;
@@ -56,6 +57,8 @@ export const api = {
   projects: () => request<{ projects: ProjectSummary[] }>("GET", "/api/projects"),
   createProject: (body: { name?: string; mode?: Mode }) => request<Project>("POST", "/api/projects", body),
   project: (pid: string) => request<Project>("GET", `/api/projects/${pid}`),
+  /** Is a chat turn running, and what is it doing (step, steps, thought summaries)? For a reload or a dropped stream. */
+  turnStatus: (pid: string) => request<TurnView>("GET", `/api/projects/${pid}/turn`),
   patchProject: (pid: string, body: { name?: string; mode?: Mode }) => request<Project>("PATCH", `/api/projects/${pid}`, body),
   deleteProject: (pid: string) => request("DELETE", `/api/projects/${pid}`),
   checklist: (pid: string, body: { assembly?: Record<string, boolean>; wiring?: Record<string, boolean> }) =>

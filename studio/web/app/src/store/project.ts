@@ -4,23 +4,9 @@ import { api, ApiError, clearFileCache } from "../lib/api";
 import { openEventStream, postStream, type SSEEvent } from "../lib/sse";
 import type { ChatMessage, Mode, Project, Status, Version } from "../lib/types";
 import type { Ctx } from "../lib/urls";
+import { appendThought, conceptStepLabel, CONFLICT_TEXT, POLL_MS, remoteTurn, renderingTotal, retryBody, TURN_STALE_S, watchDecision, type TurnState, type TurnStep } from "../lib/working";
 
-export interface TurnStep {
-  id: string;
-  label: string;
-  state: "running" | "done" | "error";
-}
-
-export interface TurnState {
-  turnId?: string;
-  running: boolean;
-  startedAt: number;
-  endedAt?: number;
-  userMsgId?: string;
-  status: string;
-  steps: TurnStep[];
-  action?: string; // what the turn was asked to do (text, answers, regenerate_concepts, ...)
-}
+export type { TurnState, TurnStep } from "../lib/working";
 
 export interface ConceptProgress {
   index: number;
@@ -42,6 +28,7 @@ interface ProjectState {
   saving: number;
   saveError: string | null;
   sendError: string | null;
+  sendErrorCode: string | null; // "conflict" (409: a turn is still running) | "network" | an API error code
   streamOpen: boolean;
 
   load: (pid: string) => Promise<void>;
@@ -49,6 +36,10 @@ interface ProjectState {
   reset: () => void;
   setProject: (p: Project) => void;
   send: (body: Record<string, any>) => Promise<void>;
+  /** Follow a turn that runs on the server but not on this tab's stream (reload, dropped stream, 409). */
+  watchTurn: () => void;
+  /** Send the stopped turn's user message again (the stale card's Retry). */
+  retryLast: () => Promise<void>;
   followBuild: () => void;
   stopFollow: () => void;
   rename: (name: string) => Promise<void>;
@@ -64,6 +55,15 @@ interface ProjectState {
 
 let closeStream: (() => void) | null = null;
 let shareTimer: number | null = null;
+// the server-turn watcher (GET /turn every ~2 s while a turn runs that this tab is not streaming)
+let turnTimer: number | null = null;
+let turnWatch: { pid: string; fails: number } | null = null;
+
+function stopTurnWatch() {
+  if (turnTimer) window.clearTimeout(turnTimer);
+  turnTimer = null;
+  turnWatch = null;
+}
 
 function upsert(chat: ChatMessage[], m: ChatMessage): ChatMessage[] {
   const i = chat.findIndex((x) => x.id === m.id);
@@ -130,8 +130,17 @@ export const useProject = create<ProjectState>((set, get) => {
         }));
         break;
       }
-      case "status":
-        step(`status:${d.text}`, d.text);
+      case "status": {
+        const total = renderingTotal(d.text);
+        if (total != null && turn) {
+          // concepts render in parallel: one counter step for the whole set (as the server's progress record words it)
+          set({ turn: { ...turn, concepts: {}, conceptTotal: total } });
+          step("concepts", conceptStepLabel({}, total));
+        } else step(`status:${d.text}`, d.text);
+        break;
+      }
+      case "thinking.delta":
+        if (turn && d.text) set({ turn: { ...turn, thoughts: appendThought(turn.thoughts || "", String(d.text)) } });
         break;
       case "message.start":
         patchProject((p) => ({
@@ -155,10 +164,14 @@ export const useProject = create<ProjectState>((set, get) => {
           return { ...p, stage: "concepts", concepts: [...byId.values()], chat: d.message ? upsert(p.chat, d.message) : p.chat };
         });
         break;
-      case "concepts.progress":
+      case "concepts.progress": {
         set({ conceptProgress: { ...get().conceptProgress, [d.concept_id]: { index: d.index, title: d.title, state: d.state, note: d.note } } });
-        step(`concept:${d.concept_id}`, `${d.title || "Concept"}: ${d.state}`, d.state === "failed" ? "error" : d.state === "ready" ? "done" : "running");
+        if (!turn) break;
+        const concepts = { ...(turn.concepts || {}), [d.concept_id]: String(d.state || "") };
+        set({ turn: { ...turn, concepts } });
+        step("concepts", conceptStepLabel(concepts, turn.conceptTotal || 0));
         break;
+      }
       case "brief":
         patchProject((p) => ({ ...p, stage: "brief", brief: d.brief || p.brief, chat: d.message ? upsert(p.chat, d.message) : p.chat }));
         break;
@@ -169,7 +182,7 @@ export const useProject = create<ProjectState>((set, get) => {
         step(`tool:${d.call_id}`, d.summary || "", d.ok === false ? "error" : "done");
         break;
       case "repair":
-        step(`repair:${d.round}`, `Fixing the design (round ${d.round})`);
+        step(`repair:${d.kind || "spec"}:${d.round}`, `${d.kind === "concept_rules" ? "Fixing the concept rules" : "Fixing the design"} (round ${d.round})`);
         break;
       case "build.started":
         patchProject((p) => ({
@@ -207,9 +220,65 @@ export const useProject = create<ProjectState>((set, get) => {
         if (d.project) get().setProject(d.project);
         break;
       case "error":
-        set({ sendError: d.message || "Something went wrong." });
+        set({ sendError: d.message || "Something went wrong.", sendErrorCode: d.code || "error" });
         break;
     }
+  };
+
+  /** Finish this tab's turn: it moves to `turns` (the "Worked for" pill under its message keeps steps and thoughts). */
+  const settleTurn = () => {
+    const done = get().turn;
+    if (!done) return;
+    const finished: TurnState = { ...done, running: false, stale: false, endedAt: Date.now(), steps: done.steps.map((s) => (s.state === "running" ? { ...s, state: "done" } : s)) };
+    set({ turn: null, turns: done.userMsgId ? { ...get().turns, [done.userMsgId]: finished } : get().turns });
+  };
+
+  const pollTurn = async () => {
+    const w = turnWatch;
+    const ctx = get().ctx;
+    if (!w || !ctx || ctx.share || ctx.pid !== w.pid) return stopTurnWatch();
+    const live = get().turn;
+    if (live?.running && !live.remote) return stopTurnWatch(); // this tab streams the turn itself
+    let v;
+    try {
+      v = await api.turnStatus(w.pid);
+    } catch (e: any) {
+      if (turnWatch !== w) return;
+      if (e instanceof ApiError && (e.status === 404 || e.status === 401)) return stopTurnWatch();
+      w.fails += 1; // flaky network: keep the card, try again a little later
+      turnTimer = window.setTimeout(() => void pollTurn(), Math.min(10000, POLL_MS * (1 + w.fails)));
+      return;
+    }
+    if (turnWatch !== w || get().ctx?.pid !== w.pid) return;
+    w.fails = 0;
+    const cur = get().turn;
+    if (cur?.running && !cur.remote) return stopTurnWatch();
+    const decision = watchDecision(v);
+    if (decision === "running") {
+      set({ turn: remoteTurn(v, cur, get().project?.chat || []) });
+      turnTimer = window.setTimeout(() => void pollTurn(), POLL_MS);
+      return;
+    }
+    stopTurnWatch();
+    if (decision === "stale") {
+      set({ turn: remoteTurn(v, cur, get().project?.chat || []) });
+      return;
+    }
+    // the turn ended: keep its steps and thinking under its message, then load what it made
+    if (cur) {
+      const fin = v.turn_id && v.turn_id === cur.turnId ? remoteTurn({ ...v, running: false }, cur, get().project?.chat || []) : cur;
+      set({ turn: { ...fin, running: false, stale: false } });
+      // a message that never reached the server (the connection dropped while sending): say so
+      if (!cur.turnId && !cur.userMsgId)
+        set({ sendError: "The connection dropped before your message reached the studio. Check the connection and send it again.", sendErrorCode: "network" });
+    }
+    settleTurn();
+    try {
+      await get().refresh();
+    } catch {
+      /* the next load shows it */
+    }
+    if (isBuilding(get().project)) get().followBuild();
   };
 
   return {
@@ -225,11 +294,12 @@ export const useProject = create<ProjectState>((set, get) => {
     saving: 0,
     saveError: null,
     sendError: null,
+    sendErrorCode: null,
     streamOpen: false,
 
     reset: () => {
       get().stopFollow();
-      set({ ctx: null, project: null, error: null, turn: null, turns: {}, conceptProgress: {}, statuses: {}, sendError: null, readOnly: false });
+      set({ ctx: null, project: null, error: null, turn: null, turns: {}, conceptProgress: {}, statuses: {}, sendError: null, sendErrorCode: null, readOnly: false });
     },
 
     setProject: (p) => {
@@ -247,6 +317,9 @@ export const useProject = create<ProjectState>((set, get) => {
         const p = await api.project(pid);
         get().setProject(p);
         set({ loading: false });
+        // a turn is running on the server (this page was reloaded, or the message came from another tab or a voice
+        // call): show it working instead of an idle composer
+        if (p.turn && !get().turn?.running) get().watchTurn();
         if (isBuilding(p)) get().followBuild();
       } catch (e: any) {
         set({ loading: false, error: e instanceof ApiError && e.status === 404 ? "This project was not found." : e?.message || String(e) });
@@ -275,29 +348,87 @@ export const useProject = create<ProjectState>((set, get) => {
     send: async (body) => {
       const { ctx, project, turn } = get();
       if (!ctx || !project || ctx.share || turn?.running) return;
+      stopTurnWatch();
       const action = body.action || (body.answers || body.skipped ? "answers" : "text");
-      const t: TurnState = { running: true, startedAt: Date.now(), action, status: "Reading your message", steps: [{ id: "start", label: "Reading your message", state: "running" }] };
-      set({ turn: t, sendError: null, conceptProgress: body.action === "regenerate_concepts" || body.action === "more_concepts" ? {} : get().conceptProgress });
+      const t: TurnState = { running: true, startedAt: Date.now(), action, status: "Reading your message", steps: [{ id: "start", label: "Reading your message", state: "running" }], thoughts: "" };
+      set({ turn: t, sendError: null, sendErrorCode: null, conceptProgress: body.action === "regenerate_concepts" || body.action === "more_concepts" ? {} : get().conceptProgress });
       const mode = project.mode;
+      let sawStart = false;
+      let sawDone = false;
+      let dropped = false; // the stream ended without `done` (network, reload of the server, proxy timeout)
+      let conflict = false;
       try {
         // follow_build false: the turn ends once a build is queued, so the composer stays usable during a long build;
         // progress then arrives on the project event stream (followBuild below).
-        await postStream(`/api/projects/${ctx.pid}/chat`, { ...(mode ? { mode } : {}), follow_build: false, ...body }, handle);
+        await postStream(`/api/projects/${ctx.pid}/chat`, { ...(mode ? { mode } : {}), follow_build: false, ...body }, (ev) => {
+          if (ev.event === "turn.start") sawStart = true;
+          if (ev.event === "done") sawDone = true;
+          handle(ev);
+        });
+        if (!sawDone) dropped = true;
       } catch (e: any) {
-        set({ sendError: e?.code === "conflict" ? "Another turn is still running for this project. Wait for it to finish." : e?.message || String(e) });
+        if (e instanceof ApiError) {
+          conflict = e.code === "conflict";
+          set({ sendError: conflict ? CONFLICT_TEXT : e.message || String(e), sendErrorCode: e.code || "error" });
+        } else dropped = true;
       } finally {
-        const done = get().turn;
-        if (done) {
-          const finished: TurnState = { ...done, running: false, endedAt: Date.now(), steps: done.steps.map((s) => (s.state === "running" ? { ...s, state: "done" } : s)) };
-          set({ turn: null, turns: done.userMsgId ? { ...get().turns, [done.userMsgId]: finished } : get().turns });
-        }
+        let refreshed = true;
         try {
           await get().refresh();
         } catch {
-          /* keep what we have */
+          refreshed = false; /* keep what we have */
+        }
+        const running = !!get().project?.turn || !refreshed;
+        if ((dropped || conflict) && running && get().ctx?.pid === ctx.pid) {
+          // the turn goes on on the server: keep the card and follow it there (GET /turn)
+          const cur = get().turn;
+          if (conflict || !cur) set({ turn: null });
+          else set({ turn: { ...cur, remote: true } });
+          get().watchTurn();
+        } else {
+          settleTurn();
+          if (dropped && !sawStart && !conflict)
+            set({ sendError: "The connection dropped before your message reached the studio. Check the connection and send it again.", sendErrorCode: "network" });
         }
         if (isBuilding(get().project)) get().followBuild();
       }
+    },
+
+    watchTurn: () => {
+      const { ctx } = get();
+      if (!ctx || ctx.share) return;
+      if (turnWatch?.pid === ctx.pid) return; // already following it
+      stopTurnWatch();
+      turnWatch = { pid: ctx.pid, fails: 0 };
+      const p = get().project;
+      const cur = get().turn;
+      if (p?.turn && !cur?.running) {
+        // show the card at once from the lock; the first poll fills in the step and the thinking (and corrects the
+        // stale guess if this laptop's clock is off)
+        const age = (Date.now() - Date.parse(p.turn.started)) / 1000;
+        const stale = age >= TURN_STALE_S;
+        set({
+          turn: remoteTurn(
+            { running: !stale, stale, state: stale ? "stale" : "running", turn_id: p.turn.id, started: p.turn.started, age_s: Number.isNaN(age) ? null : Math.max(0, age), step: "Working", steps: [], thoughts: "", user_message_id: null, action: null, mode: null, updated: null, quiet_s: null },
+            cur,
+            p.chat,
+          ),
+        });
+      }
+      void pollTurn();
+    },
+
+    retryLast: async () => {
+      const { project, turn } = get();
+      if (!project) return;
+      const m = (turn?.userMsgId && project.chat.find((x) => x.id === turn.userMsgId)) || [...project.chat].reverse().find((x) => x.role === "user");
+      const body = retryBody(m);
+      if (turn && !turn.running) set({ turn: null });
+      if (!body) {
+        set({ sendError: "That step cannot be repeated from here. Send your message again.", sendErrorCode: "retry" });
+        return;
+      }
+      await get().send(body);
     },
 
     followBuild: () => {
@@ -335,6 +466,7 @@ export const useProject = create<ProjectState>((set, get) => {
       closeStream = null;
       if (shareTimer) clearInterval(shareTimer);
       shareTimer = null;
+      stopTurnWatch();
     },
 
     rename: async (name) => {
