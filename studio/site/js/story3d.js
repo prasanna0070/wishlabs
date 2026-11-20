@@ -322,9 +322,15 @@ export async function createStory(host, labelLayer, onEvent = () => {}) {
     }
 
     if (s >= 2.0 && s < 3.0) {
-      dB = s < 2.62 ? 1 - Tm(2.0, 2.08) : Tm(2.62, 2.76);
-      if (s < 2.08) dA = 1 - Tm(2.0, 2.07);
-      else {
+      dB = s < 2.62 ? 1 - Tm(2.0, 2.05) : Tm(2.62, 2.76);
+      if (s < 2.08) {
+        /* The finished shell un-prints from the top: a clean cut with its see-through outline left above it, so a
+           paused frame reads as a half-printed shell (a noise dissolve here read as a broken mesh in stills). */
+        const u = Tm(2.0, 2.07);
+        clipH = lerp(H + 2, -1, ease(u));
+        slice = u > 0 && u < 1 ? 1 : 0;
+        ghost = u > 0;
+      } else {
         const p = Tm(2.1, 2.6);
         clipH = lerp(-1, H + 2, p);
         slice = s < 2.6 ? 1 : 1 - Tm(2.6, 2.66);

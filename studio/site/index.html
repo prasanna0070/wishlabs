@@ -3,15 +3,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Wish it. We'll build it.</title>
-<meta name="description" content="Describe a gadget in plain words. We design it, build it, test it and ship it to you. No electronics skills needed. India first.">
+<title>Wish Labs · Wish it. We'll build it.</title>
+<meta name="description" content="Describe a gadget in plain words. AI designs the 3D-printed shell, the circuit board, the software and the build guide, with a price in rupees, before anything is made. India first.">
 <meta name="theme-color" content="#FBF7F0">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%2316132B'/%3E%3Cpath d='M16 5c.6 5.6 4.4 9.4 10 10-5.6.6-9.4 4.4-10 10-.6-5.6-4.4-9.4-10-10 5.6-.6 9.4-4.4 10-10z' fill='%237C5CFF'/%3E%3C/svg%3E">
+<link rel="canonical" href="https://wish.plugbook.si/">
+<!-- Link previews (WhatsApp, LinkedIn, X, Slack). Crawlers do not run JS, so these must stay static. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Wish Labs">
+<meta property="og:locale" content="en_IN">
+<meta property="og:url" content="https://wish.plugbook.si/">
+<meta property="og:title" content="Wish Labs · Wish it. We'll build it.">
+<meta property="og:description" content="Describe a gadget in plain words. AI designs the shell, the circuit board and the software, with a price in rupees, before anything is made.">
+<meta property="og:image" content="https://wish.plugbook.si/assets/img/og-wish-labs-1200x630.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Wish Labs: six gadgets designed from one sentence each, on a wooden shelf, under the line Wish it. We'll build it.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Wish Labs · Wish it. We'll build it.">
+<meta name="twitter:description" content="Describe a gadget in plain words. AI designs the shell, the circuit board and the software, with a price in rupees, before anything is made.">
+<meta name="twitter:image" content="https://wish.plugbook.si/assets/img/og-wish-labs-1200x630.jpg">
+<meta name="twitter:image:alt" content="Wish Labs: six gadgets designed from one sentence each, on a wooden shelf, under the line Wish it. We'll build it.">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/img/icon-32.png">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%2316132B'/%3E%3Cpath d='M16 5c.6 5.6 4.4 9.4 10 10-5.6.6-9.4 4.4-10 10-.6-5.6-4.4-9.4-10-10 5.6-.6 9.4-4.4 10-10z' fill='%237C5CFF'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/img/apple-touch-icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter:wght@400..700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/site.css">
+<link rel="stylesheet" href="css/site.css?v=20261120">
 <script>
   /* Decide the motion mode before first paint, so reduced-motion and phone layouts never flash. */
   (function () {
@@ -43,6 +63,8 @@
     <symbol id="i-rewind" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4.5h4.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-drag" viewBox="0 0 24 24"><path d="M9 7l-5 5 5 5M15 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-note" viewBox="0 0 24 24"><path d="M9 18V5.5l11-2.5v12.5M9 18a3 3 0 1 1-3-3 3 3 0 0 1 3 3zM20 15.5a3 3 0 1 1-3-3 3 3 0 0 1 3 3z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   </defs>
 </svg>
 
@@ -94,6 +116,7 @@
         <p class="wish-toast" id="wish-toast" role="status" aria-live="polite"></p>
 
         <div class="hero-actions">
+          <a class="btn btn-ink magnetic" href="/studio/" data-share data-share-link hidden>See a real build <svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
           <a class="btn btn-ghost" href="#how">See how it works <svg aria-hidden="true"><use href="#i-down"/></svg></a>
           <span class="hero-hint">Or click the box and type your own wish.</span>
         </div>
@@ -146,6 +169,13 @@
       <p class="eyebrow">How it works</p>
       <h2 id="how-title" class="h2">From a wish to your hands, <span class="nw">and beyond.</span></h2>
       <p class="lede">You bring the idea. We do the engineering, the building and the shipping. Follow the real robot design from our engine test through every step.</p>
+      <!-- NEW FEATURES (Buildathon, 20 Nov 2026): Gemini Live voice wish + Lyria gadget sound.
+           The ONLY place the landing mentions them. Hidden until NEW_FEATURES = true in js/config.js;
+           Prasanna turns it on once both work on the read-only share page. -->
+      <ul class="story-new" data-new-features hidden>
+        <li><span class="sn-ic" aria-hidden="true"><svg><use href="#i-mic"/></svg></span><span><b class="sn-new">New</b>Talk to make a wish, with Gemini Live.</span></li>
+        <li><span class="sn-ic" aria-hidden="true"><svg><use href="#i-note"/></svg></span><span><b class="sn-new">New</b>Every gadget gets its own sound, composed by Lyria.</span></li>
+      </ul>
     </div>
 
     <div class="story-pin" id="story-pin">
@@ -199,7 +229,7 @@
             <span class="num" aria-hidden="true">5</span>
             <div class="st-text">
               <h3>Modify anytime</h3>
-              <p class="sub">Talk to your app, Claude, or another supported AI client</p>
+              <p class="sub">Change it from our app or an AI assistant</p>
               <p class="more">Ask for a new story, a new light or a whole new job, in plain words.</p>
             </div>
             <figure class="st-media">
@@ -357,13 +387,20 @@
       <div class="price-card" id="price-card" data-reveal>
         <div class="pc-l">
           <p class="pc-k"><span class="n">5</span>A delivered price, before you order</p>
-          <p class="price" aria-label="₹7,826"><span class="rs" aria-hidden="true">₹</span><span class="pv" id="price-val" aria-hidden="true">7,826</span></p>
+          <p class="price"><span class="sr-only">₹19k to 28k for first units</span><span class="rs" aria-hidden="true">₹</span><span class="pv" id="price-val" aria-hidden="true"><span data-pv>19k</span> <span class="pv-to" data-pv>to</span> <span data-pv>28k</span></span></p>
+          <p class="pc-unit" aria-hidden="true">for first units</p>
         </div>
         <div class="pc-r">
+          <p class="pc-vol">Under ₹10k at volume <span>(modelled)</span></p>
           <p>One price that covers parts, printing, assembly, testing, courier and GST, delivered in India.</p>
-          <p class="est">Illustrative price. Your real price is shown before you order.</p>
+          <p class="est">Estimates from our price engine. Your design's own price is shown before you order.</p>
         </div>
         <div class="pc-sparks" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      </div>
+
+      <div class="ex-cta" data-share hidden>
+        <a class="btn btn-accent magnetic" href="/studio/" data-share-link>See a real build <svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
+        <p>A finished design from our studio, read-only: the 3D model, circuit board, code, build guide and price.</p>
       </div>
     </div>
   </section>
@@ -393,14 +430,14 @@
         <details>
           <summary>What does it cost?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></summary>
           <div class="a"><div class="a-in">
-            <p>You see one delivered price before you order: parts, printing, assembly, testing, courier and GST, all in. For example, ₹7,826 (illustrative).</p>
+            <p>You see one delivered price before you order: parts, printing, assembly, testing, courier and GST, all in. First units are estimated at ₹19k to 28k; under ₹10k at volume (modelled).</p>
             <p>For now every price is an estimate until our team reviews the design, and nothing is charged or reserved. The bedtime robot runs on a USB-C phone charger, which is not in the box.</p>
           </div></div>
         </details>
         <details>
           <summary>Can I change it later?<span class="pm" aria-hidden="true"><svg><use href="#i-plus"/></svg></span></summary>
           <div class="a"><div class="a-in">
-            <p>Yes. Ask for the change in plain words, in our app, in Claude or in another supported AI client.</p>
+            <p>Yes. Ask for the change in plain words, from our app or an AI assistant.</p>
             <p>A new version runs on trial first. If it fails its start-up checks, the gadget goes back to the last good version by itself. Saved favourites are kept apart, so updates do not erase them.</p>
           </div></div>
         </details>
@@ -429,17 +466,18 @@
         <h2 id="final-title" class="final-title"><span class="sr-only">Got a wish?</span><span aria-hidden="true" data-split>Got a wish?</span></h2>
         <p class="lede">Describe it in one sentence. See the design and a price before you decide anything.</p>
         <a class="btn btn-accent btn-xl magnetic" href="/studio/" data-studio-link data-burst>Make a wish <svg aria-hidden="true"><use href="#i-star"/></svg></a>
+        <p class="final-alt" data-share hidden><a href="/studio/" data-share-link>Or see a real build first <svg aria-hidden="true"><use href="#i-arrow"/></svg></a></p>
         <figure class="shelf" id="shelf">
           <div class="shelf-frame">
             <div class="shelf-in"><div class="shelf-zoom">
               <img src="assets/img/hero-lineup.webp" width="2400" height="1350" loading="lazy" decoding="async"
                    alt="The six example gadgets side by side on a wooden shelf: the white desk robot, the green book light, the pink heart, the white-and-mint medicine reminder, the charcoal focus cube and the marigold Corner Store welcome sign.">
-              <a class="spot" href="#card-desk-bot" style="--x:9.2%;--y:47%"><i aria-hidden="true"></i><span>Bolt Desk Bot</span></a>
-              <a class="spot" href="#card-book-light" style="--x:23%;--y:43%"><i aria-hidden="true"></i><span>Folio Book Light</span></a>
-              <a class="spot" href="#card-love-note" style="--x:38.2%;--y:48%"><i aria-hidden="true"></i><span>Love Note Heart</span></a>
-              <a class="spot" href="#card-pill-reminder" style="--x:56.7%;--y:56%"><i aria-hidden="true"></i><span>Dose Medicine Reminder</span></a>
-              <a class="spot" href="#card-focus-cube" style="--x:73.2%;--y:56%"><i aria-hidden="true"></i><span>Pomo Focus Cube</span></a>
-              <a class="spot" href="#card-shop-greeter" style="--x:88.8%;--y:46%"><i aria-hidden="true"></i><span>Welcome Chime</span></a>
+              <a class="spot to-r" href="#card-desk-bot" style="--x:9.2%;--y:47%" aria-label="Bolt Desk Bot"><i aria-hidden="true"></i><span>Bolt Desk Bot</span></a>
+              <a class="spot" href="#card-book-light" style="--x:23%;--y:43%" aria-label="Folio Book Light"><i aria-hidden="true"></i><span>Folio Book Light</span></a>
+              <a class="spot" href="#card-love-note" style="--x:38.2%;--y:48%" aria-label="Love Note Heart"><i aria-hidden="true"></i><span>Love Note Heart</span></a>
+              <a class="spot" href="#card-pill-reminder" style="--x:56.7%;--y:56%" aria-label="Dose Medicine Reminder"><i aria-hidden="true"></i><span>Dose Medicine Reminder</span></a>
+              <a class="spot" href="#card-focus-cube" style="--x:73.2%;--y:56%" aria-label="Pomo Focus Cube"><i aria-hidden="true"></i><span>Pomo Focus Cube</span></a>
+              <a class="spot to-l" href="#card-shop-greeter" style="--x:88.8%;--y:46%" aria-label="Welcome Chime"><i aria-hidden="true"></i><span>Welcome Chime</span></a>
             </div></div>
             
           </div>
@@ -473,7 +511,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
 <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js" defer></script>
-<script src="js/config.js"></script>
-<script type="module" src="js/app.js"></script>
+<script src="js/config.js?v=20261120"></script>
+<script type="module" src="js/app.js?v=20261120"></script>
 </body>
 </html>

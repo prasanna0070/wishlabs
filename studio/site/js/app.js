@@ -363,8 +363,9 @@ function initStory() {
   const ovRing = $(".ov-ring", stageEl), ringChips = $$(".ring-chips li", stageEl);
   const caption = $("#story-caption"), photos = $$(".ss-photo figure", stageEl), hint = $(".scroll-hint");
   const photoBox = $(".ss-photo", stageEl);
+  /* The rest of the wish waits as faint ghost text (css .wb-rest), so the card is never an empty white box. */
   const wbRest = document.createElement("span");
-  wbRest.className = "wb-rest"; wbRest.style.opacity = "0";
+  wbRest.className = "wb-rest";
   wbTyped.after(wbRest);
 
   let target = 0, cur = 0, story = null, lastIdx = -1, dirty = true;
@@ -452,7 +453,7 @@ function initStory() {
     loadPhotos();
     if (!GL) { stageEl.classList.add("flat"); return; }
     try {
-      const mod = await import("./story3d.js");
+      const mod = await import("./story3d.js?v=20261120");
       story = await mod.createStory($("#story-canvas"), $("#story-labels"), (ev) => {
         if (ev === "parts") burstStage({ count: 40, speed: 8, size: 9, y: 0.5 });
         if (ev === "printed") burstStage({ count: 30, speed: 6, size: 8, y: 0.45, colors: ["#FFC94D", "#FFFFFF", "#B9A8FF"] });
@@ -584,8 +585,9 @@ function initExample() {
       for (let i = 1; i <= full.length; i++) { typed.textContent = full.slice(0, i); rest.textContent = full.slice(i); await wait(16); }
     }
   });
-  /* The price drops in character by character. It never counts up, so no other number is ever on screen. */
-  const priceChars = split(pv).concat([$(".price .rs", card)]);
+  /* The price drops in character by character. It never counts up, so no other number is ever on screen.
+     Each [data-pv] part ("19k", the small "to", "28k") is split on its own so its styling survives. */
+  const priceChars = $$("[data-pv]", pv).flatMap((el) => split(el)).concat([$(".price .rs", card)]);
   priceChars.unshift(priceChars.pop());
   priceChars.forEach((c) => { c.style.display = "inline-block"; });
   gsap.set(priceChars, { yPercent: -130, opacity: 0, rotate: () => gsap.utils.random(-30, 30) });
