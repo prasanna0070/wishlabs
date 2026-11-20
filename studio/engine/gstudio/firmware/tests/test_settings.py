@@ -179,3 +179,24 @@ def test_soil_settings():
     for key, bad in (("soil_dry_percent", 4), ("soil_dry_percent", 81), ("soil_raw_dry", 4096), ("soil_raw_wet", -1)):
         _, errors = validate_settings("sensor_display", {key: bad})
         assert errors and errors[0].startswith(f"behaviour.settings.{key}:"), (key, errors)
+
+
+# ---- C-fw2 contract: latch settings (motion2 + sensing2 packs; the app is B's apps/latch)
+
+
+def test_latch_defaults_and_tags():
+    norm, errors = validate_settings("latch", {})
+    assert errors == []
+    assert (norm["open_deg"], norm["closed_deg"], norm["open_seconds"], norm["known_tags"], norm["learn_with_button_hold"],
+            norm["log_size"], norm["network"]) == (90, 0, 5, [], True, 20, "parent_page")
+    norm, errors = validate_settings("latch", {"known_tags": ["04:a2:b3:c4:d5:e6:f7", "04A2B3C4D5E6F7", "DEADBEEF"]})
+    assert errors == [] and norm["known_tags"] == ["04A2B3C4D5E6F7", "DEADBEEF"]  # cleaned, upper case, deduplicated
+    _, errors = validate_settings("latch", {"known_tags": ["12345"]})
+    assert errors and errors[0].startswith("behaviour.settings.known_tags:") and "hex" in errors[0]
+    _, errors = validate_settings("latch", {"known_tags": [f"{i:08X}" for i in range(17)]})
+    assert errors and errors[0].startswith("behaviour.settings.known_tags:")
+    _, errors = validate_settings("latch", {"open_deg": 40, "closed_deg": 35})
+    assert errors and "10 degrees" in errors[0]
+    for key, bad in (("open_seconds", 0), ("open_seconds", 31), ("log_size", 51), ("open_deg", 181)):
+        _, errors = validate_settings("latch", {key: bad})
+        assert errors and errors[0].startswith(f"behaviour.settings.{key}:"), (key, errors)
