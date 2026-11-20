@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import mimetypes
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -14,6 +15,7 @@ from .config import SERVER_VERSION, SPA_BASE, Settings
 from .routes import device as device_routes
 from .routes import projects as project_routes
 from .routes import public as public_routes
+from .routes.common import accepts_encoding
 from .services import Services
 
 log = logging.getLogger("gstudio.web")
@@ -27,6 +29,26 @@ def _studio_url(path: str, query: str) -> str:
     """Same-origin URL under the SPA base (never protocol-relative): "p/x" -> "/studio/p/x?query"."""
     url = f"{SPA_BASE}/{path.lstrip('/')}"
     return f"{url}?{query}" if query else url
+
+
+# The SPA build writes .br and .gz copies next to each text asset (web/app/scripts/precompress.mjs). Serving those
+# files is the whole compression story: there is no compression middleware, so the chat SSE stream, build streams
+# and WebSockets are never buffered or re-encoded.
+PRECOMPRESSED = (("br", ".br"), ("gzip", ".gz"))
+
+
+def static_file(request: Request, path: Path, cache: str) -> FileResponse:
+    headers = {"Cache-Control": cache}
+    variants = [(coding, path.with_name(path.name + ext)) for coding, ext in PRECOMPRESSED]
+    variants = [(c, p) for c, p in variants if p.is_file()]
+    if variants:
+        headers["Vary"] = "Accept-Encoding"
+        for coding, alt in variants:
+            if accepts_encoding(request, coding):
+                headers["Content-Encoding"] = coding
+                ctype = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+                return FileResponse(alt, media_type=ctype, headers=headers)
+    return FileResponse(path, headers=headers)
 
 
 def create_app(settings: Settings | None = None, services: Services | None = None) -> FastAPI:
@@ -69,11 +91,11 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
     # other path to the landing page. The run.app URL redirects its old routes (/, /login, /p/..., /s/...) there.
     # /studio itself is the SPA's home too: the router (basename /studio) links "home" there, without a slash.
     @app.api_route(SPA_BASE, methods=["GET", "HEAD"], include_in_schema=False)
-    async def spa_root():
-        return await spa("")
+    async def spa_root(request: Request):
+        return await spa(request, "")
 
     @app.api_route(SPA_BASE + "/{full_path:path}", methods=["GET", "HEAD"], include_in_schema=False)
-    async def spa(full_path: str):
+    async def spa(request: Request, full_path: str):
         if static is None or index is None or not index.exists():
             return HTMLResponse(NO_SPA, headers={"Cache-Control": "no-cache"})
         if full_path and full_path != "index.html":
@@ -81,7 +103,7 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
             if cand.is_file() and static.resolve() in cand.parents:
                 cache = ("public, max-age=31536000, immutable" if full_path.startswith("assets/")
                          else "public, max-age=300")
-                return FileResponse(cand, headers={"Cache-Control": cache})
+                return static_file(request, cand, cache)
             if full_path.startswith("assets/"):  # a missing hashed bundle: never answer it with index.html
                 return Response("Not found", status_code=404, media_type="text/plain",
                                 headers={"Cache-Control": "no-cache"})

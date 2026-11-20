@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import re
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -57,6 +59,17 @@ async def logout(request: Request):
     return res
 
 
+def share_url() -> str | None:
+    """SHARE_URL: a read-only share link (/studio/s/<token>) the sign-in page offers as "See a real build" to visitors
+    without an access key. Only an https URL or a same-site absolute path is used; anything else hides the link."""
+    raw = (os.environ.get("SHARE_URL") or "").strip()
+    if re.fullmatch(r"https://[A-Za-z0-9.-]+(:\d+)?(/[^\s\"'<>\\]*)?", raw):
+        return raw
+    if re.fullmatch(r"/(?!/)[^\s\"'<>\\]*", raw):
+        return raw
+    return None
+
+
 @router.get("/api/session")
 async def session(request: Request):
     """The SPA's start-up probe: always 200, so a signed-out visitor (every landing-page "Make a wish") does not get
@@ -65,9 +78,10 @@ async def session(request: Request):
 
     exp = request.app.state.signer.verify(request.cookies.get(COOKIE))
     if exp is None:
-        return JSONResponse({"authenticated": False, "expires": None}, headers={"Cache-Control": "no-store"})
+        return JSONResponse({"authenticated": False, "expires": None, "share_url": share_url()},
+                            headers={"Cache-Control": "no-store"})
     return JSONResponse({"authenticated": True, "expires": datetime.fromtimestamp(exp, timezone.utc).isoformat()
-                         .replace("+00:00", "Z")}, headers={"Cache-Control": "no-store"})
+                         .replace("+00:00", "Z"), "share_url": share_url()}, headers={"Cache-Control": "no-store"})
 
 
 # ------------------------------------------------------------------ share

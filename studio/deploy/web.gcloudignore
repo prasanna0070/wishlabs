@@ -18,3 +18,6 @@ engine/gstudio/docs_gen/
 engine/tests/
 examples/*/_out/
 web/server/tests/
+# The landing page and its media are a separate service (deploy/landing.sh); the image never copies them.
+/site/
+/landing/
