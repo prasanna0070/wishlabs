@@ -3,6 +3,7 @@
 // play only, and nothing at all until a composition exists. The share page mounts this file by name (SoundCard.tsx).
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { BellRing, Download, Music2, Pause, Play, RefreshCw } from "lucide-react";
+import { ApiError } from "../../lib/api";
 import { audioUrl, clock, hasSound, kb, khz, playable, soundApi, soundOf, soundStatus, type SoundApiState, type SoundRecord, type SoundState } from "../../lib/sound";
 import type { Project, Version } from "../../lib/types";
 import type { Ctx } from "../../lib/urls";
@@ -123,8 +124,10 @@ export function SoundCard({ project, version, ctx, readOnly, compact = false }: 
         } else if (was) {
           void useProject.getState().refresh().catch(() => undefined);
         }
-      } catch {
-        if (!stop) timer = window.setTimeout(tick, 8000);
+      } catch (e) {
+        // a server without these routes (404) or a lost session (401/403): stop asking; network trouble: try again
+        const final = e instanceof ApiError && [401, 403, 404].includes(e.status);
+        if (!stop && !final) timer = window.setTimeout(tick, 8000);
       }
     };
     void tick();

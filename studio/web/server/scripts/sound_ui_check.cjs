@@ -1,5 +1,6 @@
 // Browser check of the SoundCard (VM only): the owner's Preview tab and the read-only share page, desktop and phone.
-// Run after scripts/sound_e2e.py (it writes the project and share token to $E2E):
+// Run after scripts/sound_e2e.py (it writes the project and share token to $E2E). COMPOSE=1 also presses "Compose
+// again" once (one real Lyria call) and waits for the new composition in the page.
 //   NODE_PATH=/opt/gs/pw/node_modules PLAYWRIGHT_BROWSERS_PATH=/opt/gs/pw/browsers \
 //   BASE=http://127.0.0.1:9202 KEY_FILE=/path/to/test-key E2E=/tmp/lyria-e2e.json OUTDIR=/tmp/lyria-shots \
 //   node scripts/sound_ui_check.cjs
@@ -43,6 +44,18 @@ const fs = require("fs");
   await page.screenshot({ path: `${out}/2-owner-preview-prompt.png` });
   await page.waitForTimeout(2500);
   res.owner_chime_ended = await pressed(card, /Chime/);
+  if (process.env.COMPOSE === "1") {
+    // one more real Lyria call: "Compose again" -> the composing pill -> a new composition, without a page reload
+    const before = await (await page.request.get(`${base}/api/projects/${e2e.pid}/sound`)).json();
+    const t0 = Date.now();
+    await card.getByRole("button", { name: /Compose again/ }).click();
+    await card.locator(".sound-working").waitFor({ timeout: 15000 });
+    await page.screenshot({ path: `${out}/0-owner-composing.png` });
+    await card.locator(".sound-working").waitFor({ state: "detached", timeout: 120000 });
+    const after = await (await page.request.get(`${base}/api/projects/${e2e.pid}/sound`)).json();
+    res.compose_again = { seconds: Math.round((Date.now() - t0) / 1000), status: after.status, new_id: after.sound?.current?.id !== before.sound?.current?.id, model: after.sound?.current?.model, history: (after.sound?.history || []).length, left: after.session_left };
+    res.compose_again_meta = (await card.locator(".sound-meta").first().innerText()).replace(/\s+/g, " ");
+  }
 
   // share link: no cookie, read-only
   const sctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });

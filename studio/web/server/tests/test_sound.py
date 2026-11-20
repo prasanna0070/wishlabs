@@ -392,3 +392,5 @@ def test_prompt_adapts_to_the_model():
     assert adapt_prompt(pr, "lyria-002") == pr
     assert caption_of("<instrumental>\nCaption: Soft and dreamy.\n") == "Soft and dreamy."
     assert caption_of("<instrumental>") is None and caption_of(None) is None
+    long = "Caption: " + "A calm theme with soft bells. " * 20
+    assert caption_of(long).endswith("bells.") and len(caption_of(long)) <= 400

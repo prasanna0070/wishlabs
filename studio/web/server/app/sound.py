@@ -392,7 +392,8 @@ def caption_of(text: str | None) -> str | None:
     m = re.search(r"caption\s*:\s*(.+)", text or "", flags=re.I | re.S)
     cap = " ".join((m.group(1) if m else "").split())
     if len(cap) > 400:
-        cap = cap[:400].rsplit(" ", 1)[0] + "..."
+        end = cap[:400].rfind(". ")
+        cap = cap[:end + 1] if end >= 150 else cap[:400].rsplit(" ", 1)[0].rstrip(",;:") + "..."
     return cap or None
 
 
