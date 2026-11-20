@@ -78,10 +78,14 @@ async def session(request: Request):
 
     exp = request.app.state.signer.verify(request.cookies.get(COOKIE))
     if exp is None:
-        return JSONResponse({"authenticated": False, "expires": None, "share_url": share_url()},
-                            headers={"Cache-Control": "no-store"})
-    return JSONResponse({"authenticated": True, "expires": datetime.fromtimestamp(exp, timezone.utc).isoformat()
-                         .replace("+00:00", "Z"), "share_url": share_url()}, headers={"Cache-Control": "no-store"})
+        body = {"authenticated": False, "expires": None}
+    else:
+        body = {"authenticated": True,
+                "expires": datetime.fromtimestamp(exp, timezone.utc).isoformat().replace("+00:00", "Z")}
+    link = share_url()
+    if link:  # only when configured: the response keeps its old shape otherwise
+        body["share_url"] = link
+    return JSONResponse(body, headers={"Cache-Control": "no-store"})
 
 
 # ------------------------------------------------------------------ share

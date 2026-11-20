@@ -156,4 +156,6 @@ def test_chat_stream_is_not_compressed(authed):
 def test_session_share_url(client, monkeypatch, value, expected):
     monkeypatch.setenv("SHARE_URL", value)
     j = client.get("/api/session").json()
-    assert j["authenticated"] is False and j["share_url"] == expected
+    assert j["authenticated"] is False and j.get("share_url") == expected
+    if expected is None:
+        assert "share_url" not in j
