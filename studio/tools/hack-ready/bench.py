@@ -38,8 +38,8 @@ Rules
   buildable  the version finished (state done) AND the engine's CAD collision gate passed (status.buildable is
              true). A held quote, a failed build, a timeout or no build at all is not buildable.
   parts      module ids of the brief that the build used (computed by the server, implied parts included).
-  electronics  the build produced pcb/ or firmware/ files; without a finished build, the spec has a core board
-             or a module.
+  electronics  the design's spec (the built spec.json, else the brief's spec) has a core board or a module; with
+             no spec at all, whether the build made pcb/ or firmware/ files.
   turn lock  HTTP 409 while a turn runs: wait until the project is idle, then send the SAME request again. A
              network break, 429 or 5xx on a chat POST: wait until idle, then read the chat; a new user message
              means the server took it (never sent twice), otherwise back off and resend. GETs retry 429, 5xx and
@@ -65,8 +65,10 @@ MODEL_PRO, AGENT_THINKING, VERTEX_LOCATION, ...) pass through from the environme
   wt-vm.sh <worktree> run 'mkdir -p _out/bench && cd tools/hack-ready && setsid nohup python bench.py \
       --server-local 9231 --cases bench_cases.example.json --out ../../_out/bench/r1 \
       > ../../_out/bench/r1.log 2>&1 < /dev/null & echo $!'
-  wt-vm.sh <worktree> pull _out/bench/r1      # results.json, summary.md, events/, server-9231.log
+  wt-vm.sh <worktree> pull _out/bench/r1/summary.md      # also results.json, events, server-9231.log
+<out>/store holds every project and full build (tens of MB each): pull single files, not the whole folder.
 Share links of a VM-local server point at 127.0.0.1 (open them on the VM or through an SSH tunnel).
+If the VM cannot reach Vertex AI, run the same cases against a deployed service with --base instead.
 """
 from __future__ import annotations
 
@@ -682,8 +684,8 @@ class EventLog:
         elif ev == "error":
             self.errors.append({"t": t, "code": d.get("code"), "message": (d.get("message") or "")[:600]})
         elif ev == "repair":
-            self.repairs.append({"t": t, "round": d.get("round"), "errors": [str(x)[:300] for x in
-                                                                           (d.get("errors") or [])[:6]]})
+            self.repairs.append({"t": t, "round": d.get("round"), "kind": d.get("kind") or "spec",
+                                 "errors": [str(x)[:300] for x in (d.get("errors") or [])[:6]]})
         elif ev == "build.started":
             v = d.get("version")
             self.build_version = v.get("n") if isinstance(v, dict) else v
@@ -1070,6 +1072,9 @@ class CaseRun:
         self.rec["concepts"] = [{"id": c.get("id"), "title": c.get("title"), "tier": c.get("tier"),
                                  "state": c.get("state"), "warnings": c.get("warnings") or [],
                                  "photo": bool(c.get("photo_url")), "photo_note": c.get("photo_note")} for c in cs]
+        sc = (m.get("payload") or {}).get("set_check")
+        if isinstance(sc, dict):           # the server's own concept-set verdict and repair counts
+            self.rec["concept_set_check"] = {k: sc.get(k) for k in ("ok", "rule_rounds", "repair_rounds", "failures")}
         chosen, rule = choose_concept(cs)
         if chosen is None:
             if self.regens < 1:
@@ -1265,10 +1270,9 @@ class CaseRun:
         rec["parts_detail"] = rows
         rec["parts"] = list(dict.fromkeys(r["module_id"] for r in rows))
         rec["parts_chosen"] = list(dict.fromkeys(r["module_id"] for r in rows if not r.get("implied")))
-        if files:
+        rec["electronics"] = has_electronics(spec)     # the design's own spec: a core board or any module
+        if rec["electronics"] is None and files:        # no spec at all: did the build make a board or firmware?
             rec["electronics"] = any(str(f).startswith(("pcb/", "firmware/")) for f in files)
-        else:
-            rec["electronics"] = has_electronics(spec)
         rec["buildable"] = bool(v and v.get("state") == "done" and (rec.get("build") or {}).get("buildable") is True)
         s = self.h.call("POST", f"/api/projects/{pid}/share", {}, retries=3, deadline=time.time() + 120)
         j = s.json() if s.status == 200 else None

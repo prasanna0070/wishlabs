@@ -69,7 +69,7 @@ class FakeStudio:
     """Just enough of the studio API for the runner: projects, the chat turn script, versions, files, share."""
 
     def __init__(self, *, questions=True, concept_states=None, buildable=True, build_state="done",
-                 build_finishes=True):
+                 build_finishes=True, built_spec=None):
         self.projects: dict[str, dict] = {}
         self.files: dict[tuple, object] = {}
         self.status: dict[tuple, dict] = {}
@@ -83,6 +83,7 @@ class FakeStudio:
         self.buildable = buildable
         self.build_state = build_state
         self.build_finishes = build_finishes
+        self.built_spec = built_spec
         self.lock = threading.Lock()
         self.n = 0
 
@@ -249,7 +250,8 @@ class FakeStudio:
              "stage": "cad"},
             {"id": "purchased-fields", "title": "Purchased fields", "status": "warning"},
             {"id": "x", "title": "Not run", "status": "skipped"}]}
-        self.files[(pid, 1, "spec.json")] = {"name": "Idea", "electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8"}}
+        self.files[(pid, 1, "spec.json")] = self.built_spec or {"name": "Idea",
+                                                                "electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8"}}
 
     def user_messages(self, pid):
         return [m for m in self.projects[pid]["chat"] if m["role"] == "user"]
@@ -469,6 +471,13 @@ class EndToEndWithFakeStudio(unittest.TestCase):
         self.assertFalse(r["buildable"])
         self.assertTrue(r["expectations_met"])
         self.assertTrue(r["finished"])
+
+    def test_electronics_comes_from_the_built_spec(self):
+        fake = FakeStudio(built_spec={"name": "Vase", "electronics": None, "features": []})   # a passive design
+        data, _ = self.run_cases(fake, [{"id": "vase", "wish": "a vase", "expect": {"electronics": False}}])
+        r = data["cases"]["vase"]
+        self.assertIs(r["electronics"], False)      # even though the fake build lists pcb/ and firmware/ files
+        self.assertTrue(r["expectations_met"])
 
     def test_build_error_is_final(self):
         fake = FakeStudio(build_state="error")
