@@ -26,6 +26,11 @@ from typing import Any, Callable, Iterable, Optional
 
 from .modules import describe, fasteners as _fasteners_from_lib, pick_screw
 
+try:
+    from . import kits_ext  # pack kits (cad/kits_*.py)
+except ImportError:  # pragma: no cover - a vendored gadget_cad copy without the registry (export.VENDOR)
+    kits_ext = None
+
 # face -> (sign of local u in face coordinates); local v always maps to +v (see features.FACE_RAY / Frame.make)
 _U_SIGN = {"front": 1.0, "rear": -1.0, "left": 1.0, "right": -1.0, "top": 1.0}
 SPEAKER_DEFAULT_TABS = 90.0  # old fixed triad [90, 210, 330]
@@ -345,6 +350,7 @@ def kit_footprint(feature: Any, module: Any = None, *, others: Iterable = (), fa
     boss = ins["boss_d"]
     out: list[dict] = []
     z_in = -sk
+    pack_boxes = kits_ext.footprint_boxes(k, d, fz, sk) if kits_ext is not None else None  # None for built-in kinds
     if k == "speaker":
         th = tab_rotation if tab_rotation is not None else fd.get("tab_rotation")
         if th is None:
@@ -416,6 +422,9 @@ def kit_footprint(feature: Any, module: Any = None, *, others: Iterable = (), fa
         out += _board_boxes(fd, "PURCHASE_Button", pcb, center, z_front, d["front"], d["back"])
         cb, _ = _clamp_boxes(fd, "PRINT_ButtonClip", pcb, center, z_front, z_pad, d["back"], fz, standoffs=True)
         out += cb
+    elif pack_boxes is not None:  # pack kits (cad/kits_*.py), before the generic board
+        for b in pack_boxes:
+            out.append(_box(fd, b["part"], b["kind"], b["what"], b["u"][0], b["u"][1], b["v"][0], b["v"][1], b["depth"][0], b["depth"][1]))
     else:  # touch / sensor / sensor_window / generic: kit_board
         pcb = d.get("pcb") or {"w": 15.0, "h": 15.0, "t": 1.6}
         if k == "touch":
