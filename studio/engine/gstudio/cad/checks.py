@@ -718,10 +718,15 @@ def run_checks(model, files: dict, step_path: Optional[Path] = None, exact: bool
                      f"{len(cr)} of {len(feats_with_cable)} cables routed; {len(cbad)} too long; {len(cwall)} touch a wall",
                      "QB-15", {"routes": [{k: v for k, v in c.items() if k != "points"} for c in cr]}))
     # coupons QB-13 -------------------------------------------------------------
+    printed = model.info.get("kind") == "printed"  # catalog package A: no inserts, ties, USB-C or kits on a printed-only object
     cps = {n: c.get("features") for n, c in model.coupons.items()}
     need, covered, miss = coupon_coverage(model)
     exported = {i["id"]: i.get("name") for k in model.kits for i in (k.interfaces or [])}
-    checks.append(_c("fit_coupon", "Fit coupons cover every tight interface the kits export", "failed" if miss else "passed",
+    if printed:
+        checks.append(_c("fit_coupon", "Fit coupons cover every tight interface the kits export", "not_run",
+                         "not applicable: a printed-only object has no inserts, cable ties, USB-C opening or module kits", "QB-13"))
+    else:
+        checks.append(_c("fit_coupon", "Fit coupons cover every tight interface the kits export", "failed" if miss else "passed",
                      f"{len(cps)} coupons; {len(exported)} kit interfaces exported; covers {len(need & covered)} of {len(need)}"
                      + (f"; missing {miss}" if miss else ""), "QB-13",
                      {"coupons": {n: {"features": c.get("features"), "covers": c.get("covers"), "tests": c.get("tests")} for n, c in model.coupons.items()},
@@ -766,14 +771,18 @@ def run_checks(model, files: dict, step_path: Optional[Path] = None, exact: bool
     br = bottom_edge_round(model) if model.info.get("family") == "silhouette" else {}
     if br:
         vals = [v for v in br.values() if v is not None]
-        low = [k for k, v in br.items() if v is None or v < 3.0]
+        low = [k for k, v in br.items() if v is None or v < 3.0 - 0.05]  # 0.05 mm: below the 0.1 mm section probe resolution
         checks.append(_c("bottom_edge_round", "Shell bottom perimeter is rounded (>= 3 mm) on every side", "failed" if low else "passed",
                          ", ".join(f"{k} {v} mm" for k, v in br.items()) + (f"; under 3 mm: {low}" if low else ""), None,
                          {"radii_mm": br, "method": "tightest bend of the y = 0 and x = 0 section outlines within 7 mm of each bottom corner",
                           "built": (model.info.get("body") or {}).get("bottom_round")}))
     usb = model.info.get("usb_c") or {}
     lp = usb.get("load_path")
-    checks.append(_c("power_entry", "External USB-C cord: a defined load path takes a pull before the receptacle or board",
+    if printed:
+        checks.append(_c("power_entry", "External USB-C cord: a defined load path takes a pull before the receptacle or board",
+                         "not_run", "not applicable: a printed-only object has no power input", "QB-21"))
+    else:
+        checks.append(_c("power_entry", "External USB-C cord: a defined load path takes a pull before the receptacle or board",
                      "passed" if lp else "failed",
                      (f"load path: {lp.get('feature')} on {lp.get('part')}, {lp.get('distance_from_opening_mm')} mm from the opening; "
                       "physical pull check still needed") if lp else "no cord tie point or plug capture modelled", "QB-21",

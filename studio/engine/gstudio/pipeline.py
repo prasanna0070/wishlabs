@@ -700,6 +700,26 @@ class Pipeline:
     def log_path(self, sid: str) -> Path:
         return self.out / "logs" / f"{sid}.log"
 
+    def printed_only(self) -> bool:
+        """The normalized spec is a printed-only object (kind "printed", catalog package A): no electronics stages."""
+        spec = getattr(self.ctx, "spec", None) if self.ctx is not None else None
+        return spec is not None and getattr(spec, "kind", "gadget") == "printed"
+
+    PRINTED_SKIPS = ("pcb", "firmware")  # nothing to route or compile; order, manual and checks still run (soft deps)
+
+    def _printed_electrical(self) -> dict:
+        """Printed-only: the always-run electrical stage writes an empty electrical.json (no instances, power total 0, ok)
+        so its hard dependents (cad, order, manual) run; gstudio.electrical (owned by B) is never called."""
+        from gstudio.printed import REASON, empty_electrical
+
+        doc = empty_electrical(self.ctx.spec)
+        write_json_atomic(self.out / "electrical.json", doc)
+        self.ctx.electrical = doc
+        with contextlib.suppress(Exception):
+            self.ctx.artifacts["electrical.json"] = str(self.out / "electrical.json")
+        return {"message": REASON, "slots_used": [], "instances": 0, "nets": 0, "power_ok": True, "total_ma_max": 0.0,
+                "total_ma_max_capped": 0.0, "warnings": [], "printed_only": True}
+
     def save_record(self, sid: str) -> None:
         r = self.status.recs[sid]
         if r.skip_kind == "not_selected":
@@ -740,6 +760,8 @@ class Pipeline:
             try:
                 if sid == "normalize":
                     summary = self._normalize()
+                elif sid == "electrical" and self.printed_only():
+                    summary = self._printed_electrical()
                 else:
                     modname = self.module_for(d)
                     reason = self.available(modname)
@@ -829,6 +851,13 @@ class Pipeline:
     # -------------------------------------------------------------------- process stages
     def launch(self, d: StageDef, q: Any, running: dict) -> None:
         sid = d.id
+        if sid in self.PRINTED_SKIPS and self.printed_only():
+            from gstudio.printed import REASON
+
+            self.status.start(sid)
+            self._finish_ok(sid, {"skipped": True, "reason": REASON})
+            self.save_record(sid)
+            return
         modname = self.module_for(d)
         reason = self.available(modname)
         if reason:

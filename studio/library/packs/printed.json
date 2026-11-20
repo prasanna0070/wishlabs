@@ -1,0 +1,10 @@
+{
+ "pack": "printed",
+ "rows": [],
+ "known_harness_gaps": [],
+ "prompt_rules": [
+  "If the wish needs no electronics (holder, stand, organiser, planter, figurine, decorative vessel, shop fixture), design kind \"printed\": no features, no electronics, no behaviour, and say plainly it has no electronics.",
+  "Printed PETG is not food-safe and not for hot liquids: a teapot, cup or bowl is decorative or a planter.",
+  "No threads, filters or load ratings are promised; fit is a physical check."
+ ]
+}

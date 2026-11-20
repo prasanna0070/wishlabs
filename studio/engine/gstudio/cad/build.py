@@ -22,7 +22,7 @@ from .decor import MIN_SKIN, apply_ears, apply_relief, decor_stack
 from .enclosure import (base_plate, base_plate_opening, cord_tie_bridge, feet_points, feet_solids, place_cartridge, rear_cover, seam_y,
                         tie_anchor, usb_tunnel)
 from .features import build_kit
-from .geom import V, Frame, bbox, cyl_axis, halfspace_y, largest_solid, poly_face, prism, split_fragments, unit
+from .geom import V, Frame, bbox, cyl_axis, cyl_z, halfspace_y, largest_solid, poly_face, prism, split_fragments, unit
 from .internals import build_cartridge
 from .parts import Fastener, Part
 from .probe import Probe, largest
@@ -332,7 +332,160 @@ def fastener_parts(fasteners: list, fz: dict) -> list:
     return out
 
 
+DRAIN_D = 6.0  # mm, printed-only open-top objects (planters): one drain hole through the floor centre
+
+
+def _mouth_solid(poly, z0: float, z1: float):
+    """Vertical solid over an open-top mouth section: a cylinder or elliptic cylinder when the section is round or oval (a
+    revolve cavity: a polygon prism there split the rim into ~80 faces and the tessellated volume check read 39 % off),
+    else a prism of the section simplified to 0.3 mm."""
+    from .enclosure import _xy_prism
+
+    x0, y0, x1, y1 = poly.bounds
+    cx, cy, a, b = (x0 + x1) / 2, (y0 + y1) / 2, (x1 - x0) / 2 - 0.05, (y1 - y0) / 2 - 0.05
+    if a > 1.0 and b > 1.0 and poly.area >= 0.97 * math.pi * (a + 0.05) * (b + 0.05):
+        if abs(a - b) < 0.2:
+            return cyl_z(cx, cy, z0, z1, min(a, b))
+        return cq.Workplane("XY").workplane(offset=z0).center(cx, cy).ellipse(a, b).extrude(z1 - z0).val()
+    return _xy_prism(poly.simplify(0.3, preserve_topology=True), z0, z1)
+
+
+def build_printed(params: dict, progress: Optional[Callable] = None, on_draft: Optional[Callable] = None) -> Model:
+    """Printed-only object (params["kind"] == "printed", catalog package A): the body with its decor as ONE print, with no
+    cartridge, kits, cover or base plate, USB-C tunnel, cord tie, tie anchors, cables or fit coupons.
+
+    printed.opening "none": the body is printed solid (the slicer's infill fills it, so no unsupported inner ceiling);
+    "top": the inner cavity opened straight up through the top (cup, pot, vase); printed.drain_hole adds one hole through
+    the floor centre. Feet seats as on a gadget when body.feet > 0."""
+    T = Timer()
+    say = progress or (lambda msg, pct=None: None)
+    M = Model(params=params)
+    body = params["body"]
+    fam = body["family"]
+    fz = params["fasteners"]
+    colors = {k: tuple(v) if isinstance(v, (list, tuple)) else v for k, v in params["colors"].items()}
+    pr = params.get("printed") or {}
+    opening = pr.get("opening") if pr.get("opening") in ("none", "top") else "none"
+    want_drain = bool(pr.get("drain_hole")) and opening == "top"
+    say("shaping the body", 5)
+    pv = build_shell_preview(params)
+    bg, O = pv["bg"], pv["outer"]
+    M.warnings += pv["warnings"]
+    T.mark("body_decor")
+    if on_draft:
+        try:
+            on_draft(O, pv["records"], colors)
+        except Exception as e:  # pragma: no cover
+            M.warnings.append(f"draft export failed: {e}")
+    probeO = Probe(O)
+    bb = O.BoundingBox()
+    say("shaping the print", 40)
+    S = O
+    C_open = None
+    oinfo: dict = {"opening": opening, "drain_hole": False}
+    if opening == "top":
+        C = bg.cavity
+        if pv["pads"]:
+            C = largest_solid(C.cut(*pv["pads"]).clean())
+        cb = C.BoundingBox()
+        # the cavity top can be a thin dome over the axis (revolve inner spline: 0.3 mm of skin at the apex on the planter
+        # example), so the mouth is the first full cavity section a few mm below its top, carried straight up
+        mouth_poly, z_m, probeC = None, None, Probe(C)
+        for dz in (3.0, 4.0, 5.0, 6.5, 8.0):
+            cand = largest(probeC.section("z", cb.zmax - dz))
+            if cand is not None and not cand.is_empty and cand.area > 1.0:
+                mouth_poly, z_m = cand, cb.zmax - dz
+                break
+        mouth = _mouth_solid(mouth_poly, z_m - 0.5, bb.zmax + 5.0) if mouth_poly is not None else None
+        if mouth is None:
+            M.warnings.append("open top: the cavity has no flat top to open; printed solid instead")
+            oinfo["opening"] = "none"
+        else:
+            C_open = C.fuse(mouth).clean()
+            S = O.cut(C_open).clean()
+            mx0, my0, mx1, my1 = mouth_poly.bounds
+            oinfo.update({"mouth_mm": [round(mx1 - mx0, 1), round(my1 - my0, 1)], "cavity_floor_z": round(cb.zmin, 2),
+                          "cavity_depth_mm": round(bb.zmax - cb.zmin, 1)})
+            if want_drain:
+                floor_poly = largest(probeC.section("z", cb.zmin + 0.6))
+                if floor_poly is not None and not floor_poly.is_empty and floor_poly.buffer(-1.0).contains(Point(0.0, 0.0).buffer(DRAIN_D / 2)):
+                    S = S.cut(cyl_z(0.0, 0.0, -1.0, cb.zmin + 1.0, DRAIN_D / 2)).clean()
+                    oinfo.update({"drain_hole": True, "drain_hole_d_mm": DRAIN_D})
+                else:
+                    M.warnings.append("drain hole: the cavity floor does not cover the centre; no drain hole cut")
+    T.mark("opening")
+    # ---------------------------------------------------------------- feet
+    foot = fz["foot"]
+    nfeet = int(body.get("feet", 4))
+    reg = largest(probeO.section("z", 0.05))
+    if oinfo.get("drain_hole"):
+        reg = reg.difference(Point(0.0, 0.0).buffer(DRAIN_D / 2 + 4.0))
+    fpts = feet_points(reg, nfeet, foot["seat_d"] / 2) if nfeet else []
+    if nfeet and len(fpts) < nfeet:
+        M.warnings.append(f"feet: room for {len(fpts)} of {nfeet} feet on the base")
+    seats = [cq.Solid.makeCylinder(foot["seat_d"] / 2, foot["seat_depth"] + 1, V(x, y, -1.0)) for x, y in fpts]
+    feet = feet_solids(fpts, foot, foot["seat_depth"])
+    if seats:
+        S = S.cut(*seats).clean()
+    if not S.isValid():
+        from .body import fix_shape
+
+        S = fix_shape(S)
+        M.warnings.append("printed part needed a shape fix after the booleans")
+    S, frags = split_fragments(S)
+    M.info["fragments_dropped"] = {"PRINT_Shell": len(frags)}
+    M.info["fragments"] = {"PRINT_Shell": frags}
+    T.mark("booleans")
+    # ---------------------------------------------------------------- components
+    say("assembling components", 72)
+    mat_name = (params.get("print_material") or {}).get("name", "PLA")
+    why = ("upright on its flat base, open top up" if oinfo["opening"] == "top" else
+           "upright on its flat base; printed solid with the slicer's infill (no inner ceiling)")
+    sh = Part("PRINT_Shell", "PRINT", "printed object", colors["body"], spec_path="body", mass_source="computed", role="shell",
+              print_info={"up": "z", "reason": why, "material": mat_name})
+    sh.add("Shell", S)
+    parts = [sh]
+    if feet:
+        fp = Part("PURCHASE_Feet", "PURCHASE", f"adhesive bumper feet x{len(feet)}", (0.20, 0.20, 0.21), module_id=foot.get("module") or HW_MODULE["Feet"],
+                  mass_g=round(0.4 * len(feet), 2), extra={"qty": len(feet), "size": f"{foot['d']:g} x {foot['h']:g} mm bumper"}, role="hardware")
+        fp.add("Feet", cq.Compound.makeCompound(feet))
+        parts.append(fp)
+    M.parts = parts
+    M.fasteners = []
+    M.face_colors["PRINT_Shell"] = classify_faces(S, pv["records"], colors) if params.get("options", {}).get("detail_fill", True) else {}
+    regs = [(f"PRINT_Shell#decor[{i}]", sol) for i, sol in (pv.get("ear_solids") or []) if i is not None]
+    for r in pv["records"]:
+        idx = list(getattr(r, "idx", []) or [])
+        if idx and r.tool is not None:
+            regs.append((f"PRINT_Shell#decor[{idx[0]}]", r.tool))
+    try:
+        M.face_regions = classify_regions(S, regs)
+    except Exception as e:  # pragma: no cover
+        M.face_regions = {}
+        M.warnings.append(f"decor pick regions skipped: {e}")
+    M.info["decor_regions"] = pv.get("regions", [])
+    M.info["decor_adjustments"] = pv.get("adjustments", [])
+    sil = pv.get("silhouette")
+    M.info["silhouette_xz"] = [[round(a, 3), round(b, 3)] for a, b in np.asarray(sil.exterior.coords)] if sil is not None and not sil.is_empty else None
+    M.info["side_top_z"] = pv.get("side_top_z")
+    M.shapes_decor = pv.get("ear_solids", [])
+    M.shapes = {"outer": O, "shell": S} | ({"cavity": C_open} if C_open is not None else {})
+    T.mark("components")
+    lift = (foot["h"] - foot["seat_depth"]) if feet else 0.0
+    apply_lift(M, lift)
+    M.info.update({
+        "kind": "printed", "family": fam, "split": "none", "body": bg.info, "wall": float(body.get("wall", 2.4)),
+        "skin_front": bg.skin_front, "ears": pv["ears"], "decor_items": len(pv["records"]), "seam_y": None, "lift": lift,
+        "printed": oinfo, "cartridge": {}, "split_info": {}, "feet": [[round(x, 2), round(y, 2)] for x, y in fpts], "tie_anchors": 0,
+        "kits": {}, "screens": [], "usb_c": {}, "ceiling_fins": {},
+    })
+    M.timings = T.marks
+    return M
+
+
 def build(params: dict, progress: Optional[Callable] = None, on_draft: Optional[Callable] = None, route_cables: bool = True) -> Model:
+    if params.get("kind") == "printed":  # catalog package A: printed-only objects have no electronics at all
+        return build_printed(params, progress, on_draft)
     T = Timer()
     say = progress or (lambda msg, pct=None: None)
     M = Model(params=params)
@@ -393,7 +546,11 @@ def build(params: dict, progress: Optional[Callable] = None, on_draft: Optional[
     T.mark("cartridge")
     say("splitting the shell", 50)
     if split == "rear_cover":
-        sp = rear_cover(O, C, y_s, probeO, probeC, bg, floor, fz, keep_boxes, usb_pt, colors)
+        # wall mount (catalog package D, hand-off d-to-a #1): only a wall design passes the mount, so a desk design calls
+        # rear_cover exactly as before (and works with an enclosure.py that has no mount parameter yet)
+        wall_kw = {"mount": params.get("mount"), "usb_opening": (bp.get("cartridge") or {}).get("usb_c_opening")} \
+            if (params.get("mount") or {}).get("kind") == "wall" else {}
+        sp = rear_cover(O, C, y_s, probeO, probeC, bg, floor, fz, keep_boxes, usb_pt, colors, **wall_kw)
     else:
         plan_boxes = [(b[0], b[1], b[2], b[3]) for b in keep_boxes if b[4] < floor + 12]
         sp = base_plate(O, C, opening, t_bp, probeC, fz, plan_boxes, colors, keep_boxes3d=keep_boxes[:-1])

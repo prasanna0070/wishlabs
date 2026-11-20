@@ -347,6 +347,8 @@ def wiring_steps(data: ManualData, A: Assembly, bboxes: dict) -> list[dict]:
 
 
 def build_wiring(data: ManualData, A: Assembly, bboxes: dict) -> dict:
+    if data.spec.get("kind") == "printed":  # catalog package A: a printed-only object has nothing to wire
+        return {"runtime": "", "board": "", "code": "", "parts": [], "connections": [], "steps": []}
     return {
         "runtime": "esp32-arduino",
         "board": "esp32-s3-devkitc-1",

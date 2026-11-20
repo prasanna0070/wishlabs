@@ -140,7 +140,8 @@ def run(ctx) -> dict:
         "checks": [{k: c[k] for k in ("id", "title", "status", "detail") if k in c} | ({"qb": c["qb"]} if c.get("qb") else {})
                    | {"artifact": "cad/digital-checks.json"} for c in res["checks"]],
         "limits": res["limits"],
-        "physical_checks": [{"id": "usb-cord-pull", "kind": "physical", "status": "not_run",
+        "physical_checks": [] if model.info.get("kind") == "printed" else  # printed-only: no USB-C cord (catalog package A)
+                           [{"id": "usb-cord-pull", "kind": "physical", "status": "not_run",
                              "title": "Pull the USB-C cord along its axis",
                              "expected": "the plug releases before the receptacle or the board moves; the cord tie takes the load",
                              "why": "REVIEW-1 MIN-3 load path: " + ((model.info.get("usb_c") or {}).get("load_path") or {}).get("feature", "none modelled")}],

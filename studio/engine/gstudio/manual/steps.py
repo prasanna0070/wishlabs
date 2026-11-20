@@ -435,8 +435,29 @@ class Planner:
         return out
 
     # ------------------------------------------------------------------ the plan
+    @property
+    def printed(self) -> bool:
+        """A printed-only object (spec kind "printed", catalog package A): nothing electrical to fit, wire or flash."""
+        return self.d.spec.get("kind") == "printed"
+
+    def plan_printed(self) -> list[Step]:
+        """Printed-only object: check the parts, print, fit the feet, final checks. There is no cartridge, wiring,
+        flashing or self-test step because the design has no electronics."""
+        A = self.A
+        bed = self.bed_figure() if (self.d.print_files or A.prints) else None
+        self.step_check_parts([])
+        if A.prints:
+            self.step_print(bed)
+        self.installed.extend(self.body_names())
+        if A.feet:
+            self.step_feet()
+        self.step_final_printed()
+        return self.steps
+
     def plan(self) -> list[Step]:
         A = self.A
+        if self.printed:
+            return self.plan_printed()
         coupon = self.coupon_files()
         bed = self.bed_figure() if (self.d.print_files or A.prints) else None
         self.step_check_parts(coupon)
@@ -966,10 +987,11 @@ class Planner:
         colour = (self.d.spec.get("colors") or {}).get("body_name")
         tipped_rows = [r for r in self.d.printed() if r.get("tipped")]
         tipped = sorted(str(r.get("name")) for r in tipped_rows)
-        how = ("Print the shell only after the bench test has passed. Print each file from `print/` as exported: it is already "
+        first = "" if self.printed else "Print the shell only after the bench test has passed. "
+        how = (first + "Print each file from `print/` as exported: it is already "
                "in its print orientation, resting on the bed. Do not scale or rotate it.")
         if tipped:  # the order stage tipped a part that does not fit the printer as exported (live failure 2026-11-02)
-            how = ("Print the shell only after the bench test has passed. Do not scale any file. "
+            how = (first + "Do not scale any file. "
                    + join_and([f"`print/{t}.stl`" for t in tipped]) + (" does" if len(tipped) == 1 else " do")
                    + " not fit the printer as exported: rotate it in your slicer as its line below says, so it prints on its side"
                    + (" with the slicer's supports" if all(r.get("supports") for r in tipped_rows) else "")
@@ -978,17 +1000,23 @@ class Planner:
             how + "\n\n" + "\n".join(lines) + "\n\n"
             + (f"{settings}\n\n" if settings else "")
             + (f"The design colour is {colour}. " if colour else "")
-            + "Remove all support material. Deburr every opening (grille holes, windows, button and screw holes) "
-            "so no strings or flakes are left. Check that every boss and clip is whole. Try the closing part on the "
-            "empty shell before adding anything: it should seat evenly by hand."
+            + ("Remove all support material and any strings or flakes, especially inside openings and the drain hole. Check the "
+               "surfaces are whole and the part stands flat on the table." if self.printed else
+               "Remove all support material. Deburr every opening (grille holes, windows, button and screw holes) "
+               "so no strings or flakes are left. Check that every boss and clip is whole. Try the closing part on the "
+               "empty shell before adding anything: it should seat evenly by hand.")
         )
         self.add(Step(
             id="print-parts", title="Print and inspect the printed parts",
             use=n.use(prints),
             tools=["Printer or printing service", "Slicer", "Flush cutters or a deburring tool", "Ruler or caliper"],
             body=body,
-            expected="Every printed part is complete, unscaled and clean, with open holes and whole bosses, and the closing part seats on the empty shell by hand.",
-            stop="a part is warped, a boss or clip is cracked, or the closing part will not seat without force. Reprint rather than sand or force it, and note which part and where.",
+            expected=("Every printed part is complete, unscaled and clean, with no support left, and it stands flat on the table."
+                      if self.printed else
+                      "Every printed part is complete, unscaled and clean, with open holes and whole bosses, and the closing part seats on the empty shell by hand."),
+            stop=("a part is warped, cracked or has layers that come apart. Reprint rather than sand or glue it, and note which part and where."
+                  if self.printed else
+                  "a part is warped, a boss or clip is cracked, or the closing part will not seat without force. Reprint rather than sand or force it, and note which part and where."),
             parts=[c.name for c in prints], highlight=[c.name for c in prints],
             figures=[bed] if bed else [],
         ))
@@ -1728,6 +1756,78 @@ class Planner:
             parts=[c.name for c in A.body + A.covers] + [p.get("module_id") for p in adapters + ([usb_row] if usb_row else []) if p.get("module_id")],
             highlight=[c.name for c in A.body + A.covers], figures=figs,
             rows=[p.get("module_id") for p in adapters + ([usb_row] if usb_row else []) if p.get("module_id")],
+        ))
+
+    # ------------------------------------------------------------------ printed-only (catalog package A)
+    def feet_position(self, feet: list[Comp]) -> str:
+        """Where the feet go, from the CAD's saved foot points (cad-summary info.feet) and the feet component box."""
+        info = self.d.cad_summary().get("info") or {}
+        feet_xy = info.get("feet") or []
+        if not feet_xy:
+            return ""
+        xs = sorted({round(abs(p[0]), 1) for p in feet_xy})
+        ys = sorted({round(p[1], 1) for p in feet_xy})
+        pos = (f", centred at x ±{xs[0]:g} mm" if len(xs) == 1 else f", centred at x ±{min(xs):g} to ±{max(xs):g} mm")
+        return pos + f" and y {ys[0]:+g} to {ys[-1]:+g} mm from the centre of the base"
+
+    def step_feet(self) -> None:
+        A, n = self.A, self.n
+        feet = A.feet
+        q = sum(n.qty(c) for c in feet)
+        show = self.ctx_show(ghost_body=False)
+        show.update({c.name: "focus" for c in feet})
+        figs = [FigureSpec(
+            file=self.fig_name("feet"), title=f"{self.num}  Fit the feet",
+            panels=[PanelSpec(subtitle="Seen from below", show=show, view_dir=BELOW_34, focus=[c.name for c in feet] + self.body_names(),
+                              labels=[self.lbl(feet[0], f"{q} × {n.short(feet[0])}", "in the round seats", prio=2)])],
+            footer=FOOTER, alt=f"The printed part seen from below with the {q} feet in their round seats.",
+            caption="Shows where the feet go. It does not prove they stick; press each one firmly.",
+        )] if A.shell else []
+        self.add(Step(
+            id="fit-feet", title="Fit the feet",
+            use=n.use(feet), tools=[], tools_note="Fingers only.",
+            body=(f"Turn the part over onto a soft cloth. Wipe the base clean and dry, then stick the {q} × **{n.name(feet[0])}** into "
+                  f"the {q} shallow round seats on the base{self.feet_position(feet)}. Press each one for a few seconds."),
+            expected="Every foot sits flat in its seat and the part stands level on the table without rocking.",
+            stop="a foot will not stick or the part rocks. Clean the seat with a dry cloth and use a new foot; do not glue it",
+            parts=[c.name for c in feet], highlight=[c.name for c in feet], figures=figs, adds=[c.name for c in feet],
+        ))
+
+    def step_final_printed(self) -> None:
+        A, n, d = self.A, self.n, self.d
+        show = {c.name: "solid" for c in d.comps.values() if c.kind in ("PRINT", "PURCHASE")}
+        sh = A.shell
+        figs = [FigureSpec(
+            file="manual/assembled.png", title=f"{d.product_name}: finished",
+            panels=[PanelSpec(subtitle="Front view", show=show, view_dir=FRONT_34, focus=list(show), labels=[], label_room=0.24)],
+            footer=FOOTER, alt=f"The finished {d.product_name} from the front.",
+            caption="Saved CAD appearance only. Complete the final checks below before regular use.",
+        )] if sh else []
+        pr = d.spec.get("printed") if isinstance(d.spec.get("printed"), dict) else {}
+        info = (d.cad_summary().get("info") or {}).get("printed") or {}
+        mat = ""
+        try:
+            mat = str((d.slice_profile() or {}).get("filament_type") or "").split(";")[0].strip()
+        except Exception:  # noqa: BLE001
+            mat = ""
+        lines = [f"This design has no electronics: there is nothing to plug in, charge or switch on."]
+        lines.append(f"Printed {mat or 'plastic'} is not food-safe and not for hot liquids: do not use it for food or drink, even if it "
+                     "is shaped like a cup, bowl or teapot.")
+        if info.get("drain_hole") or pr.get("drain_hole"):
+            lines.append("Water runs out of the drain hole: stand it on a saucer or tray if it holds a plant.")
+        lines.append("No load or fit is promised: nothing here was tested for weight, and how it fits anything else is a physical "
+                     "check.")
+        if self.child():
+            lines.append("Small printed parts can be a choking hazard: an adult checks it is whole before a child uses it.")
+        body = "\n\n".join(lines) + ("\n\nWork through the final checks listed at the end of this guide. They are actions for you, not "
+                                      "passed results: record what you observe.")
+        self.add(Step(
+            id="final-checks", title="Final checks",
+            use=f"The finished {d.product_name}.", tools=[], tools_note="None" + (" (adult supervision)." if self.child() else "."),
+            body=body,
+            expected="Every final check is done and recorded, and the part stands level and whole.",
+            stop="a part is cracked, has sharp edges or rocks on the table. Do not use it until it is reprinted",
+            parts=[c.name for c in A.body + A.feet], highlight=[c.name for c in A.body], figures=figs,
         ))
 
     def child(self) -> bool:

@@ -505,6 +505,17 @@ def cross_checks(out: Path, spec: dict, build: dict, electrical: dict | None, li
     lib = lib if lib is not None else _library()
     comps = read_json(out / "cad" / "components.json", {}) or {}
     purchased = build.get("purchased") or []
+    printed = spec.get("kind") == "printed"  # catalog package A: no power, harness, pin map, firmware or PCB to check
+    if printed:
+        insts = (electrical or {}).get("instances") or []
+        elec_parts = [n for n in comps if str(n).startswith("PURCHASE_") and n != "PURCHASE_Feet"]
+        cs.append(check("printed-only", "printed-only design: nothing electrical in the spec, electrical.json or the CAD",
+                        not (spec.get("features") or (spec.get("electronics") or {}).get("extra_modules") or spec.get("behaviour")
+                             or insts or elec_parts),
+                        "no features, modules or behaviour in the spec; electrical.json has no instances; the only purchased CAD "
+                        "part is the feet. Power, harness, pin-map, firmware and PCB checks do not apply"
+                        if not (insts or elec_parts) else f"unexpected electrical parts: {words(insts or elec_parts)}",
+                        artifact="spec.json"))
 
     # QB-06 CAD <-> BOM join
     if comps:
@@ -555,7 +566,8 @@ def cross_checks(out: Path, spec: dict, build: dict, electrical: dict | None, li
                                 artifact=f"print/{stl.name}"))
 
     # QB-15 / MIN-6 cable route length vs the one harness length source (electrical.json)
-    cs += harness_length_checks(out, build, electrical, lib)
+    if not printed:
+        cs += harness_length_checks(out, build, electrical, lib)
 
     # QB-18 wiring.parts[].item == purchased[].name
     wiring = build.get("wiring") or {}
@@ -569,7 +581,7 @@ def cross_checks(out: Path, spec: dict, build: dict, electrical: dict | None, li
                            for e in (str(c.get("from", "")).split(".")[0], str(c.get("to", "")).split(".")[0]) if e not in part_ids})
         cs.append(check("wiring-endpoints", "every wiring connection is <part>.<pin> on a listed part", not bad_ends,
                         "all endpoints known" if not bad_ends else f"unknown parts: {words(bad_ends)}", qb="QB-17"))
-    else:
+    elif not printed:
         cs.append(check("wiring-bom-join", "every wiring part is a purchased item", "not_run", "build.json has no wiring yet", qb="QB-18"))
 
     # QB-19 firmware pins.h == electrical pin map: per instance pin (GS_<REF>_<PIN>, via the pin's net) and per signal name
@@ -620,20 +632,23 @@ def cross_checks(out: Path, spec: dict, build: dict, electrical: dict | None, li
                         "all found" if not unknown else f"not in cad/components.json: {words(unknown)}", qb="QB-29", artifact="cad/components.json"))
 
     # QB-20 / MAJ-5 / MIN-2 power: supply limit, default USB, rail voltage, firmware caps; MAJ-29 night light
-    cs += power_checks(out, spec, build, electrical, lib)
-    nl = night_light_check(spec, comps, lib)
-    if nl:
-        cs.append(nl)
+    if not printed:
+        cs += power_checks(out, spec, build, electrical, lib)
+        nl = night_light_check(spec, comps, lib)
+        if nl:
+            cs.append(nl)
     # BLK-3 / MAJ-4 harnesses, MAJ-25 receipts, BLK-4 story audio, BLK-5 storage card, MIN-22 independent pin map
-    cs += harness_checks(build, electrical, lib)
+    if not printed:
+        cs += harness_checks(build, electrical, lib)
     cs.append(price_evidence_check(out, build))
-    sa = story_audio_check(out, spec, records or {})
-    if sa:
-        cs.append(sa)
-    sc = storage_part_check(out, build, lib)
-    if sc:
-        cs.append(sc)
-    cs += pin_map_checks(out, lib, electrical)
+    if not printed:
+        sa = story_audio_check(out, spec, records or {})
+        if sa:
+            cs.append(sa)
+        sc = storage_part_check(out, build, lib)
+        if sc:
+            cs.append(sc)
+        cs += pin_map_checks(out, lib, electrical)
     inp = ((spec.get("electronics") or {}).get("power") or {}).get("input")
     # MIN-3 (integration): power entry = 5 V USB-C only AND a defined load path for the external cord (cad-summary)
     cad_sum = read_json(out / "cad" / "cad-summary.json", {}) or {}
@@ -642,7 +657,8 @@ def cross_checks(out: Path, spec: dict, build: dict, electrical: dict | None, li
               (load_path or {}).get("feature") or (load_path or {}).get("what") or (load_path or {}).get("summary") or
               (json.dumps(load_path)[:160] if load_path else None))
     pe_ok = inp == "usb_c_5v" and bool(load_path)
-    cs.append(check("power-entry", "power entry: 5 V USB-C input only (no mains inside) and a defined load path for the cord",
+    if not printed:
+        cs.append(check("power-entry", "power entry: 5 V USB-C input only (no mains inside) and a defined load path for the cord",
                     pe_ok if cad_sum else (False if inp != "usb_c_5v" else "not_run"),
                     f"power input: {inp}; " + (f"cord load path: {lp_txt}" if load_path else
                                                 ("no cord load path in cad/cad-summary.json info.usb_c" if cad_sum else "CAD did not run")),
@@ -1364,7 +1380,9 @@ def run(ctx) -> dict:
         own = rec.get("summary") if isinstance(rec.get("summary"), dict) else ((rec.get("details") or {}).get("summary")
                                                                               if isinstance(rec.get("details"), dict) else None)
         cs = normalize_checks((own or {}).get("checks"), sid) if isinstance(own, dict) else []  # a failed stage's own checks count too
-        if state in ("failed", "skipped") or not rec:
+        if spec.get("kind") == "printed" and sid in ("pcb", "firmware") and state == "skipped":
+            pass  # printed-only design (catalog package A): no electronics; the stages block below keeps the skip and its reason
+        elif state in ("failed", "skipped") or not rec:
             cs.append(check(f"stage:{sid}", f"{sid} stage completed", "failed" if state == "failed" else "not_run",
                             rec.get("message") or ("did not run" if not rec else state), stage=sid))
         stages[sid] = {"state": state if rec else "not_run", "message": rec.get("message"), "log": rec.get("log"), "checks": len(cs)}

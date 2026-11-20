@@ -190,6 +190,8 @@ def drop_budget(power: dict, backplane: dict, get_module: Callable[[str], Option
 
 def adapter_policy(spec: dict, power: Optional[dict] = None, limit_ma: Optional[float] = None) -> tuple[bool, str]:
     """MAJ-5: ship the adapter in the box for child-directed designs, or when the uncapped draw is over 80% of the limit."""
+    if spec.get("kind") == "printed":  # catalog package A: a printed-only object has no power input at all
+        return False, "printed-only design: no electronics, no power input"
     ps = ((spec.get("electronics") or {}).get("power") or {})
     if ps.get("adapter_in_box"):
         return True, "spec electronics.power.adapter_in_box is true"
