@@ -202,7 +202,7 @@ and runs every check; an error names the node path: fix that node and resend.
 - Keep the electronics room: the core cartridge lies on the floor at the rear (see the hard fit rules), so put trays
   and slots at the front or high on the top, with their floors above the cartridge. Make the lowest piece at least
   100 mm wide and 110 mm deep at the floor (the cartridge needs 81 x 87 mm inside, plus walls, rounds and blends). A
-  box's round also rounds its bottom edges and eats that floor: on the lowest piece keep round at 4 mm or less.
+  box's round also rounds its bottom edges and eats that floor: add 2 x round to those sizes (the patterns below do).
 - A piece that carries a screen, button or sensor must share the main hollow: overlap it with the main body by at
   least 10 mm, or its module has no room behind the wall.
 - Cuts stay inside: keep at least 6 mm of material under and around every tray, slot or groove, never cut through

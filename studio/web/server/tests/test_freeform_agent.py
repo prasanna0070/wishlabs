@@ -597,3 +597,34 @@ def test_format_slips_do_not_count_toward_the_family_fallback(tmp_path, monkeypa
     with c:
         _run(c)
         assert not any("failed twice" in (x.get("instruction") or "") for x in svc.brain.calls)
+
+
+def test_csg_patterns_keep_the_floor_rule():
+    """Every pattern's lowest piece is at least 100 x 110 mm plus 2 x its round at the floor (the prompt's own rule)."""
+    from app.agent.prompt import CSG_PATTERNS
+
+    def floor(node, z=0.0):
+        """(w, d, round) of the pieces that stand on z = 0 (boxes, cylinders, x-extrudes), recursively."""
+        out = []
+        op = node.get("op")
+        if op == "move":
+            return floor(node["node"], z + float(node.get("to", [0, 0, 0])[2]))
+        if op in ("union", "intersect"):
+            return [f for n in node["nodes"] for f in floor(n, z)]
+        if op == "cut":
+            return floor(node["node"], z)
+        if z > 0:
+            return out
+        r = float(node.get("round", 0))
+        if op == "box":
+            out.append((node["size"][0], node["size"][1], r))
+        elif op == "cylinder":
+            out.append((2 * node["r"], 2 * node["r"], r))
+        elif op == "extrude" and node.get("axis") == "x":
+            ys = [p[0] for p in node["points"] if p[1] == 0]
+            out.append((node["h"], max(ys) - min(ys), r))
+        return out
+
+    for name, tree in CSG_PATTERNS:
+        fl = floor(tree)
+        assert fl and any(w >= 100 + 2 * r and d >= 110 + 2 * r for w, d, r in fl), (name, fl)
