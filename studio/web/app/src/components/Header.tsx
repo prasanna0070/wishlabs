@@ -424,7 +424,7 @@ function ShareImagesSetting() {
         <span>
           <strong>Show my starting image on the share link</strong>
           <span className="muted small">
-            {on ? "Visitors see your image, the words in it and what the assistant read from it." : "Off: visitors see only the assistant's short summary of your image, not the image or the words written in it."}
+            {on ? "Visitors see your image, the words in it and what the assistant read from it." : "Off: visitors do not see your image or the words written in it. They still see what the assistant read from it (the product's name, purpose and features) and the chat."}
           </span>
         </span>
         {busy ? <Spinner /> : null}

@@ -143,3 +143,69 @@ def test_config_keeps_the_wish_and_adds_image_rules_only_with_images():
     with_imgs = brain._config(["say"], False, images=True, wish="a plant pot").system_instruction
     assert plain == "BASE[a plant pot]" and seen == ["a plant pot", "a plant pot"]
     assert with_imgs.startswith("BASE[a plant pot]\n\n# Images from the user")
+
+
+# ---------------------------------------------------------------------- review fixes on hack/final (M1, M2)
+TABLE = ("id | role | name | dims mm | aperture | price ₹ | use\n"
+         "LED_RING_12_WS2812_50MM | led | 12-LED ring | 50x50x3 | round 50x50 | 120-180 | feature\n"
+         "SOIL_CAP_V12_ANALOG | soil_moisture | Capacitive soil probe | 98x23x4 | none | 60-90 | feature\n")
+
+
+def test_catalog_ids_are_the_agent_parts_table_only():
+    """M2: the brief knows only the ids of the parts table the agent was shown, never other library rows (the bare
+    SG90 servo, the N20 gear motor, cables) that the full module list still holds."""
+    from app.agent import image_rules
+
+    bridge = SimpleNamespace(library_table=lambda: TABLE,
+                             module_names=lambda: {"SERVO_SG90_TOWERPRO": {}, "GEARMOTOR_N20_6V_LOWRPM": {},
+                                                   "CABLE_JSTPH_3P_100": {}, "LED_RING_12_WS2812_50MM": {}})
+    assert image_rules.catalog_ids(bridge) == {"LED_RING_12_WS2812_50MM", "SOIL_CAP_V12_ANALOG"}
+
+    def broken():
+        raise RuntimeError("no library")
+    assert image_rules.catalog_ids(SimpleNamespace(library_table=broken)) == set()    # fail closed
+
+    p = _image_project()
+    args = {"kind": "sketch", "title": "Waving buddy", "purpose": "Waves", "features": [
+        {"text": "Arm that waves", "status": "buildable", "catalog_parts": ["SERVO_SG90_TOWERPRO"], "note": ""},
+        {"text": "Glowing ring", "status": "buildable", "catalog_parts": ["LED_RING_12_WS2812_50MM"], "note": ""}],
+        "closest_buildable": {"title": "Glow buddy", "summary": "A glowing desk buddy."}}
+    brief, notes = image_rules.check_brief(args, p, image_rules.catalog_ids(bridge))
+    f = {x["text"]: x for x in brief["features"]}
+    assert f["Arm that waves"]["status"] == "not_yet" and f["Arm that waves"]["catalog_parts"] == []
+    assert f["Glowing ring"]["status"] == "buildable" and image_rules.blocked(brief)
+    assert any("SERVO_SG90_TOWERPRO" in n for n in notes)
+
+
+def test_catalog_ids_with_the_real_library_follow_the_pack_switch(tmp_path, monkeypatch):
+    """M2 with the real engine library and tonight's switch (sensing and schedule on, motion off)."""
+    from app.agent import image_rules
+    from app.engine_bridge import EngineBridge
+
+    monkeypatch.setenv("GS_PACKS_ENABLED", "sensing+schedule")
+    monkeypatch.delenv("GS_PACKS_OFF", raising=False)
+    bridge = EngineBridge(make_settings(tmp_path))
+    if not bridge.complete:
+        pytest.skip("engine library not importable here")
+    known = image_rules.catalog_ids(bridge)
+    for pid in ("LED_RING_12_WS2812_50MM", "SPK_28MM_8R_2W", "SOIL_CAP_V12_ANALOG"):
+        assert pid in known, pid
+    for pid in ("SERVO_SG90_TOWERPRO", "GEARMOTOR_N20_6V_LOWRPM", "SERVO_SG90_ARM", "SERVO_MG90S_ARM"):
+        assert pid not in known, pid
+    assert not any(k.startswith("CABLE_") for k in known)
+    assert set(bridge.module_names()) - known                      # the full module list is wider than the table
+
+
+def test_image_rules_count_a_feature_buildable_only_when_an_app_does_it():
+    """M1: a part alone is not enough; what no firmware app does (a countdown, online data, push messages, speech)
+    is not_yet, so a timer sketch gets questions first instead of a "Buildable" card."""
+    from app.agent import image_rules
+    from app.agent.tools import TOOLS
+
+    rules = " ".join(image_rules.IMAGE_RULES.split())
+    for needle in ("a catalog part does it AND one of our firmware apps uses that part for it",
+                   "a sensor counts only for what its app reads", "a countdown, a focus timer or a stopwatch",
+                   "push messages to a phone", "understanding speech"):
+        assert needle in rules, needle
+    status = TOOLS["record_image_brief"]["parameters"]["properties"]["features"]["items"]["properties"]["status"]
+    assert "no app does it" in status["description"] and "countdown or timer" in status["description"]

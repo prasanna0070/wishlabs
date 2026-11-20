@@ -208,8 +208,12 @@ TOOLS: dict[str, dict] = {
                         "properties": {
                             "text": {"type": "string", "description": "The feature as the image shows it."},
                             "status": {"type": "string", "enum": ["buildable", "closest", "not_yet"],
-                                       "description": "buildable: a catalog part does it; closest: a catalog part "
-                                                      "does a simpler version; not_yet: nothing in the catalog."},
+                                       "description": "buildable: a catalog part does it and one of our firmware "
+                                                      "apps uses it for that (a sensor counts only for what its "
+                                                      "app reads); closest: a catalog part does a simpler version; "
+                                                      "not_yet: nothing in the catalog, or no app does it (a "
+                                                      "countdown or timer, online lookups or live internet data, "
+                                                      "push messages, understanding speech)."},
                             "catalog_parts": {"type": "array", "items": {"type": "string"},
                                               "description": "Part ids from the parts catalog. Empty for not_yet, "
                                                              "and for what the printed shell itself gives (shape, "
