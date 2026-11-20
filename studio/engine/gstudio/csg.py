@@ -189,8 +189,8 @@ def _walk(node: Any, path: str, depth: int, v: _V) -> None:
         _e(v.errs, path, f"unknown key(s) {', '.join(repr(k) for k in extra)} for op {op!r}",
            f"allowed keys for {op}: {', '.join(['op'] + sorted(req) + sorted(opt) + ['name'])}")
     for k in sorted(req):
-        if k not in node:
-            _e(v.errs, f"{path}.{k}", f"required key {k!r} is missing for op {op!r}")
+        if node.get(k) is None:  # missing or null
+            _e(v.errs, f"{path}.{k}", f"required key {k!r} is missing for op {op!r}" + (" (it is null)" if k in node else ""))
     nm = node.get("name")
     if nm is not None and (not isinstance(nm, str) or len(nm) > NAME_MAX):
         _e(v.errs, f"{path}.name", f"name must be a short text (at most {NAME_MAX} characters)")

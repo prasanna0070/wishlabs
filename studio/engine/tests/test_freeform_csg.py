@@ -52,6 +52,7 @@ BOX = {"op": "box", "size": [100, 90, 60], "round": 4}
     ({"op": "box", "size": [10, 10]}, "csg_schema", "body.csg.size"),
     ({"op": "box", "size": [10, 10, 10], "color": "red"}, "csg_schema", "body.csg"),
     ({"op": "box"}, "csg_schema", "body.csg.size"),
+    ({"op": "torus", "R": None, "r": 5}, "csg_schema", "body.csg.R"),  # null = missing (found by fuzzing)
     ({"op": "box", "size": [1, 50, 50]}, "csg_min_feature", "body.csg.size[0]"),
     ({"op": "cylinder", "r": 0.5, "h": 20}, "csg_min_feature", "body.csg.r"),
     ({"op": "union", "nodes": [BOX]}, "csg_schema", "body.csg.nodes"),
