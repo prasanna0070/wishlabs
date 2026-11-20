@@ -132,6 +132,8 @@ export const useProject = create<ProjectState>((set, get) => {
       }
       case "status": {
         const total = renderingTotal(d.text);
+        const cur = turn?.steps.filter((s) => s.state === "running").pop();
+        if (cur && d.text && cur.label.startsWith(`${d.text} (`)) break; // "Fixing the design" after its "(round 1)"
         if (total != null && turn) {
           // concepts render in parallel: one counter step for the whole set (as the server's progress record words it)
           set({ turn: { ...turn, concepts: {}, conceptTotal: total } });

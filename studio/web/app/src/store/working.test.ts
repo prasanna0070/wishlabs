@@ -97,12 +97,16 @@ describe("live turn", () => {
   it("streams thought summaries into the working turn and keeps them after it finishes", async () => {
     let mid: any = null;
     let counter = "";
+    let repairSteps: string[] = [];
     h.stream = async (on) => {
       on({ event: "turn.start", data: { turn_id: "t_1", started: new Date().toISOString(), user_message: user } });
       on({ event: "status", data: { text: "Thinking" } });
       on({ event: "thinking.delta", data: { text: "**Reading the wish**\n\nA calm robot.\n\n" } });
       on({ event: "thinking.delta", data: { text: "**Choosing questions**\n\nAge first.\n\n" } });
       mid = structuredClone(useProject.getState().turn);
+      on({ event: "repair", data: { round: 1, errors: ["Moon Bot: wall too thin"] } });
+      on({ event: "status", data: { text: "Fixing the design" } }); // the same step, not a second line
+      repairSteps = (useProject.getState().turn?.steps || []).map((s) => s.label);
       on({ event: "status", data: { text: "Rendering 6 concepts" } });
       on({ event: "concepts.progress", data: { concept_id: "c_1", index: 0, title: "A", state: "ready" } });
       on({ event: "concepts.progress", data: { concept_id: "c_2", index: 1, title: "B", state: "photo" } });
@@ -114,6 +118,7 @@ describe("live turn", () => {
     h.project = baseProject({ chat: [user] });
     await useProject.getState().send({ text: "A bedtime robot" });
     expect(counter).toBe("Rendering concept photos: 1 of 6 done");
+    expect(repairSteps).toEqual(["Reading your message", "Thinking", "Fixing the design (round 1)"]);
     expect(mid.running).toBe(true);
     expect(mid.thoughts).toContain("Reading the wish");
     expect(mid.thoughts).toContain("Choosing questions");

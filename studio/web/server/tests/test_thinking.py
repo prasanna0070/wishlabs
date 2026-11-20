@@ -258,6 +258,7 @@ def test_progress_steps_from_turn_events():
                       ("status", {"text": "Checking the concepts against the parts catalog"}),
                       ("repair", {"round": 1, "errors": ["Moon Bot: features[2] is outside the body by 3 mm",
                                                          "Owl Bot: wall too thin"]}),
+                      ("status", {"text": "Fixing the design"}),      # the model call that fixes it: same step
                       ("status", {"text": "Thinking"}), ("tool.start", {"label": "Designing concepts"}),
                       ("status", {"text": "Rendering 6 concepts"})]:
             pr.observe(ev, d)

@@ -22,6 +22,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const report = { agent: AGENT, steps: [], checks: {}, errors: [], requests: {} };
 const failed = [];
 const t0 = Date.now();
+let phonePage = null; // the phone page of the running turn, checked again when the turn ends
 const step = (name, data = {}) => {
   const row = { t: ((Date.now() - t0) / 1000).toFixed(1), name, ...data };
   report.steps.push(row);
@@ -113,7 +114,7 @@ async function contrast(page, sel) {
 }
 
 /** After a reload mid-turn: the card, its step and (when the model shares them) the thinking come back. */
-async function reloadMidTurn(page, tag, { wantThought = true } = {}) {
+async function reloadMidTurn(page, tag, { wantThought = true, label = tag } = {}) {
   const posts = report.requests[tag].chat;
   await page.reload();
   const card = page.locator(".working-card");
@@ -124,13 +125,13 @@ async function reloadMidTurn(page, tag, { wantThought = true } = {}) {
     await page.locator(".wc-latest").waitFor({ timeout: 30000 });
     thought = (await page.locator(".wc-latest").innerText()).trim();
   }
-  check(`${tag}: card after reload`, (await card.isVisible()) && stepText.length > 1 && (!wantThought || thought.length > 1), { step: stepText, thought });
+  check(`${label}: card after reload`, (await card.isVisible()) && stepText.length > 1 && (!wantThought || thought.length > 1), { step: stepText, thought });
   const busy = page.locator(".composer-busy");
-  check(`${tag}: composer says it is still working`, await busy.isVisible(), { text: (await busy.innerText().catch(() => "")).trim() });
+  check(`${label}: composer says it is still working`, await busy.isVisible(), { text: (await busy.innerText().catch(() => "")).trim() });
   await composer(page).fill("Are you still there?");
   await composer(page).press("Enter");
   await page.waitForTimeout(800);
-  check(`${tag}: composer does not send mid-turn`, report.requests[tag].chat === posts && (await composer(page).inputValue()) === "Are you still there?" && report.requests[tag].conflict === 0);
+  check(`${label}: composer does not send mid-turn`, report.requests[tag].chat === posts && (await composer(page).inputValue()) === "Are you still there?" && report.requests[tag].conflict === 0);
   await composer(page).fill("");
   return { step: stepText, thought };
 }
@@ -138,6 +139,59 @@ async function reloadMidTurn(page, tag, { wantThought = true } = {}) {
 async function waitTurnEnd(page, timeout) {
   await page.locator(".working-card").waitFor({ state: "detached", timeout });
   await page.locator(".activity-pill").last().waitFor({ timeout: 15000 });
+}
+
+/** Desktop (collapsed and open, keyboard toggle, contrast) and phone shots of a running turn. False when the turn
+ * ended before every shot was taken (then the next turn is shot instead). */
+async function shootWorking(browser, page, pid, label) {
+  const card = page.locator(".working-card");
+  if (!(await card.count())) return false;
+  await card.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(OUT, "desktop-working.png") });
+  const toggle = page.locator(".wc-toggle");
+  await toggle.focus();
+  await page.keyboard.press("Enter");
+  check(`${label}: toggle opens with the keyboard`, (await toggle.getAttribute("aria-expanded")) === "true" && (await page.locator(".wc-thoughts").isVisible()));
+  check(`${label}: step is a polite live region`, (await page.locator(".wc-step").getAttribute("aria-live")) === "polite");
+  for (const sel of [".wc-step", ".wc-latest", ".wc-note", ".wc-toggle", ".wc-thoughts .md p", ".composer-busy"]) {
+    if (await page.locator(sel).count()) {
+      const ratio = await contrast(page, sel);
+      report.checks[`contrast ${sel}`] = { ok: ratio >= 4.5, ratio };
+    }
+  }
+  await page.waitForTimeout(400);
+  await card.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(OUT, "desktop-thinking-open.png") });
+  await page.keyboard.press("Enter");
+  check(`${label}: toggle closes with the keyboard`, (await toggle.getAttribute("aria-expanded")) === "false");
+  const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  const pp = await phone.newPage();
+  watch(pp, "phone");
+  await signIn(pp);
+  await pp.goto(`${BASE}/studio/p/${pid}`);
+  const ok = await pp.locator(".working-card").waitFor({ timeout: 15000 }).then(() => true, () => false);
+  if (!ok) return false;
+  await pp.locator(".wc-latest").waitFor({ timeout: 20000 }).catch(() => {});
+  await pp.locator(".working-card").scrollIntoViewIfNeeded();
+  await pp.waitForTimeout(500);
+  await pp.screenshot({ path: path.join(OUT, "phone-working.png") });
+  check(`${label}: phone card, no horizontal overflow`, (await pp.locator(".working-card").isVisible()) && !(await pp.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)), {
+    step: (await pp.locator(".wc-step").innerText().catch(() => "")).trim(),
+  });
+  await pp.locator(".wc-toggle").tap().catch(() => {});
+  await pp.waitForTimeout(400);
+  await pp.screenshot({ path: path.join(OUT, "phone-thinking-open.png") });
+  phonePage = pp;
+  step(`${label}: screenshots taken while working`);
+  return true;
+}
+
+/** What a finished turn left: questions, concepts, a brief or a reply. */
+async function resultOf(page) {
+  if (await page.getByRole("group", { name: "Questions" }).count()) return "questions";
+  if (await page.getByRole("group", { name: "Concepts" }).count()) return "concepts";
+  if (await page.locator(".msg.assistant").count()) return "reply";
+  return "";
 }
 
 async function realVertex(browser) {
@@ -155,70 +209,52 @@ async function realVertex(browser) {
   await page.locator(".wc-latest").waitFor({ timeout: 60000 });
   step("turn 1 live thought", { text: (await page.locator(".wc-latest").innerText()).trim() });
   await page.screenshot({ path: path.join(OUT, "01-live.png") });
-  const r1 = await reloadMidTurn(page, "desk");
+  const r1 = await reloadMidTurn(page, "desk", { label: "turn 1" });
   step("turn 1 reloaded mid-turn", r1);
   await page.screenshot({ path: path.join(OUT, "02-after-reload.png") });
-  await waitTurnEnd(page, 240000);
-  const q = page.getByRole("group", { name: "Questions" });
-  const anyAnswer = (await q.count()) || (await page.locator(".msg.assistant").count());
-  check("turn 1: result loads after the turn ends", anyAnswer > 0, { questions: await q.count() });
-  step("turn 1 done");
-  // ---------------------------------------------------------------- turn 2: concepts (minutes in Deep mode)
-  if (await q.count()) await page.getByRole("button", { name: "Use your suggestions" }).click();
-  else {
-    await composer(page).fill("Use your defaults and show me concepts.");
-    await composer(page).press("Enter");
-  }
-  await page.locator(".working-card").waitFor({ timeout: 15000 });
-  step("turn 2 sent");
-  await page.locator(".wc-latest").waitFor({ timeout: 90000 });
-  const r2 = await reloadMidTurn(page, "desk");
-  step("turn 2 reloaded mid-turn", r2);
-  await page.locator(".working-card").scrollIntoViewIfNeeded();
-  await page.screenshot({ path: path.join(OUT, "desktop-working.png") });
-  const toggle = page.locator(".wc-toggle");
-  await toggle.focus();
-  await page.keyboard.press("Enter");
-  check("toggle opens with the keyboard", (await toggle.getAttribute("aria-expanded")) === "true" && (await page.locator(".wc-thoughts").isVisible()));
-  check("step is a polite live region", (await page.locator(".wc-step").getAttribute("aria-live")) === "polite");
-  for (const sel of [".wc-step", ".wc-latest", ".wc-note", ".wc-toggle", ".wc-thoughts .md p"]) {
-    if (await page.locator(sel).count()) report.checks[`contrast ${sel}`] = { ok: (await contrast(page, sel)) >= 4.5, ratio: await contrast(page, sel) };
-  }
-  await page.waitForTimeout(400);
-  await page.locator(".working-card").scrollIntoViewIfNeeded();
-  await page.screenshot({ path: path.join(OUT, "desktop-thinking-open.png") });
-  await page.keyboard.press("Enter");
-  check("toggle closes with the keyboard", (await toggle.getAttribute("aria-expanded")) === "false");
-  // phone: the same running turn in a second browser
-  const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
-  const pp = await phone.newPage();
-  watch(pp, "phone");
-  await signIn(pp);
-  await pp.goto(`${BASE}/studio/p/${pid}`);
-  await pp.locator(".working-card").waitFor({ timeout: 15000 });
-  await pp.locator(".wc-latest").waitFor({ timeout: 30000 }).catch(() => {});
-  await pp.locator(".working-card").scrollIntoViewIfNeeded();
-  await pp.waitForTimeout(500);
-  await pp.screenshot({ path: path.join(OUT, "phone-working.png") });
-  check("phone: card, no horizontal overflow", (await pp.locator(".working-card").isVisible()) && !(await pp.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)), {
-    step: (await pp.locator(".wc-step").innerText()).trim(),
-  });
-  await pp.locator(".wc-toggle").tap();
-  await pp.waitForTimeout(400);
-  await pp.screenshot({ path: path.join(OUT, "phone-thinking-open.png") });
-  step("screenshots taken");
-  // the concepts load when the turn ends (both pages)
+  // the model may ask questions (a short turn) or go straight to concepts (minutes, with repair rounds)
+  let shot = await shootWorking(browser, page, pid, "turn 1").catch(() => false);
   await waitTurnEnd(page, 15 * 60 * 1000);
-  const concepts = page.getByRole("group", { name: "Concepts" });
-  await concepts.waitFor({ timeout: 30000 }).catch(() => {});
-  check("turn 2: concepts load after the turn ends", (await concepts.count()) > 0 || (await page.locator(".msg.assistant").count()) > 1);
-  await pp.locator(".working-card").waitFor({ state: "detached", timeout: 30000 });
-  check("phone: card goes when the turn ends", (await pp.locator(".working-card").count()) === 0);
+  let result = await resultOf(page);
+  check("turn 1: result loads after the turn ends", !!result, { result });
+  step("turn 1 done", { result, shot });
+  if (!shot || result === "questions") {
+    if (result === "questions") await page.getByRole("button", { name: "Use your suggestions" }).click();
+    else {
+      await composer(page).fill("Show me different concepts, please.");
+      await composer(page).press("Enter");
+    }
+    await page.locator(".working-card").waitFor({ timeout: 15000 });
+    step("turn 2 sent");
+    await page.locator(".wc-latest").waitFor({ timeout: 90000 });
+    const r2 = await reloadMidTurn(page, "desk", { label: "turn 2" });
+    step("turn 2 reloaded mid-turn", r2);
+    if (!shot) shot = await shootWorking(browser, page, pid, "turn 2").catch(() => false);
+    await waitTurnEnd(page, 15 * 60 * 1000);
+    result = await resultOf(page);
+    check("turn 2: result loads after the turn ends", !!result, { result });
+    step("turn 2 done", { result });
+  }
+  check("screenshots taken while it worked", shot);
+  if (phonePage) {
+    await phonePage.locator(".working-card").waitFor({ state: "detached", timeout: 30000 }).catch(() => {});
+    check("phone: card goes when the turn ends", (await phonePage.locator(".working-card").count()) === 0);
+  }
   await page.screenshot({ path: path.join(OUT, "03-result.png") });
   const view = await (await page.request.get(`${BASE}/api/projects/${pid}/turn`)).json();
   report.final_view = { state: view.state, steps: view.steps.map((s) => s.label + (s.detail ? ` [${s.detail}]` : "")), thoughts_chars: view.thoughts.length };
   check("turn record done", view.state === "done" && !view.running);
-  check("polling happened", report.requests.desk.turn >= 3, { desk: report.requests.desk.turn, phone: report.requests.phone.turn });
+  check("polling happened", report.requests.desk.turn >= 3, { desk: report.requests.desk.turn, phone: report.requests.phone ? report.requests.phone.turn : 0 });
+  const proj = await (await page.request.get(`${BASE}/api/projects/${pid}`)).json();
+  report.usage = (proj.usage && proj.usage.turns || []).map((t) => ({ action: t.action, input: t.input_tokens, output: t.output_tokens, thinking: t.thinking_tokens, calls: (t.calls || []).length, usd_est: t.cost_usd_est }));
+  // the thought summaries stay out of the stored chat and the share link
+  const heads = [...(view.thoughts || "").matchAll(/\*\*([^*\n]{4,120})\*\*/g)].map((m) => m[1]);
+  const chatText = JSON.stringify(proj.chat.map((m) => m.text));
+  const share = await (await page.request.post(`${BASE}/api/projects/${pid}/share`)).json();
+  const shared = await (await page.request.get(`${BASE}/api/share/${share.token}`)).text();
+  const leaked = heads.filter((h) => chatText.includes(h) || shared.includes(h));
+  check("no thought summary in the stored chat or the share link", heads.length > 0 && leaked.length === 0, { headings: heads.length, leaked });
+  check("share link has no turn endpoint", (await page.request.get(`${BASE}/api/share/${share.token}/turn`)).status() === 404);
 }
 
 async function scripted(browser) {

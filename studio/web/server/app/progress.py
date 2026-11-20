@@ -112,7 +112,8 @@ class TurnProgress:
         if not label:
             return
         steps = self.rec["steps"]
-        if steps and steps[-1]["label"] == label and not detail:
+        # the same step again, or its plain form right after it ("Fixing the design" after "... (round 1)")
+        if steps and not detail and (steps[-1]["label"] == label or steps[-1]["label"].startswith(label + " (")):
             return
         s = {"label": label, "ts": now_iso()}
         if detail:
