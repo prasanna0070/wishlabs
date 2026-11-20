@@ -13,7 +13,10 @@
 # would reject (CadQuery is imported lazily and is not installed in the web image). Its tests stay out.
 engine/gstudio/cad/tests/
 engine/gstudio/pcb/
-engine/gstudio/firmware/
+# firmware/: only the settings check ships (see web/server/Dockerfile); the templates, tests and the rest stay out.
+engine/gstudio/firmware/*
+!engine/gstudio/firmware/__init__.py
+!engine/gstudio/firmware/settings.py
 engine/gstudio/manual/
 engine/gstudio/order/
 engine/gstudio/docs_gen/
