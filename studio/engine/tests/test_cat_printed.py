@@ -228,3 +228,14 @@ def test_open_top_rim_on_a_domed_revolve_is_refused(printed_on, lib):
     s["body"]["profile"] = [[0, 0], [30, 0], [34, 50], [32, 80], [20, 92], [0, 95]]
     _, rep = normalize(s, lib)
     assert any(e.get("code") == "opening_rim" and e.get("fix") for e in rep["errors"]), rep["errors"]
+
+
+def test_open_top_refuses_ears(printed_on, lib):
+    """Decor ears sit on the top edge; the CAD's straight-down mouth would slice them (an agent's cat cap had ears)."""
+    s = _spec("pen-cup-planter")
+    s["decor"] = [{"type": "ear", "style": "cat", "side": "both", "at": [25, 90], "size": [12, 14]}]
+    _, rep = normalize(s, lib)
+    assert any(e.get("code") == "opening_decor" and e.get("fix") for e in rep["errors"]), rep["errors"]
+    s["printed"] = {"opening": "none", "drain_hole": False}
+    _, rep = normalize(s, lib)
+    assert not any(e.get("code") == "opening_decor" for e in rep["errors"])

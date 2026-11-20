@@ -124,6 +124,10 @@ def normalize_printed(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spe
                  f"give the body a flat top at least {need:.0f} mm across in both directions (a cup, pot or vase shape) with nothing "
                  "sticking up above it, or use opening \"none\"", "opening")
         _check_open_rim(sp, geom, errors)
+        ears = [k for k, d in enumerate(sp.decor) if getattr(d, "type", None) == "ear"]
+        if ears:  # ears sit on the top edge, where the CAD's straight-down mouth would slice them into slivers
+            _err(errors, f"decor[{ears[0]}]", "ears sit on the top edge, and an open top would slice them",
+                 "remove the ears (decor type ear) or use printed.opening \"none\"", "opening_decor")
 
     # ---------------------------------------------------------------- cuts (pack printed_cuts; the pack gate is in cross_check)
     for k, c in enumerate(getattr(sp, "cuts", None) or []):
