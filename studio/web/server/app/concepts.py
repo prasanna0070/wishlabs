@@ -24,8 +24,24 @@ def concept_base(pid: str, cid: str) -> str:
     return f"/api/projects/{pid}/concepts/{cid}"
 
 
+def plain_photo(svc, spec: dict) -> bool:
+    """Pack `freeform`: a concept with no face decor (eyes, mouth, blush) is an appliance or plain product, so its
+    photo is plain product photography with no added face. Always False with the pack off."""
+    fn = getattr(getattr(svc, "bridge", None), "packs_on", None)
+    try:
+        on = fn() if callable(fn) else ()
+    except Exception:  # noqa: BLE001
+        on = ()
+    if "freeform" not in set(on or ()):
+        return False
+    return not any(isinstance(d, dict) and d.get("type") in ("eye", "mouth", "blush") for d in spec.get("decor") or [])
+
+
 async def render_concept(svc, pid: str, index: int, title: str, blurb: str, spec: dict, warnings: list[str],
-                         progress: Progress, tier: str | None = None, on_usage=None, style_ref=None) -> dict:
+                         progress: Progress, tier: str | None = None, on_usage=None, style_ref=None,
+                         keep_errors: bool = False) -> dict:
+    """keep_errors (pack `freeform` repair loop): a failed render also carries its raw errors in c["render_errors"]
+    (the turn reads and removes them before the concept is stored)."""
     cid = new_id("c")
     key = f"projects/{pid}/concepts/{cid}"
     base = concept_base(pid, cid)
@@ -43,6 +59,8 @@ async def render_concept(svc, pid: str, index: int, title: str, blurb: str, spec
     if not prev.get("ok") or not png:
         c["state"] = "failed"
         c["photo_note"] = "The shape could not be rendered: " + "; ".join(prev.get("errors") or ["unknown error"])[:300]
+        if keep_errors:
+            c["render_errors"] = [str(e) for e in prev.get("errors") or ["unknown error"]]
         await progress({"concept_id": cid, "index": index, "title": title, "state": "failed",
                         "note": c["photo_note"]})
         return c
@@ -55,6 +73,8 @@ async def render_concept(svc, pid: str, index: int, title: str, blurb: str, spec
     photo, note = (None, "Photos are off in this mode; showing the CAD render.")
     if svc.imagegen is not None:
         kw = {"style_ref": style_ref} if style_ref else {}      # the user's product photo or sketch (image input)
+        if plain_photo(svc, spec):                              # pack freeform: no face is added to a plain product
+            kw["plain"] = True
         photo, note = await svc.imagegen.photo_from_render(png, spec, title, blurb, on_usage=on_usage, **kw)
     if photo:
         ext = _img_ext(photo)

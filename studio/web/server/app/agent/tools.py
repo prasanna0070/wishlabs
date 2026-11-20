@@ -275,8 +275,39 @@ def allowed_tools(stage: str, questions_left: int, has_selected: bool, has_versi
     return names
 
 
-def declarations(names: list[str]):
+# Pack `freeform` (custom csg shapes): propose_concepts asks for functional forms and puts a face only where it belongs.
+# With the pack off the declarations are exactly TOOLS.
+FREEFORM_PROPOSE_DESCRIPTION = (
+    "Propose 6 concepts, 2 per tier: 'expected' (the most functional product form for this wish), 'different' (a "
+    "different form archetype), 'wildcard' (a character that still does the job). Each is a complete valid spec with "
+    "its own form (a csg body where it serves the function), its own feature layout and proportions; a face only on "
+    "the wildcard character or when the wish is playful or for a child. The app validates each spec, checks the set "
+    "against the concept rules (subject kept, a face only where it belongs, no shared layout), renders it from CAD and "
+    "makes a product photo of exactly that render. Concepts that fail validation or the CAD render come back with "
+    "errors: resend ONLY those, corrected, with the same titles (or `replaces`). Ends your turn.")
+FREEFORM_TITLE = ("A short name of two or three words that names the subject when the concept is one (e.g. "
+                  "'<Adjective> <Subject>').")
+FREEFORM_BLURB = "One sentence on the form and what it does for the user, naming the subject."
+
+
+def tool_spec(name: str, packs_on=()) -> dict:
+    """TOOLS[name], with the pack `freeform` wording for propose_concepts when that pack is on."""
+    t = TOOLS[name]
+    if name != "propose_concepts" or "freeform" not in set(packs_on or ()):
+        return t
+    import copy
+
+    t = copy.deepcopy(t)
+    t["description"] = FREEFORM_PROPOSE_DESCRIPTION
+    item = t["parameters"]["properties"]["concepts"]["items"]["properties"]
+    item["title"]["description"] = FREEFORM_TITLE
+    item["blurb"]["description"] = FREEFORM_BLURB
+    return t
+
+
+def declarations(names: list[str], packs_on=()):
     from google.genai import types
 
-    return [types.FunctionDeclaration(name=n, description=TOOLS[n]["description"],
-                                      parameters_json_schema=TOOLS[n]["parameters"]) for n in names]
+    specs = {n: tool_spec(n, packs_on) for n in names}
+    return [types.FunctionDeclaration(name=n, description=specs[n]["description"],
+                                      parameters_json_schema=specs[n]["parameters"]) for n in names]

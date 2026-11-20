@@ -3,6 +3,7 @@ action, execute tool calls with validation + repair rounds, and emit SSE events.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import re
@@ -13,7 +14,7 @@ from .. import changes as ch
 from .. import concept_rules
 from ..brief import assemble_brief, glb_bbox_mm, parts_from_spec, same_geometry, size_from_spec, user_texts
 from ..builds import BuildBusy
-from ..concepts import render_concepts
+from ..concepts import render_concept, render_concepts
 from ..progress import TURN_STALE_S, TurnProgress
 from ..projects import find_concept, find_version, last_message, make_message, vkey
 from ..uploads import UploadError, message_attachments
@@ -28,6 +29,12 @@ log = logging.getLogger("gstudio.turn")
 Emit = Callable[[str, dict], Awaitable[None]]
 MAX_CONCEPTS = 6
 CONCEPT_RULE_ROUNDS = 2
+# Pack `freeform`: a concept whose CAD render fails goes back to the agent (its own budget) instead of being shown as
+# failed; not after the turn has run this long (the turn lock is TURN_STALE_S), and never for a builder outage.
+RENDER_REPAIR_ROUNDS = 2
+RENDER_REPAIR_MAX_AGE_S = 8 * 60
+RENDER_INFRA = re.compile(r"timed out|HTTP \d{3}|no answer|not JSON|builder /preview|is not available yet|"
+                          r"Connection (refused|reset|aborted)|ConnectError|ReadTimeout|ConnectTimeout", re.I)
 
 
 class TurnError(Exception):
@@ -87,6 +94,7 @@ class Turn:
         self.unsupported: list[dict] = []       # asked-for properties with no parameter (MAJ-34)
         self.usage: list[dict] = []
         self.concept_pool: dict[str, dict] = {}  # title.lower() -> {item, result}
+        self.rendered: dict[str, dict] = {}      # pack freeform: render key -> rendered concept (kept across repairs)
         self.concept_message = ""
         self.concept_defaults: list[str] = []
         self.posted = False
@@ -616,7 +624,9 @@ class Turn:
         p = await self.project()
         subject = concept_rules.subject_from_text(first_request(p))
         names = await asyncio.to_thread(self.svc.bridge.module_names)
-        set_fails = concept_rules.check_set(good, subject, names)
+        freeform = self.freeform()
+        set_fails = concept_rules.check_set(good, subject, names, freeform=True, wish=first_request(p)) if freeform \
+            else concept_rules.check_set(good, subject, names)
         if set_fails and not infra:
             lines = concept_rules.failure_lines(set_fails)
             fix = concept_rules.titles_to_fix(set_fails)
@@ -633,16 +643,23 @@ class Turn:
                 r.response["kept"] = [e["title"] for e in good if e["title"] not in fix]
                 return r
             log.warning("concept set still breaks rules after repairs: %s", lines)
-        await self.status(f"Rendering {len(good)} concepts")
+        if not freeform:
+            await self.status(f"Rendering {len(good)} concepts")
 
         async def progress(d: dict) -> None:
             await self.emit("concepts.progress", d)
 
         style = await asyncio.to_thread(image_rules.style_reference, self.svc.store, p)   # product photo or sketch
-        rendered = await render_concepts(self.svc, self.pid, [
-            {"title": e["title"], "blurb": e["blurb"], "tier": e["tier"], "spec": e["spec"],
-             "warnings": e["result"].get("warnings") or []} for e in good], progress, on_usage=self.record_usage,
-            style_ref=style)
+        if freeform:
+            out = await self._render_freeform(good, progress, style)
+            if isinstance(out, ToolResult):
+                return out
+            rendered = out
+        else:
+            rendered = await render_concepts(self.svc, self.pid, [
+                {"title": e["title"], "blurb": e["blurb"], "tier": e["tier"], "spec": e["spec"],
+                 "warnings": e["result"].get("warnings") or []} for e in good], progress, on_usage=self.record_usage,
+                style_ref=style)
         message = self.concept_message or "Choose the shape you prefer from the concepts."
         if bad:
             message += f"\n\n({len(bad)} other idea{'s' if len(bad) != 1 else ''} could not be made buildable, " \
@@ -666,6 +683,55 @@ class Turn:
         return ToolResult({"ok": True, "summary": f"{len(rendered)} concepts",
                            "concepts": [{"id": c["id"], "title": c["title"], "state": c["state"]} for c in rendered]},
                           terminal=True)
+
+    def freeform(self) -> bool:
+        """Pack `freeform` (custom csg shapes) is on."""
+        fn = getattr(self.svc.bridge, "packs_on", None)
+        try:
+            return "freeform" in set(fn() if callable(fn) else ())
+        except Exception:  # noqa: BLE001
+            return False
+
+    async def _render_freeform(self, good: list[dict], progress, style) -> list[dict] | ToolResult:
+        """Pack `freeform`: render only the concepts not rendered yet in this turn (a repaired concept has a new key).
+        Render failures the agent can fix (not a builder outage) go back to it as a repair round with the builder's
+        exact errors; the concepts that rendered are kept and never rendered twice. Out of rounds or time, the set is
+        shown as today, failed renders included."""
+        todo = [(k, e) for k, e in enumerate(good) if _render_key(e) not in self.rendered]
+        if todo:
+            await self.status(f"Rendering {len(todo)} concept{'s' if len(todo) != 1 else ''}")
+            outs = await asyncio.gather(*(render_concept(
+                self.svc, self.pid, k, e["title"], e["blurb"], e["spec"], e["result"].get("warnings") or [], progress,
+                tier=e["tier"], on_usage=self.record_usage, style_ref=style, keep_errors=True) for k, e in todo))
+            for (_, e), c in zip(todo, outs):
+                self.rendered[_render_key(e)] = c
+        failed = [e for e in good if _render_fixable(self.rendered[_render_key(e)])]
+        if failed and _age_s(self.started) < RENDER_REPAIR_MAX_AGE_S:
+            bad = {e["title"]: self.rendered[_render_key(e)].get("render_errors") or ["the CAD render failed"]
+                   for e in failed}
+            lines = [f"{t}: {x}" for t, es in bad.items() for x in es]
+            await self.emit("repair", {"round": self.repairs["concept_render"] + 1, "errors": lines[:20],
+                                       "kind": "concept_render"})
+            r = self._repair_or_fail(
+                "concept_render", lines,
+                "These concepts passed the spec check but their CAD render failed. Call propose_concepts again with "
+                f"ONLY these concepts corrected ({', '.join(bad)}), same titles and tiers, complete specs. Fix exactly "
+                "what each error names (for a csg body: the named node; make it simpler, thicker or better joined if "
+                "the error is about the shape). The other concepts are rendered and kept.", limit=RENDER_REPAIR_ROUNDS)
+            if r:
+                for e in failed:
+                    self.concept_pool.pop(e["title"].lower(), None)
+                    self.rendered.pop(_render_key(e), None)
+                r.response["errors_by_concept"] = bad
+                r.response["render_failures"] = list(bad)
+                r.response["kept"] = [e["title"] for e in good if e not in failed]
+                return r
+        out = []
+        for e in good:
+            c = dict(self.rendered[_render_key(e)])
+            c.pop("render_errors", None)
+            out.append(c)
+        return out
 
     async def tool_write_brief(self, args: dict) -> ToolResult:
         p = await self.project()
@@ -867,6 +933,20 @@ def out_of_scope(base: dict, new: dict, spec_path: str, named: list[str] | None 
     selection no longer lets decor or feature positions change unless the request names them (MAJ-34)."""
     allowed = {spec_path, "colors", *(named or [])}
     return [p for p in ch.changed_paths(base, new) if not ch.in_scope(p, allowed)]
+
+
+def _render_key(e: dict) -> str:
+    """A concept's identity for rendering: its title and its exact spec (a corrected spec is rendered again)."""
+    blob = json.dumps(e.get("spec"), sort_keys=True, separators=(",", ":"), default=str)
+    return str(e.get("title") or "").lower() + "|" + hashlib.sha1(blob.encode()).hexdigest()
+
+
+def _render_fixable(c: dict) -> bool:
+    """A failed render the agent can fix: the builder ran and named a problem (not a timeout or an outage)."""
+    if c.get("state") != "failed":
+        return False
+    errs = c.get("render_errors") or []
+    return bool(errs) and not any(RENDER_INFRA.search(str(x)) for x in errs)
 
 
 def pick_set(good: list[dict], per_tier: int = 2) -> list[dict]:

@@ -130,8 +130,98 @@ DESIGN = """# Design rules for cute, printable, safe objects
   added automatically; do not add them as features.
 - Coordinates: millimetres, +Z up, the front faces -Y, +X is the viewer's right; front-view positions are (x, z)."""
 
+# ---------------------------------------------------------------------------------------------- pack `freeform`
+# Custom csg shapes (contract: projects/wish-labs-hack/_notes/freeform-contract.md). Only while the pack is on: the
+# concept step, the design rules and the examples change, and the csg language is taught. With the pack off the
+# prompt is exactly the blocks above.
+FREEFORM = "freeform"
+FLOW_CONCEPTS = """2. concepts: call propose_concepts with 6 concepts, 2 per tier: expected (the obvious cute take on the subject),
+   different (fresh but sensible), wildcard (surprising, still buildable). Each uses a different body family or a
+   clearly different silhouette, a different feature layout and its own face, and each is a complete, valid spec."""
+FLOW_CONCEPTS_FREEFORM = """2. concepts: call propose_concepts with 6 concepts, 2 per tier: expected (the most functional product form for
+   this wish), different (a different form archetype), wildcard (a character that still does the job); see the design
+   rules. Each has its own form, its own feature layout and its own proportions, and each is a complete, valid spec."""
+FLOW_FREEFORM = FLOW.replace(FLOW_CONCEPTS, FLOW_CONCEPTS_FREEFORM)
+DESIGN_FREEFORM = """# Design rules for useful, printable, safe objects
+- Function first: the form comes from what the object holds, shows and does, and where it stands. Give each concept
+  the shapes that serve the wish: a tray or groove for small things, a slot for a pen, card or phone, a raised or
+  tilted screen deck, steps, a handle, a cable channel, a plinth. Every shape is part of the one printed shell.
+- Tiers: expected = the most functional product form for this wish (what a good product designer would ship);
+  different = a different form archetype from the expected pair (a wedge console, an upright tower, a flat base
+  station, a stepped organiser, a dock with a tray groove, an arch, a lantern); wildcard = a character (a figure or
+  creature that still does the job).
+- No face by default. Eyes, mouth and blush (and animal ears) go only on the wildcard character, or on any concept
+  when the wish is playful or for a child. A display is a screen, not a face, unless the concept is a character.
+- Subject first: keep the subject the user named (e.g. robot) recognisable in all Expected concepts and in at
+  least one concept per tier, and say the noun in the title or blurb; animals or objects are allowed only as
+  styling of that subject (a robot can be owl-styled, but it is still a robot).
+- Robots: at least 4 of the 6 concepts read as robots and carry two or more robot cues each: antenna ears (decor
+  ear style "antenna"), a visor face plate (face_plate shape "rounded_rect"), a screen face (the 2.0 in LCD as the
+  face), a head-on-body stack (a silhouette outline that narrows to a neck between a wider head and body, or a
+  blob body with a head primitive on a body primitive), or a boxy body (rounded_box primitives).
+- Exact formats (the validator rejects anything else): every decor item has "type", "at": [x, z] and "size":
+  [w, h] (text has "text" and "height" instead of size); a blob primitive is exactly {"kind", "center": [x, y, z],
+  "size": [sx, sy, sz], "radius", "axis"} with kind one of rounded_box, sphere, ellipsoid, cylinder, capsule and no
+  other keys.
+- No shared template: no two concepts use the same feature order and positions. Vary where the speaker, button,
+  light and microphone go (front, top deck, side, a tilted panel, a light band or halo).
+- Range widely: across the set vary the form archetype, the proportions (low and wide, tall and slim, stepped,
+  tilted) and the colour and material mood. Never six versions of one rounded shell.
+- Rounds: no sharp corners or thin spikes. On silhouette, revolve and blob bodies use edge_round 8-16 mm on bodies
+  of 120 mm or more and smooth outlines of 8-14 points.
+- Displays where the user looks: tilted up on a low body, near the top of a tower. A character's eyes go in the upper
+  third of its front, the mouth just below.
+- Big friendly button where a hand naturally lands; label it in the feature label.
+- Speaker grille toward the user, wide and short.
+- Lights where they are seen: on the front or the top, not hidden under a ledge or the chin.
+- Stable: the base is at least as wide as the top half; height at most about 1.6x the base width; flat bottom
+  segment on z=0; 4 feet.
+- Wall at least 2.2 mm (2.4 default). Every axis 60-260 mm; the part must fit a 250 x 210 x 210 mm print bed.
+- Keep at least 3 mm between features and decor cut-outs, and leave room behind each feature for its module.
+- Use library ids exactly. Every feature binds one module instance. The amp, microSD, USB-C input and backplane are
+  added automatically; do not add them as features.
+- Coordinates: millimetres, +Z up, the front faces -Y, +X is the viewer's right; front-view positions are (x, z)."""
+
+
+# How to design with csg bodies. The csg LANGUAGE itself (nodes, frame, limits) is library/packs/freeform.json
+# prompt_rules, owned by the engine builder (contract _notes/freeform-contract.md section 7); it reaches the prompt
+# through the pack rules. The patterns below follow contract v1 (boxes, cylinders, cones and z-extrudes stand on
+# z = 0, centred in x and y) and stay PROVISIONAL until the engine's validated examples cover them.
+CSG_RULES = """# Designing with csg bodies (freeform)
+A csg body ("family": "csg") is the shell's outer form as a small tree of solid shapes, in the csg language listed
+under "Parts and objects added this week". It is data, never code. The engine hollows it, adds the seam, the core
+cartridge and the module mounts, puts each feature on its named face where that face's surface is, and runs every
+check; an error names the node path: fix that node and resend.
+- Use a csg body for at least 3 of the 6 concepts, wherever a shape serves the function; silhouette, revolve and
+  blob bodies are fine for the rest.
+- Build the function from shapes: a tray is a rounded box cut down into the top, a slot is a thin box cut down from
+  the top, a sloped screen face is a side outline (extrude axis "x"), steps are boxes of rising height in one union,
+  a plinth is a wider low box under the body, an arch or handle is a torus or a front outline (extrude axis "y").
+- Keep the electronics room: the core cartridge lies on the floor at the rear (see the hard fit rules), so put trays
+  and slots at the front or high on the top, with their floors above the cartridge.
+- Features sit on flat or gently curved areas of their face, away from cuts, blends and edges.
+- Prefer 3-15 nodes; a union blend of 4-12 mm makes the parts read as one product.
+- Patterns (each is a body.csg value):
+  dock with a front tray groove: {"op":"cut","node":{"op":"box","size":[200,130,70],"round":10},"minus":[{"op":"move",
+  "to":[0,-30,45],"node":{"op":"box","size":[150,50,40],"round":8}}]}
+  wedge console with a sloped screen face: {"op":"extrude","axis":"x","points":[[-65,0],[65,0],[65,95],[-15,95],
+  [-65,35]],"h":190,"round":6}
+  stepped organiser rising to the back: {"op":"union","blend":6,"nodes":[{"op":"box","size":[180,140,50],"round":8},
+  {"op":"move","to":[0,25,0],"node":{"op":"box","size":[180,90,90],"round":8}},{"op":"move","to":[0,45,0],
+  "node":{"op":"box","size":[180,50,130],"round":8}}]}
+  tower on a plinth: {"op":"union","blend":10,"nodes":[{"op":"cylinder","r":75,"h":20,"round":6},{"op":"move",
+  "to":[0,0,15],"node":{"op":"box","size":[115,110,170],"round":20}}]}{PRINTED}"""
+CSG_PRINTED = ("\n- A printed object (kind printed, no electronics) may use a csg body too, for example a sculpted "
+               "teapot or a stepped desk tidy.")
+
+
+def csg_rules(printed: bool = False) -> str:
+    """How to design with csg bodies (pack `freeform`); the printed-object line only while pack `printed` is on."""
+    return CSG_RULES.replace("{PRINTED}", CSG_PRINTED if printed else "")
+
 
 MAX_EXAMPLES = 4
+FREEFORM_CSG_EXAMPLES = 3   # pack `freeform`: csg examples shown first, at most this many
 
 # CATALOG-PLAN E3: the "cannot build" list and the motion sentence follow what the library offers right now
 CANNOT_ALWAYS = ["batteries", "cameras", "mains power", "heaters", "outdoor or wet use", "vehicles", "medical devices",
@@ -199,16 +289,36 @@ class PromptBuilder:
     def example_paths(self, wish: str | None = None) -> list[Path]:
         """Several worked examples of different forms, so the agent does not anchor on one bear: bedtime-robot first,
         then the examples whose name, tagline or slug share the most words with the wish (in candidate order when the
-        wish matches nothing or is not known), at most MAX_EXAMPLES."""
+        wish matches nothing or is not known), at most MAX_EXAMPLES. With pack `freeform` on, the csg examples come
+        first (up to FREEFORM_CSG_EXAMPLES, closest to the wish), then the rest by the wish, faceless ones first: the
+        face-and-ears examples alone made every concept the same rounded shell."""
         cands = self.candidate_paths()
         if not cands:
             return []
+        if FREEFORM in self._packs_on():
+            return self._freeform_examples(cands, wish)
         head, rest = cands[:1], cands[1:]
         words = _words(wish or "")
         if words:
             scored = [(-len(words & _words(self._example_text(p))), k, p) for k, p in enumerate(rest)]
             rest = [p for _, _, p in sorted(scored, key=lambda t: (t[0], t[1]))]
         return (head + rest)[:MAX_EXAMPLES]
+
+    def _freeform_examples(self, cands: list[Path], wish: str | None) -> list[Path]:
+        words = _words(wish or "")
+        specs = {p: self._read_example(p) or {} for p in cands}
+
+        def rank(paths: list[Path], faceless_first: bool = False) -> list[Path]:
+            def key(t):
+                k, p = t
+                face = bool(faceless_first and _has_face(specs[p]))
+                return (face, -len(words & _words(self._example_text(p))) if words else 0, k)
+            return [p for _, p in sorted(enumerate(paths), key=key)]
+
+        csg = [p for p in cands if (specs[p].get("body") or {}).get("family") == "csg"]
+        rest = [p for p in cands if p not in csg]
+        out = rank(csg)[:FREEFORM_CSG_EXAMPLES]
+        return (out + rank(rest, faceless_first=True))[:MAX_EXAMPLES]
 
     def _example_text(self, p: Path) -> str:
         sp = self._read_example(p) or {}
@@ -263,6 +373,10 @@ class PromptBuilder:
             return bool(fn(role)) if callable(fn) else False
         except Exception:  # noqa: BLE001
             return False
+
+    def packs_on(self) -> frozenset:
+        """Names of the packs that are on (the tool wording follows pack `freeform`)."""
+        return self._packs_on()
 
     def _packs_on(self) -> frozenset:
         fn = getattr(self.bridge, "packs_on", None)
@@ -320,11 +434,14 @@ class PromptBuilder:
             schema = self.bridge.spec_schema_text()
             table = self.bridge.library_table()
             cap = self.capability_blocks()
-            design = DESIGN
+            freeform = FREEFORM in self._packs_on()      # custom csg shapes: own concept step, design rules, csg language
+            design = DESIGN_FREEFORM if freeform else DESIGN
             if "printed" in self._packs_on():  # printed objects (pack `printed`) may be as small as 20 mm per axis
                 design = design.replace("Every axis 60-260 mm;", "Every axis 60-260 mm (a printed object: 20-260 mm);")
-            blocks = [ROLE, FLOW, VOICE, HONESTY.replace("{CANNOT}", cap["honesty"]), SAFETY.replace("{MOVING}", cap["moving"]),
-                      cap["say_yes"], design]
+            blocks = [ROLE, FLOW_FREEFORM if freeform else FLOW, VOICE, HONESTY.replace("{CANNOT}", cap["honesty"]),
+                      SAFETY.replace("{MOVING}", cap["moving"]), cap["say_yes"], design]
+            if freeform:
+                blocks.append(csg_rules("printed" in self._packs_on()))
             if cap["packs"]:
                 blocks.append(cap["packs"])
             blocks += [
@@ -355,6 +472,10 @@ class PromptBuilder:
         return head + "\n\n" + (
             "# Worked example specs (they validate: copy key names and value formats exactly. They show "
             "different forms; do not reuse one body, feature layout or decor for more than one concept)\n" + ex_text)
+
+
+def _has_face(spec: dict) -> bool:
+    return any(isinstance(d, dict) and d.get("type") in ("eye", "mouth", "blush") for d in spec.get("decor") or [])
 
 
 def _words(text: str) -> set[str]:

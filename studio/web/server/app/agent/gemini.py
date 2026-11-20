@@ -80,7 +80,7 @@ class GeminiBrain:
             system_instruction=with_rules(self.prompts.system_prompt(wish), images),   # image rules only with images
             temperature=1.0,
             max_output_tokens=32768,
-            tools=[types.Tool(function_declarations=declarations(allowed))],
+            tools=[types.Tool(function_declarations=declarations(allowed, self.prompts.packs_on()))],
             tool_config=types.ToolConfig(function_calling_config=types.FunctionCallingConfig(mode="AUTO")),
             automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         )

@@ -8,6 +8,11 @@ anything is rendered. Failures go back to the model as a repair round.
 (b) face: every concept has at least 2 face decor items (eye, mouth, blush) or a display of 1.5 in or larger.
 (c) layout: no two concepts share the same feature order and positions (signature: features sorted by face and
     height, each as role, face and left/centre/right).
+
+With pack `freeform` on (custom csg shapes, check_set(..., freeform=True, wish=...)) rule (b) turns around: no face is
+forced. Faces are welcome only when the wish is playful or for a child (or names a character subject such as a robot or
+an owl); otherwise the expected and different concepts must be plain products without face decor, and only the
+wildcard (a character) may have one. Everything else is the same as with the pack off.
 """
 from __future__ import annotations
 
@@ -54,6 +59,16 @@ MIN_FACE_ITEMS = 2
 MIN_DISPLAY_IN = 1.5
 SIDE_MM = 8.0
 FACE_ORDER = {"front": 0, "top": 1, "left": 2, "right": 3, "rear": 4}
+# pack `freeform`: words in the wish that make a face welcome (a playful or child-directed wish), and the subjects that
+# are characters by nature (a face is part of them). "pet" and "friend" are left out: a pet feeder is an appliance.
+PLAYFUL_WORDS = frozenset((
+    "child", "children", "kid", "kids", "kiddo", "baby", "babies", "toddler", "toddlers", "son", "daughter", "nephew",
+    "niece", "grandson", "granddaughter", "grandchild", "grandkids", "boy", "girl", "nursery", "cute", "playful", "fun",
+    "funny", "toy", "toys", "cuddly", "adorable", "kawaii", "silly", "whimsical", "cartoon", "character", "mascot",
+    "creature", "buddy", "companion", "critter", "plush"))
+CHARACTER_SUBJECTS = frozenset(("robot", "owl", "bear", "cat", "bunny", "dog", "fox", "panda", "penguin", "frog",
+                                "dinosaur", "dragon", "unicorn", "elephant", "alien", "monster"))
+CHARACTER_TIER = "wildcard"
 
 
 def _tokens(text: str) -> list[str]:
@@ -109,6 +124,21 @@ def face_ok(spec: dict, names: dict[str, dict]) -> tuple[bool, str]:
     kinds = ", ".join(sorted({d["type"] for d in items})) or "none"
     return False, (f"needs a face: at least {MIN_FACE_ITEMS} face decor items (mouth and blush, or eyes) or the "
                    f"{MIN_DISPLAY_IN:g} in or larger display as its face (it has: {kinds})")
+
+
+def face_items(spec: dict) -> list[str]:
+    """The face decor types on a spec (eye, mouth, blush), in order."""
+    return [d["type"] for d in spec.get("decor") or [] if isinstance(d, dict) and d.get("type") in FACE_DECOR]
+
+
+def faces_welcome(wish: str, subject: dict | None, concepts: Iterable[dict] = ()) -> bool:
+    """Pack `freeform`: a face is welcome when the wish is playful or for a child (its words, or a concept marked
+    child-directed) or names a character subject (robot, owl, bear, ...)."""
+    if subject and subject.get("noun") in CHARACTER_SUBJECTS:
+        return True
+    if any(((c.get("spec") or {}).get("audience") or {}).get("child_directed") for c in concepts):
+        return True
+    return bool(set(_tokens(wish)) & PLAYFUL_WORDS)
 
 
 def _stacked(prims: list[dict]) -> bool:
@@ -194,8 +224,10 @@ def borrowed(name: str | None) -> bool:
     return any(b in low for b in BORROWED_NAMES)
 
 
-def check_set(concepts: list[dict], subject: dict | None, names: dict[str, dict]) -> list[dict]:
-    """concepts: [{title, tier, blurb, spec}]. Returns failures [{rule, titles, message}] (empty = the set passes)."""
+def check_set(concepts: list[dict], subject: dict | None, names: dict[str, dict], *, freeform: bool = False,
+              wish: str = "") -> list[dict]:
+    """concepts: [{title, tier, blurb, spec}]. Returns failures [{rule, titles, message}] (empty = the set passes).
+    freeform (pack `freeform` on): no forced face; a face only where faces_welcome(wish, ...) or on the wildcard."""
     fails: list[dict] = []
     n = len(concepts)
     taken = [c["title"] for c in concepts if borrowed(c.get("title")) or borrowed((c.get("spec") or {}).get("name"))]
@@ -233,7 +265,19 @@ def check_set(concepts: list[dict], subject: dict | None, names: dict[str, dict]
                                           "body primitive) or a boxy body (rounded_box primitives). "
                                           + "; ".join(f"{c['title']} has {', '.join(sorted(cu)) or 'no cues'}"
                                                       for c, cu in weak[:6]))})
-    bad_face = [(c["title"], why) for c in concepts for ok, why in [face_ok(c["spec"], names)] if not ok]
+    if freeform:
+        if not faces_welcome(wish, subject, concepts):
+            faced = [(c["title"], face_items(c["spec"])) for c in concepts
+                     if c.get("tier") != CHARACTER_TIER and face_items(c["spec"])]
+            if faced:
+                fails.append({"rule": "no_face", "titles": [t for t, _ in faced],
+                              "message": "This wish is not playful or for a child, so the expected and different "
+                                         "concepts are plain products without a face: remove the face decor ("
+                                         + "; ".join(f"{t} has {', '.join(sorted(set(k)))}" for t, k in faced)
+                                         + "). A display stays a screen. Only the wildcard character may have a face."})
+        bad_face = []
+    else:
+        bad_face = [(c["title"], why) for c in concepts for ok, why in [face_ok(c["spec"], names)] if not ok]
     if bad_face:
         fails.append({"rule": "face", "titles": [t for t, _ in bad_face],
                       "message": "Each concept needs a character face. " + "; ".join(f"{t} {w}" for t, w in bad_face)})
@@ -267,4 +311,4 @@ def titles_to_fix(fails: Iterable[dict]) -> list[str]:
 
 
 __all__ = ["subject_from_text", "check_set", "archetype_cues", "layout_signature", "face_ok", "names_subject",
-           "display_inches", "failure_lines", "titles_to_fix"]
+           "display_inches", "failure_lines", "titles_to_fix", "faces_welcome", "face_items"]

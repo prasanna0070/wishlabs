@@ -16,7 +16,7 @@ DECOR_NAMES = {"face_plate": "face plate", "ear": "ears", "eye": "eye", "mouth":
                "text": "text"}
 BODY_NAMES = {"edge_round": "body edge rounding", "depth": "body depth", "outline": "body outline",
               "profile": "body profile", "primitives": "body shape", "wall": "wall thickness", "feet": "feet",
-              "split": "shell split", "squash_y": "body depth squash", "family": "body type"}
+              "split": "shell split", "squash_y": "body depth squash", "family": "body type", "csg": "body shape"}
 COLOR_NAMES = {"body": "body colour", "accent": "accent colour", "detail": "detail colour",
                "body_name": "body colour name", "accent_name": "accent colour name", "detail_name": "detail colour name"}
 
@@ -119,7 +119,10 @@ def _unit(path: str, v: Any) -> str:
 
 
 def _group(path: str) -> str:
-    """Collapse list-valued leaves to their field (decor[1].size[0] -> decor[1].size)."""
+    """Collapse list-valued leaves to their field (decor[1].size[0] -> decor[1].size). A csg body (pack freeform) is
+    one change: body.csg.nodes[1].size[0] -> body.csg."""
+    if path == "body.csg" or path.startswith(("body.csg.", "body.csg[")):
+        return "body.csg"
     return re.sub(r"\[\d+\]$", "", re.sub(r"(\.(size|at|outline|profile|primitives|center))\[\d+\].*$", r"\1", path))
 
 
@@ -137,6 +140,8 @@ def describe(base: dict, new: dict, requested: set[str] | None = None) -> list[d
             text = f"added {_name(new, p)}"
         elif b is None:
             text = f"removed {_name(base, p)}"
+        elif p == "body.csg":                       # a tree: say what changed, not the whole tree
+            text = f"{_name(new, p)} changed"
         else:
             text = f"{_name(new, p)} {_fmt(a)}{ARROW}{_fmt(b)}{_unit(p, b)}"
         out.append({"path": p, "text": text, "requested": in_scope(p, requested) if requested is not None else True})
