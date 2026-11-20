@@ -105,7 +105,7 @@ async def converse(http: Http, lines: list[bytes], log: list) -> dict:
     except TypeError:
         ws = await websockets.connect(url, extra_headers=hdr, max_size=None)
     out_audio = bytearray()
-    state = {"next": 0, "speak_at": None, "ended": None, "submitted": None, "t0": time.monotonic()}
+    state = {"next": 0, "speak_at": None, "ended": None, "submitted": None, "t0": time.monotonic(), "heard": False}
     queue: list[bytes] = []
 
     def t() -> float:
@@ -119,6 +119,7 @@ async def converse(http: Http, lines: list[bytes], log: list) -> dict:
                     pcm = lines[state["next"]]
                     log.append({"t": t(), "say": LINES[state["next"]]})
                     state["next"] += 1
+                    state["heard"] = False
                     queue.extend(pcm[i:i + FRAME] for i in range(0, len(pcm), FRAME))
             frame = queue.pop(0) if queue else b"\x00\x00" * (FRAME // 2)
             if len(frame) % 2:
@@ -142,7 +143,10 @@ async def converse(http: Http, lines: list[bytes], log: list) -> dict:
                 print(f"[{ev['_t']:6.1f}] {ev['role']:9s} {ev['text']}", flush=True)
             else:
                 print(f"[{ev['_t']:6.1f}] {kind} {json.dumps({k: v for k, v in ev.items() if k not in ('type', '_t', 'transcript')})[:240]}", flush=True)
-            if kind == "turn_complete" and state["submitted"] is None:
+            if kind == "caption" and ev.get("role") == "assistant":
+                state["heard"] = True
+            # answer only a turn in which Live actually said something (an interrupted, empty turn also completes)
+            if kind == "turn_complete" and state["submitted"] is None and state["heard"]:
                 state["speak_at"] = time.monotonic() + 0.8
             elif kind == "submitted":
                 state["submitted"] = ev

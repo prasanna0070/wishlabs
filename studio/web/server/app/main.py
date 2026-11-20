@@ -14,7 +14,6 @@ from .config import SERVER_VERSION, SPA_BASE, Settings
 from .routes import device as device_routes
 from .routes import projects as project_routes
 from .routes import public as public_routes
-from .routes import voice as voice_routes
 from .services import Services
 
 log = logging.getLogger("gstudio.web")
@@ -58,7 +57,9 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
     app.include_router(public_routes.router)
     app.include_router(device_routes.router)
     app.include_router(project_routes.router)
-    app.include_router(voice_routes.router)       # voice wish: Gemini Live WebSocket + stored recording
+    from .routes import voice as voice_routes      # voice wish: Gemini Live WebSocket + stored recording
+
+    app.include_router(voice_routes.router)
 
     static: Path | None = settings.static_dir if settings.static_dir and settings.static_dir.is_dir() else None
     index = static / "index.html" if static else None
