@@ -6,6 +6,7 @@ trace needs (see trace.py).
 """
 from __future__ import annotations
 
+import re
 from typing import Any
 
 PHYSICAL_SHOWN = 3
@@ -104,6 +105,32 @@ def checks_sentence(c: dict) -> str:
     return "Digital checks: " + ", ".join(bits) + "."
 
 
+def part_label(name: Any) -> str:
+    """A CAD part name in plain words: PRINT_RearCover -> Rear cover, PURCHASE_CoreBoard -> Core board; other names
+    stay as they are."""
+    n = str(name or "").strip()
+    for pre in ("PRINT_", "PURCHASE_"):
+        if n.startswith(pre) and len(n) > len(pre):
+            words = re.findall(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|[0-9]+", n[len(pre):]) or [n[len(pre):]]
+            n = " ".join(words)
+            return n[:1].upper() + n[1:].lower()
+    return n
+
+
+def _held_reason(w: Any) -> str:
+    """One reason the quote is held, readable: a collision pair {parts, mm3} -> "Shell / Rear cover (95 mm3)"."""
+    if not isinstance(w, dict):
+        return str(w)
+    if w.get("message"):
+        return str(w["message"])
+    parts = w.get("parts") or w.get("pair")
+    if isinstance(parts, (list, tuple)) and parts:
+        txt = " / ".join(part_label(p) for p in parts)
+        mm3 = _num(w.get("mm3"))
+        return txt + (f" ({mm3:.0f} mm3)" if mm3 is not None else "")
+    return ", ".join(f"{k} {v}" for k, v in w.items()) or "collision check"
+
+
 def price_of(build: dict, quote: Any) -> dict:
     order = build.get("order") if isinstance(build, dict) else None
     inr = _num((order or {}).get("list_price_inr"))
@@ -119,8 +146,7 @@ def price_of(build: dict, quote: Any) -> dict:
         status = status or quote.get("status")
     if str(status or "").upper() == "HELD":
         why = (quote.get("held_because") if isinstance(quote, dict) else None) or (order or {}).get("held_because")
-        why_s = "; ".join(str(w.get("message") or w.get("pair") or w) if isinstance(w, dict) else str(w)
-                          for w in why[:3]) if isinstance(why, list) and why else ""
+        why_s = "; ".join(_held_reason(w) for w in why[:3]) if isinstance(why, list) and why else ""
         return {"inr": None, "status": "HELD",
                 "label": "Price held until the design passes its collision check" + (f" ({why_s})" if why_s else "")}
     if inr is None:

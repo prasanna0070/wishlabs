@@ -225,6 +225,31 @@ This is a JSON array of module objects written by the library agents. The schema
 
 **Only modules in the library may appear in a spec.** That is the "limited set of components we have".
 
+### 4.1 Capability packs (`library/packs/`, `gstudio/packs.py`)
+
+A pack is a capability bundle that can be switched on or off without a new image. `library/packs/<name>.json` holds
+`{"pack", "rows", "prompt_rules", "known_harness_gaps"}`; each row is a library row plus a `merge` block (role, ref
+prefix, placement feature/internal/none, designable, backplane port, factory pre-wiring, optional in-shell
+`face_mm`/`depth_mm`). `tools/merge_modules.py` merges the rows after the three sources and stops on a duplicate id,
+an unknown slot, a cable or role the port does not take, or a module pin that reaches no port pin. Worked examples
+live in `library/packs/examples/<pack>/<slug>/spec.json`.
+
+The switch is `library/packs/enabled.json` (`{"enabled": [...]}`, missing = nothing on); env `GS_PACKS_ENABLED=a,b`
+replaces the list (tests, VM runs) and `GS_PACKS_OFF=a+b` turns packs off at runtime (kill switch). A pack that is
+off is invisible: `Library` drops its rows, the spec refuses its fields with "not available yet" (code
+`not_available`), `spec_json_schema()` leaves them out, and the agent gets none of its rules or examples.
+
+Spec fields that belong to packs (all optional; a gadget without them is unchanged):
+- `kind` `"printed"` (pack `printed`): an object with no electronics, so no features, extra_modules or behaviour;
+  `printed` `{opening: none|top, drain_hole}`; `body.split` `"none"`; sizes from 20 mm per axis.
+  `normalize()` hands it to `gstudio.printed.normalize_printed`.
+- `cuts` (pack `printed_cuts`): up to 8 pockets, slots or holes on a printed object.
+- `mount` `{kind: desk|wall|ceiling, screws: 2|3}` (pack `mount`; ceiling also `mount_ceiling`): wall needs a
+  silhouette body with split rear_cover and no feet; ceiling needs split base_plate and is never child-directed.
+- `body.primitives[].rot`, kinds `cone` (`tip`), `torus`, `tube` (`sweep`), up to 24 primitives (pack `sculpt`;
+  geometry in `gstudio/sdf_ext.py` and the CAD).
+- `behaviour.template` `"latch"` (pack `motion2`).
+
 ## 5. Output layout of one build version (`<out>` = local dir or `gs://$BUCKET/projects/<pid>/v<n>/`)
 
 ```

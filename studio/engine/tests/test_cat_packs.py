@@ -321,3 +321,19 @@ def test_cable_exit_part_gets_the_longest_lead(merged, monkeypatch):
     sp, rep = normalize(d, Library(merged))
     h = next(h for h in sp.derived.harness if h.ref.startswith("SOIL"))
     assert h.length_mm == 300 and h.module == "CABLE_JSTPH_3P_DUPONT1X3_300_X321", rep["errors"]
+
+
+def test_soil_probe_only_under_sensor_display(merged, monkeypatch):
+    """c-to-e 3: only the sensor_display firmware reads a soil probe or float switch; elsewhere it is refused."""
+    from gstudio.normalize import normalize
+
+    _clean_env(monkeypatch)
+    monkeypatch.setenv("GS_PACKS_ENABLED", "testpack")
+    d = _example("desk-buddy")
+    d["features"].append({"id": "soil", "module": SOIL["id"], "face": "rear", "at": [0, 30], "label": "Soil probe lead"})
+    _, rep = normalize(d, Library(merged))
+    e = [x for x in rep["errors"] if x["path"] == "behaviour.template"]
+    assert e and e[0]["code"] == "template_requirement" and "soil probe is read only by the sensor_display" in e[0]["msg"]
+    d["behaviour"] = {"template": "sensor_display", "summary": "", "settings": {}}
+    _, rep = normalize(d, Library(merged))
+    assert not [x for x in rep["errors"] if x["path"] == "behaviour.template"]

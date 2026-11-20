@@ -173,3 +173,18 @@ def test_printed_size_range_only_with_the_printed_pack(studio, monkeypatch):
     _, on = _prompt(studio, monkeypatch, "printed")
     assert "Every axis 60-260 mm (a printed object: 20-260 mm);" in on
     assert "depth included (a printed object with no electronics: 20-260 mm)." in on
+    assert "- Core cartridge (gadgets only: a printed object has no electronics): " in on
+    assert "- Core cartridge: it lies flat" in off
+
+
+def test_held_price_names_the_colliding_parts_in_words():
+    """orchestrator-to-e 2: a held quote listed raw dicts ({'parts': [...], 'mm3': ...}) in the chat."""
+    from app.summary import part_label, price_of
+
+    quote = {"status": "HELD", "held_because": [{"parts": ["PRINT_Shell", "PRINT_RearCover"], "mm3": 94.5259},
+                                                {"parts": ["PRINT_Shell", "PURCHASE_CoreBoard"], "mm3": 871.2},
+                                                {"message": "the shell is not one solid"}]}
+    label = price_of({}, quote)["label"]
+    assert label == ("Price held until the design passes its collision check (Shell / Rear cover (95 mm3); "
+                     "Shell / Core board (871 mm3); the shell is not one solid)")
+    assert "{" not in label and part_label("PRINT_BasePlate") == "Base plate" and part_label("U1") == "U1"
