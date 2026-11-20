@@ -16,6 +16,7 @@ from ..builds import BuildBusy, enrich_status
 from ..changes import changes_text, describe
 from ..config import SPA_BASE
 from ..plan import base_nudges, from_engine, reuse_plan
+from ..progress import progress_key, turn_view
 from ..projects import NotFound, find_version, make_message, vkey
 from ..sse import EventChannel, sse_response
 from ..tts import TtsError
@@ -194,6 +195,20 @@ async def _turn_stream(request: Request, pid: str, body: dict):
     request.app.state.bg.add(task)
     task.add_done_callback(request.app.state.bg.discard)
     return sse_response(ch.stream())
+
+
+@router.get("/api/projects/{pid}/turn")
+async def turn_status(request: Request, pid: str):
+    """Is a chat turn running, and what is it doing? For a page that reloads or loses its chat stream mid-turn (the
+    turn may run on another instance): {running, stale, started, age_s, step, steps, thoughts, ...} from the turn lock
+    in project.json and projects/<pid>/turn-progress.json. Signed-in only; share links never see thoughts."""
+    svc = svc_of(request)
+    p = await load_project(request, pid, reconcile=False)
+    try:
+        rec = await asyncio.to_thread(svc.store.read_json, progress_key(pid))
+    except Exception:  # noqa: BLE001 - an unreadable record only loses the step detail, never the lock state
+        rec = None
+    return JSONResponse(turn_view(p.get("turn"), rec), headers={"Cache-Control": "no-store"})
 
 
 @router.get("/api/projects/{pid}/stream")

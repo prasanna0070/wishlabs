@@ -53,10 +53,11 @@ PUBLIC_URL=${PUBLIC_URL:-$(gcloud run services describe $SVC --region=$REGION --
 #   LIVE_NO_BARGE_IN=1 bash studio/deploy/web.sh      noisy room: Live finishes its line even when it hears sound
 #   SOUND=0 bash studio/deploy/web.sh                 gadget sound off
 #   LYRIA_MODEL=lyria-002 bash studio/deploy/web.sh   Lyria 2 only
+#   AGENT_THOUGHTS=0 bash studio/deploy/web.sh        no thought summaries in the chat (the working card keeps its steps)
 KNOBS=""
 for k in LIVE_ENABLED LIVE_MODEL LIVE_LOCATION LIVE_FALLBACK_MODEL LIVE_ALLOWED_ORIGINS LIVE_MAX_SECONDS \
          LIVE_NO_BARGE_IN LIVE_START_SENSITIVITY SOUND LYRIA_MODEL LYRIA_LOCATION LYRIA_FALLBACK SOUND_DAILY_CAP \
-         SOUND_SESSION_HOURLY; do
+         SOUND_SESSION_HOURLY AGENT_THOUGHTS; do
   v="${!k:-}"
   [ -n "$v" ] || continue
   case "$v" in *,*) echo "$k must not contain a comma" >&2; exit 1 ;; esac

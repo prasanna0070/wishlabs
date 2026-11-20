@@ -14,6 +14,7 @@ from .. import concept_rules
 from ..brief import assemble_brief, glb_bbox_mm, parts_from_spec, same_geometry, size_from_spec, user_texts
 from ..builds import BuildBusy
 from ..concepts import render_concepts
+from ..progress import TURN_STALE_S, TurnProgress
 from ..projects import find_concept, find_version, last_message, make_message, vkey
 from ..usage import apply_turn, sum_records
 from ..util import new_id, now_iso, parse_iso
@@ -23,7 +24,6 @@ from .voice import lint
 log = logging.getLogger("gstudio.turn")
 
 Emit = Callable[[str, dict], Awaitable[None]]
-TURN_STALE_S = 15 * 60
 MAX_CONCEPTS = 6
 CONCEPT_RULE_ROUNDS = 2
 
@@ -65,8 +65,11 @@ class Turn:
     def __init__(self, svc, pid: str, emit: Emit):
         self.svc = svc
         self.pid = pid
-        self.emit = emit
+        self._emit = emit
         self.id = new_id("t")
+        self.started: str | None = None         # the lock's start time (set by begin)
+        self.progress: TurnProgress | None = None  # turn-progress.json for a page that reloads (set by run)
+        self.failed = False
         self.repairs: dict[str, int] = defaultdict(int)
         self.build_n: int | None = None
         self.instruction: str | None = None
@@ -87,6 +90,18 @@ class Turn:
         self.posted = False
 
     # ------------------------------------------------------------------ helpers
+    async def emit(self, event: str, data: dict) -> None:
+        """Every turn event goes to the SSE stream and is folded into the progress record (throttled writes)."""
+        if self.progress is not None:
+            self.progress.observe(event, data)
+        await self._emit(event, data)
+
+    async def thought(self, text: str) -> None:
+        """A thought summary from the model: streamed as thinking.delta and kept (the newest ~3 KB) in the progress
+        record. Never part of a chat message, the stored answer or a share link."""
+        if str(text or "").strip():
+            await self.emit("thinking.delta", {"text": str(text)})
+
     async def project(self) -> dict:
         return await self.svc.repo.aget(self.pid)
 
@@ -111,6 +126,7 @@ class Turn:
         self.usage.append(rec)
 
     async def fail(self, text: str, code: str = "agent_error", retryable: bool = True) -> None:
+        self.failed = True
         msg = make_message("assistant", "error", text, {"code": code, "retryable": retryable})
         await self.add_message(msg)
         await self.emit("message.done", {"message": msg})
@@ -275,12 +291,13 @@ class Turn:
         user_msg = make_message("user", "text", msg_text,
                                 ({"action": action, **payload} if action else None))
         self.user_message = user_msg
+        self.started = now_iso()
 
         def mut(pp):
             t2 = pp.get("turn")
             if t2 and _age_s(t2.get("started")) < TURN_STALE_S:
                 raise TurnError(409, "conflict", "The assistant is still answering the previous message.")
-            pp["turn"] = {"id": self.id, "started": now_iso()}
+            pp["turn"] = {"id": self.id, "started": self.started}
             if mode:
                 pp["mode"] = mode
             for f in side:
@@ -363,14 +380,23 @@ class Turn:
             await self.update(mut)
         except Exception:  # noqa: BLE001
             log.exception("could not clear turn marker")
+        if self.progress is not None:
+            # after the lock is cleared, and in the background: GET /turn already reports the turn ended (no lock), and
+            # the last events (project, done) must not wait for a slow store write (a GCS hiccup)
+            self.progress.finish_later("error" if self.failed else "done")
         if self.usage:
             log.info("turn %s usage: %s", self.id, {k: rec[k] for k in ("input_tokens", "output_tokens",
                                                                        "thinking_tokens", "images", "cost_usd_est")})
 
     # ------------------------------------------------------------------ run
     async def run(self) -> None:
-        await self.emit("turn.start", {"turn_id": self.id, "started": now_iso(), "user_message": self.user_message})
-        try:
+        self.progress = TurnProgress(self.svc.store, self.pid, self.id, started=self.started,
+                                     action=self.action or "text", mode=self.mode,
+                                     user_message_id=(self.user_message or {}).get("id"))
+        try:                                    # from here on, end() always clears the lock and stops the writer
+            self.progress.start()
+            await self.emit("turn.start", {"turn_id": self.id, "started": self.started or now_iso(),
+                                           "user_message": self.user_message})
             if self.direct == "approve_brief":
                 await self.approve_brief()
             elif self.direct == "retry_build":

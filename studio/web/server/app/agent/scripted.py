@@ -98,12 +98,39 @@ def variants(base: dict) -> list[tuple[str, str, str, dict]]:
     return out
 
 
+# SCRIPTED_THINK_S > 0 (dev and browser tests only): before acting, the scripted brain "thinks" for that many seconds
+# and streams these canned thought summaries, like a model with include_thoughts, so the working card can be checked
+# without model calls.
+THOUGHTS = {
+    "clarify": ["**Reading the wish**\n\nA bedside story robot for a young child: it has to be calm at night, simple "
+                "to use and safe to hold.\n\n",
+                "**Deciding what to ask**\n\nThe child's age changes the controls and the story style, and saying "
+                "new favourites out loud would need a microphone, so those two are worth asking.\n\n"],
+    "concepts": ["**Sketching shapes**\n\nSix shapes in three tiers: two expected robots, two different takes and two "
+                 "wildcards. Each keeps a friendly face and the story button within reach.\n\n",
+                 "**Fitting the parts**\n\nEvery shape must hold the core board, the speaker and the button behind "
+                 "a 2.4 mm wall, so the specs go to the parts catalog check next.\n\n"],
+    "other": ["**Reading the request**\n\nWorking out which part of the design this changes and what must stay "
+              "the same.\n\n"],
+}
+
+
 class ScriptedBrain:
     kind = "scripted"
 
     def __init__(self, svc):
         self.svc = svc
         self.prompts = PromptBuilder(svc.bridge, svc.settings)
+
+    async def think(self, turn, stage: str) -> None:
+        secs = float(getattr(self.svc.settings, "scripted_think_s", 0) or 0)
+        if secs <= 0:
+            return
+        await turn.status("Thinking")
+        lines = THOUGHTS.get(stage) or THOUGHTS["other"]
+        for t in lines:
+            await asyncio.sleep(secs / len(lines))
+            await turn.thought(t)
 
     def base_spec(self) -> dict:
         ex = self.prompts.example_spec()
@@ -115,6 +142,9 @@ class ScriptedBrain:
         last_user = next((m for m in reversed(p["chat"]) if m["role"] == "user"), None)
         text = (last_user or {}).get("text", "").lower()
         await asyncio.sleep(0)
+        concepts_next = turn.forced == "propose_concepts" or (stage == "clarify" and int(p.get("questions_asked") or 0))
+        await self.think(turn, "concepts" if concepts_next or stage == "concepts" else
+                         "clarify" if stage == "clarify" else "other")
         if turn.forced == "write_brief" or (stage == "brief" and "build" not in text and turn.forced is None):
             await turn.call_tool("write_brief", self._brief_args(p))
             return

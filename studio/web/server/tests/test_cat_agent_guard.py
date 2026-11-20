@@ -25,9 +25,11 @@ def test_tool_written_as_text_detects_only_tool_calls():
 class FakeTurn:
     mode = "fast"
     instruction = None
+    build_n = None
 
     def __init__(self):
         self.msgs, self.events, self.calls, self.failed = [], [], [], None
+        self.posted = False  # like Turn.add_message: an assistant message means the turn has answered
 
     async def project(self):
         return {"chat": [{"role": "user", "kind": "text", "text": "A small keychain cap, no electronics"}]}
@@ -39,6 +41,7 @@ class FakeTurn:
         self.events.append(("status", text))
 
     async def add_message(self, m):
+        self.posted = self.posted or m.get("role") == "assistant"
         self.msgs.append(m)
 
     async def emit(self, name, data):
@@ -58,10 +61,11 @@ def _brain(monkeypatch, script):
     monkeypatch.setattr(gemini, "build_contents", lambda svc, p, allowed, instruction: [])
     brain = gemini.GeminiBrain.__new__(gemini.GeminiBrain)
     brain.svc = SimpleNamespace(settings=SimpleNamespace(model_for=lambda mode: "m", model_fast="m"))
-    brain._config = lambda allowed, wish=None: None
+    brain._config = lambda allowed, thoughts=False, wish=None: None
+    monkeypatch.setattr(gemini, "EMPTY_RETRY_DELAY_S", 0)
     seen = []
 
-    async def call(turn, model, contents, config):
+    async def call(turn, model, contents, allowed, wish=None):  # (parts, calls, msg, finish) as in the merged loop
         seen.append([c for c in contents])
         return script.pop(0)
 
@@ -70,12 +74,16 @@ def _brain(monkeypatch, script):
 
 
 def _text(t, mid="m1"):
-    return [genai_types.Part(text=t)], [], {"id": mid, "role": "assistant", "kind": "text", "text": t}
+    return [genai_types.Part(text=t)], [], {"id": mid, "role": "assistant", "kind": "text", "text": t}, "STOP"
 
 
 def _call(name):
     fc = genai_types.FunctionCall(name=name, args={})
-    return [genai_types.Part(function_call=fc)], [fc], None
+    return [genai_types.Part(function_call=fc)], [fc], None, "STOP"
+
+
+def _empty():
+    return [], [], None, "STOP"
 
 
 def test_text_tool_call_is_replaced_and_retried(monkeypatch):
@@ -101,3 +109,12 @@ def test_plain_text_reply_ends_the_turn(monkeypatch):
     brain, seen = _brain(monkeypatch, [_text("Which colour would you like?")])
     asyncio.run(brain.run(turn))
     assert [m["text"] for m in turn.msgs] == ["Which colour would you like?"] and len(seen) == 1
+
+
+def test_empty_reply_after_the_nudge_is_asked_again(monkeypatch):
+    # merge of hack/thinking: "Working on it." counts as an answer there, but the nudge still owes a real call
+    turn = FakeTurn()
+    brain, seen = _brain(monkeypatch, [_text("`propose_concepts`{}"), _empty(), _call("propose_concepts")])
+    asyncio.run(brain.run(turn))
+    assert turn.calls == ["propose_concepts"] and turn.failed is None and len(seen) == 3
+    assert [m["text"] for m in turn.msgs] == ["Working on it."]
