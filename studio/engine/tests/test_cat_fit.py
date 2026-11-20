@@ -74,3 +74,21 @@ def test_a_front_round_that_reaches_the_board_is_refused_with_a_concrete_fix():
     assert errs, rep["errors"]
     fix = errs[0].get("fix") or ""
     assert "body.edge_round to" in fix and "body.depth at least" in fix
+
+
+def test_focus_lamp_top_speaker_reaching_the_rear_cover_is_refused_and_the_fix_works():
+    import re
+
+    from gstudio import normalize as N
+
+    if not hasattr(N, "kit_seam_conflicts"):
+        pytest.skip("normalize seam check not merged yet (hand-off d-to-e.md item 7b)")
+    d = json.loads(SPEC.read_text())
+    _, rep = _normalize(d)
+    seam = [e for e in rep["errors"] if e.get("code") == "kit_seam"]
+    assert len(seam) == 1 and seam[0]["msg"].startswith("sounder:"), rep["errors"]
+    at1 = float(re.search(r"at\[1\] <= (-?\d+)", seam[0]["fix"]).group(1))
+    k = next(i for i, f in enumerate(d["features"]) if f["id"] == "sounder")
+    d["features"][k]["at"] = [d["features"][k]["at"][0], at1]
+    _, rep2 = _normalize(d)
+    assert not [e for e in rep2["errors"] if e.get("code") == "kit_seam"], rep2["errors"]
