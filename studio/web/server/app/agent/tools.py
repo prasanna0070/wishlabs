@@ -290,18 +290,37 @@ FREEFORM_TITLE = ("A short name of two or three words that names the subject whe
 FREEFORM_BLURB = "One sentence on the form and what it does for the user, naming the subject."
 
 
+# Pack `freeform`: the spec travels as JSON text. Live runs with deep csg trees showed Gemini mangling nested values
+# of a free-form object parameter (csg as a string, objects as key lists, whole rounds lost); one JSON text is what
+# the model writes reliably, and turn._as_spec parses it.
+FREEFORM_SPEC_AS_TEXT = True
+SPEC_TEXT = ("The complete gadget-spec/1 document as JSON text: one JSON object that follows the spec schema in the "
+             "system prompt exactly (all required keys, library ids only, millimetres). Inside that text every nested "
+             "part (body, csg nodes, features, decor, electronics, behaviour) is a JSON object or array.")
+SPEC_TOOLS = ("propose_concepts", "write_brief", "build_design", "update_design")
+
+
 def tool_spec(name: str, packs_on=()) -> dict:
-    """TOOLS[name], with the pack `freeform` wording for propose_concepts when that pack is on."""
+    """TOOLS[name], with the pack `freeform` wording for propose_concepts and the spec as JSON text when that pack is
+    on. With the pack off it is TOOLS[name] itself."""
     t = TOOLS[name]
-    if name != "propose_concepts" or "freeform" not in set(packs_on or ()):
+    if name not in SPEC_TOOLS or "freeform" not in set(packs_on or ()):
         return t
     import copy
 
     t = copy.deepcopy(t)
-    t["description"] = FREEFORM_PROPOSE_DESCRIPTION
-    item = t["parameters"]["properties"]["concepts"]["items"]["properties"]
-    item["title"]["description"] = FREEFORM_TITLE
-    item["blurb"]["description"] = FREEFORM_BLURB
+    props = t["parameters"]["properties"]
+    if name == "propose_concepts":
+        t["description"] = FREEFORM_PROPOSE_DESCRIPTION
+        item = props["concepts"]["items"]["properties"]
+        item["title"]["description"] = FREEFORM_TITLE
+        item["blurb"]["description"] = FREEFORM_BLURB
+        if FREEFORM_SPEC_AS_TEXT:
+            item["spec"] = {"type": "string", "description": SPEC_TEXT}
+    elif FREEFORM_SPEC_AS_TEXT:
+        lead = "Optional. " if name == "write_brief" else ""
+        tail = (" Omit to build the selected concept's spec unchanged." if name == "write_brief" else "")
+        props["spec"] = {"type": "string", "description": lead + SPEC_TEXT + tail}
     return t
 
 

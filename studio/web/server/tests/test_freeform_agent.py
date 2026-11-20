@@ -109,10 +109,17 @@ def test_pack_on_shows_csg_examples_first(tmp_path):
 
 
 def test_tool_wording_follows_the_pack():
-    from app.agent.tools import TOOLS, tool_spec
+    from app.agent.tools import SPEC_TOOLS, TOOLS, tool_spec
 
     for n in TOOLS:
         assert tool_spec(n, ()) is TOOLS[n] and tool_spec(n, ("sensing",)) is TOOLS[n]
+    for n in SPEC_TOOLS:                        # pack on: the spec travels as JSON text (one string)
+        props = tool_spec(n, ("freeform",))["parameters"]["properties"]
+        spec = props["concepts"]["items"]["properties"]["spec"] if n == "propose_concepts" else props["spec"]
+        assert spec["type"] == "string" and "JSON text" in spec["description"]
+        live = TOOLS[n]["parameters"]["properties"]
+        assert (live["concepts"]["items"]["properties"]["spec"] if n == "propose_concepts" else live["spec"])["type"] == "object"
+    assert tool_spec("say", ("freeform",)) is TOOLS["say"]
     t = tool_spec("propose_concepts", ("freeform",))
     assert "cute" not in t["description"] and "most functional product form" in t["description"]
     assert "CAD render come back with errors" in t["description"]
