@@ -392,36 +392,17 @@ def _mouth_solid(poly, z0: float, z1: float):
     return _xy_prism(poly.simplify(0.3, preserve_topology=True), z0, z1)
 
 
-def build_printed(params: dict, progress: Optional[Callable] = None, on_draft: Optional[Callable] = None) -> Model:
-    """Printed-only object (params["kind"] == "printed", catalog package A): the body with its decor as ONE print, with no
-    cartridge, kits, cover or base plate, USB-C tunnel, cord tie, tie anchors, cables or fit coupons.
-
-    printed.opening "none": the body is printed solid (the slicer's infill fills it, so no unsupported inner ceiling);
-    "top": the inner cavity opened straight up through the top (cup, pot, vase); printed.drain_hole adds one hole through
-    the floor centre. Feet seats as on a gadget when body.feet > 0."""
-    T = Timer()
-    say = progress or (lambda msg, pct=None: None)
-    M = Model(params=params)
-    body = params["body"]
-    fam = body["family"]
-    fz = params["fasteners"]
-    colors = {k: tuple(v) if isinstance(v, (list, tuple)) else v for k, v in params["colors"].items()}
+def printed_shape(params: dict, pv: dict, probeO=None) -> tuple:
+    """(printed solid, opened cavity or None, info, warnings) of a printed-only object from its shell preview: the open top
+    (printed.opening "top", with the optional drain hole) and the cuts (pack printed_cuts). Shared by build_printed and
+    the concept preview, so both show the same object."""
+    bg, O = pv["bg"], pv["outer"]
+    probeO = probeO or Probe(O)
+    bb = O.BoundingBox()
     pr = params.get("printed") or {}
     opening = pr.get("opening") if pr.get("opening") in ("none", "top") else "none"
     want_drain = bool(pr.get("drain_hole")) and opening == "top"
-    say("shaping the body", 5)
-    pv = build_shell_preview(params)
-    bg, O = pv["bg"], pv["outer"]
-    M.warnings += pv["warnings"]
-    T.mark("body_decor")
-    if on_draft:
-        try:
-            on_draft(O, pv["records"], colors)
-        except Exception as e:  # pragma: no cover
-            M.warnings.append(f"draft export failed: {e}")
-    probeO = Probe(O)
-    bb = O.BoundingBox()
-    say("shaping the print", 40)
+    warns: list = []
     S = O
     C_open = None
     oinfo: dict = {"opening": opening, "drain_hole": False}
@@ -444,7 +425,7 @@ def build_printed(params: dict, progress: Optional[Callable] = None, on_draft: O
                 mouth_poly = None
         mouth = _mouth_solid(mouth_poly, z_m - 0.5, bb.zmax + 5.0) if mouth_poly is not None else None
         if mouth is None:
-            M.warnings.append("open top: the cavity has no flat top to open; printed solid instead")
+            warns.append("open top: the cavity has no flat top to open; printed solid instead")
             oinfo["opening"] = "none"
         else:
             C_open = C.fuse(mouth).clean()
@@ -458,15 +439,45 @@ def build_printed(params: dict, progress: Optional[Callable] = None, on_draft: O
                     S = S.cut(cyl_z(0.0, 0.0, -1.0, cb.zmin + 1.0, DRAIN_D / 2)).clean()
                     oinfo.update({"drain_hole": True, "drain_hole_d_mm": DRAIN_D})
                 else:
-                    M.warnings.append("drain hole: the cavity floor does not cover the centre; no drain hole cut")
-    T.mark("opening")
+                    warns.append("drain hole: the cavity floor does not cover the centre; no drain hole cut")
     if params.get("cuts"):  # pack printed_cuts: pockets, slots and holes cut into the body
         tools, cinfo, cw = cut_tools(params["cuts"], probeO, bb)
-        M.warnings += cw
+        warns += cw
         if tools:
             S = S.cut(*tools).clean()
         oinfo["cuts"] = cinfo
-        T.mark("cuts")
+    return S, C_open, oinfo, warns
+
+
+def build_printed(params: dict, progress: Optional[Callable] = None, on_draft: Optional[Callable] = None) -> Model:
+    """Printed-only object (params["kind"] == "printed", catalog package A): the body with its decor as ONE print, with no
+    cartridge, kits, cover or base plate, USB-C tunnel, cord tie, tie anchors, cables or fit coupons.
+
+    printed.opening "none": the body is printed solid (the slicer's infill fills it, so no unsupported inner ceiling);
+    "top": the inner cavity opened straight up through the top (cup, pot, vase); printed.drain_hole adds one hole through
+    the floor centre. Feet seats as on a gadget when body.feet > 0."""
+    T = Timer()
+    say = progress or (lambda msg, pct=None: None)
+    M = Model(params=params)
+    body = params["body"]
+    fam = body["family"]
+    fz = params["fasteners"]
+    colors = {k: tuple(v) if isinstance(v, (list, tuple)) else v for k, v in params["colors"].items()}
+    say("shaping the body", 5)
+    pv = build_shell_preview(params)
+    bg, O = pv["bg"], pv["outer"]
+    M.warnings += pv["warnings"]
+    T.mark("body_decor")
+    if on_draft:
+        try:
+            on_draft(O, pv["records"], colors)
+        except Exception as e:  # pragma: no cover
+            M.warnings.append(f"draft export failed: {e}")
+    probeO = Probe(O)
+    say("shaping the print", 40)
+    S, C_open, oinfo, ow = printed_shape(params, pv, probeO)
+    M.warnings += ow
+    T.mark("opening_cuts")
     # ---------------------------------------------------------------- feet
     foot = fz["foot"]
     nfeet = int(body.get("feet", 4))

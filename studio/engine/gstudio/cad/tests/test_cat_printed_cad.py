@@ -173,3 +173,21 @@ def test_printed_standalone_source_rebuilds(built, tmp_path):
     assert r.returncode == 0, r.stderr[-2000:]
     assert (tmp_path / "print/PRINT_Shell.stl").exists() and (tmp_path / "cad/assembly.step").exists()
     assert not list((tmp_path / "print").glob("TEST_*.stl"))
+
+
+def test_concept_preview_shows_the_printed_object(tmp_path):
+    """cad.preview (the concept shot) uses the same printed_shape as the build: the planter preview is open at the top."""
+    from gstudio.cad import preview
+    from gstudio.cad.build import build_shell_preview, printed_shape
+    from gstudio.cad.params import build_params
+    from gstudio.library import Library
+
+    spec = json.loads((EX / "pen-cup-planter" / "spec.json").read_text())
+    params = build_params(spec, Library(), None)
+    pv = build_shell_preview(params)
+    S, C_open, info, warns = printed_shape(params, pv)
+    assert info["opening"] == "top" and info["drain_hole"] and C_open is not None and not warns
+    assert S.Volume() < 0.4 * pv["outer"].Volume()  # a pot, not a solid plug
+    r = preview(spec, Library(), tmp_path)
+    assert not [w for w in r["warnings"] if "printed opening/cuts skipped" in w], r["warnings"]
+    assert (tmp_path / "preview.glb").is_file()

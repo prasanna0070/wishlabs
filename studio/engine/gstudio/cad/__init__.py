@@ -209,6 +209,14 @@ def preview(spec: Any, lib: Any = None, out: Any = ".", size=(1024, 1024)) -> di
                     p.subparts = [s for s in p.subparts if s[0] in ("Bezel", "Plunger", "Pcb")][:2]
                 vis.append(p)
     shell = O.cut(*cuts).clean() if cuts else O
+    if params.get("kind") == "printed":  # catalog package A: the concept shot shows the open top and the cuts as built
+        from .build import printed_shape
+
+        try:
+            shell, _c, _info, pw = printed_shape(params, pv, probeO)
+            warnings += pw
+        except Exception as e:  # noqa: BLE001 - a preview never fails on the printed details
+            warnings.append(f"preview: printed opening/cuts skipped ({e})")
     shell = largest_solid(shell) if len(shell.Solids()) > 1 else shell
     sp = Part("PRINT_Shell", "PRINT", "shell", colors["body"])
     sp.add("Shell", shell)
