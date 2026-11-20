@@ -190,3 +190,13 @@ def test_held_price_names_the_colliding_parts_in_words():
     assert label == ("Price held until the design passes its collision check (Shell / Rear cover (95 mm3); "
                      "Shell / Core board (871 mm3); the shell is not one solid)")
     assert "{" not in label and part_label("PRINT_BasePlate") == "Base plate" and part_label("U1") == "U1"
+
+
+def test_printed_brief_lists_no_core_board():
+    """a-to-e 3: the agent wrote electronics.core into a printed object's spec; the brief listed the board."""
+    from app.brief import parts_from_spec
+
+    spec = {"kind": "printed", "electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8"}}
+    assert parts_from_spec(spec, {}) == []
+    gadget = {"electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8"}}
+    assert [r["module_id"] for r in parts_from_spec(gadget, {})] == ["CORE_ESP32S3_DEVKITC1_N8R8"]

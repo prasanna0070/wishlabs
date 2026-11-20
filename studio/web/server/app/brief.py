@@ -34,6 +34,8 @@ def _clean_str(x: Any, limit: int = 2000) -> str:
 def parts_from_spec(spec: dict, names: dict[str, dict]) -> list[dict]:
     """From the engine's derived.instances when the spec is normalized; else from core/features/extras."""
     inst = ((spec.get("derived") or {}).get("instances")) or []
+    if not inst and spec.get("kind") == "printed":
+        return []  # a printed object has no electronics: never list a core board it does not have (a-to-e 3)
     if inst:
         rows_d: dict[str, dict] = {}
         for i in inst:
