@@ -123,6 +123,13 @@ def run(ctx) -> dict:
     n_print = sum(1 for v in files["print"].values() if not v.get("test"))
     say = (f"Built the enclosure: {len(model.parts)} named parts, {n_print} printed parts plus "
            f"{len(model.coupons)} fit coupons; {len(res['checks']) - len(failed)} of {len(res['checks'])} CAD checks passed.")
+    if model.info.get("kind") == "printed":  # catalog package A: say what was built, and that some checks do not apply
+        na = sum(1 for c in res["checks"] if c["status"] == "not_run")
+        ok_n = sum(1 for c in res["checks"] if c["status"] == "passed")
+        say = (f"Built the printed object: {n_print} printed part" + ("s" if n_print != 1 else "")
+               + (" and its adhesive feet" if any(p.name == "PURCHASE_Feet" for p in model.parts) else "")
+               + f", no electronics; {ok_n} of {len(res['checks']) - na} CAD checks passed"
+               + (f" ({na} do not apply to a printed object)." if na else "."))
     _say(ctx, say)
     summary = {
         "ok": not failed,
@@ -140,7 +147,8 @@ def run(ctx) -> dict:
         "checks": [{k: c[k] for k in ("id", "title", "status", "detail") if k in c} | ({"qb": c["qb"]} if c.get("qb") else {})
                    | {"artifact": "cad/digital-checks.json"} for c in res["checks"]],
         "limits": res["limits"],
-        "physical_checks": [{"id": "usb-cord-pull", "kind": "physical", "status": "not_run",
+        "physical_checks": [] if model.info.get("kind") == "printed" else  # printed-only: no USB-C cord (catalog package A)
+                           [{"id": "usb-cord-pull", "kind": "physical", "status": "not_run",
                              "title": "Pull the USB-C cord along its axis",
                              "expected": "the plug releases before the receptacle or the board moves; the cord tie takes the load",
                              "why": "REVIEW-1 MIN-3 load path: " + ((model.info.get("usb_c") or {}).get("load_path") or {}).get("feature", "none modelled")}],
@@ -201,6 +209,14 @@ def preview(spec: Any, lib: Any = None, out: Any = ".", size=(1024, 1024)) -> di
                     p.subparts = [s for s in p.subparts if s[0] in ("Bezel", "Plunger", "Pcb")][:2]
                 vis.append(p)
     shell = O.cut(*cuts).clean() if cuts else O
+    if params.get("kind") == "printed":  # catalog package A: the concept shot shows the open top and the cuts as built
+        from .build import printed_shape
+
+        try:
+            shell, _c, _info, pw = printed_shape(params, pv, probeO)
+            warnings += pw
+        except Exception as e:  # noqa: BLE001 - a preview never fails on the printed details
+            warnings.append(f"preview: printed opening/cuts skipped ({e})")
     shell = largest_solid(shell) if len(shell.Solids()) > 1 else shell
     sp = Part("PRINT_Shell", "PRINT", "shell", colors["body"])
     sp.add("Shell", shell)

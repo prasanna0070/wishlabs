@@ -33,6 +33,14 @@ def pack_example_specs() -> list[Path]:
     return list(packs.example_specs())
 
 
+def _printed_only(sp: Path) -> bool:
+    """A pack example of kind "printed" (a holder, stand or keychain part) has no electronics and no firmware."""
+    try:
+        return json.loads(sp.read_text()).get("kind") == "printed"
+    except (OSError, ValueError, AttributeError):
+        return False  # unreadable: let the build below report it as before
+
+
 class Ctx:
     def __init__(self, spec, lib, electrical, out, options):
         self.spec, self.lib, self.electrical, self.out, self.options = spec, lib, electrical, Path(out), options
@@ -62,6 +70,10 @@ def main() -> int:
         except Exception:
             pass
     for sp in pack_example_specs():
+        if _printed_only(sp):  # pack `printed`: no electronics, so no firmware to compile (CATALOG-PLAN package A)
+            print(json.dumps({"design": f"pack-{sp.parent.parent.name}-{sp.parent.name}", "source": "example",
+                              "skipped": "printed-only design: no electronics, no firmware"}), flush=True)
+            continue
         jobs.append(("example", f"pack-{sp.parent.parent.name}-{sp.parent.name}", sp))
     for t in ("story_player", "desk_companion", "notifier_clock", "ambient_light", "sensor_display"):
         if t not in seen_templates:

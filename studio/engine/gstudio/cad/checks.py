@@ -52,26 +52,213 @@ def allowed(a: str, b: str) -> Optional[str]:
     return None
 
 
-def _manifolds(model):
+# ------------------------------------------------------------------------------------------------ safe manifolds
+# Mesh -> manifold3d for the collision and clearance checks. geom.to_manifold hands a non-manifold mesh (a swept cable
+# route) to manifold3d piece by piece, and those pieces include degenerate triangles (two or three equal corners, left by
+# to_trimesh's vertex merge; the LED cable of BENCH tomato-station had 527, as 516 one- or two-triangle pieces). The CAD
+# stage of that build died there (signal 11 in geom.py:512 to_manifold, called from _manifolds), while the same saved
+# shapes replayed in a fresh process did not crash, like the VTK crash cables.Distances isolates. So: degenerate faces are
+# dropped first; a watertight mesh converts in this process as before; any other mesh converts in a small worker process
+# (numpy, trimesh, manifold3d only) with the same fallback minus slivers under 4 triangles, so a native crash there only
+# loses that one shape (reported by the collision check), never the CAD stage. GS_MANIFOLD_INPROCESS=1 = old behaviour.
+_MF_WORKER = r"""
+import os, pickle, sys
+import numpy as np
+import trimesh
+import manifold3d as mf
+
+out = os.fdopen(os.dup(1), "wb")  # the pipe to the parent; anything printed to stdout goes to stderr instead
+os.dup2(2, 1)
+inp = sys.stdin.buffer
+CRASH = os.environ.get("GS_MANIFOLD_WORKER_TEST_CRASH") == "1"  # tests only: die like a native crash
+
+
+def man(v, f):  # writable C-order copies (unpickled arrays can sit on read-only buffers)
+    return mf.Manifold(mf.Mesh(vert_properties=np.array(v, dtype=np.float32, order="C"),
+                               tri_verts=np.array(f, dtype=np.uint32, order="C")))
+
+
+def convert(v, f):
+    m0 = man(v, f)
+    if m0.status() == mf.Error.NoError and not m0.is_empty():
+        return m0, "direct"
+    try:
+        mans = []
+        for p in trimesh.Trimesh(vertices=v, faces=f, process=False).split(only_watertight=False):
+            if len(p.faces) < 4 or len(p.vertices) < 4:
+                continue  # a sliver of 1-3 triangles encloses no volume
+            mm = man(p.vertices, p.faces)
+            if mm.status() == mf.Error.NoError and not mm.is_empty():
+                mans.append(mm)
+            else:
+                mans.append(mf.Manifold.hull_points(np.array(p.vertices, dtype=np.float32, order="C")))
+        if not mans:
+            return None, "no piece of 4 or more triangles"
+        return (mf.Manifold.batch_boolean(mans, mf.OpType.Add) if len(mans) > 1 else mans[0]), "pieces"
+    except Exception:
+        return mf.Manifold.hull_points(np.array(v, dtype=np.float32, order="C")), "hull"
+
+
+while True:
+    try:
+        req = pickle.load(inp)
+    except EOFError:
+        break
+    if CRASH:
+        os.kill(os.getpid(), 11)
+    try:
+        m, how = convert(req[0], req[1])
+        if m is None or m.is_empty():
+            res = ("ok", (None, None, how))
+        else:
+            g = m.to_mesh()
+            res = ("ok", (np.array(np.asarray(g.vert_properties)[:, :3], dtype=np.float32, order="C"),
+                          np.array(g.tri_verts, dtype=np.uint32, order="C"), how))
+    except Exception as e:
+        res = ("err", repr(e))
+    pickle.dump(res, out, protocol=pickle.HIGHEST_PROTOCOL)
+    out.flush()
+"""
+
+
+def clean_mesh(m):
+    """The trimesh without degenerate faces (two or three equal corners) and without unreferenced vertices."""
+    import trimesh
+
+    f = np.asarray(m.faces)
+    if not len(f):
+        return m
+    keep = (f[:, 0] != f[:, 1]) & (f[:, 1] != f[:, 2]) & (f[:, 0] != f[:, 2])
+    if keep.all():
+        return m
+    m = trimesh.Trimesh(vertices=np.asarray(m.vertices), faces=f[keep], process=False)
+    m.remove_unreferenced_vertices()
+    return m
+
+
+class Manifolder:
+    """Shape -> manifold3d.Manifold (None when nothing closed is left); see the note above _MF_WORKER."""
+
+    def __init__(self, timeout: float = 300.0):
+        import os
+
+        self.p = None
+        self.timeout = timeout
+        self.inprocess = os.environ.get("GS_MANIFOLD_INPROCESS") == "1"
+        self.worker_calls = 0
+        self.worker_deaths: list[str] = []  # one line per worker that died or timed out
+        self.failed: list[str] = []  # shapes not converted because the worker died twice
+
+    def _stop(self, kill: bool = False) -> None:
+        import contextlib
+
+        if self.p is None:
+            return
+        with contextlib.suppress(Exception):
+            if kill:
+                self.p.kill()
+            self.p.stdin.close()
+        try:
+            self.p.wait(10)
+        except Exception:  # noqa: BLE001
+            with contextlib.suppress(Exception):
+                self.p.kill()
+                self.p.wait(5)
+        with contextlib.suppress(Exception):
+            self.p.stdout.close()
+        self.p = None
+
+    close = _stop
+
+    def _call(self, v, f):
+        import pickle
+        import select
+        import subprocess
+        import sys
+
+        if self.p is None or self.p.poll() is not None:
+            self._stop()
+            self.p = subprocess.Popen([sys.executable, "-c", _MF_WORKER], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                      stderr=subprocess.DEVNULL)
+        self.worker_calls += 1
+        pickle.dump((v, f), self.p.stdin, protocol=pickle.HIGHEST_PROTOCOL)
+        self.p.stdin.flush()
+        if not select.select([self.p.stdout], [], [], self.timeout)[0]:
+            raise TimeoutError(f"no answer in {self.timeout:.0f} s")
+        kind, res = pickle.load(self.p.stdout)
+        if kind != "ok":
+            raise RuntimeError(f"manifold worker: {res}")
+        return res
+
+    def convert(self, shape, tol: float = 0.08, ang: float = 0.3, name: str = ""):
+        if self.inprocess:
+            from .geom import to_manifold
+
+            m = to_manifold(shape, tol, ang)
+            return None if m.is_empty() else m
+        return self.convert_mesh(to_trimesh(shape, tol, ang), name)
+
+    def convert_mesh(self, m, name: str = ""):
+        """The same from a trimesh (degenerate faces are dropped first)."""
+        import manifold3d as mf
+
+        m = clean_mesh(m)
+        if len(m.faces) < 4:
+            return None
+        v = np.ascontiguousarray(m.vertices, np.float32)
+        f = np.ascontiguousarray(m.faces, np.uint32)
+        if m.is_watertight:
+            man = mf.Manifold(mf.Mesh(vert_properties=v, tri_verts=f))
+            if man.status() == mf.Error.NoError and not man.is_empty():
+                return man
+        for _ in range(2):
+            try:
+                v2, f2, _how = self._call(v, f)
+            except Exception as e:  # noqa: BLE001  (worker died, timed out or answered garbage)
+                code = None
+                if self.p is not None:
+                    try:
+                        code = self.p.wait(2)
+                    except Exception:  # noqa: BLE001  (still running: a timeout; killed below)
+                        code = None
+                self.worker_deaths.append(f"{name or 'shape'}: {type(e).__name__}"
+                                          + (f", signal {-code}" if code is not None and code < 0 else ""))
+                self._stop(kill=True)
+                continue
+            if v2 is None:
+                return None
+            # unpickled arrays sit on read-only buffers, which manifold3d refuses: writable C-order copies
+            man = mf.Manifold(mf.Mesh(vert_properties=np.array(v2, dtype=np.float32, order="C"),
+                                      tri_verts=np.array(f2, dtype=np.uint32, order="C")))
+            return None if man.is_empty() else man
+        self.failed.append(name or "shape")
+        return None
+
+
+def _manifolds(model, conv: Optional[Manifolder] = None):
     import manifold3d as mf
 
-    from .geom import to_manifold
-
+    own = conv is None
+    conv = conv or Manifolder()
     out = {}
-    for p in model.parts:
-        if p.kind == "REFERENCE" and p.role != "cable":  # cable routes and slack loops are in the matrix (MIN-5)
-            continue
-        mans = []
-        for _, s, _ in p.subparts:
-            try:
-                for sol in (s.Solids() or [s]):
-                    m = to_manifold(sol, 0.08, 0.3)
-                    if not m.is_empty():
-                        mans.append(m)
-            except Exception:
+    try:
+        for p in model.parts:
+            if p.kind == "REFERENCE" and p.role != "cable":  # cable routes and slack loops are in the matrix (MIN-5)
                 continue
-        if mans:
-            out[p.name] = mf.Manifold.batch_boolean(mans, mf.OpType.Add) if len(mans) > 1 else mans[0]
+            mans = []
+            for _, s, _ in p.subparts:
+                try:
+                    for sol in (s.Solids() or [s]):
+                        m = conv.convert(sol, 0.08, 0.3, p.name)
+                        if m is not None:
+                            mans.append(m)
+                except Exception:
+                    continue
+            if mans:
+                out[p.name] = mf.Manifold.batch_boolean(mans, mf.OpType.Add) if len(mans) > 1 else mans[0]
+    finally:
+        if own:
+            conv.close()
     return out
 
 
@@ -146,35 +333,43 @@ def collisions(model, mans: dict, exact: bool = True) -> tuple[dict, list]:
 CARTRIDGE_SEATS = ("PURCHASE_Backplane", "PURCHASE_MicroSdModule")  # on their printed floor bosses / S1 support posts
 
 
-def kit_add_manifolds(model) -> dict:
+def kit_add_manifolds(model, conv: Optional[Manifolder] = None) -> dict:
     """feature_id -> manifold of the shell material that kit adds inside the cavity (posts, pads, tubes, cup walls)."""
     import manifold3d as mf
-
-    from .geom import to_manifold
 
     cav = (model.shapes or {}).get("cavity")
     if cav is None:
         return {}
+    own = conv is None
+    conv = conv or Manifolder()
     try:
-        mc = to_manifold(cav, 0.15, 0.4)
-    except Exception:
-        return {}
-    out = {}
-    lift = float(getattr(model, "lift", 0.0) or 0.0)
-    for k in model.kits:
-        mans = []
-        for a in k.adds:
-            try:
-                m = to_manifold(a, 0.1, 0.35)
-                if lift:
-                    m = m.translate((0.0, 0.0, lift))
-                mans.append(m)
-            except Exception:
-                continue
-        if mans:
-            u = mf.Manifold.batch_boolean(mans, mf.OpType.Add) if len(mans) > 1 else mans[0]
-            out[k.feature_id] = u ^ mc
-    return out
+        try:
+            mc = conv.convert(cav, 0.15, 0.4, "cavity")
+        except Exception:
+            return {}
+        if mc is None:
+            return {}
+        out = {}
+        lift = float(getattr(model, "lift", 0.0) or 0.0)
+        for k in model.kits:
+            mans = []
+            for a in k.adds:
+                try:
+                    m = conv.convert(a, 0.1, 0.35, f"kit {k.feature_id}")
+                    if m is None:
+                        continue
+                    if lift:
+                        m = m.translate((0.0, 0.0, lift))
+                    mans.append(m)
+                except Exception:
+                    continue
+            if mans:
+                u = mf.Manifold.batch_boolean(mans, mf.OpType.Add) if len(mans) > 1 else mans[0]
+                out[k.feature_id] = u ^ mc
+        return out
+    finally:
+        if own:
+            conv.close()
 
 
 def clearances(model, mans: dict, kit_adds: Optional[dict] = None) -> list:
@@ -621,22 +816,36 @@ def run_checks(model, files: dict, step_path: Optional[Path] = None, exact: bool
         except Exception as e:
             checks.append(_c("step_valid", "STEP re-imports as a valid shape", "failed", str(e), "QB-04"))
     # collisions QB-08/09 -------------------------------------------------------
-    mans = _manifolds(model)
+    conv = Manifolder()
+    try:
+        mans = _manifolds(model, conv)
+        unmeshed = sorted(set(conv.failed))
+        kadds = kit_add_manifolds(model, conv)
+        kit_unmeshed = sorted(set(conv.failed) - set(unmeshed))
+    finally:
+        conv.close()
+    cable_names = {p.name for p in model.parts if p.role == "cable"}
+    rigid_unmeshed = [n for n in unmeshed if n not in cable_names]
     summ, pairs = collisions(model, mans, exact=exact)
+    summ["mesh_worker"] = {"calls": conv.worker_calls, "deaths": conv.worker_deaths, "not_checked": unmeshed}
     checks.append(_c("collisions", "Full pair matrix of rigid components: no unintended intersection",
-                     "failed" if summ["intersections"] else "passed",
+                     "failed" if (summ["intersections"] or rigid_unmeshed) else "passed",
                      f"{summ['components'] - len(summ['cable_components'])} rigid components + {len(summ['cable_components'])} cable routes "
                      f"and slack loops, {summ['pairs_total']} pairs, {summ['pairs_bbox_overlap']} with overlapping boxes "
-                     f"checked by boolean, {len(summ['intersections'])} unintended intersections, {len(summ['allowed'])} allowed by rule",
+                     f"checked by boolean, {len(summ['intersections'])} unintended intersections, {len(summ['allowed'])} allowed by rule"
+                     + (f"; NOT CHECKED (the mesh worker died twice): {rigid_unmeshed}" if rigid_unmeshed else "")
+                     + (f"; cable routes not checked (the mesh worker died twice): {[n for n in unmeshed if n in cable_names]}"
+                        if any(n in cable_names for n in unmeshed) else ""),
                      "QB-08", {**summ, "pairs": pairs}))
-    kadds = kit_add_manifolds(model)
     cl = clearances(model, mans, kadds)
     bad_cl = [c for c in cl if c.get("not_a_seat")]
     checks.append(_c("clearances", f"Clearance from each purchased part to its printed neighbours: under {TIGHT_GAP} mm only at declared seats",
-                     "failed" if bad_cl else "passed",
+                     "failed" if bad_cl else ("warning" if kit_unmeshed else "passed"),
                      f"{len(cl)} purchased/printed pairs within 3 mm; {sum(1 for c in cl if c.get('seat'))} declared seats; "
                      f"{len(bad_cl)} undeclared contacts or gaps under {TIGHT_GAP} mm"
-                     + (": " + ", ".join("/".join(c["parts"]) + f" ({c['gap_mm']} mm)" for c in bad_cl) if bad_cl else ""), "QB-09",
+                     + (": " + ", ".join("/".join(c["parts"]) + f" ({c['gap_mm']} mm)" for c in bad_cl) if bad_cl else "")
+                     + (f"; kit shell material not checked (the mesh worker died twice): {kit_unmeshed}" if kit_unmeshed else ""),
+                     "QB-09",
                      {"pairs": cl, "rule": "contact only for a kit's module against its own retainer, gasket or shell window, "
                                            "and the cartridge against its bosses"}))
     # cartridge + feature module clearance --------------------------------------
@@ -718,10 +927,15 @@ def run_checks(model, files: dict, step_path: Optional[Path] = None, exact: bool
                      f"{len(cr)} of {len(feats_with_cable)} cables routed; {len(cbad)} too long; {len(cwall)} touch a wall",
                      "QB-15", {"routes": [{k: v for k, v in c.items() if k != "points"} for c in cr]}))
     # coupons QB-13 -------------------------------------------------------------
+    printed = model.info.get("kind") == "printed"  # catalog package A: no inserts, ties, USB-C or kits on a printed-only object
     cps = {n: c.get("features") for n, c in model.coupons.items()}
     need, covered, miss = coupon_coverage(model)
     exported = {i["id"]: i.get("name") for k in model.kits for i in (k.interfaces or [])}
-    checks.append(_c("fit_coupon", "Fit coupons cover every tight interface the kits export", "failed" if miss else "passed",
+    if printed:
+        checks.append(_c("fit_coupon", "Fit coupons cover every tight interface the kits export", "not_run",
+                         "not applicable: a printed-only object has no inserts, cable ties, USB-C opening or module kits", "QB-13"))
+    else:
+        checks.append(_c("fit_coupon", "Fit coupons cover every tight interface the kits export", "failed" if miss else "passed",
                      f"{len(cps)} coupons; {len(exported)} kit interfaces exported; covers {len(need & covered)} of {len(need)}"
                      + (f"; missing {miss}" if miss else ""), "QB-13",
                      {"coupons": {n: {"features": c.get("features"), "covers": c.get("covers"), "tests": c.get("tests")} for n, c in model.coupons.items()},
@@ -766,14 +980,24 @@ def run_checks(model, files: dict, step_path: Optional[Path] = None, exact: bool
     br = bottom_edge_round(model) if model.info.get("family") == "silhouette" else {}
     if br:
         vals = [v for v in br.values() if v is not None]
-        low = [k for k, v in br.items() if v is None or v < 3.0]
-        checks.append(_c("bottom_edge_round", "Shell bottom perimeter is rounded (>= 3 mm) on every side", "failed" if low else "passed",
-                         ", ".join(f"{k} {v} mm" for k, v in br.items()) + (f"; under 3 mm: {low}" if low else ""), None,
-                         {"radii_mm": br, "method": "tightest bend of the y = 0 and x = 0 section outlines within 7 mm of each bottom corner",
-                          "built": (model.info.get("body") or {}).get("bottom_round")}))
+        low = [k for k, v in br.items() if v is None or v < 3.0 - 0.05]  # 0.05 mm: below the 0.1 mm section probe resolution
+        radii = ", ".join(f"{k} {v} mm" for k, v in br.items())
+        data = {"radii_mm": br, "method": "tightest bend of the y = 0 and x = 0 section outlines within 7 mm of each bottom corner",
+                "built": (model.info.get("body") or {}).get("bottom_round")}
+        if printed:  # a gadget shell's look (REVIEW-1 MIN-39); a printed object prints flat on its base, where a sharp edge holds best
+            checks.append(_c("bottom_edge_round", "Shell bottom perimeter is rounded (>= 3 mm) on every side", "not_run",
+                             f"not applicable: a printed-only object prints flat on its base (radii {radii}); check its edges by hand",
+                             None, data))
+        else:
+            checks.append(_c("bottom_edge_round", "Shell bottom perimeter is rounded (>= 3 mm) on every side", "failed" if low else "passed",
+                             radii + (f"; under 3 mm: {low}" if low else ""), None, data))
     usb = model.info.get("usb_c") or {}
     lp = usb.get("load_path")
-    checks.append(_c("power_entry", "External USB-C cord: a defined load path takes a pull before the receptacle or board",
+    if printed:
+        checks.append(_c("power_entry", "External USB-C cord: a defined load path takes a pull before the receptacle or board",
+                         "not_run", "not applicable: a printed-only object has no power input", "QB-21"))
+    else:
+        checks.append(_c("power_entry", "External USB-C cord: a defined load path takes a pull before the receptacle or board",
                      "passed" if lp else "failed",
                      (f"load path: {lp.get('feature')} on {lp.get('part')}, {lp.get('distance_from_opening_mm')} mm from the opening; "
                       "physical pull check still needed") if lp else "no cord tie point or plug capture modelled", "QB-21",

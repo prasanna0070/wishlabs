@@ -11,7 +11,7 @@ import { useFileIndex, useVersionFile, useVersionFiles } from "../../lib/hooks";
 import { exportUrl, fileUrl, type Ctx } from "../../lib/urls";
 import { bytes, checkTally, inr, plainText, statusWords } from "../../lib/format";
 import { aiReceipts, compact, usd, type Receipts } from "../../lib/receipts";
-import { buildTime, chosenConcept, conceptImage, fileGroups, originalWish, PRICE_LINE, resultMessage, showcaseVersion, testCount } from "../../lib/showcase";
+import { buildTime, chosenConcept, conceptImage, fileGroups, noElectronics, originalWish, PRICE_LINE, resultMessage, showcaseVersion, testCount } from "../../lib/showcase";
 import type { Build, Concept, Quote, Version } from "../../lib/types";
 import { Logo, Spinner } from "../ui";
 import type { TabId } from "./RightPanel";
@@ -352,6 +352,15 @@ function Engineering({
     <section className="ov-sec" id="ov-engineering">
       <SecHead icon={<Wrench size={18} />} title="The engineering pack" sub="What the build pipeline made and checked for this design. Each card opens its full tab." />
       <div className="ov-cards">
+        {noElectronics(summary, b) ? (
+          <div className="ov-card static">
+            <span className="ov-card-head">
+              <CircuitBoard size={18} /> No electronics
+            </span>
+            <span className="ov-card-text">A printed object: no circuit board, no firmware and no wiring.</span>
+          </div>
+        ) : (
+          <>
         <button type="button" className="ov-card" onClick={() => onTab("pcb")}>
           <span className="ov-card-head">
             <CircuitBoard size={18} /> Circuit board
@@ -385,6 +394,8 @@ function Engineering({
                 : "Firmware for the ESP32-S3."}
           </span>
         </button>
+          </>
+        )}
         <button type="button" className="ov-card" onClick={() => onTab("build")}>
           <span className="ov-card-head">
             <Wrench size={18} /> Build manual

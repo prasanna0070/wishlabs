@@ -134,5 +134,26 @@ def _unit_tests(p: Path) -> tuple[str, Optional[str]]:
     return "not_run", "firmware/test-results.txt"
 
 
+def printed_tests(data: ManualData, A: Assembly) -> list[dict]:
+    """Printed-only object (catalog package A): what the maker checks on the print. No power, firmware or PCB tests:
+    there is no electronics to test."""
+    child = bool((data.spec.get("audience") or {}).get("child_directed")) or "CHILD_DIRECTED" in ((data.spec.get("safety") or {}).get("flags") or [])
+    pr = data.spec.get("printed") if isinstance(data.spec.get("printed"), dict) else {}
+    info = (data.cad_summary().get("info") or {}).get("printed") or {}
+    t = [_t("Print complete and clean", "Every printed part is complete, with no missing or loose layers, no support material left and no "
+            "sharp edges (checklist step print-parts).")]
+    if A.feet:
+        t.append(_t("Feet in place", "Every foot sits flat in its round seat on the base (checklist step fit-feet)."))
+    if info.get("drain_hole") or pr.get("drain_hole"):
+        t.append(_t("Drain hole open", "Over a sink, water poured into the empty part runs out of the drain hole."))
+    t.append(_t("Stability", "It stands level on a flat table and does not tip or slide in normal use"
+                + (" by a child under adult supervision." if child else ".")))
+    t.append(_t("Not for food or drink", "The finished part is kept away from food, drink and hot liquids: printed plastic is not "
+                "food-safe."))
+    return t
+
+
 def build_tests(data: ManualData, A: Assembly) -> list[dict]:
+    if data.spec.get("kind") == "printed":
+        return printed_tests(data, A)
     return physical_tests(data, A) + digital_tests(data)

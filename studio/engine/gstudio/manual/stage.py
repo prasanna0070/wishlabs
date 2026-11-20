@@ -305,7 +305,10 @@ def run(ctx: Any) -> dict:
 
     from .diagram import draw_wiring
 
-    wd = draw_wiring(data, A, mdir)
+    if data.spec.get("kind") == "printed":  # catalog package A: no electronics, so no wiring diagram
+        wd = {"harnesses": 0, "rows": 0, "overlaps": [], "canvases": {}, "ports_drawn": 0, "module_ends": {}}
+    else:
+        wd = draw_wiring(data, A, mdir)
     framed = []
     pcb_fig = bool(data.pcb_top_png) and frame_pcb(data.pcb_top_png, mdir / "backplane-pcb.png", data.product_name)
     if pcb_fig:

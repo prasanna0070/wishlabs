@@ -118,3 +118,18 @@ def test_empty_reply_after_the_nudge_is_asked_again(monkeypatch):
     asyncio.run(brain.run(turn))
     assert turn.calls == ["propose_concepts"] and turn.failed is None and len(seen) == 3
     assert [m["text"] for m in turn.msgs] == ["Working on it."]
+
+
+def test_tool_written_as_text_catches_gemini_call_notation():
+    """Live 2026-11-20 (plant-pot bench): a 9,650-character "‹call:default_api:propose_concepts{...}" reply stayed in
+    the chat because only a bare tool name at the start was caught."""
+    from app.agent.gemini import tool_written_as_text
+
+    assert tool_written_as_text("‹call:default_api:propose_concepts{concepts:[{blurb:\"x\"}]}") == "propose_concepts"
+    assert tool_written_as_text("<call:default_api:write_brief{brief: {}}") == "write_brief"
+    assert tool_written_as_text("print(default_api.build_design(message='Building'))") == "build_design"
+    assert tool_written_as_text("```python\nprint(default_api.say(text='hi'))\n```") == "say"
+    assert tool_written_as_text("Here are your concepts. ‹call:default_api:propose_concepts{concepts: []}") == "propose_concepts"
+    assert tool_written_as_text("call: I will propose_concepts now") is None
+    assert tool_written_as_text("Call me when the soil is dry, and I will say (out loud) hello.") is None
+    assert tool_written_as_text("I printed (default) settings for you.") is None

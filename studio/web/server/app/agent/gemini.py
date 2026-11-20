@@ -27,7 +27,13 @@ MAX_STEPS = 8
 # a-to-e 1 (BENCH keychain-cap): Flash sometimes writes a tool call as message text ("`propose_concepts`{...}") instead
 # of calling it, and the turn ended with nothing done. Such a reply is replaced by a short line and the model is asked,
 # at most twice per turn, to make the real call.
-TOOL_AS_TEXT = re.compile(r"^\s*`{0,3}\s*(" + "|".join(sorted(TOOLS, key=len, reverse=True)) + r")\s*`{0,3}\s*[({]")
+_TOOL_NAMES = "|".join(sorted(TOOLS, key=len, reverse=True))
+# Also Gemini's own call notation, seen live on 2026-11-20 as a 9,650-character chat message
+# ("‹call:default_api:propose_concepts{...}"), and the print(default_api.name(...)) form, with or without a fence.
+TOOL_AS_TEXT = re.compile(r"^\s*(?:`{1,3}[A-Za-z]*)?\s*(?:[‹<«]?\s*call\s*:\s*)?(?:print\s*\(\s*)?"
+                          r"(?:default_api\s*[.:]\s*)?(" + _TOOL_NAMES + r")\s*`{0,3}\s*[({]")
+# default_api never appears in words meant for a person, so it marks a written-out call anywhere in a reply.
+TOOL_CALL_ANYWHERE = re.compile(r"default_api\s*[.:]\s*(" + _TOOL_NAMES + r")\s*[({]")
 TOOL_TEXT_NUDGE = ("Your last reply wrote the {name} tool call as message text. Call {name} now as a real function call "
                    "with the same arguments; message text must never contain tool names, code or JSON.")
 TOOL_TEXT_RETRIES = 2
@@ -57,7 +63,8 @@ def retry_empty(finish) -> bool:
 
 def tool_written_as_text(text: str | None) -> str | None:
     """The tool name when a reply's text is a tool call written out as text, else None."""
-    m = TOOL_AS_TEXT.match(str(text or ""))
+    s = str(text or "")
+    m = TOOL_AS_TEXT.match(s) or TOOL_CALL_ANYWHERE.search(s)
     return m.group(1) if m else None
 
 

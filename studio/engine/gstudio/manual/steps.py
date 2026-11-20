@@ -441,8 +441,30 @@ class Planner:
         return out
 
     # ------------------------------------------------------------------ the plan
+    @property
+    def printed(self) -> bool:
+        """A printed-only object (spec kind "printed", catalog package A): nothing electrical to fit, wire or flash."""
+        return self.d.spec.get("kind") == "printed"
+
+    def plan_printed(self) -> list[Step]:
+        """Printed-only object: check the parts, print, fit the feet, final checks. There is no cartridge, wiring,
+        flashing or self-test step because the design has no electronics."""
+        A = self.A
+        bed = self.bed_figure() if (self.d.print_files or A.prints) else None
+        if A.purchases or self.d.purchased():  # nothing to check when the object is only its print (no feet)
+            self.step_check_parts([])
+        if A.prints:
+            self.step_print(bed)
+        self.installed.extend(self.body_names())
+        if A.feet:
+            self.step_feet()
+        self.step_final_printed()
+        return self.steps
+
     def plan(self) -> list[Step]:
         A = self.A
+        if self.printed:
+            return self.plan_printed()
         coupon = self.coupon_files()
         bed = self.bed_figure() if (self.d.print_files or A.prints) else None
         self.step_check_parts(coupon)
@@ -473,6 +495,8 @@ class Planner:
         self.step_flash()
         if A.covers:
             self.step_close()
+        if self.wall_mount():
+            self.step_hang()
         self.step_final()
         gs = sorted({i + 1 for i, st in enumerate(self.steps) if st.id != "check-parts"
                      and any(self.d.comps.get(p) is not None and self.d.is_accessory(self.d.comps[p])
@@ -494,23 +518,31 @@ class Planner:
         n_print = len(A.prints)
         bom = self.d.purchased()
         use = (join_and([f"{int(p.get('quantity') or 1)} × **{n.row_name(p)}**" for p in bom]) + ".") if bom else n.use(buys)
-        body = (
-            "Lay every purchased item on a clear table and tick it off against the parts list: exact module, "
-            "quantity and connector pin count. Keep screws, inserts and feet in a small tray"
-            + (", away from children" if self.child() else "") + ".\n\n"
-            "Do not substitute a module. The backplane ports, cable pin counts and firmware pin numbers are fixed "
-            "for these exact modules. Compare each module's printed pin labels with the wiring table "
-            "(`manual/wiring.png`) now, before anything is printed or plugged.\n\n"
-            + (f"The {n_print} printed part{'s' if n_print != 1 else ''} come later, after the bench test. " if n_print else "")
-            + "The exploded view shows where every part ends up."
-        )
+        if self.printed:  # catalog package A: a printed-only object has no modules, cables or bench test
+            body = ("Lay every purchased item on a clear table and tick it off against the parts list, with its quantity. Keep "
+                    "small parts in a tray" + (", away from children" if self.child() else "") + ".\n\n"
+                    + (f"The {n_print} printed part{'s' if n_print != 1 else ''} {'are' if n_print != 1 else 'is'} printed in the next "
+                       "step. " if n_print else "") + "The exploded view shows where every part ends up.")
+        else:
+            body = (
+                "Lay every purchased item on a clear table and tick it off against the parts list: exact module, "
+                "quantity and connector pin count. Keep screws, inserts and feet in a small tray"
+                + (", away from children" if self.child() else "") + ".\n\n"
+                "Do not substitute a module. The backplane ports, cable pin counts and firmware pin numbers are fixed "
+                "for these exact modules. Compare each module's printed pin labels with the wiring table "
+                "(`manual/wiring.png`) now, before anything is printed or plugged.\n\n"
+                + (f"The {n_print} printed part{'s' if n_print != 1 else ''} come later, after the bench test. " if n_print else "")
+                + "The exploded view shows where every part ends up."
+            )
         self.add(Step(
             id="check-parts", title="Check the parts",
             use=use,
             tools=[], tools_note="A clear table, a small parts tray and the parts list.",
             body=body,
-            expected="Every line of the parts list is present in the stated quantity, and each module's printed pin labels match the wiring table.",
-            stop="a module, its pin labels or a cable's pin count differ from the parts list or the wiring table. Photograph both sides of the module and ask before continuing; do not swap in a similar part.",
+            expected=("Every line of the parts list is present in the stated quantity." if self.printed else
+                      "Every line of the parts list is present in the stated quantity, and each module's printed pin labels match the wiring table."),
+            stop=("a part is missing or differs from the parts list. Photograph it and ask before continuing." if self.printed else
+                  "a module, its pin labels or a cable's pin count differ from the parts list or the wiring table. Photograph both sides of the module and ask before continuing; do not swap in a similar part."),
             parts=[c.name for c in buys], highlight=[c.name for c in buys],
             figures=[f for f in (kit_fig, ex_fig) if f],
         ))
@@ -561,7 +593,8 @@ class Planner:
                               meshes=meshes)],
             footer="Saved CAD envelopes of the purchased parts, not product photos | modelled parts to one scale | glyphs not to scale",
             alt="Every purchased row laid out on a table, one of each, labelled with the quantity used and its name.",
-            caption="CAD envelopes and placeholder glyphs, not photos: check the real parts against the parts list and the wiring table.",
+            caption=("CAD envelopes, not photos: check the real parts against the parts list." if self.printed else
+                     "CAD envelopes and placeholder glyphs, not photos: check the real parts against the parts list and the wiring table."),
             size=(2000, 1500),
         )
 
@@ -609,8 +642,9 @@ class Planner:
             panels=[PanelSpec(subtitle=f"Parts separated along {axis_phrase(ax)}, the direction they are fitted from; seen from the gadget's left",
                               show=show, offsets=offs, view_dir=view, focus=list(show), labels=labels, label_room=0.04)],
             footer=FOOTER,
-            alt=f"Exploded view of the {self.d.product_name}: shell, front modules, core cartridge and closing part separated along one axis.",
-            caption="Separation distances are for clarity only. Cables are hidden.",
+            alt=(f"Exploded view of the {self.d.product_name}: the printed part and its feet separated along one axis." if self.printed else
+                 f"Exploded view of the {self.d.product_name}: shell, front modules, core cartridge and closing part separated along one axis."),
+            caption="Separation distances are for clarity only." + ("" if self.printed else " Cables are hidden."),
             size=(2000, 1100),
         )
 
@@ -977,10 +1011,11 @@ class Planner:
         colour = (self.d.spec.get("colors") or {}).get("body_name")
         tipped_rows = [r for r in self.d.printed() if r.get("tipped")]
         tipped = sorted(str(r.get("name")) for r in tipped_rows)
-        how = ("Print the shell only after the bench test has passed. Print each file from `print/` as exported: it is already "
+        first = "" if self.printed else "Print the shell only after the bench test has passed. "
+        how = (first + "Print each file from `print/` as exported: it is already "
                "in its print orientation, resting on the bed. Do not scale or rotate it.")
         if tipped:  # the order stage tipped a part that does not fit the printer as exported (live failure 2026-11-02)
-            how = ("Print the shell only after the bench test has passed. Do not scale any file. "
+            how = (first + "Do not scale any file. "
                    + join_and([f"`print/{t}.stl`" for t in tipped]) + (" does" if len(tipped) == 1 else " do")
                    + " not fit the printer as exported: rotate it in your slicer as its line below says, so it prints on its side"
                    + (" with the slicer's supports" if all(r.get("supports") for r in tipped_rows) else "")
@@ -989,17 +1024,24 @@ class Planner:
             how + "\n\n" + "\n".join(lines) + "\n\n"
             + (f"{settings}\n\n" if settings else "")
             + (f"The design colour is {colour}. " if colour else "")
-            + "Remove all support material. Deburr every opening (grille holes, windows, button and screw holes) "
-            "so no strings or flakes are left. Check that every boss and clip is whole. Try the closing part on the "
-            "empty shell before adding anything: it should seat evenly by hand."
+            + ("Remove all support material and any strings or flakes, especially inside openings"
+               + (" and the drain hole" if ((self.d.spec.get("printed") or {}).get("drain_hole")) else "")
+               + ". Check the surfaces are whole and the part stands flat on the table." if self.printed else
+               "Remove all support material. Deburr every opening (grille holes, windows, button and screw holes) "
+               "so no strings or flakes are left. Check that every boss and clip is whole. Try the closing part on the "
+               "empty shell before adding anything: it should seat evenly by hand.")
         )
         self.add(Step(
             id="print-parts", title="Print and inspect the printed parts",
             use=n.use(prints),
             tools=["Printer or printing service", "Slicer", "Flush cutters or a deburring tool", "Ruler or caliper"],
             body=body,
-            expected="Every printed part is complete, unscaled and clean, with open holes and whole bosses, and the closing part seats on the empty shell by hand.",
-            stop="a part is warped, a boss or clip is cracked, or the closing part will not seat without force. Reprint rather than sand or force it, and note which part and where.",
+            expected=("Every printed part is complete, unscaled and clean, with no support left, and it stands flat on the table."
+                      if self.printed else
+                      "Every printed part is complete, unscaled and clean, with open holes and whole bosses, and the closing part seats on the empty shell by hand."),
+            stop=("a part is warped, cracked or has layers that come apart. Reprint rather than sand or glue it, and note which part and where."
+                  if self.printed else
+                  "a part is warped, a boss or clip is cracked, or the closing part will not seat without force. Reprint rather than sand or force it, and note which part and where."),
             parts=[c.name for c in prints], highlight=[c.name for c in prints],
             figures=[bed] if bed else [],
         ))
@@ -1742,6 +1784,128 @@ class Planner:
             parts=[c.name for c in A.body + A.covers] + [p.get("module_id") for p in adapters + ([usb_row] if usb_row else []) if p.get("module_id")],
             highlight=[c.name for c in A.body + A.covers], figures=figs,
             rows=[p.get("module_id") for p in adapters + ([usb_row] if usb_row else []) if p.get("module_id")],
+        ))
+
+    # ------------------------------------------------------------------ wall mount (catalog package D, hand-off d-to-a #3)
+    def wall_mount(self) -> dict:
+        """The CAD's wall-mount record (cad-summary info.split_info.mount, written by D's rear cover), else {}."""
+        m = ((self.d.cad_summary().get("info") or {}).get("split_info") or {}).get("mount") or {}
+        return m if isinstance(m, dict) and m.get("kind") == "wall" and m.get("keyholes") else {}
+
+    def wall_rows(self) -> list[dict]:
+        """The wall screw + plug set the parts list carries (a purchased row with no CAD part)."""
+        return [p for p in self.d.purchased() if re.search(r"^WALL_|wall plug|wall screw", f"{p.get('module_id') or ''} {p.get('name') or ''}", re.I)]
+
+    def step_hang(self) -> None:
+        """Hang it on the wall: every number comes from the CAD's mount record; screw pull-out is not modelled."""
+        n, m = self.n, self.wall_mount()
+        rows = self.wall_rows()
+        kh = m.get("keyholes") or []
+        hang_z = min(float(k["hang"][1]) for k in kh if isinstance(k.get("hang"), (list, tuple))) if kh else None
+        sp, so = m.get("spacing_mm"), m.get("screw_standoff_mm")
+        slot = (m.get("keyhole_mm") or {}).get("slot_len")
+        notch = m.get("plug_notch") or {}
+        what = f"the **{n.row_name(rows[0])}**" if rows else "two wall screws in wall plugs"
+        lines = [
+            (f"Mark two points {float(sp):g} mm apart on a level line, where the screws will go." if sp else
+             "Mark the two screw points on a level line, as far apart as the two keyholes.")
+            + (f" The gadget hangs below them: its bottom edge ends up {hang_z:g} mm below the marks." if hang_z is not None else ""),
+            f"Drill a hole for a wall plug at each mark, tap the plugs in, and drive the screws ({what}) in"
+            + (f" until each head stands {float(so):g} mm off the wall." if so else " until each head stands just off the wall."),
+        ]
+        if notch:
+            lines.append("Plug a right-angle (L-shaped) USB-C cable into the gadget first: the plug sits in the notch under the USB-C "
+                         "opening and the cord runs out under the gadget. A straight plug would push the gadget off the wall. "
+                         "Plug fit in the notch is not modelled: try your cable's plug in the notch before you hang the gadget.")
+        lines.append("Put the round ends of the two keyholes over the screw heads, push the gadget flat to the wall and lower it"
+                     + (f" {float(slot):g} mm" if slot else "") + " until it rests on the screws.")
+        lines.append("Screw pull-out and the wall are not modelled: pull gently down and out before you let go. Physical check "
+                     "still needed.")
+        body = "\n".join(f"{i + 1}. {t}" for i, t in enumerate(lines))
+        self.add(Step(
+            id="hang-on-wall", title="Hang it on the wall",
+            use=f"The closed {self.d.product_name}" + (f" and {n.row_name(rows[0])}" if rows else " and two wall screws with wall plugs") + ".",
+            tools=["Pencil and a spirit level", "Drill with a bit that fits the wall plugs", "A screwdriver that fits the wall screws"],
+            body=body,
+            expected="Both screw heads sit in the narrow ends of the keyholes, the gadget is flat against the wall and level, and it does "
+                     "not lift off when pulled gently down and out.",
+            stop="a plug turns in its hole, a screw head does not pass the keyhole, or the gadget tips away from the wall. Take it down; "
+                 "do not leave it hanging",
+            parts=[c.name for c in self.A.body + self.A.covers] + [p.get("module_id") for p in rows if p.get("module_id")],
+            highlight=[c.name for c in self.A.covers or self.A.body],
+            rows=[p.get("module_id") for p in rows if p.get("module_id")],
+        ))
+
+    # ------------------------------------------------------------------ printed-only (catalog package A)
+    def feet_position(self, feet: list[Comp]) -> str:
+        """Where the feet go, from the CAD's saved foot points (cad-summary info.feet) and the feet component box."""
+        info = self.d.cad_summary().get("info") or {}
+        feet_xy = info.get("feet") or []
+        if not feet_xy:
+            return ""
+        xs = sorted({round(abs(p[0]), 1) for p in feet_xy})
+        ys = sorted({round(p[1], 1) for p in feet_xy})
+        pos = (f", centred at x ±{xs[0]:g} mm" if len(xs) == 1 else f", centred at x ±{min(xs):g} to ±{max(xs):g} mm")
+        return pos + f" and y {ys[0]:+g} to {ys[-1]:+g} mm from the centre of the base"
+
+    def step_feet(self) -> None:
+        A, n = self.A, self.n
+        feet = A.feet
+        q = sum(n.qty(c) for c in feet)
+        show = self.ctx_show(ghost_body=False)
+        show.update({c.name: "focus" for c in feet})
+        figs = [FigureSpec(
+            file=self.fig_name("feet"), title=f"{self.num}  Fit the feet",
+            panels=[PanelSpec(subtitle="Seen from below", show=show, view_dir=BELOW_34, focus=[c.name for c in feet] + self.body_names(),
+                              labels=[self.lbl(feet[0], f"{q} × {n.short(feet[0])}", "in the round seats", prio=2)])],
+            footer=FOOTER, alt=f"The printed part seen from below with the {q} feet in their round seats.",
+            caption="Shows where the feet go. It does not prove they stick; press each one firmly.",
+        )] if A.shell else []
+        self.add(Step(
+            id="fit-feet", title="Fit the feet",
+            use=n.use(feet), tools=[], tools_note="Fingers only.",
+            body=(f"Turn the part over onto a soft cloth. Wipe the base clean and dry, then stick the {q} × **{n.name(feet[0])}** into "
+                  f"the {q} shallow round seats on the base{self.feet_position(feet)}. Press each one for a few seconds."),
+            expected="Every foot sits flat in its seat and the part stands level on the table without rocking.",
+            stop="a foot will not stick or the part rocks. Clean the seat with a dry cloth and use a new foot; do not glue it",
+            parts=[c.name for c in feet], highlight=[c.name for c in feet], figures=figs, adds=[c.name for c in feet],
+        ))
+
+    def step_final_printed(self) -> None:
+        A, n, d = self.A, self.n, self.d
+        show = {c.name: "solid" for c in d.comps.values() if c.kind in ("PRINT", "PURCHASE")}
+        sh = A.shell
+        figs = [FigureSpec(
+            file="manual/assembled.png", title=f"{d.product_name}: finished",
+            panels=[PanelSpec(subtitle="Front view", show=show, view_dir=FRONT_34, focus=list(show), labels=[], label_room=0.24)],
+            footer=FOOTER, alt=f"The finished {d.product_name} from the front.",
+            caption="Saved CAD appearance only. Complete the final checks below before regular use.",
+        )] if sh else []
+        pr = d.spec.get("printed") if isinstance(d.spec.get("printed"), dict) else {}
+        info = (d.cad_summary().get("info") or {}).get("printed") or {}
+        mat = ""
+        try:
+            mat = str((d.slice_profile() or {}).get("filament_type") or "").split(";")[0].strip()
+        except Exception:  # noqa: BLE001
+            mat = ""
+        lines = [f"This design has no electronics: there is nothing to plug in, charge or switch on."]
+        lines.append(f"Printed {mat or 'plastic'} is not food-safe and not for hot liquids: do not use it for food or drink, even if it "
+                     "is shaped like a cup, bowl or teapot.")
+        if info.get("drain_hole") or pr.get("drain_hole"):
+            lines.append("Water runs out of the drain hole: stand it on a saucer or tray if it holds a plant.")
+        lines.append("No load or fit is promised: nothing here was tested for weight, and how it fits anything else is a physical "
+                     "check.")
+        if self.child():
+            lines.append("Small printed parts can be a choking hazard: an adult checks it is whole before a child uses it.")
+        body = "\n\n".join(lines) + ("\n\nWork through the final checks listed at the end of this guide. They are actions for you, not "
+                                      "passed results: record what you observe.")
+        self.add(Step(
+            id="final-checks", title="Final checks",
+            use=f"The finished {d.product_name}.", tools=[], tools_note="Adult supervision." if self.child() else "",
+            body=body,
+            expected="Every final check is done and recorded, and the part stands level and whole.",
+            stop="a part is cracked, has sharp edges or rocks on the table. Do not use it until it is reprinted",
+            parts=[c.name for c in A.body + A.feet], highlight=[c.name for c in A.body], figures=figs,
         ))
 
     def child(self) -> bool:

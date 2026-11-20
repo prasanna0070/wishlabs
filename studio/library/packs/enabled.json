@@ -1,1 +1,1 @@
-{"enabled": ["sensing", "schedule"]}
+{"enabled": ["sensing", "schedule", "printed", "printed_cuts"]}

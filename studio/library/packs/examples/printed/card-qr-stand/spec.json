@@ -1,0 +1,96 @@
+{
+ "schema": "gadget-spec/1",
+ "kind": "printed",
+ "name": "Counter card stand",
+ "slug": "card-qr-stand",
+ "tagline": "A printed object with no electronics: a shop counter stand for visiting cards and a payment QR card",
+ "audience": {
+  "child_directed": false
+ },
+ "colors": {
+  "body": "#1F5E3B",
+  "accent": "#F4F1EA",
+  "detail": "#2B3A42",
+  "body_name": "dark green"
+ },
+ "body": {
+  "family": "silhouette",
+  "outline": [
+   [
+    -34,
+    0
+   ],
+   [
+    34,
+    0
+   ],
+   [
+    34,
+    8
+   ],
+   [
+    28,
+    52
+   ],
+   [
+    24,
+    57
+   ],
+   [
+    18,
+    57
+   ],
+   [
+    13,
+    52
+   ],
+   [
+    6,
+    12
+   ],
+   [
+    2,
+    9
+   ],
+   [
+    -20,
+    9
+   ],
+   [
+    -24,
+    12
+   ],
+   [
+    -25,
+    18
+   ],
+   [
+    -28,
+    21
+   ],
+   [
+    -32,
+    20
+   ],
+   [
+    -34,
+    14
+   ]
+  ],
+  "depth": 110,
+  "edge_round": 3,
+  "wall": 2.4,
+  "split": "none",
+  "feet": 4
+ },
+ "printed": {
+  "opening": "none",
+  "drain_hole": false
+ },
+ "decor": [],
+ "features": [],
+ "safety": {
+  "flags": [],
+  "notes": "Printed-only object: no electronics. PETG is not food-safe."
+ }
+}

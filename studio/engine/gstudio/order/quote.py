@@ -110,8 +110,16 @@ def inbound_shipping(purchased: list[dict], fracs: dict, ga_inbound: dict) -> di
             "basis": d["basis"]}
 
 
+PRINTED_OPS_BASIS = ("printed-only design (catalog package A): no core, cables, inserts, closing, flashing or functional test; "
+                     "one module_install for fitting the adhesive feet when it has feet, a QC photo and packing (ASSUMPTION: "
+                     "support removal is inside the print cost)")
+
+
 def assembly_ops(spec: dict, purchased: list[dict]) -> dict:
     d = spec.get("derived") or {}
+    if spec.get("kind") == "printed":
+        feet = any("feet" in f"{h.get('id', '')} {h.get('name', '')}".lower() for h in d.get("hardware") or [] if isinstance(h, dict))
+        return {"module_install": 1 if feet else 0, "qc_photo": 1, "pack": 1}
     insts = [i for i in d.get("instances") or [] if isinstance(i, dict)]
     mounted = [i for i in insts if (i.get("role") or "") not in ("core", "backplane") and i.get("source") != "core"]
     cables = sum(int(r.get("quantity") or 0) for r in purchased if r.get("kind") == "cable")
@@ -127,12 +135,28 @@ def box_cm(bbox_mm: Optional[list[float]], pad_mm: float) -> Optional[list[int]]
     return [int(math.ceil((float(s) + 2 * pad_mm) / 10.0)) for s in bbox_mm]
 
 
-def lead_time(print_hours: float, ga: dict, pcb_needed: bool = True) -> dict:
+def lead_time(print_hours: float, ga: dict, pcb_needed: bool = True, parts_needed: bool = True) -> dict:
     lt = ga["lead_time"]
     pdays = math.ceil(print_hours / lt["print_hours_per_day"]["value"]) if print_hours > 0 else 0
     proc = lt["parts_procurement_days"]
     pcb = lt["pcb_fabrication_days"]
     asm, buf, cour = lt["assembly_flash_test_days"], lt["remake_buffer_days"], lt["courier_days"]
+    if not pcb_needed:  # printed-only (catalog package A): parts are only the feet; no PCB, flashing or test
+        lo = (proc["low"] if parts_needed else 0) + pdays + buf["low"] + cour["low"] + 1
+        hi = (proc["high"] if parts_needed else 0) + pdays + buf["high"] + cour["high"] + 1
+        return {
+            "low": int(lo), "high": int(hi), "applies_to": pe.SCENARIOS[0].name, "status": "ESTIMATE",
+            "reason": ((f"Parts ({proc['low']}-{proc['high']} days), then " if parts_needed else "")
+                       + f"{pdays} printing day(s) for {print_hours:.1f} h of sliced print time, 1 day for finishing"
+                       + (", feet" if parts_needed else "") + f" and a check, a {buf['low']}-{buf['high']} day remake buffer, and "
+                       f"{cour['low']}-{cour['high']} courier days. No PCB, flashing or test: a printed-only design. Every duration "
+                       "is an assumption, not a supplier commitment; the courier window needs the delivery pincode."),
+            "steady_state": {"low": int(pdays + buf["low"] + cour["low"] + 1), "high": int(pdays + buf["high"] + cour["high"] + 1),
+                             "applies_to": pe.SCENARIOS[2].name, "reason": "stocked feet: printing, finishing, buffer and courier only"},
+            "breakdown": {"print_days": pdays, "parts_procurement_days": proc if parts_needed else None, "pcb_fabrication_days": None,
+                          "finish_and_check_days": 1, "remake_buffer_days": buf, "courier_days": cour},
+            "basis": {k: v.get("basis") for k, v in lt.items() if isinstance(v, dict)},
+        }
     first_lo = max(proc["low"], pcb["low"] if pcb_needed else 0) + pdays + asm["low"] + buf["low"] + cour["low"]
     first_hi = max(proc["high"], pcb["high"] if pcb_needed else 0) + pdays + asm["high"] + buf["high"] + cour["high"]
     st_lo = pdays + asm["low"] + buf["low"] + cour["low"]
@@ -252,7 +276,9 @@ def make_quote(purchased: list[dict], print_parts: dict, spec: dict, lib: Any = 
                      f"₹{abs(delta_total):,.0f} {'more' if delta_total >= 0 else 'less'} than their planning ranges would give "
                      f"({n_above} seen above the range, {n_below} below it); steady state still uses the planning ranges")
     in_box_adapter = any(str(r.get("role") or "").lower() == "adapter" and r.get("in_box") for r in purchased)
-    if not in_box_adapter:
+    if spec.get("kind") == "printed":  # catalog package A: nothing to power
+        extra.append("printed-only design: no electronics, so no power supply, PCB, firmware or functional test is priced")
+    elif not in_box_adapter:
         extra.append("no USB-C power adapter in the box: the buyer supplies a 5 V 3 A USB-C supply")
     variant = {"modules": mods_one, "assembly_ops": ops, "cloud": None, "child_directed": child, "extra_reasons": extra,
                "launch_status": "REVIEW_REQUIRED"}
@@ -280,7 +306,8 @@ def make_quote(purchased: list[dict], print_parts: dict, spec: dict, lib: Any = 
                                for k, v in s["breakdown_mean"].items()}
     vol_cm3 = sum(float(v.get("model_volume_cm3") or 0) for v in print_parts.values())
     bureau = assumptions["print"]["bureau_fdm_rate_per_cm3"]
-    lt = lead_time(hours, ga)
+    is_printed = spec.get("kind") == "printed"
+    lt = lead_time(hours, ga, pcb_needed=not is_printed, parts_needed=bool(purchased))
     return {
         "schema": "gadget-quote/1",
         "currency": "INR",
@@ -298,13 +325,14 @@ def make_quote(purchased: list[dict], print_parts: dict, spec: dict, lib: Any = 
             "label": STATUS_LABEL.get(status, status),
             "includes": ["purchased parts (GST-inclusive seen prices for the one-off and batch, planning ranges at steady state)",
                          "inbound shipping from each vendor (one-off and batch, ASSUMPTION fees)",
-                         "printed parts from the sliced grams and hours", "assembly, flashing and functional test",
+                         "printed parts from the sliced grams and hours",
+                         "finishing, feet, a QC photo and packing (no electronics)" if is_printed else "assembly, flashing and functional test",
                          "one-time setup share (one-off and batch only)", "courier within India (estimate, pincode unknown)",
                          "warranty and returns reserve", "payment gateway fee", "GST at an assumed 18%"]
                         + (["the 5 V 3 A USB-C adapter (in the box)"] if in_box_adapter else []),
             "excludes": ["import duties (all parts assumed bought in India)"]
                         + ([f"parts with no price: {', '.join(missing)}"] if missing else [])  # plain text (MIN-27)
-                        + ([] if in_box_adapter else ["USB-C power adapter"]),
+                        + ([] if in_box_adapter or is_printed else ["USB-C power adapter"]),
         },
         "parts_total_inr": {"one_off": round(tot["one_off"]), "batch_unit": round(tot["batch_unit"]),
                             "steady_state_unit": round(tot["steady_state_unit"]), "complete": not missing,
@@ -323,7 +351,7 @@ def make_quote(purchased: list[dict], print_parts: dict, spec: dict, lib: Any = 
             "print": {"grams": round(grams, 2), "hours": round(hours, 3), "parts": print_parts and {k: {kk: v.get(kk) for kk in ("filament_g", "print_h", "supports", "support_g")} for k, v in print_parts.items()},
                       "source": "print/slice-stats.json (PrusaSlicer run on these STLs)"},
             "assembly_ops": ops,
-            "assembly_ops_basis": ga["assembly_ops_rule"]["basis"],
+            "assembly_ops_basis": PRINTED_OPS_BASIS if is_printed else ga["assembly_ops_rule"]["basis"],
             "logistics": {"box_cm": assumptions["logistics"]["box_cm"], "packed_weight_kg": assumptions["logistics"]["packed_weight_kg"]},
             "assumptions_files": ["gstudio/order/data/sim-assumptions.json", "gstudio/order/data/gstudio-assumptions.json",
                                   "gstudio/order/data/inbound-shipping.json"],
