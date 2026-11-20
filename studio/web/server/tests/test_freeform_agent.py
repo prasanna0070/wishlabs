@@ -607,7 +607,8 @@ def test_format_slips_do_not_count_toward_the_family_fallback(tmp_path, monkeypa
 
 
 def test_csg_patterns_keep_the_floor_rule():
-    """Every pattern's lowest piece is at least 100 x 110 mm plus 2 x its round at the floor (the prompt's own rule)."""
+    """Every pattern's lowest piece is at least 100 x 110 mm at the floor (the prompt's own rule; contract v2's table
+    rule keeps a rounded piece's bottom flat and square, and 2 x round is kept as a margin for its corner rounds)."""
     from app.agent.prompt import CSG_PATTERNS
 
     def floor(node, z=0.0):
