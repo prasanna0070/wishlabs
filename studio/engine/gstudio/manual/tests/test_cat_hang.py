@@ -39,7 +39,7 @@ def test_wall_design_hangs_with_numbers_from_the_cad(minibot_ctx):
     st = steps[ids.index("hang-on-wall")]
     text = st.instruction + " " + st.expected
     for want in ("60 mm apart", "169.5 mm below the marks", "2.8 mm off the wall", "lower it 10 mm", "right-angle",
-                 "not modelled", "Physical check still needed"):
+                 "not modelled", "Physical check still needed", "Plug fit in the notch is not modelled"):
         assert want in text, want
     assert not re.search(r"\bkg\b|holds? up to|rated", text)  # no load rating is ever promised
     assert st.title == "Hang it on the wall" and st.parts

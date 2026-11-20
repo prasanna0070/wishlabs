@@ -1814,7 +1814,8 @@ class Planner:
         ]
         if notch:
             lines.append("Plug a right-angle (L-shaped) USB-C cable into the gadget first: the plug sits in the notch under the USB-C "
-                         "opening and the cord runs out under the gadget. A straight plug would push the gadget off the wall.")
+                         "opening and the cord runs out under the gadget. A straight plug would push the gadget off the wall. "
+                         "Plug fit in the notch is not modelled: try your cable's plug in the notch before you hang the gadget.")
         lines.append("Put the round ends of the two keyholes over the screw heads, push the gadget flat to the wall and lower it"
                      + (f" {float(slot):g} mm" if slot else "") + " until it rests on the screws.")
         lines.append("Screw pull-out and the wall are not modelled: pull gently down and out before you let go. Physical check "

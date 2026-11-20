@@ -160,6 +160,23 @@ def evidence_section() -> list[str]:
             ""]
 
 
+def night_light_lines(data: ManualData, A: Assembly) -> list[str]:
+    """Review M2 (i-to-a.md): a night light with a motion sensor is not a baby monitor, and a child's night light and its
+    cord stay out of reach. Only for NIGHT_USE designs; the cot line only when the design is for a child."""
+    flags = set((data.spec.get("safety") or {}).get("flags") or [])
+    if "NIGHT_USE" not in flags:
+        return []
+    kid = bool((data.spec.get("audience") or {}).get("child_directed")) or "CHILD_DIRECTED" in flags
+    motion = any(g.role == "motion" for g in [*A.features, *A.internals])
+    out = []
+    if motion:
+        out.append("This is a night light, not a baby monitor: the motion sensor can miss small movements, for example under "
+                   "a blanket.")
+    if kid:
+        out.append("Place the light and its USB cable out of the child's reach, never in or on a cot or bed.")
+    return out
+
+
 def write_guide(data: ManualData, A: Assembly, steps: list[Step], visuals: dict[str, list[dict]], tests: list[dict],
                 wiring: dict, issues: Optional[Issues] = None) -> str:
     name = data.product_name
@@ -190,6 +207,8 @@ def write_guide(data: ManualData, A: Assembly, steps: list[Step], visuals: dict[
         "The USB-C supply stays outside the gadget. Route the cord where nobody trips on it" + (" and away from a bed" if child else "") + ".",
         "Use the gadget on a stable surface with its openings clear.",
     ]
+    if not printed_only:
+        safety += night_light_lines(data, A)
     L.append(" ".join(s for s in safety if s))
     L.append("")
     L.append("## How to read the pictures")
