@@ -201,7 +201,9 @@ and runs every check; an error names the node path: fix that node and resend.
   a plinth is a wider low box under the body, an arch or handle is a torus or a front outline (extrude axis "y").
 - Keep the electronics room: the core cartridge lies on the floor at the rear (see the hard fit rules), so put trays
   and slots at the front or high on the top, with their floors above the cartridge. Make the lowest piece at least
-  100 mm wide and 110 mm deep at the floor (the cartridge needs 81 x 87 mm inside, plus walls and corner rounds).
+  100 mm wide and 110 mm deep at the floor (the cartridge needs 81 x 87 mm inside, plus walls and corner rounds), and
+  keep its rear part (the back 95 mm, the middle 90 mm of the width) a full block up to 40 mm high: no slope, step or
+  cut starts there below 40 mm.
 - A piece that carries a screen, button or sensor must share the main hollow: overlap it with the main body by at
   least 10 mm, or its module has no room behind the wall.
 - Cuts stay inside: keep at least 6 mm of material under and around every tray, slot or groove, never cut through
