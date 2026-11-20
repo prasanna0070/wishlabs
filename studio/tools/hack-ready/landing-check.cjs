@@ -83,6 +83,30 @@ const visible = (page, sel) => page.evaluate((s) => [...document.querySelectorAl
   return cs.display !== "none" && cs.visibility !== "hidden" && r.width > 0 && r.height > 0;
 }), sel);
 
+/* The hero wish box: no example wish may spill out of the box, and a long typed wish must stay fully visible. */
+async function wishBoxChecks(page, tag) {
+  const spill = await page.evaluate((wishes) => {
+    const p = document.querySelector(".wish-typed"), t = document.querySelector(".wish-txt"), keep = t.textContent;
+    const out = wishes.map((w) => { t.textContent = w; return { w: w.slice(0, 24), over: p.scrollHeight - p.clientHeight }; });
+    t.textContent = keep;
+    return out;
+  }, (await page.evaluate(() => window.SITE.GADGETS.map((g) => g.wish))));
+  check(`${tag}: every example wish fits inside the wish box`, spill.every((x) => x.over <= 1), JSON.stringify(spill));
+  const long = "I wish for a little robot for my grandmother that reads her the morning news in Tamil, reminds her about her " +
+    "tablets at 9 and 9, plays old film songs when she taps its head, and calls me if she has not moved by noon.";
+  await page.evaluate(() => { const el = document.querySelector("#wish-input"); el.scrollIntoView({ block: "center" }); });
+  await page.fill("#wish-input", long);
+  await page.waitForTimeout(700);
+  const box = await page.evaluate(() => { const el = document.querySelector("#wish-input"); return { sh: el.scrollHeight, ch: el.clientHeight, oy: getComputedStyle(el).overflowY }; });
+  check(`${tag}: a long typed wish is fully visible (or scrolls)`, box.sh <= box.ch + 1 || box.oy === "auto", JSON.stringify(box));
+  await shot(page, `${tag}-02-long-wish`, { el: "#wishbox", caption: "a long typed wish: the box grows" });
+  await page.fill("#wish-input", "");
+  await page.evaluate(() => { document.querySelector("#wish-input").blur(); window.scrollTo(0, 0); });
+  await page.waitForTimeout(900);
+  const back = await page.evaluate(() => document.querySelector("#wish-input").style.height);
+  check(`${tag}: the box shrinks back when the wish is cleared`, back === "", JSON.stringify(back));
+}
+
 async function run(browser, dev, opts, flags, rm = false) {
   const ctx = await browser.newContext({ ...opts, reducedMotion: rm ? "reduce" : "no-preference" });
   if (flags) await flagsOn(ctx);
@@ -111,12 +135,13 @@ async function run(browser, dev, opts, flags, rm = false) {
   check(`${tag}: no "Claude" anywhere in the page`, !rec.claude);
   check(`${tag}: old price 7,826 gone`, !rec.oldPrice);
 
+  if (!flags && !rm) await wishBoxChecks(page, tag);
   if (!flags) {
     await shot(page, `${tag}-01-hero`, { caption: "first viewport, settled" });
     if (dev === "d" && !rm) {
       await scrollTo(page, "#how", -200); await page.waitForTimeout(1500);
       await shot(page, `${tag}-10-story-approach`, { caption: "How it works, before the pin: the YOUR WISH card (was an empty white box)" });
-      for (const s of [0.3, 2.03, 2.05, 2.35, 4.5]) {
+      for (const s of [0.3, 2.01, 2.03, 2.045, 2.06, 2.35, 4.5]) {
         const got = await storyAt(page, s);
         await shot(page, `${tag}-1${String(s).replace(".", "")}-story-s${s}`, { caption: `pinned story at s=${got && got.toFixed ? got.toFixed(3) : got}` });
       }
@@ -140,6 +165,15 @@ async function run(browser, dev, opts, flags, rm = false) {
     }
     await scrollTo(page, "#shelf", dev === "d" ? 120 : 80); await page.waitForTimeout(1800);
     await shot(page, `${tag}-23-final-shelf`, { caption: "final shelf in full view" });
+    if (dev === "m" && !rm) {
+      /* Each shelf dot must be tappable 12 px off its centre (a 24 px target or more), and that tap must open its own card. */
+      const taps = await page.evaluate(() => [...document.querySelectorAll("#shelf a.spot")].map((a) => {
+        const r = a.querySelector("i").getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        const hit = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest("a.spot") === a; };
+        return { href: a.getAttribute("href"), dot: Math.round(r.width), ok: hit(cx + 12, cy) && hit(cx - 12, cy) && hit(cx, cy + 12) && hit(cx, cy - 12) };
+      }));
+      check(`${tag}: 6 shelf dots, each with a tap area of 24 px or more`, taps.length === 6 && taps.every((t) => t.ok), JSON.stringify(taps));
+    }
   } else {
     await shot(page, `${tag}-30-hero-share`, { caption: 'hero with "See a real build" (flags on)' });
     await scrollTo(page, "#how", dev === "d" ? -120 : 60); await page.waitForTimeout(1600);
@@ -209,6 +243,20 @@ async function linkCheck(browser, urls) {
   await run(browser, "d", DESKTOP, true);
   await run(browser, "m", PHONE, true);
   await run(browser, "d", DESKTOP, false, true);
+  {
+    /* A narrow Android phone (360 px): the example wishes need a third line there. */
+    const ctx = await browser.newContext({ ...PHONE, viewport: { width: 360, height: 800 } });
+    const page = await ctx.newPage();
+    const rec = { dev: "m360", flags: false, rm: false, console: [], pageerrors: [], failed: [], http: [] };
+    instrument(page, rec);
+    await page.goto(BASE, { waitUntil: "load", timeout: 90000 });
+    await page.waitForTimeout(3000);
+    await wishBoxChecks(page, "m360");
+    check("m360: 0 console errors, 0 page errors", !rec.console.some((c) => c.startsWith("error")) && rec.pageerrors.length === 0, [...rec.console, ...rec.pageerrors].join(" | ").slice(0, 400));
+    report.runs.push(rec);
+    save();
+    await ctx.close();
+  }
   await linkCheck(browser, d.urls || []);
   await browser.close();
   report.seconds = Math.round((Date.now() - t0) / 1000);
