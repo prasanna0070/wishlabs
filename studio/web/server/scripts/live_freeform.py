@@ -68,6 +68,8 @@ def main() -> int:
     ap.add_argument("--prompt", default=PROMPT)
     ap.add_argument("--photos", action="store_true")
     ap.add_argument("--mode", default="pro")
+    ap.add_argument("--dump-calls", action="store_true",
+                    help="in-process only: write every tool call's arguments to <out>/calls.jsonl (to read failed specs)")
     a = ap.parse_args()
     out = Path(a.out)
     (out / "concepts").mkdir(parents=True, exist_ok=True)
@@ -81,6 +83,20 @@ def main() -> int:
         from app.config import Settings
         from app.main import create_app
 
+        if a.dump_calls:
+            from app.agent import turn as turn_mod
+
+            real = turn_mod.Turn.call_tool
+            calls = out / "calls.jsonl"
+
+            async def call_tool(self, name, args):
+                res = await real(self, name, args)
+                with calls.open("a") as fh:
+                    fh.write(json.dumps({"t": round(time.time(), 1), "tool": name, "args": args,
+                                         "result": res.response}, default=str) + "\n")
+                return res
+
+            turn_mod.Turn.call_tool = call_tool
         store = Path(tempfile.mkdtemp(prefix="gs-ff-", dir=str(out)))
         s = Settings(store_dir=store / "store", builder=os.environ.get("BUILDER", "fake"), agent="gemini",
                      access_key=KEY, photos=a.photos, static_dir=None, cookie_secure=False)
