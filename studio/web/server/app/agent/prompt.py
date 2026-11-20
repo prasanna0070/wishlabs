@@ -228,7 +228,7 @@ CSG_PATTERNS: list[tuple[str, dict]] = [
         {"op": "move", "to": [0, 45, 0], "node": {"op": "box", "size": [180, 50, 130], "round": 8}}]}),
     ("tower on a plinth", {"op": "union", "blend": 10, "nodes": [
         {"op": "cylinder", "r": 85, "h": 20, "round": 6},
-        {"op": "move", "to": [0, 0, 15], "node": {"op": "box", "size": [115, 110, 170], "round": 20}}]}),
+        {"op": "box", "size": [115, 110, 185], "round": 20}]}),
 ]
 CSG_PRINTED = ("\n- A printed object (kind printed, no electronics) may use a csg body too, for example a sculpted "
                "teapot or a stepped desk tidy.")

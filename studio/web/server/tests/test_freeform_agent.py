@@ -639,3 +639,13 @@ def test_csg_patterns_keep_the_floor_rule():
     for name, tree in CSG_PATTERNS:
         fl = floor(tree)
         assert fl and any(w >= 100 + 2 * r and d >= 110 + 2 * r for w, d, r in fl), (name, fl)
+
+
+def test_csg_patterns_overlap_their_pieces_by_10_mm():
+    """The prompt asks for 10 mm of overlap between stacked pieces that share the hollow; its own patterns comply."""
+    from app.agent.prompt import CSG_PATTERNS
+
+    tower = dict(CSG_PATTERNS)["tower on a plinth"]
+    plinth, body = tower["nodes"]
+    z0 = body["to"][2] if body["op"] == "move" else 0.0         # the tower stands on the table through its plinth
+    assert plinth["h"] - z0 >= 10
