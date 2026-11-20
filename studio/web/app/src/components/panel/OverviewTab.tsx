@@ -61,7 +61,9 @@ export default function OverviewTab({ onTab }: { onTab: (t: TabId) => void }) {
   const ctx = useProject((s) => s.ctx)!;
   const readOnly = useProject((s) => s.readOnly);
   const v = showcaseVersion(project);
-  const wish = originalWish(project);
+  // a spoken wish (Gemini Live) starts the chat with the wish plus the call's questions and answers: show the wish
+  const spoken = typeof project.voice?.wish === "string" && project.voice.wish.trim() ? project.voice.wish.trim() : null;
+  const wish = spoken || originalWish(project);
   const chosen = chosenConcept(project, v);
   const result = resultMessage(project, v?.n);
   const summary = result?.payload?.summary || null;
@@ -115,7 +117,10 @@ export default function OverviewTab({ onTab }: { onTab: (t: TabId) => void }) {
               <blockquote className="ov-wish">
                 <QuoteIcon size={18} aria-hidden="true" />
                 <p>{wish}</p>
-                <footer>The wish, as typed{project.created ? `, ${dateOnly(project.created)}` : ""}</footer>
+                <footer>
+                  {spoken ? "The wish, as spoken" : "The wish, as typed"}
+                  {project.created ? `, ${dateOnly(project.created)}` : ""}
+                </footer>
               </blockquote>
             ) : null}
             <p className="ov-lede">
