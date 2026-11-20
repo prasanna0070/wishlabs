@@ -62,6 +62,38 @@ def _as_spec(x: Any) -> Any:
     return x
 
 
+def _unstring(x: Any) -> Any:
+    """JSON text inside a spec ('"csg": "{\\"op\\": ...}"', '"features": "[...]"') -> the object or list it spells.
+    Only text that parses to an object or a list is replaced; other strings stay as they are."""
+    if isinstance(x, str):
+        t = x.strip()
+        if t[:1] in ("{", "["):
+            try:
+                v = json.loads(t)
+            except ValueError:
+                return x
+            if isinstance(v, (dict, list)):
+                return _unstring(v)
+        return x
+    if isinstance(x, dict):
+        return {k: _unstring(v) for k, v in x.items()}
+    if isinstance(x, list):
+        return [_unstring(v) for v in x]
+    return x
+
+
+def _unstring_specs(args: dict) -> dict:
+    """Pack freeform: decode JSON text nested in the spec arguments of a tool call (a live run lost a whole repair
+    round to "body.csg: Input should be a valid dictionary" on every concept)."""
+    out = dict(args)
+    if "spec" in out:
+        out["spec"] = _unstring(_as_spec(out["spec"]))
+    if isinstance(out.get("concepts"), list):
+        out["concepts"] = [dict(c, spec=_unstring(_as_spec(c.get("spec")))) if isinstance(c, dict) and "spec" in c
+                           else c for c in out["concepts"]]
+    return out
+
+
 def _plain(x: Any) -> Any:
     """Proto-ish values from function-call args -> plain JSON (ints stay ints when whole)."""
     if isinstance(x, dict):   # keys trimmed of stray quotes/spaces: the model sometimes emits 'center"'
@@ -506,6 +538,8 @@ class Turn:
         call_id = new_id("call", 8)
         await self.emit("tool.start", {"call_id": call_id, "name": name, "label": LABELS.get(name, name)})
         args = _plain(args or {})
+        if self.freeform():          # pack freeform: Gemini sometimes sends nested spec parts as JSON text
+            args = _unstring_specs(args)
         try:
             res = await getattr(self, f"tool_{name}")(args)
         except Exception as exc:  # noqa: BLE001

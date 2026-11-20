@@ -527,3 +527,40 @@ def test_pack_off_spec_rounds_are_live(tmp_path, monkeypatch):
         _, evs = _run(c)
         assert not any("failed twice" in (x.get("instruction") or "") for x in svc.brain.calls)
         assert len([r for r in events_named(evs, "repair") if not r.get("kind")]) == svc.settings.max_repair_rounds + 1
+
+
+def test_unstring_decodes_json_text_in_specs_only():
+    from app.agent.turn import _unstring_specs
+
+    args = {"message": "[keep me]", "concepts": [
+        {"title": "A", "spec": {"body": {"family": "csg", "csg": '{"op": "box", "size": [100, 110, 60]}'},
+                                "features": '[{"id": "screen", "at": [0, 40]}]', "name": "{not json"}},
+        {"title": "B", "spec": '{"body": {"family": "blob"}, "decor": "[]"}'}]}
+    out = _unstring_specs(args)
+    a, b = out["concepts"][0]["spec"], out["concepts"][1]["spec"]
+    assert a["body"]["csg"] == {"op": "box", "size": [100, 110, 60]} and a["features"][0]["at"] == [0, 40]
+    assert a["name"] == "{not json" and out["message"] == "[keep me]"
+    assert b == {"body": {"family": "blob"}, "decor": []}
+    assert args["concepts"][0]["spec"]["features"].startswith("[")      # the input is not changed
+
+
+@pytest.mark.parametrize("packs,decoded", [("sensing,schedule,freeform", True), ("sensing,schedule", False)])
+def test_stringified_spec_parts_only_decoded_with_the_pack(tmp_path, monkeypatch, packs, decoded):
+    class StringBrain(_RenderBrain):
+        async def run(self, turn):
+            base, other = self._specs()
+            s2 = copy.deepcopy(other)
+            s2["features"] = json.dumps(s2["features"])           # the live failure: a list sent as JSON text
+            r = await turn.call_tool("propose_concepts", {"message": "Choose the robot shape.", "concepts": [
+                {"title": "Desk Robot", "tier": "expected", "blurb": "a robot desk station", "spec": base},
+                {"title": "Wedge Robot", "tier": "wildcard", "blurb": "a wedge robot", "spec": s2}]})
+            self.calls.append(r.response)
+
+    c, svc = _client(tmp_path, monkeypatch, packs, CSG_ERR)
+    svc.brain = StringBrain(svc)
+    with c:
+        _run(c)
+        first = svc.brain.calls[0]
+        assert (first.get("ok") is True) is decoded
+        if not decoded:
+            assert any("features" in e for e in first["errors"])
