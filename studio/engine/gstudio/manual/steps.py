@@ -414,6 +414,12 @@ class Planner:
     def harnessed(self) -> list[Group]:
         return [g for g in [*self.A.features, *self.A.internals] if g.ref and g.ref in self.ends]
 
+    def loose_ends(self) -> list[str]:
+        """Harnessed modules with a module-end record but no CAD part: an extra module the CAD does not mount (an RTC in
+        electronics.extra_modules). Their cable is fitted in the bench test like every other (MAJ-10, hand-off b-to-a #3)."""
+        grouped = {g.ref for g in [*self.A.features, *self.A.internals] if g.ref}
+        return sorted(r for r in self.ends if r not in grouped and self.d.comp_for_ref(r) is None)
+
     def mod_fasteners(self) -> Counter:
         """Screws per kit ref from the CAD fastener records (cad/digital-checks.json fastener_engagement)."""
         cnt: Counter = Counter()
@@ -794,10 +800,13 @@ class Planner:
         usb_row = self.usb_cable_row()
         cable_rows = self.harness_rows()
         groups = self.harnessed()
+        loose = self.loose_ends()
         fits = []
         for g in groups:
             me = self.ends[g.ref]
             fits.append(f"**{g.label or n.noun(g).capitalize()}** ({g.ref}): " + me.instruction(n.name(g.module)))
+        for r in loose:
+            fits.append(f"**{d.module_name(r)}** ({r}): " + self.ends[r].instruction(d.module_name(r)))
         how, exp = self.selftest_text()
         mods = [g for g in [*A.features, *A.internals] if g.module]
         checks = dedupe([SELFTEST_CHECK.get(g.role, f"the {n.noun(g)} responds") for g in mods]
@@ -816,6 +825,7 @@ class Planner:
             "cables fitted on the modules. Nothing here records the test as passed: you do."
         )
         stops = [s for g in groups for s in self.ends[g.ref].stop_rules(n.name(g.module))]
+        stops += [s for r in loose for s in self.ends[r].stop_rules(d.module_name(r))]
         if uart_stop:
             stops.append(uart_stop)
         self.add(Step(
@@ -831,8 +841,8 @@ class Planner:
             parts=[c.name for c in [A.backplane, A.core, *A.cartridge_mods] if c] + [g.module.name for g in mods],
             highlight=[c.name for c in [A.backplane, A.core, *A.cartridge_mods] if c],
             rows=[r.get("module_id") for r in ([usb_row] if usb_row else []) + cable_rows if r.get("module_id")],
-            extra_images=["manual/wiring.png"] + [f"manual/cable-end-{g.ref.lower()}.png" for g in groups],
-            module_end=[g.ref for g in groups],
+            extra_images=["manual/wiring.png"] + [f"manual/cable-end-{r.lower()}.png" for r in [g.ref for g in groups] + loose],
+            module_end=[g.ref for g in groups] + loose,
         ))
 
     # ------------------------------------------------------------------ 6-7. prints
@@ -1404,7 +1414,10 @@ class Planner:
                 desc += f", {int(length)} mm"
             wires = h.get("wires") or []
             order = ", ".join(f"{w.get('slot_pin')} {w.get('color')} {w.get('module_pin')}" for w in sorted(wires, key=lambda w: w.get("slot_pin") or 0) if w.get("color"))
-            lines.append(f"**{inst['slot']}** ← {nm} ({inst['ref']}): {desc}." + (f" Pin order at the port: {order}." if order else ""))
+            lines.append(f"**{inst['slot']}** ← {nm} ({inst['ref']}): {desc}." + (f" Pin order at the port: {order}." if order else "")
+                         + ("" if c else f" The {nm} has no printed mount in this design, so nothing holds it: lay it flat inside "
+                                         "the shell, clear of the cartridge, the openings and every other module (not modelled; "
+                                         "physical check)."))
             used.append(inst["slot"])
             if c:
                 parts.append(c.name)
