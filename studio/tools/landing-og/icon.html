@@ -1,0 +1,18 @@
+<!doctype html>
+<!-- The site's star mark as raster icons (render.cjs): ?full=1 gives a full-bleed square for apple-touch-icon. -->
+<html><head><meta charset="utf-8"><style>
+  html, body { margin: 0; background: transparent; }
+  svg { display: block; width: 100vw; height: 100vh; }
+</style></head>
+<body>
+<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <rect id="bg" width="32" height="32" rx="10" fill="#16132B"/>
+  <path d="M16 5c.6 5.6 4.4 9.4 10 10-5.6.6-9.4 4.4-10 10-.6-5.6-4.4-9.4-10-10 5.6-.6 9.4-4.4 10-10z" fill="#7C5CFF"/>
+</svg>
+<script>
+  if (new URLSearchParams(location.search).get("full")) {
+    const r = document.getElementById("bg"); r.setAttribute("rx", "0");
+    document.querySelector("path").setAttribute("transform", "translate(16 15) scale(.8) translate(-16 -15)");
+  }
+</script>
+</body></html>

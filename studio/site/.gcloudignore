@@ -9,3 +9,5 @@
 !js/**
 !assets/
 !assets/**
+# Internal build notes for the 3D files: not part of the public site.
+assets/3d/README.md

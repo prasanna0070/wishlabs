@@ -132,7 +132,10 @@ export async function createStory(host, labelLayer, onEvent = () => {}) {
       const mats = (Array.isArray(o.material) ? o.material : [o.material]).map((mm) => {
         const c = mm.clone();
         patchMaterial(c, U);
-        if (isShell) { c.clippingPlanes = [clip]; c.side = THREE.DoubleSide; c.clipShadows = false; }
+        /* Every part shares the shell's cut plane, so the step-3 un-print cuts the whole robot cleanly from the top.
+           Outside that moment the plane sits far above the model (clipH = 1e5) and cuts nothing. */
+        c.clippingPlanes = [clip]; c.clipShadows = false;
+        if (isShell) c.side = THREE.DoubleSide;
         return c;
       });
       o.material = Array.isArray(o.material) ? mats : mats[0];
@@ -322,9 +325,17 @@ export async function createStory(host, labelLayer, onEvent = () => {}) {
     }
 
     if (s >= 2.0 && s < 3.0) {
-      dB = s < 2.62 ? 1 - Tm(2.0, 2.08) : Tm(2.62, 2.76);
-      if (s < 2.08) dA = 1 - Tm(2.0, 2.07);
-      else {
+      /* The inner parts stay solid while the cut passes through them (no noise dissolve), are hidden once the cut
+         reaches the floor (2.07) and sparkle back in after the print (2.62). */
+      dB = s < 2.62 ? (s < 2.07 ? 1 : 0) : Tm(2.62, 2.76);
+      if (s < 2.08) {
+        /* The finished robot un-prints from the top: a clean cut with the shell's see-through outline left above it,
+           so a paused frame reads as a half-printed shell (a noise dissolve here read as a broken mesh in stills). */
+        const u = Tm(2.0, 2.07);
+        clipH = lerp(H + 2, -1, ease(u));
+        slice = u > 0 && u < 1 ? 1 : 0;
+        ghost = u > 0;
+      } else {
         const p = Tm(2.1, 2.6);
         clipH = lerp(-1, H + 2, p);
         slice = s < 2.6 ? 1 : 1 - Tm(2.6, 2.66);

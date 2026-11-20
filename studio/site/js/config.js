@@ -3,6 +3,12 @@
   var BRAND = "Wish Labs";
   /* The studio app is on this same domain (wish.plugbook.si/studio/, routed by the load balancer). */
   var STUDIO_URL = "/studio/";
+  /* "See a real build": the read-only share link of a finished design, e.g. "/studio/s/<token>" (or the full
+     https://wish.plugbook.si/studio/s/<token>). Every "See a real build" button stays hidden while this is empty. */
+  var SHARE_URL = "";
+  /* The two Buildathon features (talk to make a wish with Gemini Live; every gadget gets its own sound by Lyria) are
+     named in ONE block in How it works (index.html, class "story-new"). Keep false until both are live. */
+  var NEW_FEATURES = false;
 
   /* The six example designs. Names, audience chips, one-liners and "you might type" sentences are the
      design agents' copy (studio/landing/index.html); colours are each spec.json "colors". */
@@ -65,7 +71,10 @@
     }
   ];
 
-  window.SITE = { BRAND: BRAND, STUDIO_URL: STUDIO_URL, GADGETS: GADGETS };
+  /* Only a same-site path or an https link is used, so a typo can never become a script URL. */
+  var share = /^(\/[^\/\\]|https:\/\/)/.test(SHARE_URL) ? SHARE_URL : "";
+
+  window.SITE = { BRAND: BRAND, STUDIO_URL: STUDIO_URL, SHARE_URL: share, GADGETS: GADGETS };
 
   document.title = BRAND + " · Wish it. We'll build it.";
   /* Fill brand slots and studio links as soon as the DOM exists (this file loads at the end of <body>). */
@@ -78,6 +87,12 @@
     for (var k = 0; k < links.length; k++) links[k].setAttribute("href", STUDIO_URL);
     var forms = document.querySelectorAll("form[data-studio-form]");
     for (var m = 0; m < forms.length; m++) forms[m].setAttribute("action", STUDIO_URL);
+    var shareLinks = document.querySelectorAll("a[data-share-link]");
+    for (var n = 0; n < shareLinks.length; n++) if (share) shareLinks[n].setAttribute("href", share);
+    var shareBlocks = document.querySelectorAll("[data-share]");
+    for (var q = 0; q < shareBlocks.length; q++) shareBlocks[q].hidden = !share;
+    var news = document.querySelectorAll("[data-new-features]");
+    for (var r = 0; r < news.length; r++) news[r].hidden = !NEW_FEATURES;
   }
   fill();
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fill);

@@ -183,6 +183,22 @@ function syncStudioLinks() {
   if (href) $$("[data-studio-link]").forEach((a) => a.setAttribute("href", href));
 }
 input.addEventListener("input", syncStudioLinks);
+/* The box grows with a long wish (it used to clip everything past its last line), up to about 7 lines, then
+   scrolls. With a short wish it keeps its CSS height. */
+const INPUT_MAX_H = 210;
+let fitTimer = 0;
+function fitInput() {
+  const before = input.offsetHeight;
+  input.style.height = "";
+  input.style.overflowY = "";
+  const need = input.scrollHeight;
+  if (need > input.clientHeight + 1) input.style.height = Math.min(need, INPUT_MAX_H) + "px";
+  if (need > INPUT_MAX_H) input.style.overflowY = "auto";
+  /* The pinned story below measures its scroll positions once; tell it when the hero changes height. */
+  if (input.offsetHeight !== before && LIBS) { clearTimeout(fitTimer); fitTimer = setTimeout(() => ScrollTrigger.refresh(), 400); }
+}
+input.addEventListener("input", fitInput);
+if (input.value) fitInput();
 form.addEventListener("submit", (e) => {
   e.preventDefault();
   const v = input.value.trim();
@@ -226,14 +242,40 @@ function setChip(g, animate = true) {
   if (animate && LIBS && !RM) gsap.fromTo(chip, { y: 14, opacity: 0, scale: 0.9 }, { y: 0, opacity: 1, scale: 1, duration: 0.7, ease: "back.out(2)", overwrite: true });
 }
 
+/* Slow networks: if the first 3D model is still downloading POSTER_MS after the page started loading, its engine
+   render stands in until the model is on stage (on slow 4G the stage stayed empty for 4 to 6 s). On a fast network
+   the model is ready by then and the poster never shows. */
+const POSTER_MS = 2000;
+let posterTimer = 0, posterAt = 0, heroReady = false;
+function posterOn() {
+  if (heroReady || stage.classList.contains("fallback")) return;
+  stage.classList.add("poster");
+  void fallbackImg.offsetWidth;           /* paint it at opacity 0 first, so the fade-in runs */
+  stage.classList.add("poster-on");
+  posterAt = performance.now();
+}
+function posterOff() {
+  clearTimeout(posterTimer);
+  if (!stage.classList.contains("poster")) return;
+  /* Stay up at least 0.7 s, so a fade-in is never cut short into a flicker. */
+  setTimeout(() => {
+    stage.classList.remove("poster-on");
+    setTimeout(() => { if (!stage.classList.contains("poster-on")) stage.classList.remove("poster"); }, 650);
+  }, Math.max(0, 700 - (performance.now() - posterAt)));
+}
+
 function showFallback(g) {
+  clearTimeout(posterTimer);
+  /* The poster already shows this very picture: keep it still instead of animating it in again. */
+  const same = stage.classList.contains("poster-on") && fallbackImg.getAttribute("src") === `assets/img/fallback/${g.slug}.webp`;
+  stage.classList.remove("poster", "poster-on");
   stage.classList.add("fallback");
   fallbackImg.alt = g.name + ", an example design rendered by our engine";
   fallbackImg.style.visibility = "";
   fallbackImg.onerror = () => { fallbackImg.style.visibility = "hidden"; };
   fallbackImg.src = `assets/img/fallback/${g.slug}.webp`;
   note.textContent = "Engine renders of real example designs";
-  if (LIBS && !RM) gsap.fromTo(fallbackImg, { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.9, ease: "back.out(1.6)" });
+  if (LIBS && !RM && !same) gsap.fromTo(fallbackImg, { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.9, ease: "back.out(1.6)" });
 }
 
 function poof() {
@@ -250,7 +292,7 @@ function poof() {
 async function heroLoop(hero) {
   const list = SITE.GADGETS;
   let i = 0;
-  if (hero) hero.prepare(list[0]);
+  if (hero) hero.prepare(list[0]).then((it) => { if (it) heroReady = true; });
   await wait(900);
   for (;;) {
     const g = list[i];
@@ -267,7 +309,7 @@ async function heroLoop(hero) {
       try { await Promise.race([hero.show(g), wait(9000).then(() => { throw new Error("slow"); })]); ok = true; }
       catch (e) { ok = false; }
     }
-    if (ok) stage.classList.remove("fallback"); else showFallback(g);
+    if (ok) { stage.classList.remove("fallback"); posterOff(); } else showFallback(g);
     setChip(g);
     if (hero) hero.prepare(list[(i + 1) % list.length]);
     await wait(4200);
@@ -285,6 +327,7 @@ async function initHero() {
   if (RM || !LIBS) { showFallback(SITE.GADGETS[0]); return; }
   let hero = null;
   if (GL) {
+    posterTimer = setTimeout(posterOn, Math.max(0, POSTER_MS - performance.now()));
     try {
       const mod = await import("./hero3d.js");
       hero = mod.createHero($("#hero-canvas"));
@@ -363,8 +406,9 @@ function initStory() {
   const ovRing = $(".ov-ring", stageEl), ringChips = $$(".ring-chips li", stageEl);
   const caption = $("#story-caption"), photos = $$(".ss-photo figure", stageEl), hint = $(".scroll-hint");
   const photoBox = $(".ss-photo", stageEl);
+  /* The rest of the wish waits as faint ghost text (css .wb-rest), so the card is never an empty white box. */
   const wbRest = document.createElement("span");
-  wbRest.className = "wb-rest"; wbRest.style.opacity = "0";
+  wbRest.className = "wb-rest";
   wbTyped.after(wbRest);
 
   let target = 0, cur = 0, story = null, lastIdx = -1, dirty = true;
@@ -452,7 +496,7 @@ function initStory() {
     loadPhotos();
     if (!GL) { stageEl.classList.add("flat"); return; }
     try {
-      const mod = await import("./story3d.js");
+      const mod = await import("./story3d.js?v=20261120");
       story = await mod.createStory($("#story-canvas"), $("#story-labels"), (ev) => {
         if (ev === "parts") burstStage({ count: 40, speed: 8, size: 9, y: 0.5 });
         if (ev === "printed") burstStage({ count: 30, speed: 6, size: 8, y: 0.45, colors: ["#FFC94D", "#FFFFFF", "#B9A8FF"] });
@@ -584,8 +628,9 @@ function initExample() {
       for (let i = 1; i <= full.length; i++) { typed.textContent = full.slice(0, i); rest.textContent = full.slice(i); await wait(16); }
     }
   });
-  /* The price drops in character by character. It never counts up, so no other number is ever on screen. */
-  const priceChars = split(pv).concat([$(".price .rs", card)]);
+  /* The price drops in character by character. It never counts up, so no other number is ever on screen.
+     Each [data-pv] part ("19k", the small "to", "28k") is split on its own so its styling survives. */
+  const priceChars = $$("[data-pv]", pv).flatMap((el) => split(el)).concat([$(".price .rs", card)]);
   priceChars.unshift(priceChars.pop());
   priceChars.forEach((c) => { c.style.display = "inline-block"; });
   gsap.set(priceChars, { yPercent: -130, opacity: 0, rotate: () => gsap.utils.random(-30, 30) });
