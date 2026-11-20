@@ -115,6 +115,7 @@ def test_packs_off_prompt_has_no_pack_text(studio, monkeypatch):
     assert "We cannot build: motors or other moving parts, batteries, cameras, mains power, heaters" in text
     assert "a servo arm" not in text and "soil probe" not in text.lower() and "push messages" not in text
     assert "it does not keep a timetable of its own yet" in text and '"schedule"' not in text
+    assert "- Sensors do only what the chosen app reads: " in text and "soil moisture and a water-level" not in text
     ports = next(l for l in text.splitlines() if l.startswith("- Ports (the validator rejects more): "))
     assert "3 simple ports shared by " in ports and "buttons" in ports and ports.endswith("one 5 V port for an LED ring or pixel.")
     assert "SERVO_SG90_TOWERPRO" not in text  # the bare SG90 row is no longer offered (E1.6)
@@ -130,6 +131,7 @@ def test_packs_on_prompt_shows_rules_parts_and_matching_examples(studio, monkeyp
     assert "We cannot build: batteries, cameras, mains power, heaters" in text and "motors or other moving parts" not in text
     assert "one 5 V port for an LED ring or pixel or a servo arm, so a design has only one of them" in text
     assert "a soil probe" in text and "there are no push messages" in text
+    assert "light and distance readings, soil moisture and a water-level warning;" in text
     assert '"time": "HH:MM" (24-hour)' in text
     paths = pb.example_paths("A tomato pot that watches its soil")
     assert paths[0].parent.name == "bedtime-robot" and paths[1].parent.name == "tomato-pot-watcher"

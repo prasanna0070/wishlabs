@@ -275,8 +275,14 @@ class PromptBuilder:
         servo = self._can("servo") or self._can("servo_continuous")
         on = self._packs_on()
         cannot = ([] if servo else ["motors or other moving parts"]) + CANNOT_ALWAYS
+        soil = self._can("soil_moisture") or self._can("level_switch")
         honesty = (f"- Only catalog parts exist. We cannot build: {', '.join(cannot)}. If the user wants one of these "
                    "or anything else the catalog cannot do, say so plainly and offer the closest buildable thing.\n"
+                   "- Sensors do only what the chosen app reads: sensor_display shows temperature, humidity, pressure, "
+                   f"light and distance readings{', soil moisture and a water-level warning' if soil else ''}; "
+                   "ambient_light uses a light sensor to dim and a PIR motion sensor to wake; notifier_clock keeps time "
+                   "with the clock module; desk_companion and story_player read no sensors. Leave out a sensor the app "
+                   "does not read and never promise what it would do (for example a distance sensor that checks a bowl).\n"
                    "- Every gadget runs one of our firmware apps (story_player, desk_companion, notifier_clock, "
                    "ambient_light, sensor_display). When part of a wish needs something no app does (for example "
                    "looking words up online, or speech recognition), the hardware can still be designed: say plainly "
