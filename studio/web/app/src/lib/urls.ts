@@ -8,6 +8,14 @@ export function shareUrl(token: string, origin: string = location.origin): strin
   return `${origin}${STUDIO_BASE}/s/${token}`;
 }
 
+/** The sign-in page's "See a real build" target: an https URL or a same-site absolute path, else null (hidden). */
+export function safeShareUrl(u: string | null | undefined): string | null {
+  const t = (u || "").trim();
+  if (/^https:\/\/[A-Za-z0-9.-]+(:\d+)?(\/[^\s"'<>\\]*)?$/.test(t)) return t;
+  if (/^\/(?!\/)[^\s"'<>\\]*$/.test(t)) return t;
+  return null;
+}
+
 export interface Ctx {
   pid: string;
   share?: string | null; // share token: read-only view

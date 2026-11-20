@@ -1,7 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { api } from "./lib/api";
-import { STUDIO_BASE } from "./lib/urls";
+import { safeShareUrl, STUDIO_BASE } from "./lib/urls";
 import { useAuth } from "./store/auth";
 import { LoginPage } from "./pages/Login";
 import { HomePage } from "./pages/Home";
@@ -23,12 +23,16 @@ function Gate({ children }: { children: ReactNode }) {
 
 export function App() {
   const setAuthed = useAuth((s) => s.setAuthed);
+  const setShareUrl = useAuth((s) => s.setShareUrl);
   useEffect(() => {
     api.session().then(
-      (r) => setAuthed(!!r?.authenticated),
+      (r) => {
+        setShareUrl(safeShareUrl(r?.share_url));
+        setAuthed(!!r?.authenticated);
+      },
       () => setAuthed(false),
     );
-  }, [setAuthed]);
+  }, [setAuthed, setShareUrl]);
   return (
     <BrowserRouter basename={STUDIO_BASE || "/"}>
       <Routes>

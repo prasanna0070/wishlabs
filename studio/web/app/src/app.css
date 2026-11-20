@@ -546,3 +546,29 @@ body.resizing iframe, body.resizing canvas { pointer-events: none; }
 }
 /* MAJ-8: the drawer's layout problems stay visible without pushing the controls away */
 .tweak .layout-issues { max-height: 38vh; overflow: auto; }
+
+/* ---- share stream (hackathon, 20 Nov) -------------------------------------------------------- */
+/* Friendly errors: one plain sentence; the raw engine text sits behind "Technical details". */
+.err-text .md p { margin: 0 0 6px; }
+.err-text .md p:last-child { margin-bottom: 0; }
+.err-details { margin-top: 8px; font-size: 12.5px; }
+.err-details summary { cursor: pointer; color: var(--ink-3); width: fit-content; }
+.err-details summary:hover { color: var(--ink); }
+.err-details p { margin: 6px 0 0; }
+.err-details pre { white-space: pre-wrap; word-break: break-word; font-family: var(--mono); font-size: 11.5px; line-height: 1.5; color: var(--ink-2); background: rgba(255, 255, 255, 0.65); border: 1px solid var(--line); border-radius: var(--r-control); padding: 8px 10px; margin: 6px 0 0; max-height: 220px; overflow: auto; text-align: left; }
+/* Phones: all project tabs fit on screen (icon over a short label) instead of scrolling off the right edge. */
+@media (max-width: 600px) {
+  .tabs-bar { gap: 2px; padding: 0 4px; }
+  .tabs { flex: 1 1 auto; min-width: 0; gap: 0; }
+  .tabs-bar > .grow { display: none; }
+  .tab { flex: 1 1 0; min-width: 0; flex-direction: column; justify-content: center; gap: 2px; height: 42px; padding: 2px 1px; font-size: 11px; line-height: 1.1; }
+  .tab svg { width: 16px; height: 16px; }
+}
+/* Share links on phones: the Overview tab fills the screen (it links to the conversation); other tabs keep the
+   panel-over-chat layout. */
+@media (max-width: 860px) {
+  .ws-body.split.ov-mode { grid-template-rows: minmax(0, 1fr); }
+  .ws-body.split.ov-mode > .chat, .ws-body.split.ov-mode > .resize-handle { display: none; }
+}
+.login-demo { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--line); }
+.login-demo .btn { justify-content: center; }

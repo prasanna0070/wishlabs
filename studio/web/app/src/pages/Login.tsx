@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ArrowRight, KeyRound } from "lucide-react";
+import { ArrowRight, Eye, KeyRound } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../store/auth";
 import { Logo, Spinner } from "../components/ui";
@@ -13,6 +13,7 @@ export function LoginPage() {
   const nav = useNavigate();
   const loc = useLocation() as any;
   const setAuthed = useAuth((s) => s.setAuthed);
+  const shareUrl = useAuth((s) => s.shareUrl);
   const from: string = loc.state?.from || "/";
   const [wish] = useState(() => storedWish() || wishFromSearch(from.includes("?") ? from.slice(from.indexOf("?")) : ""));
 
@@ -82,6 +83,15 @@ export function LoginPage() {
         <p className="muted small" style={{ margin: 0 }}>
           Access is by invitation while Wish Labs is in early access.
         </p>
+        {shareUrl ? (
+          <div className="login-demo">
+            <span className="muted small">No key?</span>
+            <a className="btn block" href={shareUrl}>
+              <Eye size={16} /> See a real build
+            </a>
+            <span className="muted small">One finished design, read-only: the wish, the 3D model, the circuit board, the firmware and the price.</span>
+          </div>
+        ) : null}
       </form>
     </div>
   );
