@@ -178,6 +178,8 @@ DESIGN_FREEFORM = """# Design rules for useful, printable, safe objects
   segment on z=0; 4 feet.
 - Wall at least 2.2 mm (2.4 default). Every axis 60-260 mm; the part must fit a 250 x 210 x 210 mm print bed.
 - Keep at least 3 mm between features and decor cut-outs, and leave room behind each feature for its module.
+- With split rear_cover the rear face is the removable cover and nothing mounts there: a module on the rear face
+  (a sensor kept away from the screen) needs split base_plate.
 - Use library ids exactly. Every feature binds one module instance. The amp, microSD, USB-C input and backplane are
   added automatically; do not add them as features.
 - Coordinates: millimetres, +Z up, the front faces -Y, +X is the viewer's right; front-view positions are (x, z)."""
@@ -198,7 +200,9 @@ and runs every check; an error names the node path: fix that node and resend.
   the top, a sloped screen face is a side outline (extrude axis "x"), steps are boxes of rising height in one union,
   a plinth is a wider low box under the body, an arch or handle is a torus or a front outline (extrude axis "y").
 - Keep the electronics room: the core cartridge lies on the floor at the rear (see the hard fit rules), so put trays
-  and slots at the front or high on the top, with their floors above the cartridge.
+  and slots at the front or high on the top, with their floors above the cartridge. A box's round also rounds its
+  bottom edges and eats that floor: on the lowest piece keep round at 4 mm or less, or make it 2 x round wider and
+  deeper than the fit rules ask.
 - Cuts stay inside: keep at least 6 mm of material under and around every tray, slot or groove, never cut through
   a wall or across the joint of two union pieces (that splits the shape into pieces), and keep each cut box well
   inside the outline it carves.

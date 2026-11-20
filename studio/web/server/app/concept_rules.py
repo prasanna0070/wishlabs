@@ -9,13 +9,15 @@ anything is rendered. Failures go back to the model as a repair round.
 (c) layout: no two concepts share the same feature order and positions (signature: features sorted by face and
     height, each as role, face and left/centre/right).
 
-With pack `freeform` on (custom csg shapes, check_set(..., freeform=True, wish=...)) rule (b) turns around: no face is
-forced. Faces are welcome only when the wish is playful or for a child (or names a character subject such as a robot or
+With pack `freeform` on (custom csg shapes, check_set(..., freeform=True, wish=...)) rule (c) compares layouts only
+between bodies of the same form (a csg body is its own form), and rule (b) turns around: no face is forced. Faces are welcome only when the wish is playful or for a child (or names a character subject such as a robot or
 an owl); otherwise the expected and different concepts must be plain products without face decor, and only the
 wildcard (a character) may have one. Everything else is the same as with the pack off.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 import re
 from typing import Any, Iterable
@@ -250,6 +252,17 @@ def layout_signature(spec: dict, names: dict[str, dict]) -> tuple:
     return tuple(out)
 
 
+def form_key(spec: dict) -> str:
+    """Pack freeform: what makes two bodies the same template. A csg body is its own form (its exact tree), so a
+    wedge and a stepped tower with the screen in the same place are not copies; other families stay one form each,
+    so for them the layout rule is the same as with the pack off."""
+    body = spec.get("body") or {}
+    if body.get("family") == "csg":
+        tree = json.dumps(body.get("csg"), sort_keys=True, separators=(",", ":"), default=str)
+        return "csg:" + hashlib.sha1(tree.encode()).hexdigest()[:16]
+    return str(body.get("family"))
+
+
 def describe_layout(sig: tuple) -> str:
     return " > ".join(f"{r}({face[0]}{side})" for r, face, side in sig)
 
@@ -320,10 +333,11 @@ def check_set(concepts: list[dict], subject: dict | None, names: dict[str, dict]
     dup: list[tuple[str, str, tuple]] = []
     for c in concepts:
         sig = layout_signature(c["spec"], names)
-        if sig in seen:
-            dup.append((c["title"], seen[sig], sig))
+        key = (sig, form_key(c["spec"])) if freeform else sig   # freeform: a different csg form is not a copy
+        if key in seen:
+            dup.append((c["title"], seen[key], sig))
         else:
-            seen[sig] = c["title"]
+            seen[key] = c["title"]
     if dup:
         fails.append({"rule": "layout", "titles": [t for t, _, _ in dup],
                       "message": "Concepts must not reuse one feature layout. " + "; ".join(

@@ -469,3 +469,61 @@ def test_placeholder_with_the_engine_csg():
     env = ph.envelope_mm({"body": body})
     assert abs(env["w_mm"] - 180) <= 4 and abs(env["d_mm"] - 140) <= 4 and abs(env["h_mm"] - 130) <= 4
     ph._CSG_CACHE.clear()
+
+
+def test_freeform_layout_rule_compares_same_forms_only():
+    from app.concept_rules import check_set
+
+    def c(title, tier, body):
+        return {"title": title, "tier": tier, "blurb": "a desk station",
+                "spec": {"body": body, "decor": [],
+                         "features": [{"module": "LCD_200_ST7789_240X320_WAVESHARE", "face": "front", "at": [0, 60]}]}}
+
+    wedge = {"family": "csg", "csg": {"op": "extrude", "axis": "x", "h": 190, "points": [[-65, 0], [65, 0], [65, 95]]}}
+    steps = {"family": "csg", "csg": STEPS}
+    blob = {"family": "blob", "primitives": [{"kind": "sphere", "center": [0, 0, 60], "size": [120, 120, 120]}]}
+    cs = [c("Wedge", "expected", wedge), c("Steps", "expected", steps), c("Pod", "different", blob),
+          c("Pod Two", "different", copy.deepcopy(blob))]
+    fails = check_set(cs, None, NAMES, freeform=True, wish="a desk station")
+    assert [f["rule"] for f in fails] == ["layout"] and fails[0]["titles"] == ["Pod Two"]
+    live = check_set(cs, None, NAMES)                 # pack off: one layout for all four is three copies
+    assert set(next(f for f in live if f["rule"] == "layout")["titles"]) == {"Steps", "Pod", "Pod Two"}
+
+
+class _TwiceBadBrain(_RenderBrain):
+    """The wildcard's csg spec fails the check twice; the second repair names it for a family fallback."""
+
+    async def run(self, turn):
+        base, other = self._specs()
+        bad = copy.deepcopy(other)
+        bad["body"] = {"family": "csg", "csg": {"op": "box"}, "wall": 2.4, "feet": 4}
+        cs = [{"title": "Desk Robot", "tier": "expected", "blurb": "a robot desk station", "spec": base},
+              {"title": "Wedge Robot", "tier": "wildcard", "blurb": "a wedge robot", "spec": bad}]
+        for _ in range(8):
+            r = await turn.call_tool("propose_concepts", {"message": "Choose the robot shape.", "concepts": cs})
+            self.calls.append(r.response)
+            if r.terminal:
+                return
+            cs = cs[1:]                          # resend only the failed one, still broken
+
+
+def test_freeform_names_a_twice_failed_concept_and_has_one_more_round(tmp_path, monkeypatch):
+    c, svc = _client(tmp_path, monkeypatch, "sensing,schedule,freeform", CSG_ERR)
+    svc.brain = _TwiceBadBrain(svc)
+    with c:
+        _, evs = _run(c)
+        ins = [x.get("instruction") or "" for x in svc.brain.calls]
+        assert "Wedge Robot failed twice" not in ins[0] and "Wedge Robot failed twice: give it a silhouette" in ins[1]
+        spec_reps = [r for r in events_named(evs, "repair") if not r.get("kind")]
+        assert len(spec_reps) == svc.settings.max_repair_rounds + 2    # one more round than live, then shown
+        cons = events_named(evs, "concepts")[0]["concepts"]
+        assert [x["title"] for x in cons] == ["Desk Robot"]
+
+
+def test_pack_off_spec_rounds_are_live(tmp_path, monkeypatch):
+    c, svc = _client(tmp_path, monkeypatch, "sensing,schedule", CSG_ERR)
+    svc.brain = _TwiceBadBrain(svc)
+    with c:
+        _, evs = _run(c)
+        assert not any("failed twice" in (x.get("instruction") or "") for x in svc.brain.calls)
+        assert len([r for r in events_named(evs, "repair") if not r.get("kind")]) == svc.settings.max_repair_rounds + 1

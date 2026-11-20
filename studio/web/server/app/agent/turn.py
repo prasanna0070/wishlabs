@@ -32,6 +32,7 @@ CONCEPT_RULE_ROUNDS = 2
 # Pack `freeform`: a concept whose CAD render fails goes back to the agent (its own budget) instead of being shown as
 # failed; not after the turn has run this long (the turn lock is TURN_STALE_S), and never for a builder outage.
 RENDER_REPAIR_ROUNDS = 2
+FREEFORM_EXTRA_ROUNDS = 1      # csg specs need one more spec repair round than the live budget (max_repair_rounds)
 RENDER_REPAIR_MAX_AGE_S = 8 * 60
 CSG_HINT = (" For a csg body, change the node each error names (its path, e.g. body.csg.nodes[1]); if a concept's csg "
             "body has failed twice, give that concept a silhouette, revolve or blob body instead.")
@@ -97,6 +98,7 @@ class Turn:
         self.usage: list[dict] = []
         self.concept_pool: dict[str, dict] = {}  # title.lower() -> {item, result}
         self.rendered: dict[str, dict] = {}      # pack freeform: render key -> rendered concept (kept across repairs)
+        self.spec_fails: dict[str, int] = defaultdict(int)  # pack freeform: title.lower() -> failed spec checks
         self.concept_message = ""
         self.concept_defaults: list[str] = []
         self.posted = False
@@ -600,14 +602,26 @@ class Turn:
                if not e["result"].get("ok")}
         good = [e for e in self.concept_pool.values() if e["result"].get("ok")]
         infra = any(r.get("infra") for r in results)
+        freeform = self.freeform()
+        if freeform:                            # how often each concept sent in THIS call has failed the check
+            for c, r in zip(items, results):
+                if not r.get("ok"):
+                    self.spec_fails[str(c.get("title") or "").strip()[:60].lower()] += 1
         if bad:
             flat = [f"{t}: {e}" for t, es in bad.items() for e in es]
             await self.emit("repair", {"round": self.repairs["propose_concepts"] + 1, "errors": flat[:20]})
-            hint = CSG_HINT if self.freeform() and any("csg" in str(e) for e in flat) else ""
+            hint = ""
+            if freeform:
+                hint = CSG_HINT if any("csg" in str(e) for e in flat) else ""
+                twice = [t for t in bad if self.spec_fails[t.lower()] >= 2]
+                if twice:   # name them: a generic hint was not enough in a live run (3 concepts lost)
+                    hint += (f" {', '.join(twice)} failed twice: give {'it' if len(twice) == 1 else 'each'} a "
+                             "silhouette, revolve or blob body now (keep the title, tier, features and colours).")
             r = None if infra else self._repair_or_fail(
                 "propose_concepts", flat,
                 "These concepts did not validate. Call propose_concepts again with ONLY the corrected concepts "
-                f"({', '.join(bad)}), same titles and tiers, complete specs. The valid ones are kept." + hint)
+                f"({', '.join(bad)}), same titles and tiers, complete specs. The valid ones are kept." + hint,
+                limit=self.svc.settings.max_repair_rounds + FREEFORM_EXTRA_ROUNDS if freeform else None)
             if r:
                 r.response["errors_by_concept"] = bad
                 r.response["kept"] = [e["title"] for e in good]
@@ -615,7 +629,8 @@ class Turn:
         if len(good) < 2:
             r = None if infra else self._repair_or_fail(
                 "propose_concepts", ["fewer than 2 valid concepts"],
-                "Propose more concepts (6 in total: 2 expected, 2 different, 2 wildcard). The valid ones are kept.")
+                "Propose more concepts (6 in total: 2 expected, 2 different, 2 wildcard). The valid ones are kept.",
+                limit=self.svc.settings.max_repair_rounds + FREEFORM_EXTRA_ROUNDS if freeform else None)
             if r and len(self.concept_pool) < MAX_CONCEPTS:
                 return r
         if not good:
@@ -627,7 +642,6 @@ class Turn:
         p = await self.project()
         subject = concept_rules.subject_from_text(first_request(p))
         names = await asyncio.to_thread(self.svc.bridge.module_names)
-        freeform = self.freeform()
         set_fails = concept_rules.check_set(good, subject, names, freeform=True, wish=first_request(p)) if freeform \
             else concept_rules.check_set(good, subject, names)
         if set_fails and not infra:
