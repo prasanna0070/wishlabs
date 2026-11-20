@@ -244,13 +244,26 @@ TEMPLATE_RULES = {
                      "recommend": [("led", "a night-light LED feature")]},
     "desk_companion": {"need": [("display", "a display feature for the face")], "need_any": [(("button", "touch"), "a button or touch control")],
                        "recommend": [("speaker", "a speaker for chimes"), ("led", "a light")]},
-    "notifier_clock": {"need": [("display", "a display feature for the time"), ("led", "an LED feature for notifications")],
+    # need_any: (roles, why, why when a role's pack is off): roles with no visible library row are left out of the fix
+    "notifier_clock": {"need": [("display", "a display feature for the time")],
+                       "need_any": [(("led", "servo"), "an LED or a servo flag for notifications", "an LED feature for notifications")],
                        "recommend": [("buzzer", "a buzzer or speaker for alerts")]},
     "ambient_light": {"need": [("led", "an LED (ring or strip) feature")], "need_any": [(("button", "touch"), "a button or touch control")],
                       "recommend": [("light_sensor", "a light sensor for auto-dim")]},
     "sensor_display": {"need": [("display", "a display feature")],
-                       "need_any": [(("temp_humidity", "pressure", "light_sensor"), "at least one environment sensor")]},
+                       "need_any": [(("temp_humidity", "pressure", "light_sensor", "soil_moisture", "level_switch", "air_quality"),
+                                     "at least one sensor (environment, air quality, soil moisture or water level)",
+                                     "at least one environment sensor")]},
 }
+ACTUATOR_ROLES = ("servo", "servo_continuous")  # CATALOG-PLAN E1.5: never in a child-directed design
+
+
+def _role_available(lib, role: str) -> bool:
+    """True when the agent can design with a row of this role (its parts table lists it; pack rows only while on)."""
+    fn = getattr(lib, "role_available", None)
+    if callable(fn):
+        return bool(fn(role))
+    return any((x.get("backplane_v1") or {}).get("supported") for x in lib.by_role(role))
 
 
 # =============================================================================================== main
@@ -351,9 +364,16 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
             cand = ", ".join(x["id"] for x in lib.by_role(role) if (x.get("aperture") or {}).get("feature_allowed")
                              and (x.get("backplane_v1") or {}).get("supported"))
             _err(errors, "features", f"{tmpl} needs {why}", f"add a feature with module {cand}" if cand else None, "template_requirement")
-    for roles, why in rules.get("need_any", []):
+    for rule in rules.get("need_any", []):
+        roles, why = rule[0], rule[1]
         if not any(r in roles_present for r in roles):
-            _err(errors, "features", f"{tmpl} needs {why}", f"add a feature whose module role is one of {', '.join(roles)}", "template_requirement")
+            avail = [r for r in roles if _role_available(lib, r)] or list(roles)
+            if len(avail) < len(roles) and len(rule) > 2:
+                why = rule[2]
+            cand = [x["id"] for r in avail for x in lib.by_role(r) if (x.get("aperture") or {}).get("feature_allowed")
+                    and (x.get("backplane_v1") or {}).get("supported")]
+            _err(errors, "features", f"{tmpl} needs {why}", f"add a feature whose module role is one of {', '.join(avail)}"
+                 + (f" (e.g. {', '.join(cand[:6])})" if cand else ""), "template_requirement")
     for role, why in rules.get("recommend", []):
         if role not in roles_present:
             warnings.append(f"{tmpl}: consider {why}")
@@ -408,6 +428,13 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
     if sp.audience.child_directed and "CHILD_DIRECTED" not in flags:
         flags.add("CHILD_DIRECTED")
         added.append("safety.flags: CHILD_DIRECTED (audience.child_directed is true)")
+    if sp.audience.child_directed:
+        moving = [(f"features[{k}].module", feat_mods[f.id]) for k, f in enumerate(sp.features)
+                  if (feat_mods.get(f.id) or {}).get("role") in ACTUATOR_ROLES]
+        moving += [(f"electronics.extra_modules[{k}]", m) for k, m in extra_mods if m.get("role") in ACTUATOR_ROLES]
+        for pth, m in moving:
+            _err(errors, pth, f"no moving parts in a child-directed design: {m['id']} is a {m.get('role')}", "remove the servo",
+                 "actuator_child")
     for _, m in extra_mods:
         if m["id"] == "RTC_DS3231_ZS042":
             if sp.audience.child_directed:
