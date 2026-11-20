@@ -257,6 +257,48 @@ async function linkCheck(browser, urls) {
     save();
     await ctx.close();
   }
+  {
+    /* Slow network: every 3D model arrives 4 s late. The engine render must stand in, then hand over to the 3D. */
+    const ctx = await browser.newContext({ ...DESKTOP });
+    await ctx.route(/\/assets\/3d\/[^/]+\.glb(\?|$)/, async (route) => { await new Promise((r) => setTimeout(r, 4000)); await route.continue(); });
+    const page = await ctx.newPage();
+    const rec = { dev: "d-slow", flags: false, rm: false, console: [], pageerrors: [], failed: [], http: [] };
+    instrument(page, rec);
+    const stageState = () => page.evaluate(() => {
+      const st = document.querySelector("#hero-stage"), im = document.querySelector("#hero-fallback"), cs = getComputedStyle(im);
+      return { t: Math.round(performance.now()), cls: st.className, display: cs.display, opacity: Number(cs.opacity).toFixed(2) };
+    });
+    await page.goto(BASE, { waitUntil: "domcontentloaded", timeout: 90000 });
+    const on = await page.waitForFunction(() => document.querySelector("#hero-stage").classList.contains("poster-on") && Math.round(performance.now()), null, { timeout: 15000 }).then((h) => h.jsonValue()).catch(() => null);
+    await page.waitForTimeout(800);
+    const p1 = { posterOnAt: on, ...(await stageState()) };
+    check("d-slow: the engine render stands in while the 3D model loads", on && /poster-on/.test(p1.cls) && p1.display === "block" && Number(p1.opacity) > 0.9, JSON.stringify(p1));
+    await shot(page, "d-slow-01-poster", { caption: "3D models delayed 4 s: the engine render stands in" });
+    await page.waitForFunction(() => !document.querySelector("#hero-stage").classList.contains("poster"), null, { timeout: 20000 }).catch(() => {});
+    await page.waitForTimeout(1600);
+    const p2 = await stageState();
+    check("d-slow: the 3D model takes over and the render steps aside", !/poster|fallback/.test(p2.cls) && p2.display === "none", JSON.stringify(p2));
+    await shot(page, "d-slow-02-3d", { caption: "3D models delayed 4 s: after the model arrived" });
+    check("d-slow: 0 console errors, 0 page errors", !rec.console.some((c) => c.startsWith("error")) && rec.pageerrors.length === 0, [...rec.console, ...rec.pageerrors].join(" | ").slice(0, 400));
+    report.runs.push(rec);
+    save();
+    await ctx.close();
+  }
+  {
+    /* Fast network: the poster must never show. */
+    const ctx = await browser.newContext({ ...DESKTOP });
+    const page = await ctx.newPage();
+    await page.addInitScript(() => {
+      window.__posterSeen = false;
+      new MutationObserver(() => { const st = document.querySelector("#hero-stage"); if (st && st.classList.contains("poster")) window.__posterSeen = true; })
+        .observe(document, { subtree: true, attributes: true, attributeFilter: ["class"] });
+    });
+    await page.goto(BASE, { waitUntil: "load", timeout: 90000 });
+    await page.waitForTimeout(6000);
+    const seen = await page.evaluate(() => ({ seen: window.__posterSeen, cls: document.querySelector("#hero-stage").className }));
+    check("d-fast: no poster when the 3D model is quick", !seen.seen && !/fallback/.test(seen.cls), JSON.stringify(seen));
+    await ctx.close();
+  }
   await linkCheck(browser, d.urls || []);
   await browser.close();
   report.seconds = Math.round((Date.now() - t0) / 1000);
