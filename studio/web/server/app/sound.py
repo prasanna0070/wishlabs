@@ -219,8 +219,8 @@ def colour_words(hex_colour) -> list[str]:
 
 
 def prompt_for(spec: dict, project: dict | None = None, *, safe: bool = False) -> dict:
-    """The Lyria prompt for a design. safe=True leaves out every user-written text (name, tagline, concept), for the
-    retry after Lyria refuses a prompt."""
+    """The Lyria prompt for a design. safe=True leaves out every user-written text (name, tagline, concept) and the
+    child's age, for the retry after Lyria refuses a prompt."""
     spec = spec or {}
     project = project or {}
     beh = spec.get("behaviour") or {}
@@ -246,7 +246,8 @@ def prompt_for(spec: dict, project: dict | None = None, *, safe: bool = False) -
                      + (f": {about[0].lower() + about[1:]}." if about else "."))
     who = ""
     if child:
-        who = (f", gentle and soothing for a {int(age)}-year-old child" if isinstance(age, (int, float)) and 0 < age < 18
+        who = (f", gentle and soothing for a {int(age)}-year-old child"
+               if not safe and isinstance(age, (int, float)) and 0 < age < 18
                else ", gentle and soothing for a young child")
     parts.append(f"Mood: {mood}{who}.")
     parts.append(f"Instruments: {instruments}.")

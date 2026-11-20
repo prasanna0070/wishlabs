@@ -113,6 +113,8 @@ def test_prompt_from_the_design():
     assert "sudden bangs" in kid["negative_prompt"]
     safe = prompt_for(spec_of("desk-buddy"), safe=True)
     assert "Mochi" not in safe["prompt"] and safe["source"] == "safe_template"
+    safe_kid = prompt_for(spec_of("bedtime-robot"), safe=True)["prompt"]     # the retry also drops the age
+    assert "year-old" not in safe_kid and "young child" in safe_kid
 
 
 def test_prompt_cleans_user_text():
@@ -330,6 +332,25 @@ def test_composes_once_after_the_first_successful_build(authed):
     assert v2["state"] == "done"
     time.sleep(0.3)
     assert wait_sound(authed, pid)["sound"]["current"]["version"] == v1["n"] and len(lyria.calls) == 1
+
+
+def test_a_share_visit_never_starts_a_sound(authed):
+    """A build that finished but was never finalized gets finalized by whoever reads the project first. When that is
+    a share-link visitor, no Lyria call may start (share reads make no AI calls)."""
+    lyria = use_fake(authed)
+    svc = authed.app.state.svc
+    pid = done_project(authed)
+
+    def unfinalize(pp):
+        pp["versions"][0]["finalized"] = False
+        pp["versions"][0]["state"] = "running"
+    svc.repo.update(pid, unfinalize)
+    tok = authed.post(f"/api/projects/{pid}/share").json()["token"]
+    shared = authed.get(f"/api/share/{tok}").json()
+    assert shared["versions"][0]["state"] == "done"                    # the share read finalized the build
+    time.sleep(0.3)
+    p = authed.get(f"/api/projects/{pid}").json()
+    assert p.get("sound") is None and lyria.calls == []
 
 
 def test_auto_is_off_when_sound_is_off(authed):

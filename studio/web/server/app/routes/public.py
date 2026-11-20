@@ -111,7 +111,7 @@ async def _shared(request: Request, token: str) -> dict:
         raise err(404, "not_found", "This link is not valid.") from None
     if (p.get("share") or {}).get("token") != token:
         raise err(404, "not_found", "This link is not valid.")
-    return await svc.builds.reconcile(p)
+    return await svc.builds.reconcile(p, auto_sound=False)     # a share visit never starts an AI call
 
 
 @router.get("/api/share/{token}")

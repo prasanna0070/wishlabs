@@ -192,13 +192,14 @@ class BuildManager:
         b = self.store.read_bytes(key)
         return b.decode(errors="replace") if b is not None else None
 
-    async def finalize(self, pid: str, n: int) -> dict | None:
-        """Idempotent: compute the summary from files, set version state, append the result message."""
+    async def finalize(self, pid: str, n: int, *, auto_sound: bool = True) -> dict | None:
+        """Idempotent: compute the summary from files, set version state, append the result message. auto_sound=False
+        (a read-only share visit) never starts the gadget's sound: share reads make no AI calls."""
         lock = self._fin_locks.setdefault((pid, n), asyncio.Lock())
         async with lock:
-            return await self._finalize(pid, n)
+            return await self._finalize(pid, n, auto_sound=auto_sound)
 
-    async def _finalize(self, pid: str, n: int) -> dict | None:
+    async def _finalize(self, pid: str, n: int, *, auto_sound: bool = True) -> dict | None:
         rd = lambda rel: asyncio.to_thread(self.store.read_json, vkey(pid, n, rel))  # noqa: E731
         status = await rd("status.json") or {}
         if status.get("state") not in FINAL:
@@ -283,12 +284,13 @@ class BuildManager:
             await self.repo.aupdate(pid, mut)
         except NotFound:
             return None
-        if holder and status["state"] == "done":
+        if holder and status["state"] == "done" and auto_sound:
             await maybe_auto(self.svc, pid, n)      # the gadget's sound: once, after its first successful build
         return holder or None
 
-    async def reconcile(self, p: dict) -> dict:
-        """Called on project reads. Finalizes versions whose status.json is final; marks orphaned ones stale."""
+    async def reconcile(self, p: dict, *, auto_sound: bool = True) -> dict:
+        """Called on project reads. Finalizes versions whose status.json is final; marks orphaned ones stale.
+        auto_sound=False for read-only share reads (no Lyria call starts from a share visit)."""
         pid = p["id"]
         changed = False
         for v in p.get("versions", []):
@@ -296,7 +298,7 @@ class BuildManager:
                 continue
             st = await asyncio.to_thread(self.store.read_json, vkey(pid, v["n"], "status.json")) or {}
             if st.get("state") in FINAL:
-                await self.finalize(pid, v["n"])
+                await self.finalize(pid, v["n"], auto_sound=auto_sound)
                 changed = True
             elif (pid, v["n"]) not in self.tasks:
                 started = parse_iso(v.get("started"))
@@ -306,7 +308,7 @@ class BuildManager:
                     await asyncio.to_thread(self.store.write_json, vkey(pid, v["n"], "status.json"),
                                             {**st, "state": "error",
                                              "error": "The build stopped reporting progress."})
-                    await self.finalize(pid, v["n"])
+                    await self.finalize(pid, v["n"], auto_sound=auto_sound)
                     changed = True
             elif st.get("state") and st.get("state") != v["state"]:
                 def mut(pp, n=v["n"], s=st):
