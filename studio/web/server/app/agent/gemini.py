@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import time
 
 from ..genai_client import get_client
@@ -11,12 +12,25 @@ from ..projects import make_message
 from ..usage import record_from_response
 from .history import build_contents
 from .prompt import PromptBuilder, wish_of
-from .tools import TERMINAL, declarations
+from .tools import TERMINAL, TOOLS, declarations
 from .voice import lint
 
 log = logging.getLogger("gstudio.gemini")
 
 MAX_STEPS = 8
+# a-to-e 1 (BENCH keychain-cap): Flash sometimes writes a tool call as message text ("`propose_concepts`{...}") instead
+# of calling it, and the turn ended with nothing done. Such a reply is replaced by a short line and the model is asked,
+# at most twice per turn, to make the real call.
+TOOL_AS_TEXT = re.compile(r"^\s*`{0,3}\s*(" + "|".join(sorted(TOOLS, key=len, reverse=True)) + r")\s*`{0,3}\s*[({]")
+TOOL_TEXT_NUDGE = ("Your last reply wrote the {name} tool call as message text. Call {name} now as a real function call "
+                   "with the same arguments; message text must never contain tool names, code or JSON.")
+TOOL_TEXT_RETRIES = 2
+
+
+def tool_written_as_text(text: str | None) -> str | None:
+    """The tool name when a reply's text is a tool call written out as text, else None."""
+    m = TOOL_AS_TEXT.match(str(text or ""))
+    return m.group(1) if m else None
 
 
 class GeminiBrain:
@@ -97,6 +111,7 @@ class GeminiBrain:
         contents = await asyncio.to_thread(build_contents, self.svc, p, allowed, turn.instruction)
         await turn.status("Thinking")
         wish = wish_of(p)  # picks the worked examples closest to the user's own words (CATALOG-PLAN E3)
+        text_calls = 0
         for step in range(MAX_STEPS):
             config = self._config(allowed, wish)
             try:
@@ -111,6 +126,10 @@ class GeminiBrain:
                 await turn.fail("The design assistant is unavailable right now. Please try again in a minute.",
                                 code="model_unavailable", retryable=True)
                 return
+            leaked = tool_written_as_text(msg.get("text")) if (msg and not calls) else None
+            retry = bool(leaked) and text_calls < TOOL_TEXT_RETRIES
+            if leaked:  # never leave a raw tool call in the chat (message.done replaces the streamed text by id)
+                msg = {**msg, "text": "Working on it." if retry else "I could not finish that step. Please try again."}
             if msg:
                 await turn.add_message(msg)
                 await turn.emit("message.done", {"message": msg})
@@ -119,6 +138,12 @@ class GeminiBrain:
                 return
             contents.append(types.Content(role="model", parts=parts))
             if not calls:
+                if retry:
+                    text_calls += 1
+                    log.warning("model wrote %s as text; asking for a real call (%d)", leaked, text_calls)
+                    contents.append(types.Content(role="user", parts=[types.Part(text=TOOL_TEXT_NUDGE.format(name=leaked))]))
+                    await turn.status("Thinking")
+                    continue
                 return
             responses, terminal = [], False
             for fc in calls:
