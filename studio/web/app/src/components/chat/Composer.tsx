@@ -39,7 +39,7 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
   const nav = useNavigate();
   const running = !!turn?.running;
   // "Talk" while the project is still empty: the voice chat becomes this project's first message
-  const canTalk = project.chat.length === 0 && !running && !(project as { voice?: unknown }).voice;
+  const canTalk = project.chat.length === 0 && !running && !project.voice;
 
   useImperativeHandle(ref, () => ({
     focus: (prefill) => {

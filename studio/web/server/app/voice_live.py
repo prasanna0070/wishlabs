@@ -381,18 +381,28 @@ def clean_wish(args: dict | None) -> tuple[str, list[dict]] | None:
             q = " ".join(str(d.get("question") or "").split())[:240]
             ans = " ".join(str(d.get("answer") or "").split())[:300]
             if q and ans:
-                details.append({"question": q, "answer": ans})
+                details.append({"question": q, "answer": ans[:1].upper() + ans[1:]})
     return wish, details
 
 
-def first_message(wish: str, details: list[dict]) -> str:
-    """The first chat turn, as if typed: the wish, then the voice answers (the design agent reads them)."""
-    if not details:
-        return wish
-    lines = [wish, "", "From my voice chat with Wish Labs:"]
-    for d in details:
-        q = d["question"] if d["question"].endswith("?") else d["question"] + "?"
-        lines.append(f"- {q} {d['answer']}")
+def _norm(t: str) -> str:
+    return "".join(c for c in t.lower() if c.isalnum())
+
+
+def first_message(wish: str, details: list[dict], said: str = "") -> str:
+    """The first chat turn, as if typed: the wish, the voice answers as Live summarised them, then everything the
+    person said, word for word from the live captions (Live's summary can drop a detail such as an age or a place;
+    the design agent reads both)."""
+    lines = [wish]
+    if details:
+        lines += ["", "From my voice chat with Wish Labs:"]
+        for d in details:
+            q = d["question"] if d["question"].endswith("?") else d["question"] + "?"
+            a = d["answer"][:1].upper() + d["answer"][1:]
+            lines.append(f"- {q} {a}")
+    said = " ".join(said.split())
+    if said and _norm(said) != _norm(wish):
+        lines += ["", f'What I said in the voice chat: "{said[:2400]}"']
     return "\n".join(lines)[:3900]
 
 
@@ -652,7 +662,7 @@ class VoiceSession:
         self.wish = got
         await self.send({"type": "submitting"})
         wish, details = got
-        self.first_text = first_message(wish, details)
+        self.first_text = first_message(wish, details, self.transcript.user_text())
         try:
             p = await create_project(self.svc, wish, details, self.mode, self.voice_record(final=False),
                                      self.target_pid)

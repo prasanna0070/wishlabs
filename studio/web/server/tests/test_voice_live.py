@@ -282,6 +282,7 @@ def test_submit_wish_makes_project_first_turn_recording_share_and_receipt(voice_
     sub = next(e for e in events if e["type"] == "submitted")
     pid = sub["project_id"]
     assert sub["text"].startswith(WISH["wish"]) and "- How old is she? She is six." in sub["text"]
+    assert sub["text"].endswith('What I said in the voice chat: "A moon night light for my daughter."')
     assert events[-1]["reason"] == "submitted" and events[-1]["project_id"] == pid
     fake = seen[0][1]
     assert fake.texts[0] == GREETING and fake.responses                    # greeted, then answered the tool call
@@ -423,10 +424,14 @@ def test_clean_wish_and_first_message():
     assert clean_wish({"wish": " "}) is None
     w, d = clean_wish({"wish": "  a   lamp ", "details": [{"question": "For whom", "answer": "me"}, "junk",
                                                           {"question": "", "answer": "x"}]})
-    assert w == "a lamp" and d == [{"question": "For whom", "answer": "me"}]
+    assert w == "a lamp" and d == [{"question": "For whom", "answer": "Me"}]
     assert first_message(w, []) == "a lamp"
-    assert first_message(w, d) == "a lamp\n\nFrom my voice chat with Wish Labs:\n- For whom? me"
-    assert len(first_message("x" * 1500, [{"question": "q" * 240, "answer": "a" * 300}] * 6)) <= 3900
+    assert first_message(w, d) == "a lamp\n\nFrom my voice chat with Wish Labs:\n- For whom? Me"
+    assert first_message(w, [], "A lamp.") == "a lamp"                    # nothing new in the captions
+    assert first_message(w, d, "a lamp for me, it lives on my desk") == (
+        'a lamp\n\nFrom my voice chat with Wish Labs:\n- For whom? Me\n\n'
+        'What I said in the voice chat: "a lamp for me, it lives on my desk"')
+    assert len(first_message("x" * 1500, [{"question": "q" * 240, "answer": "a" * 300}] * 6, "s" * 5000)) <= 3900
 
 
 def test_transcript_joins_pieces_into_turns():
