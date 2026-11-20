@@ -132,6 +132,7 @@ def normalize_printed(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spe
     # ---------------------------------------------------------------- cuts (pack printed_cuts; the pack gate is in cross_check)
     for k, c in enumerate(getattr(sp, "cuts", None) or []):
         _check_cut(geom, k, c, errors, warnings)
+    _check_cut_pairs(geom, getattr(sp, "cuts", None) or [], errors)
 
     # ---------------------------------------------------------------- decor on the body (normalize.py:701-703)
     for dk, d in enumerate(sp.decor):
@@ -223,6 +224,43 @@ def _check_cut(geom, k: int, c: Any, errors: list, warnings: list) -> None:
     elif c.kind in ("pocket", "slot") and thick - depth < MIN_FLOOR:
         _err(errors, f"{path}.depth", f"the {c.kind} leaves only {thick - depth:.1f} mm of material under it (minimum {MIN_FLOOR:g} mm)",
              f"make it at most {max(0.6, thick - MIN_FLOOR):.0f} mm deep, or at least {thick:.0f} mm to cut right through", "cut_floor")
+
+
+CUT_JOIN_MIN = 0.5  # mm two cuts that join must overlap by: a hairline join leaves a sliver
+
+
+def _cut_box(geom, c: Any) -> Optional[tuple[list, list]]:
+    """Axis-aligned box (lo, hi) of a cut in body mm: its face rectangle from the surface hit at its centre down to its
+    depth (a through cut stops just past the far side); None when it misses the body (cut_off_body says so)."""
+    face, (u, v), (w, h) = c.face, c.at, c.size
+    span = _through(geom, face, u, v)
+    if span is None:
+        return None
+    t0, t1 = span[0], span[0] + min(float(c.depth), span[1] - span[0] + 1.0)
+    pts = [geom.point(face, u + su * w / 2, v + sv * h / 2, t) for su in (-1, 1) for sv in (-1, 1) for t in (t0, t1)]
+    return [min(p[i] for p in pts) for i in range(3)], [max(p[i] for p in pts) for i in range(3)]
+
+
+def _check_cut_pairs(geom, cuts: list, errors: list) -> None:
+    """Two cuts that face each other across less than MIN_FLOOR of material, or that only just touch, leave a sliver
+    the print loses (BENCH keychain-cap 22:10 IST 20 Nov: a top pocket whose floor met the top of a through key-ring
+    hole split the shell into 2 bodies with 0.01 mm walls). Either keep MIN_FLOOR between them or overlap them by
+    CUT_JOIN_MIN so they join. Boxes are the cuts' bounding boxes, so a round hole counts as its square (conservative)."""
+    boxes = [(k, c, _cut_box(geom, c)) for k, c in enumerate(cuts)]
+    boxes = [b for b in boxes if b[2] is not None]
+    for i in range(len(boxes)):
+        for j in range(i + 1, len(boxes)):
+            (a, ca, (alo, ahi)), (b, cb, (blo, bhi)) = boxes[i], boxes[j]
+            d = [max(blo[n] - ahi[n], alo[n] - bhi[n]) for n in range(3)]  # per axis: > 0 gap, < 0 overlap
+            near = [n for n in range(3) if d[n] > -CUT_JOIN_MIN]
+            if len(near) != 1 or d[near[0]] >= MIN_FLOOR:
+                continue  # joined with a real overlap, apart in two axes (no shared wall), or far enough apart
+            g = d[near[0]]
+            what = f"leave only {g:.1f} mm of material between them" if g > 0 else "only just touch"
+            _err(errors, f"cuts[{b}]", f"cuts[{a}] ({ca.kind}) and cuts[{b}] ({cb.kind}) {what} along "
+                 f"{'xyz'[near[0]]}: a sliver that breaks the print",
+                 f"keep at least {MIN_FLOOR:g} mm of material between them (move one, or make it smaller or shallower), "
+                 f"or overlap them by at least {CUT_JOIN_MIN:g} mm so they join", "cut_gap")
 
 
 MOUTH_MIN = 10.0  # mm: the smallest open-top mouth, inside the walls

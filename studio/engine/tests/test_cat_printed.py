@@ -239,3 +239,25 @@ def test_open_top_refuses_ears(printed_on, lib):
     s["printed"] = {"opening": "none", "drain_hole": False}
     _, rep = normalize(s, lib)
     assert not any(e.get("code") == "opening_decor" for e in rep["errors"])
+
+
+# BENCH keychain-cap (20 Nov, 22:10 IST): a top pocket whose floor met the top of a through key-ring hole left a 0.01 mm
+# sliver and split the printed shell into 2 bodies; normalize now asks for 1.2 mm between cuts or a real overlap
+_BENCH_CAP_BODY = {"wall": 2.4, "edge_round": 3.0, "feet": 0, "family": "silhouette", "depth": 38.0, "split": "none",
+                   "outline": [[-19.0, 0.0], [19.0, 0.0], [20.0, 10.0], [20.0, 25.0], [17.0, 32.0], [11.0, 35.0],
+                               [5.0, 33.0], [0.0, 31.0], [-5.0, 33.0], [-11.0, 35.0], [-17.0, 32.0], [-20.0, 25.0],
+                               [-20.0, 10.0]]}
+
+
+@pytest.mark.parametrize("pocket_depth,gap_error", [(22.0, True), (21.5, True), (19.0, False), (25.0, False)])
+def test_cuts_that_only_just_meet_get_a_fix(monkeypatch, lib, pocket_depth, gap_error):
+    monkeypatch.setenv("GS_PACKS_ENABLED", "printed,printed_cuts")
+    s = json.loads((STUDIO / "library" / "packs" / "examples" / "printed_cuts" / "keychain-cap" / "spec.json").read_text())
+    s["body"], s["decor"] = copy.deepcopy(_BENCH_CAP_BODY), []
+    s["cuts"] = [{"kind": "pocket", "face": "top", "at": [0.0, 0.0], "size": [28.0, 28.0], "depth": pocket_depth},
+                 {"kind": "hole", "face": "front", "at": [0.0, 6.0], "size": [6.0, 6.0], "depth": 42.0}]
+    _, rep = normalize(s, lib)
+    hit = [e for e in rep["errors"] if e.get("code") == "cut_gap"]
+    assert bool(hit) == gap_error, rep["errors"]
+    if gap_error:
+        assert hit[0].get("fix") and "1.2 mm" in hit[0]["fix"]
