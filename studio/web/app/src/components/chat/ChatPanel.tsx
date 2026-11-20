@@ -6,6 +6,7 @@ import type { ChatMessage, Project } from "../../lib/types";
 import { MessageView, TurnActivity } from "./Messages";
 import { BriefDock, ChoicesDock, ConceptsDock } from "./Docks";
 import { Composer, type ComposerHandle } from "./Composer";
+import { VoiceWishCard } from "../voice/VoiceWishCard";
 import type { TabId } from "../panel/RightPanel";
 
 /** The pending interactive message (questions, concepts or brief) that should be docked above the composer. */
@@ -30,6 +31,7 @@ export function ChatPanel({ full, split, onTab: _onTab }: { full: boolean; split
   const turn = useProject((s) => s.turn);
   const sendError = useProject((s) => s.sendError);
   const readOnly = useProject((s) => s.readOnly);
+  const ctx = useProject((s) => s.ctx);
   const { setChatHidden, panelHidden, setPanelHidden } = useUI();
   const list = useRef<HTMLDivElement>(null);
   const col = useRef<HTMLDivElement>(null);
@@ -102,6 +104,7 @@ export function ChatPanel({ full, split, onTab: _onTab }: { full: boolean; split
         }}
       >
         <div className="chat-col" ref={col}>
+          <VoiceWishCard project={project} ctx={ctx} readOnly={readOnly} compact />
           {empty && !turn ? (
             <div className="chat-empty">
               <h2>What should we make?</h2>

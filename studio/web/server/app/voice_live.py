@@ -201,7 +201,8 @@ def live_config(cfg: LiveSettings):
                     "it (e.g. 'I want a night light for my daughter that glows like the moon').")),
                 "details": types.Schema(
                     type=types.Type.ARRAY,
-                    description="Each follow-up question you asked, with the person's answer in their words.",
+                    description=("Each follow-up question you asked, word for word as you said it (not your "
+                                 "confirmation), with the person's answer in their words. One entry per question."),
                     items=types.Schema(type=types.Type.OBJECT, properties={
                         "question": types.Schema(type=types.Type.STRING),
                         "answer": types.Schema(type=types.Type.STRING)},

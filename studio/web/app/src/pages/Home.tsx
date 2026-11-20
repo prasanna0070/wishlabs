@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ArrowUp, Box, CloudRain, LogOut, Moon, Plus, Sprout, Trash2, Eye } from "lucide-react";
+import { ArrowUp, Box, CloudRain, LogOut, Mic, Moon, Plus, Sprout, Trash2, Eye } from "lucide-react";
 import { api } from "../lib/api";
 import type { Mode, ProjectSummary } from "../lib/types";
 import { stageLabel, timeAgo } from "../lib/format";
@@ -9,6 +9,7 @@ import { Logo, Spinner, Dropdown } from "../components/ui";
 import { ModeSelect } from "../components/ModeSelect";
 import { readAttachment } from "../components/chat/Composer";
 import { searchWithoutWish, takeWish } from "../lib/wish";
+import { VoiceWishDialog } from "../components/voice/VoiceWishDialog";
 
 const EXAMPLES = [
   { icon: Moon, label: "Bedtime story robot", name: "Bedtime Story Robot", prompt: "I want a cute robot that tells my daughter bedtime stories and remembers her favourite characters." },
@@ -24,6 +25,8 @@ export function HomePage() {
   const [err, setErr] = useState<string | null>(null);
   const [name, setName] = useState<string | undefined>();
   const [projects, setProjects] = useState<ProjectSummary[] | null>(null);
+  const [talking, setTalking] = useState(false);
+  const talkBtn = useRef<HTMLButtonElement>(null);
   const ta = useRef<HTMLTextAreaElement>(null);
   const file = useRef<HTMLInputElement>(null);
   const nav = useNavigate();
@@ -156,6 +159,16 @@ export function HomePage() {
                 else setText((t) => `${t}${t ? "\n\n" : ""}${r.text}`);
               }}
             />
+            <button
+              ref={talkBtn}
+              type="button"
+              className="talk-btn"
+              onClick={() => setTalking(true)}
+              disabled={busy}
+              title="Talk to make a wish: a short voice chat with Gemini Live"
+            >
+              <Mic size={16} /> Talk
+            </button>
             <div className="grow" />
             <ModeSelect value={mode} onChange={setMode} />
             <button className="send-btn" aria-label="Start" disabled={!text.trim() || busy}>
@@ -164,6 +177,31 @@ export function HomePage() {
           </div>
         </form>
         {err ? <div className="callout danger" style={{ maxWidth: 760, margin: "12px auto 0" }}>{err}</div> : null}
+        {talking ? (
+          <VoiceWishDialog
+            open={talking}
+            mode={mode}
+            text={text}
+            onSubmitted={({ projectId, text: first }) => {
+              // the first turn goes through the normal chat path: the project page sends it, like a typed wish
+              try {
+                sessionStorage.setItem(`gs.pending.${projectId}`, first);
+              } catch {
+                /* no storage (private mode): the project opens and the wish can be sent again from its chat */
+              }
+              setTalking(false);
+              nav(`/p/${projectId}`);
+            }}
+            onClose={(said) => {
+              setTalking(false);
+              if (said && !text.trim()) {
+                setText(said);
+                setName(undefined);
+              }
+              requestAnimationFrame(() => (said ? ta.current : talkBtn.current)?.focus());
+            }}
+          />
+        ) : null}
         <div className="examples">
           {EXAMPLES.map((x) => (
             <button

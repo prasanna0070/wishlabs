@@ -1,8 +1,10 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { ArrowUp, Paperclip, Plus, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ArrowUp, Mic, Paperclip, Plus, X } from "lucide-react";
 import { useProject } from "../../store/project";
 import { ModeSelect } from "../ModeSelect";
 import { Spinner } from "../ui";
+import { VoiceWishDialog } from "../voice/VoiceWishDialog";
 
 const TEXT_TYPES = /\.(txt|md|markdown|json|csv|ini|yaml|yml|toml)$/i;
 const MAX_ATTACH = 60_000;
@@ -32,7 +34,12 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
   const [drag, setDrag] = useState(false);
   const ta = useRef<HTMLTextAreaElement>(null);
   const fileIn = useRef<HTMLInputElement>(null);
+  const talkBtn = useRef<HTMLButtonElement>(null);
+  const [talking, setTalking] = useState(false);
+  const nav = useNavigate();
   const running = !!turn?.running;
+  // "Talk" while the project is still empty: the voice chat becomes this project's first message
+  const canTalk = project.chat.length === 0 && !running && !(project as { voice?: unknown }).voice;
 
   useImperativeHandle(ref, () => ({
     focus: (prefill) => {
@@ -132,6 +139,18 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
               e.target.value = "";
             }}
           />
+          {canTalk ? (
+            <button
+              ref={talkBtn}
+              type="button"
+              className="talk-btn"
+              onClick={() => setTalking(true)}
+              disabled={disabled}
+              title="Talk to make a wish: a short voice chat with Gemini Live"
+            >
+              <Mic size={16} /> Talk
+            </button>
+          ) : null}
           <div className="grow" />
           <ModeSelect value={project.mode || "pro"} onChange={(m) => void setMode(m)} up disabled={disabled} />
           <button className="send-btn" aria-label={running ? "Working" : "Send"} disabled={running || disabled || (!text.trim() && !files.length)}>
@@ -140,6 +159,33 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
         </div>
       </form>
       {err ? <div className="composer-err">{err}</div> : null}
+      {talking ? (
+        <VoiceWishDialog
+          open={talking}
+          mode={project.mode || "pro"}
+          text={text}
+          projectId={project.id}
+          onSubmitted={({ projectId, text: first }) => {
+            setTalking(false);
+            setText("");
+            if (projectId === project.id) {
+              void send({ text: first }); // the normal chat turn, streamed here
+              return;
+            }
+            try {
+              sessionStorage.setItem(`gs.pending.${projectId}`, first);
+            } catch {
+              /* no storage: the new project opens with an empty chat */
+            }
+            nav(`/p/${projectId}`);
+          }}
+          onClose={(said) => {
+            setTalking(false);
+            if (said && !text.trim()) setText(said);
+            requestAnimationFrame(() => (said ? ta.current : talkBtn.current)?.focus());
+          }}
+        />
+      ) : null}
       <div className="disclaimer">Wish Labs can make mistakes. Double-check builds and responses.</div>
     </div>
   );

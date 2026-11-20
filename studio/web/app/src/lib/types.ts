@@ -1,5 +1,6 @@
 // Types for the gstudio-web API (docs/API.md) and the version output files (docs/ARCHITECTURE.md §5, §9).
 // Optional fields marked "proposed" are listed in docs/REQUESTS.md; the UI degrades when they are absent.
+import type { VoiceWish } from "./voice";
 
 export type Stage = "clarify" | "concepts" | "brief" | "building" | "ready" | "error";
 export type Mode = "pro" | "fast";
@@ -129,6 +130,7 @@ export interface Project {
   stage: Stage;
   mode?: Mode;
   usage?: { basis?: string; turns?: any[]; totals?: any } | null;
+  voice?: VoiceWish | null; // the voice chat (Gemini Live) the project started from
   turn?: { id: string; started: string } | null;
   questions_asked?: number;
   chat: ChatMessage[];
