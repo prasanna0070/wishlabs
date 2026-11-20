@@ -108,6 +108,25 @@ def test_keepout_contains_the_cad_parts(shell):
     assert sweep[1] - sweep[0] >= 2 * R - 0.01 and math.isclose(sweep[5] - (feat["at"][1]), R, abs_tol=0.01)
 
 
+@pytest.fixture(scope="module")
+def leaning_shell():
+    """Front face leaning out toward the top (y = -30 at z 0 to y = -33 at z 90, under the 8 degree frame snap), like a
+    silhouette side that bulges above the servo (PX waving-desk-buddy, 2026-11-20: horn plate / shell 17 mm3)."""
+    O = cq.Workplane("YZ").polyline([(-30, 0), (30, 0), (30, 90), (-33, 90)]).close().extrude(100).translate((-50, 0, 0)).val()
+    C = (cq.Workplane("YZ").polyline([(-27.6, WALL), (30 - WALL, WALL), (30 - WALL, 90 - WALL), (-30.52, 90 - WALL)]).close()
+         .extrude(100 - 2 * WALL).translate((-50 + WALL, 0, 0)).val())
+    return O, C, Probe(O), Probe(C)
+
+
+@pytest.mark.parametrize("label", ["Waving arm", "Food flap"])
+def test_servo_clears_a_face_that_bulges_above_it(leaning_shell, label):
+    kit, S, desc, feat = _build(leaning_shell, label, at=(0.0, 40.0))
+    servo, arm = kit.parts
+    assert kit.info["servo"]["raised_mm"] > 0.3  # seated higher (pocket) so the horn plate and arm clear the lean
+    assert _vol(servo.shape, S) < 0.05 and _vol(arm.shape, S) < 0.05
+    assert not [w for w in kit.warnings if "curves too much" in w]
+
+
 def test_side_face_and_rotation(shell):
     kit, S, desc, feat = _build(shell, "Waving arm", at=(0.0, 45.0), face="right")
     servo, arm = kit.parts

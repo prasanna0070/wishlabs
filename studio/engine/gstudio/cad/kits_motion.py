@@ -47,7 +47,7 @@ FLAP = {"len": 40.0, "w": 30.0, "t": 2.0, "hub_d": 10.0, "base": 5.0}
 HOLE_D = 8.0  # shaft hole through the wall (horn hub 7 mm passes; hub size UNVERIFIED)
 R_SPOT = 11.5  # outer spot face radius around the shaft on curved faces (the horn plate turns inside it)
 GAP = 0.1  # servo top to the inner wall
-PLATE_CLEAR = 0.3  # horn plate above the outer surface
+PLATE_CLEAR = 0.3  # horn plate (and arm) above the highest outer surface point in their sweep (flat face: no pocket)
 R_BOSS = 2.3  # tab boss radius (holes 13.9 mm from the case centre, case half-length 11.4: 0.2 mm left)
 PILOT_D, PILOT_DEPTH = 1.6, 6.0  # pilot hole for the supplied self-tapping tab screws (screw size UNVERIFIED)
 SWEEP_DEG = 90.0  # the arm turns at most this far either side of its rest pose (servo 0..180 around 90)
@@ -120,6 +120,23 @@ def servo_boxes(desc: dict, skin: float = 2.4) -> list[dict]:
     return out
 
 
+def sweep_uv(so: float, r_max: float, n_r: int = 8, n_a: int = 19) -> list:
+    """Sample points (local u, v) over the area the horn or arm sweeps: radius r_max around the shaft at (so, 0),
+    up to SWEEP_DEG either side of pointing up (+v)."""
+    out = []
+    for k in range(n_r):
+        rr = 2.0 + (r_max - 2.0) * k / max(n_r - 1, 1)
+        for j in range(n_a):
+            t = math.radians(-SWEEP_DEG + 2.0 * SWEEP_DEG * j / max(n_a - 1, 1))
+            out.append((so + rr * math.sin(t), rr * math.cos(t)))
+    return out
+
+
+def _fmax(a, default: float) -> float:
+    vals = [float(x) for x in a if x == x and abs(float(x)) != float("inf")]
+    return max(vals) if vals else default
+
+
 def kit_servo(kit, F, S, O, desc: dict, fz: dict, colors: dict, spec_path: str) -> None:
     """KITS hook: pad, tab bosses, shaft hole (+ spot face on curved faces), the servo with its horn, the printed arm."""
     import numpy as np
@@ -147,16 +164,22 @@ def kit_servo(kit, F, S, O, desc: dict, fz: dict, colors: dict, spec_path: str) 
     z_in = _fin(zi, -3.0)
     z_pad = min(z_in, -2.0)
     plate_bot = hn["top"] - hn["plate_t"]
+    # highest outer surface under the horn plate's and the arm's sweep (a face that bulges above the shaft, PX
+    # waving-desk-buddy 2026-11-20: 17 mm3 horn plate / shell): the servo sits high enough that both clear it
+    zo_p, _ = S.sample(sweep_uv(so, hn["plate_len"] + 1.0))
+    zo_a, _ = S.sample(sweep_uv(so, sweep_radius() + 1.0, n_r=10, n_a=25))
+    z_hi_p = max(z_sf, _fmax(zo_p, z_sf))
+    z_hi_a = max(z_sf, _fmax(zo_a, z_sf))
     z_top = z_pad - GAP
-    need = z_sf + PLATE_CLEAR - plate_bot  # lowest servo top that keeps the horn plate off the outer surface
+    need = max(z_hi_p + PLATE_CLEAR - plate_bot, z_hi_a + PLATE_CLEAR - hn["top"])  # lowest servo top that clears
     raised = 0.0
     if z_top < need:
         raised = need - z_top
         z_top = need
         kit.cuts.append(F.place(box_z(0.0, 0.0, z_pad - 1.0, z_top + GAP, L + 0.3, W + 0.3)))  # pocket: thinner wall over the case
-        if z_ob - z_top < 1.2:
-            kit.warnings.append(f"feature {kit.feature_id}: the face curves too much for a servo here (wall over the servo "
-                                f"{z_ob - z_top:.1f} mm); move it to a flatter part of the face")
+        if z_ob - z_top < 1.2 or raised > 3.0:
+            kit.warnings.append(f"feature {kit.feature_id}: the face curves too much for a servo here (servo raised "
+                                f"{raised:.1f} mm, wall over it {z_ob - z_top:.1f} mm); move it to a flatter part of the face")
     if z_sf < -0.05:
         kit.cuts.append(F.place(prism(circle_face(R_SPOT, so, 0.0), z_sf, 40.0)))
     z_tt = z_top - tab_top  # top face of the tabs
@@ -224,7 +247,8 @@ def kit_servo(kit, F, S, O, desc: dict, fz: dict, colors: dict, spec_path: str) 
                                   "bosses; the horn hub turns freely in the hole; screw and horn sizes UNVERIFIED (physical check)",
                            "region": (F, (-span / 2 - 3.0, span / 2 + 3.0, -W / 2 - 3.0, W / 2 + 3.0, z_tb - 0.5, 1.5))})
     kit.info["servo"] = {"style": what, "shaft_offset_mm": so, "servo_top_z": round(z_top, 2), "pad_z": round(z_pad, 2),
-                         "spot_face": round(z_sf, 2), "raised_mm": round(raised, 2), "geometry_source": g.get("source"),
+                         "spot_face": round(z_sf, 2), "raised_mm": round(raised, 2), "surface_high_mm": [round(z_hi_p, 2), round(z_hi_a, 2)],
+                         "geometry_source": g.get("source"),
                          "horn_source": hn.get("source"), "sweep_deg": SWEEP_DEG}
 
 
