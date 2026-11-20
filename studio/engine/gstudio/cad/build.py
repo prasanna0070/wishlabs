@@ -332,6 +332,13 @@ def fastener_parts(fasteners: list, fz: dict) -> list:
     return out
 
 
+def _mark_screens(screens: list, params: dict) -> list:
+    """Pack freeform: screens of a design without face decor show a plain readout (cad/screens.py); else unchanged."""
+    from .screens import mark
+
+    return mark(screens, params)
+
+
 def build(params: dict, progress: Optional[Callable] = None, on_draft: Optional[Callable] = None, route_cables: bool = True) -> Model:
     T = Timer()
     say = progress or (lambda msg, pct=None: None)
@@ -704,7 +711,7 @@ def build(params: dict, progress: Optional[Callable] = None, on_draft: Optional[
         "cartridge": cart.info, "split_info": sp.info, "feet": [[round(x, 2), round(y, 2)] for x, y in fpts], "tie_anchors": len(ties),
         "kits": {k.feature_id: {"kind": k.kind, "ref": k.ref, "grille_holes": k.grille_holes, **k.info,
                                 "frame": None if k.frame is None else k.frame.to_json()} for k in kits},
-        "screens": [k.info["screen"] for k in kits if k.info.get("screen")],
+        "screens": _mark_screens([k.info["screen"] for k in kits if k.info.get("screen")], params),
         "usb_c": {"receptacle_face": [round(float(v), 2) for v in usb_pt], "opening": (bp.get("cartridge") or {}).get("usb_c_opening"),
                   "load_path": cord["info"] if cord else None},
     })
