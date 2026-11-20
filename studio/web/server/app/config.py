@@ -51,6 +51,8 @@ class Settings:
     stale_build_minutes: float = 30.0
     max_repair_rounds: int = 3
     thinking_level: str | None = None          # low | high | None (model default)
+    agent_thoughts: bool = True                # stream the design agent's thought summaries (include_thoughts)
+    scripted_think_s: float = 0.0              # AGENT=scripted only: canned thought summaries over this many seconds
     public_url: str | None = None              # e.g. https://studio.example.com; builds then carry name_audio_url
 
     @classmethod
@@ -86,6 +88,8 @@ class Settings:
             fake_build_seconds=float(os.environ.get("FAKE_BUILD_SECONDS", "4")),
             fake_use_examples=_flag("FAKE_EXAMPLES", True),
             thinking_level=os.environ.get("AGENT_THINKING") or None,
+            agent_thoughts=_flag("AGENT_THOUGHTS", True),
+            scripted_think_s=float(os.environ.get("SCRIPTED_THINK_S") or 0),
             public_url=(os.environ.get("PUBLIC_URL") or "").rstrip("/") or None,
         )
 

@@ -50,7 +50,7 @@ class GCSStore(JsonMixin):
 
     def write_bytes(self, key: str, data: bytes, content_type: str | None = None) -> None:
         blob = self.bucket.blob(key)
-        if key.endswith(("project.json", "status.json")):
+        if key.endswith(("project.json", "status.json", "turn-progress.json")):
             blob.cache_control = "no-store"
         blob.upload_from_string(data, content_type=content_type or "application/octet-stream")
 

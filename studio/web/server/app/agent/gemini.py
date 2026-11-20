@@ -1,5 +1,10 @@
 """Gemini brain: streamed generate_content with function calling on Vertex AI (global). Within one turn the
-model's own Content objects (with thought signatures) are kept verbatim; across turns history is plain text."""
+model's own Content objects (with thought signatures) are kept verbatim; across turns history is plain text.
+
+Thought summaries (ThinkingConfig include_thoughts, on unless AGENT_THOUGHTS=0) stream to the browser as
+thinking.delta events and into the turn's progress record; they never enter the visible answer or the stored chat.
+A model that rejects include_thoughts (HTTP 400) is called again without it and remembered: the UI then shows the
+step labels only."""
 from __future__ import annotations
 
 import asyncio
@@ -25,8 +30,12 @@ class GeminiBrain:
     def __init__(self, svc):
         self.svc = svc
         self.prompts = PromptBuilder(svc.bridge, svc.settings)
+        self.no_thoughts: set[str] = set()     # models that rejected include_thoughts in this process
 
-    def _config(self, allowed: list[str]):
+    def thoughts_on(self, model: str) -> bool:
+        return bool(getattr(self.svc.settings, "agent_thoughts", True)) and model not in self.no_thoughts
+
+    def _config(self, allowed: list[str], thoughts: bool = False):
         from google.genai import types
 
         s = self.svc.settings
@@ -38,8 +47,13 @@ class GeminiBrain:
             tool_config=types.ToolConfig(function_calling_config=types.FunctionCallingConfig(mode="AUTO")),
             automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         )
+        tk: dict = {}
         if s.thinking_level:
-            kw["thinking_config"] = types.ThinkingConfig(thinking_level=s.thinking_level)
+            tk["thinking_level"] = s.thinking_level
+        if thoughts:
+            tk["include_thoughts"] = True       # summaries only; thinking tokens are billed with or without them
+        if tk:
+            kw["thinking_config"] = types.ThinkingConfig(**tk)
         return types.GenerateContentConfig(**kw)
 
     async def _stream(self, turn, model: str, contents, config):
@@ -56,10 +70,13 @@ class GeminiBrain:
                 last = chunk
             for cand in chunk.candidates or []:
                 for part in (cand.content.parts if cand.content else None) or []:
-                    parts.append(part)
+                    parts.append(part)                  # kept verbatim for the next call (thought signatures)
                     if part.function_call:
                         calls.append(part.function_call)
-                    elif part.text and not part.thought:
+                    elif part.thought:                  # a thought summary: the thinking panel only, never the answer
+                        if part.text:
+                            await turn.thought(part.text)
+                    elif part.text:
                         if msg_id is None:
                             msg_id = make_message("assistant", "text", "")["id"]
                             await turn.emit("message.start", {"message_id": msg_id, "role": "assistant",
@@ -73,15 +90,24 @@ class GeminiBrain:
             msg = {**make_message("assistant", "text", lint(text)), "id": msg_id}
         return parts, calls, msg
 
-    async def _call_with_retry(self, turn, model: str, contents, config):
+    async def _call_with_retry(self, turn, model: str, contents, allowed: list[str]):
         last = None
+        plain = False                               # True after a 400 with thought summaries on: retry without them
         for attempt in range(3):
+            thoughts = self.thoughts_on(model) and not plain
             try:
-                return await self._stream(turn, model, contents, config)
+                out = await self._stream(turn, model, contents, self._config(allowed, thoughts))
+                if plain:
+                    log.warning("model %s rejects include_thoughts; showing step labels only", model)
+                    self.no_thoughts.add(model)
+                return out
             except Exception as exc:  # noqa: BLE001 - google.genai.errors.APIError and transport errors
                 last = exc
                 code = getattr(exc, "code", None) or getattr(exc, "status_code", None)
                 log.warning("model %s attempt %d failed: %s %s", model, attempt + 1, code, str(exc)[:300])
+                if code == 400 and thoughts:
+                    plain = True
+                    continue
                 if code in (400, 401, 403, 404):
                     raise
                 await asyncio.sleep(2 * (attempt + 1))
@@ -97,9 +123,8 @@ class GeminiBrain:
         contents = await asyncio.to_thread(build_contents, self.svc, p, allowed, turn.instruction)
         await turn.status("Thinking")
         for step in range(MAX_STEPS):
-            config = self._config(allowed)
             try:
-                parts, calls, msg = await self._call_with_retry(turn, model, contents, config)
+                parts, calls, msg = await self._call_with_retry(turn, model, contents, allowed)
             except Exception as exc:  # noqa: BLE001
                 code = getattr(exc, "code", None)
                 if code == 404 and model != s.model_fast:
