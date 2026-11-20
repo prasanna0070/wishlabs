@@ -76,7 +76,11 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
   const submit = () => {
     const body = [text.trim(), ...files.map((f) => f.text)].filter(Boolean).join("\n\n");
     if (!body || running || disabled) return;
-    void send({ text: body });
+    const typed = text;
+    void send({ text: body }).then(() => {
+      // refused because another turn was still running (409): the words go back in the box, nothing is lost
+      if (useProject.getState().sendErrorCode === "conflict" && !ta.current?.value) setText(typed);
+    });
     setText("");
     setFiles([]);
   };

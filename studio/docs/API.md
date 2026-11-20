@@ -203,6 +203,7 @@ Every `data` is JSON with a `seq` that increases by 1 within a stream.
 | `project.renamed` | `{seq, name}` | the agent named the project (first reply only, never after a user rename) |
 | `message.start` | `{seq, message_id, role: "assistant", kind: "text"}` | streamed assistant text begins |
 | `text.delta` | `{seq, message_id, delta}` | append to that message |
+| `thinking.delta` | `{seq, text}` | a thought summary from the design agent (Gemini `include_thoughts`): show it in the turn's "Show thinking" panel, never in a message; it is not stored in the chat |
 | `message.done` | `{seq, message: ChatMessage}` | a message is final and stored (any kind). Replace drafts by id. |
 | `tool.start` | `{seq, call_id, name, label}` | `name` in `ask_user, propose_concepts, write_brief, build_design, update_design, say` |
 | `tool.done` | `{seq, call_id, name, ok, summary, errors?}` | |
@@ -226,6 +227,27 @@ A `: ping` comment is sent every 15 s while idle.
 `GET /api/projects/{pid}/stream` is an `EventSource`-compatible GET stream. It sends `project` first, then
 `build.progress`, `build.message` and `result` for every unfinished version, a final `project`, and `done`. Open it
 after a tweak, a restore, or a page load that finds a version `queued`/`running`. `?once=1` sends the snapshot and closes.
+
+### 3.3 Turn progress (reload or dropped stream)
+
+Only the tab that posted a turn holds its SSE stream. `GET /api/projects/{pid}/turn` (signed in; never on share
+links) tells any page whether a turn is running and what it is doing, from the lock in `project.json` (`turn`) and
+the record `projects/<pid>/turn-progress.json` (its own object, written by the turn at most every 2 s, with a 20 s
+heartbeat, and marked `done`/`error` at the end):
+
+```json
+{"running": true, "stale": false, "state": "running", "turn_id": "t_...", "started": "2026-11-20T07:00:00Z",
+ "age_s": 65.2, "step": "Rendering concept photos: 2 of 6 done",
+ "steps": [{"label": "Thinking", "ts": "..."}, {"label": "Fixing the design (round 1)", "ts": "...",
+            "detail": "Moon Bot: ..."}],
+ "thoughts": "**Sketching shapes**\n\n...", "user_message_id": "m_...", "action": "answers", "mode": "pro",
+ "updated": "...", "quiet_s": 1.4, "error": null}
+```
+
+`state` is `idle`, `running`, `stale` (the lock is older than 15 min: the turn stopped unexpectedly and a new message
+is accepted again), `done`, `error` or `ended`. `thoughts` holds the newest ~3 KB of thought summaries. The studio
+polls it every 2 s while `running` (after a reload, a dropped chat stream or a 409), reloads the project when it ends,
+and does not post while a turn runs.
 
 ## 4. Versions, undo/redo, files, export
 
@@ -404,5 +426,7 @@ route (§3). Code: `web/server/app/voice_live.py`, `app/routes/voice.py`; SPA `c
 | `FAKE_EXAMPLES` | `1`/`0` | fake builds copy `examples/<slug>/_out/` when it exists (default 1); 0 always writes the placeholder tree |
 | `MODEL_PRICES_JSON` | JSON | per-model `{in, out, image}` USD rates for `usage.cost_usd_est` |
 | `STUDIO_ROOT`, `STATIC_DIR`, `COOKIE_SECURE`, `AGENT_THINKING` (`low`/`high`) | | paths, cookie flag, model thinking level |
+| `AGENT_THOUGHTS` | `1` (default) / `0` | stream the design agent's thought summaries (`thinking.delta`, §3.3); thinking tokens are billed either way |
+| `SCRIPTED_THINK_S` | seconds (default 0) | `AGENT=scripted` only: canned thought summaries before each reply, for browser tests |
 | `LIVE_ENABLED`, `LIVE_MODEL`, `LIVE_FALLBACK_MODEL`, `LIVE_LOCATION`, `LIVE_VOICE` | `1`, `gemini-live-2.5-flash-native-audio`, `gemini-3.8-live`, `us-central1`, `Aoede` | the voice wish (§7a) |
 | `LIVE_MAX_SECONDS`, `LIVE_SESSIONS_PER_HOUR`, `LIVE_SESSIONS_PER_HOUR_TOTAL`, `LIVE_MAX_CONCURRENT`, `LIVE_ALLOW_RECORDING`, `LIVE_ALLOWED_ORIGINS` | `180`, `12`, `60`, `4`, `1`, empty | voice limits (per instance) and extra allowed browser origins |

@@ -184,4 +184,4 @@ export function agoText(secs: number): string {
 }
 
 /** The friendly words for a 409 from /chat: the previous message is still being worked on. */
-export const CONFLICT_TEXT = "The assistant is still working on your previous message, so this one was not sent.";
+export const CONFLICT_TEXT = "The assistant is still working on your previous message, so this one was not sent yet.";
