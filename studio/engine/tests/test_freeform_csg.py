@@ -272,6 +272,25 @@ def test_kit_meeting_an_inner_wall_is_caught_before_the_build(monkeypatch):
     assert not r["ok"] and any(e.startswith("features[0].at: screen: its kit") and "inner wall" in e for e in r["errors"]), r["errors"]
 
 
+def test_cartridge_in_a_piece_that_prints_solid_is_refused(monkeypatch):
+    """A real Gemini concept (bench 2026-11-21, 'Lumina Dome Lamp'): a 90 x 95 x 100 mm tower standing ON a 30 mm plinth
+    (touching, not overlapping). The tower is the main hollow, the plinth prints solid, and the core cartridge sits on the
+    floor inside the plinth: validation said ok (the cartridge fit used the outer distance only) and the full build said
+    'not buildable' (PRINT_Shell / Backplane 14,412 mm3). The cartridge fit now honours the main hollow like every
+    feature mount does, and the fix names the overlap; with the tower standing 8 mm into the plinth it validates."""
+    _packs(monkeypatch, "sensing,schedule,freeform")
+    from gstudio import pipeline
+
+    d = json.loads((FIX / "lumina-tower-on-plinth.json").read_text())
+    r = pipeline.validate(d)
+    assert not r["ok"] and any(e.startswith("body: the core cartridge") and "prints solid" in e and "overlap the piece" in e
+                               for e in r["errors"]), r["errors"]
+    tower = d["body"]["csg"]["nodes"][1]
+    tower["to"][2], tower["node"]["size"][2] = 22, 108
+    r = pipeline.validate(d)
+    assert r["ok"], r["errors"]
+
+
 def _pack_off_entries(packs_sets) -> dict:
     """{key: sha256} as _ff/po.py made them on main e8eb54d: schema text + pipeline.validate of every live example."""
     from gstudio import pipeline

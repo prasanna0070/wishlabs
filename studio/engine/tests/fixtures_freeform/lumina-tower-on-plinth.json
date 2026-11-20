@@ -1,0 +1,109 @@
+{
+ "schema": "gadget-spec/1",
+ "name": "Lumina Dome Lamp",
+ "slug": "lumina-dome-lamp",
+ "tagline": "A sleek cylindrical bedside lamp with a glowing dome face and an easy-tap touch top",
+ "audience": {
+  "child_directed": false
+ },
+ "region": "IN",
+ "colors": {
+  "body": "#7B8A75",
+  "accent": "#EAE6DF",
+  "detail": "#3A3F35",
+  "body_name": "moss green",
+  "accent_name": "sand",
+  "detail_name": "forest"
+ },
+ "body": {
+  "family": "csg",
+  "csg": {
+   "op": "union",
+   "blend": 6,
+   "nodes": [
+    {
+     "op": "box",
+     "size": [
+      100,
+      105,
+      30
+     ],
+     "round": 6
+    },
+    {
+     "op": "move",
+     "to": [
+      0,
+      0,
+      30
+     ],
+     "node": {
+      "op": "box",
+      "size": [
+       90,
+       95,
+       100
+      ],
+      "round": 8
+     }
+    }
+   ]
+  },
+  "wall": 2.4,
+  "edge_round": 3,
+  "split": "base_plate",
+  "feet": 4
+ },
+ "decor": [],
+ "features": [
+  {
+   "id": "glow",
+   "module": "LED_RING_12_WS2812_50MM",
+   "face": "front",
+   "at": [
+    0,
+    75
+   ],
+   "label": "Soft night glow"
+  },
+  {
+   "id": "touch_top",
+   "module": "TOUCH_TTP223_SMALL_15X11",
+   "face": "top",
+   "at": [
+    0,
+    0
+   ],
+   "label": "Tap for next scene, hold to turn off"
+  },
+  {
+   "id": "room_light",
+   "module": "LIGHT_BH1750_GY302_I2C",
+   "face": "rear",
+   "at": [
+    0,
+    80
+   ],
+   "label": "Dims itself as the room gets dark"
+  }
+ ],
+ "electronics": {
+  "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+  "extra_modules": [],
+  "power": {
+   "input": "usb_c_5v",
+   "adapter_in_box": false
+  }
+ },
+ "behaviour": {
+  "template": "ambient_light",
+  "summary": "A warm bedside glow with gentle color scenes. Tap the top touch pad tocycle scenes, or hold to switch off. It dims automatically as the room goes dark.",
+  "settings": {}
+ },
+ "safety": {
+  "flags": [
+   "NIGHT_USE"
+  ],
+  "notes": "LED brightness is capped in firmware for bedside comfort. External certified USB-C 5V power only."
+ }
+}

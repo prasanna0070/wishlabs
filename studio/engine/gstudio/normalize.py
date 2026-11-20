@@ -1246,25 +1246,48 @@ def _place_cartridge(geom: ShellGeometry, W, plan, floor, kz, rear_gap, kb=0.0, 
     if y_cap is not None and y0 > y_cap:
         y0 = y_cap
 
+    # pack `freeform`: a csg piece whose hollow does not join the main hollow prints solid (cad.csg_body), so the keep-out
+    # must also lie in the main hollow, as inside() already demands of every feature mount (bench 2026-11-21: a tower
+    # standing ON a plinth validated, then the board and backplane collided with the solid plinth in the CAD)
+    cinfo = (getattr(geom, "csg_info", None) or None) if geom.family == "csg" else None
+
+    def hit(x, yy, z):
+        if geom.fit_sdf(x, yy, z) > -geom.wall:
+            return "wall"
+        if cinfo:
+            from .csg import in_main_hollow
+
+            if not in_main_hollow(cinfo, x, yy, z):
+                return "solid"
+        return None
+
+    def why_at(h, x, yy, z):
+        if h == "wall":
+            return f"wall reached at x={x:.0f}, y={yy:.0f}, z={z:.0f}"
+        return (f"x={x:.0f}, y={yy:.0f}, z={z:.0f} lies in a piece of the csg body that prints solid (its hollow does not "
+                f"join the main hollow)")
+
     def fits(yo, z_bottom=1.0):
         xs = _lin(wx0 - CLEAR, wx1 + CLEAR, (wx1 - wx0 + 2 * CLEAR) / 8)
         ys = _lin(yo + ky0 - CLEAR, yo + ky1 + CLEAR - 0.3, (ky1 - ky0 + 2 * CLEAR - 0.3) / 8)
         # checked against the cavity with the silhouette's edge rounds (fit_sdf), like gstudio.cad.enclosure
         zs = (floor + z_bottom, floor + kz * 0.5, floor + kz)
         if trace is not None:  # pack `freeform` (csg bodies only): every failing sample of this try, for the error text
-            bad = [(x, yy, z) for z in zs for x in xs for yy in ys
-                   if (x in (xs[0], xs[-1]) or yy in (ys[0], ys[-1])) and geom.fit_sdf(x, yy, z) > -geom.wall]
-            trace.append({"y0": yo, "fails": bad, "n": 3 * (2 * len(xs) + 2 * len(ys) - 4),
-                          "box": (xs[0], xs[-1], ys[0], ys[-1], zs[0], zs[-1])})
+            edge = [(x, yy, z) for z in zs for x in xs for yy in ys if x in (xs[0], xs[-1]) or yy in (ys[0], ys[-1])]
+            hits = [(p, hit(*p)) for p in edge]
+            trace.append({"y0": yo, "fails": [p for p, h in hits if h], "solid": [p for p, h in hits if h == "solid"],
+                          "n": 3 * (2 * len(xs) + 2 * len(ys) - 4), "box": (xs[0], xs[-1], ys[0], ys[-1], zs[0], zs[-1])})
         for z in zs:
             for x in xs:
                 for yy in (ys[0], ys[-1]):
-                    if geom.fit_sdf(x, yy, z) > -geom.wall:
-                        return False, f"wall reached at x={x:.0f}, y={yy:.0f}, z={z:.0f}"
+                    h = hit(x, yy, z)
+                    if h:
+                        return False, why_at(h, x, yy, z)
             for yy in ys:
                 for x in (xs[0], xs[-1]):
-                    if geom.fit_sdf(x, yy, z) > -geom.wall:
-                        return False, f"wall reached at x={x:.0f}, y={yy:.0f}, z={z:.0f}"
+                    h = hit(x, yy, z)
+                    if h:
+                        return False, why_at(h, x, yy, z)
         if base_plate:
             pxs = _lin(wx0, wx1, (wx1 - wx0) / 8)
             pys = _lin(yo + ky0, yo + ky1 - 0.3, (ky1 - ky0 - 0.3) / 8)
@@ -1307,6 +1330,14 @@ def _csg_cartridge_text(trace: list, geom: "ShellGeometry", why: str, fix: str) 
     best = min(tries, key=lambda t: (len(t["fails"]), -t["y0"]))
     x0, x1, y0, y1, z0, z1 = best["box"]
     w = geom.wall
+    if best.get("solid") and len(best["solid"]) == len(best["fails"]):  # inside the shape, but in a piece that prints solid
+        why = (f"at its best place the keep-out box x {x0:.0f}..{x1:.0f}, y {y0:.0f}..{y1:.0f}, z {z0:.0f}..{z1:.0f} lies "
+               f"({len(best['solid'])} of {best['n']} checked points) in a piece of the csg body that prints solid: that "
+               "piece's hollow does not join the main hollow, so the board would sit in solid plastic")
+        fix = (f"overlap the piece that holds the electronics with the rest of the body by at least {2 * w + 1:.0f} mm so "
+               "their hollows join (a tower stands through its plinth, not on top of it), or make the lower piece the main "
+               "body")
+        return why, fix
     sides = []
     for nm, test in (("top", lambda p: abs(p[2] - z1) < 1e-6), ("front", lambda p: abs(p[1] - y0) < 1e-6),
                      ("rear", lambda p: abs(p[1] - y1) < 1e-6), ("right (-x)", lambda p: abs(p[0] - x0) < 1e-6),
