@@ -107,6 +107,19 @@ ROLE_PREFIX = {"display": "DISP", "speaker": "SPK", "snap_button": "BTN", "tacti
                "storage": "SD", "core": "U"}
 
 
+def mount_params(sd: dict) -> dict:
+    """How the design is mounted (catalog plan 0.5.5 mount hook): the spec's `mount` block ({kind, screws}) as plain
+    JSON, else {"kind": "desk"}. Readers (cad/kits_mount.py, the manual's hang step) treat a missing key as desk."""
+    m = sd.get("mount") if isinstance(sd, dict) else None
+    if hasattr(m, "model_dump"):
+        m = m.model_dump(mode="json")
+    if not isinstance(m, dict) or not m:
+        return {"kind": "desk"}
+    out = {k: v for k, v in m.items() if v is not None}
+    out.setdefault("kind", "desk")
+    return out
+
+
 def build_params(spec: Any, lib: Any = None, electrical: Optional[dict] = None, options: Optional[dict] = None) -> dict:
     sd = as_dict(spec)
     L = LibAccess(lib)
@@ -217,6 +230,7 @@ def build_params(spec: Any, lib: Any = None, electrical: Optional[dict] = None, 
         "hardware_modules": {h.get("id"): h.get("module") for h in hw if isinstance(h, dict)},
         "cartridge_hint": derived.get("cartridge"),
         "template": tmpl,
+        "mount": mount_params(sd),
         "print_material": {"name": mat, "density_g_cm3": MATERIAL_DENSITY.get(mat.upper(), 1.24),
                            "density_source": "typical datasheet value for the material (estimate)"},
         "options": {"detail_fill": True, **(options or {})},

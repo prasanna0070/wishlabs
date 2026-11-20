@@ -791,7 +791,7 @@ def load(ctx: Any) -> ManualData:
     prints = sorted(pdir.glob("*.stl")) if pdir.is_dir() else []
     glb = cad / "assembly.glb"
     pcb_png = out / "pcb" / "board-top.png"
-    return ManualData(
+    data = ManualData(
         out=out,
         spec=spec,
         electrical=electrical,
@@ -807,3 +807,7 @@ def load(ctx: Any) -> ManualData:
         pcb_top_png=pcb_png if pcb_png.is_file() else None,
         firmware_dir=out / "firmware",
     )
+    from .words import learn
+
+    learn(data)  # pack rows' `manual` blocks become this design's words (catalog plan 0.5.5)
+    return data

@@ -13,11 +13,12 @@ from typing import Optional
 
 from .data import Comp, ManualData, Pin, first, kebab
 from .figs import TOP_34, PanelSpec, camera_hint
+from . import words as W
 from .model import ROLE_NOUN, Assembly, anchors_for, role_of_ref
 
-PART_KIND = {"core": "controller", "backplane": "board", "amp": "board", "sd": "board", "display": "board",
+PART_KIND = W.RoleTable({"core": "controller", "backplane": "board", "amp": "board", "sd": "board", "display": "board",
              "mic": "board", "led": "board", "sensor": "board", "speaker": "component", "button": "component",
-             "buzzer": "component", "touch": "component", "power": "power"}
+             "buzzer": "component", "touch": "component", "power": "power"}, "part_kind")
 
 
 @dataclass
@@ -98,7 +99,7 @@ def harnesses(data: ManualData) -> list[Harness]:
         if not h or not (h.get("wires") or []):
             continue
         comp = data.comp_for_ref(ref)
-        role = role_of_ref(ref) or str(inst.get("role") or "module")
+        role = W.row_role(data.lib.get(inst.get("module"))) or role_of_ref(ref) or str(inst.get("role") or "module")
         hs.append(Harness(ref=ref, role=role, slot=slot, cable=str(h.get("cable") or ""),
                           length_mm=h.get("length_mm"), wires=list(h.get("wires") or []), comp=comp,
                           feature=inst.get("feature"), name=data.module_name(comp or ref)))
@@ -160,7 +161,7 @@ def wiring_parts(data: ManualData, A: Assembly) -> list[dict]:
         ref = inst.get("ref")
         if not ref or ref in seen:
             continue
-        role = role_of_ref(ref) or str(inst.get("role") or "")
+        role = W.row_role(data.lib.get(inst.get("module"))) or role_of_ref(ref) or str(inst.get("role") or "")
         if role == "backplane":
             continue
         mid = inst.get("module")
