@@ -144,9 +144,11 @@ SERVO_SENTENCE = ("- One small servo arm is possible; it uses the only 5 V port,
                   "servo_open_deg 0-180 (90), servo_rest_deg 0-180 (0), servo_hold_s 1-30 (3), servo_speed_deg_s "
                   "30-360 (120).")
 SAY_YES = """# Wishes we can build: say yes to these
-- A night light that turns on softly when a baby stirs and goes off by itself: ambient_light with the PIR_AM312_MINI
-  motion sensor and an LED ring, NIGHT_USE in safety.flags, behaviour.settings.motion_wake true and off_after_minutes
-  (for example 5): it switches itself off after that many quiet minutes and wakes on movement.
+- A night light that turns on softly when it senses movement nearby and goes off by itself: ambient_light with the
+  PIR_AM312_MINI motion sensor and an LED ring, NIGHT_USE in safety.flags, behaviour.settings.motion_wake true and
+  off_after_minutes (for example 5): it switches itself off after that many quiet minutes and wakes on movement. Say
+  that the PIR sensor may miss small movements under a blanket, that it is a night light and not a baby monitor, and
+  that it and its cable go out of the baby's reach, never in or on the cot.
 - A medicine reminder: notifier_clock with a display, a light and a button to mark a reminder as done. Say it is a
   reminder, never dosing or medical advice.{SCHEDULE}"""
 SCHEDULE_OFF = (" Reminders reach it from a phone through the gadget's own page on the home Wi-Fi; it does not keep a "
@@ -288,7 +290,10 @@ class PromptBuilder:
                    "looking words up online, a talking dictionary, or understanding speech), the hardware can still be "
                    "designed: say plainly in your first reply and again in the concepts message which part it cannot do "
                    "yet (e.g. \"It will not look words up or understand speech yet.\"), and never describe the "
-                   "concepts as doing it.")
+                   "concepts as doing it.\n"
+                   "- No app runs a countdown, a focus or pomodoro timer, or a stopwatch yet: for such a wish say \"It "
+                   "will not count down a focus session yet.\", offer what an app does (a glow, the time or a notice on "
+                   "the screen, a button), and never write that a concept counts down or times a session.")
         moving = "- Nothing mobile, no heaters, nothing safety-critical. Indoor desk or bedside use.\n" + (
             SERVO_SENTENCE if servo else "- No motors or other actuators.")
         # the timetable ships with hack/cat-b-sched: switch `schedule` (or the motion pack, whose examples need it)
