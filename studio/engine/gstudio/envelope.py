@@ -424,5 +424,30 @@ def fit_orientations(size: tuple[float, float, float], bed: tuple[float, float, 
     return {"upright": upright, "any": anyway, "scale_to_fit": scale, "scale_to_fit_upright": up_scale}
 
 
+# =============================================================================================== silhouette edge rounds
+def silhouette_rounds(body) -> tuple[float, float]:
+    """(front, rear) perimeter round radii the CAD asks for (gstudio.cad.body.silhouette): front = min(edge_round,
+    depth/2 - 2), rear = min(edge_round, 6, depth/2 - 2). OpenCascade may build a smaller front round when the fillet
+    fails; the requested one leaves the least room inside, so fit checks use it."""
+    get = (lambda k, d=None: getattr(body, k, d)) if not isinstance(body, dict) else (lambda k, d=None: body.get(k, d))
+    D = float(get("depth"))
+    er = get("edge_round", 8.0)
+    er = 8.0 if er is None else float(er)
+    return max(min(er, D / 2 - 2.0), 0.0), max(min(er, 6.0, D / 2 - 2.0), 0.0)
+
+
+def rounded_extrusion_sdf(d2: float, y: float, depth: float, r_front: float, r_rear: float) -> float:
+    """Signed distance to a silhouette as the CAD shapes it: the outline (2D signed distance d2 at the point's (x, z))
+    extruded over y in [-depth/2, depth/2], its front (y < 0) perimeter rounded by r_front and its rear by r_rear.
+    Equal to the sharp extrusion max(d2, |y| - depth/2) except inside the rounded edge bands, where it is the exact
+    distance to the round (for an outline whose own curvature radius exceeds the round). Live 2026-11-20 (focus-lamp
+    p_r4yikwxy497q): a 16 mm front round took room at the floor that the sharp extrusion said was free."""
+    r = r_front if y < 0 else r_rear
+    wx, wy = d2 + r, abs(y) - depth / 2 + r
+    if wx > 0.0 and wy > 0.0:
+        return math.hypot(wx, wy) - r
+    return max(d2, abs(y) - depth / 2)
+
+
 __all__ = ["cad_spline", "cad_outline_polygon", "outline_sequence", "PolySection", "SdfSection", "place_ears", "full_envelope",
-           "fit_orientations", "side_top", "ear_outline_points"]
+           "fit_orientations", "side_top", "ear_outline_points", "silhouette_rounds", "rounded_extrusion_sdf"]
