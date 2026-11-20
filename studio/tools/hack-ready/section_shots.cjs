@@ -131,6 +131,10 @@ async function run(browser, size) {
   await page.locator(".view-toggles label.check", { hasText: "Exploded view" }).click();
   await shot(page, rec, `${size}-5-section-y50-exploded`);
   await page.locator(".view-toggles label.check", { hasText: "Exploded view" }).click();
+  // see-through shell with the cut: the shell's cut colour hides (it would cover the inside), inner parts keep it
+  await page.locator(".view-toggles label.check", { hasText: "Transparent" }).click();
+  await shot(page, rec, `${size}-5b-section-y50-transparent`);
+  await page.locator(".view-toggles label.check", { hasText: "Transparent" }).click();
   await page.locator(".view-toggles label.check", { hasText: "Section view" }).click();
   await shot(page, rec, `${size}-6-section-off-again`);
   if (size === "desktop") rec.pickWhole = await pickAt(page, 0.526, 0.643);
