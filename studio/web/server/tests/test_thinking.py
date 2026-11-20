@@ -147,6 +147,39 @@ def test_a_model_that_rejects_include_thoughts_falls_back_to_step_labels(monkeyp
         c.__exit__(None, None, None)
 
 
+def test_an_empty_reply_is_asked_again(monkeypatch, tmp_path):
+    """Vertex now and then replies with no tool call and no words (2 of 6 replays of one state, thoughts on or off).
+    The turn asks again instead of failing with "I could not finish that step"; thoughts stay on."""
+    from google.genai import types as gt
+
+    monkeypatch.setattr("app.agent.gemini.EMPTY_RETRY_DELAY_S", 0)
+
+    def script(n, config):
+        if n <= 2:
+            return [_chunk(gt.Part(text=THOUGHT_A, thought=True)), _chunk(gt.Part(text=""))] if n == 1 else \
+                [_chunk(gt.Part(text=""))]
+        return [_chunk(gt.Part(text=THOUGHT_B, thought=True)), _chunk(_ask_user_call())]
+
+    c, models = _gemini_client(monkeypatch, tmp_path, script)
+    try:
+        pid = c.post("/api/projects", json={"mode": "pro"}).json()["id"]
+        evs = sse(c, "POST", f"/api/projects/{pid}/chat", json={"text": "A robot"})
+        assert not events_named(evs, "error"), events_named(evs, "error")
+        assert events_named(evs, "choices")
+        assert len(models.configs) == 3
+        assert all(cfg.thinking_config.include_thoughts for cfg in models.configs)
+        assert [d["text"] for d in events_named(evs, "status")] == ["Thinking", "Thinking again", "Thinking again"]
+        assert [d["text"] for d in events_named(evs, "thinking.delta")] == [THOUGHT_A, THOUGHT_B]
+        p = c.get(f"/api/projects/{pid}").json()
+        assert not [m for m in p["chat"] if m["kind"] == "error"]
+        # a model that keeps replying with nothing still ends the turn with an error after the retries
+        models.script = lambda n, config: [_chunk(gt.Part(text=""))]
+        evs = sse(c, "POST", f"/api/projects/{pid}/chat", json={"answers": [], "skipped": True})
+        assert [d["code"] for d in events_named(evs, "error")] == ["no_result"]
+    finally:
+        c.__exit__(None, None, None)
+
+
 def test_thoughts_can_be_switched_off(monkeypatch, tmp_path):
     monkeypatch.setenv("AGENT_THOUGHTS", "0")
     from app.config import Settings

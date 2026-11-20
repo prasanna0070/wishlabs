@@ -22,6 +22,11 @@ from .voice import lint
 log = logging.getLogger("gstudio.gemini")
 
 MAX_STEPS = 8
+# A reply with no tool call and no words (finish STOP, 0 tokens, ~2.5 s) comes back now and then from Vertex, with or
+# without thought summaries: 2 of 6 replays of one stored state on 2026-11-20 (scripts/replay_turn.py). Asking the same
+# thing again gets a real answer, so the turn does that instead of failing with "I could not finish that step".
+EMPTY_RETRIES = 2
+EMPTY_RETRY_DELAY_S = 1.5
 
 
 class GeminiBrain:
@@ -64,11 +69,13 @@ class GeminiBrain:
         text = ""
         t0 = time.time()
         last = None
+        finish = None
         stream = await client.aio.models.generate_content_stream(model=model, contents=contents, config=config)
         async for chunk in stream:
             if getattr(chunk, "usage_metadata", None) is not None:
                 last = chunk
             for cand in chunk.candidates or []:
+                finish = getattr(cand, "finish_reason", None) or finish
                 for part in (cand.content.parts if cand.content else None) or []:
                     parts.append(part)                  # kept verbatim for the next call (thought signatures)
                     if part.function_call:
@@ -85,6 +92,9 @@ class GeminiBrain:
                         await turn.emit("text.delta", {"message_id": msg_id, "delta": part.text})
         if last is not None:
             turn.record_usage(record_from_response(model, last, "text", time.time() - t0))
+        if not calls and not text.strip():
+            log.warning("model %s replied with no tool call and no text: finish=%s, %d parts (%d thought)", model,
+                        finish, len(parts), sum(1 for x in parts if x.thought))
         msg = None
         if msg_id and text.strip():
             msg = {**make_message("assistant", "text", lint(text)), "id": msg_id}
@@ -122,6 +132,7 @@ class GeminiBrain:
         allowed = turn.allowed(p)
         contents = await asyncio.to_thread(build_contents, self.svc, p, allowed, turn.instruction)
         await turn.status("Thinking")
+        empty = 0
         for step in range(MAX_STEPS):
             try:
                 parts, calls, msg = await self._call_with_retry(turn, model, contents, allowed)
@@ -138,6 +149,11 @@ class GeminiBrain:
             if msg:
                 await turn.add_message(msg)
                 await turn.emit("message.done", {"message": msg})
+            if not calls and not msg and empty < EMPTY_RETRIES:
+                empty += 1                              # an empty reply (see EMPTY_RETRIES): ask the same thing again
+                await turn.status("Thinking again")
+                await asyncio.sleep(EMPTY_RETRY_DELAY_S * empty)
+                continue
             if not parts:
                 await turn.fail("The assistant returned nothing. Please try again.", code="empty", retryable=True)
                 return
