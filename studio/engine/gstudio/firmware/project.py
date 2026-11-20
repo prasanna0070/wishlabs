@@ -132,6 +132,34 @@ def _pct255(p: int) -> int:
     return max(1, min(255, round(int(p) * 255 / 100)))
 
 
+def hhmm_minutes(hhmm: str) -> int:
+    """'09:30' -> 570 (minutes after local midnight)."""
+    h, m = str(hhmm).split(":")
+    return int(h) * 60 + int(m)
+
+
+def servo_cfg(s: dict, fields: tuple[str, ...]) -> list[str]:
+    """One GS_CFG_<FIELD> per servo setting (the C-fw contract with the motion pack). Emitted for every design of the
+    template; the firmware ignores them when hardware.h says GS_HAS_SERVO 0."""
+    L = ["// servo arm (motion pack; ignored when hardware.h says GS_HAS_SERVO 0)"]
+    for f in fields:
+        v = s[f]
+        L.append(f"#define GS_CFG_{f.upper()} {int(v) if not isinstance(v, bool) else (1 if v else 0)}")
+    return L
+
+
+def schedule_cfg(schedule: list) -> list[str]:
+    """Daily notices for notifier_clock, sorted by time (settings.py sorts them). The arrays always hold at least
+    one element so they compile with no entries; GS_CFG_SCHEDULE_N is the count to loop over."""
+    n = len(schedule)
+    mins = [hhmm_minutes(it["time"]) for it in schedule] or [0]
+    texts = [c_str(it["text"]) for it in schedule] or ['""']
+    return ["// daily schedule: minutes after local midnight and the notice text (GS_CFG_SCHEDULE_N entries)",
+            f"#define GS_CFG_SCHEDULE_N {n}",
+            "#define GS_CFG_SCHEDULE_MIN { " + ", ".join(str(m) for m in mins) + " }",
+            "#define GS_CFG_SCHEDULE_TEXT { " + ", ".join(texts) + " }"]
+
+
 def config_h(spec: dict, template: str, settings: dict, binding: Binding, fw_version: str, build_id: str,
              ota_pubkey_pem: str) -> str:
     name = spec.get("name") or "Gadget"
@@ -189,19 +217,19 @@ def config_h(spec: dict, template: str, settings: dict, binding: Binding, fw_ver
               f"#define GS_CFG_CHIME_ON_TAP {1 if s['chime_on_tap'] else 0}",
               f"#define GS_CFG_LIGHT_COLOR {c_str(s['light_color'])}",
               f"#define GS_CFG_LIGHT_LEVEL {_pct255(s['light_brightness']) if s['light_brightness'] else 0}"]
+        L += servo_cfg(s, ("servo_wave_on_tap", "servo_rest_deg", "servo_wave_deg", "servo_waves", "servo_speed_deg_s"))
     elif template == "notifier_clock":
-        def mins(hhmm: str) -> int:
-            h, m = hhmm.split(":")
-            return int(h) * 60 + int(m)
         L += ["// notifier_clock",
               f"#define GS_CFG_TZ {c_str(s['timezone'])}",
               f"#define GS_CFG_NTP_SERVER {c_str(s['ntp_server'])}",
               f"#define GS_CFG_CLOCK_24H {1 if s['clock_24h'] else 0}",
-              f"#define GS_CFG_QUIET_START {mins(s['quiet_hours_start'])}",
-              f"#define GS_CFG_QUIET_END {mins(s['quiet_hours_end'])}",
+              f"#define GS_CFG_QUIET_START {hhmm_minutes(s['quiet_hours_start'])}",
+              f"#define GS_CFG_QUIET_END {hhmm_minutes(s['quiet_hours_end'])}",
               f"#define GS_CFG_NOTICE_CHIME {1 if s['notification_chime'] else 0}",
               f"#define GS_CFG_RING_LEVEL {_pct255(s['ring_brightness'])}",
               f"#define GS_CFG_NOTICE_MS {int(s['default_notice_minutes']) * 60000}u"]
+        L += schedule_cfg(s.get("schedule") or [])
+        L += servo_cfg(s, ("servo_on_notice", "servo_rest_deg", "servo_open_deg", "servo_hold_s", "servo_speed_deg_s"))
     elif template == "ambient_light":
         scenes = s["scenes"]
         eff = {"solid": "gs::Effect::Solid", "breathe": "gs::Effect::Breathe", "candle": "gs::Effect::Candle", "rainbow": "gs::Effect::Rainbow"}
@@ -229,7 +257,12 @@ def config_h(spec: dict, template: str, settings: dict, binding: Binding, fw_ver
               f"#define GS_CFG_HUM_HIGH {float(s['humidity_high']):.1f}f",
               f"#define GS_CFG_HUM_LOW {float(s['humidity_low']):.1f}f",
               f"#define GS_CFG_LED_WARNING {1 if s['led_warning'] else 0}",
-              f"#define GS_CFG_WARN_COLOR {c_str(s['warn_color'])}"]
+              f"#define GS_CFG_WARN_COLOR {c_str(s['warn_color'])}",
+              "// soil probe and float switch (sensing pack; unused when hardware.h says GS_HAS_SOIL / GS_HAS_LEVEL 0)",
+              f"#define GS_CFG_SOIL_DRY_PERCENT {int(s['soil_dry_percent'])}",
+              f"#define GS_CFG_SOIL_RAW_DRY {int(s['soil_raw_dry'])}",
+              f"#define GS_CFG_SOIL_RAW_WET {int(s['soil_raw_wet'])}",
+              f"#define GS_CFG_WATER_LOW_WARNING {1 if s['water_low_warning'] else 0}"]
     pem = ota_pubkey_pem.strip()
     L += ["", "// Signed OTA: public key that update images must verify against (empty = Wi-Fi updates off).",
           "#define GS_OTA_PUBKEY_PEM " + (" \\\n  ".join(c_str(line + "\n") for line in pem.splitlines()) if pem else '""'), ""]

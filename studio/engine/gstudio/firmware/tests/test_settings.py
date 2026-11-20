@@ -115,3 +115,67 @@ def test_scenes_validate():
     assert errors == [] and norm["scenes"][0]["brightness"] == 60
     _, errors = validate_settings("ambient_light", {"scenes": [{"name": "Strobe", "color": "#FFFFFF", "effect": "strobe"}]})
     assert errors and "scenes.0.effect" in errors[0]
+
+
+# ---- C-fw contract (CATALOG-PLAN package C step 0): servo, schedule and soil settings
+
+
+def test_servo_defaults_and_bounds():
+    norm, errors = validate_settings("desk_companion", {})
+    assert errors == []
+    assert (norm["servo_wave_on_tap"], norm["servo_rest_deg"], norm["servo_wave_deg"], norm["servo_waves"],
+            norm["servo_speed_deg_s"]) == (True, 90, 35, 2, 120)
+    norm, errors = validate_settings("notifier_clock", {})
+    assert errors == []
+    assert (norm["schedule"], norm["servo_on_notice"], norm["servo_open_deg"], norm["servo_rest_deg"], norm["servo_hold_s"],
+            norm["servo_speed_deg_s"]) == ([], True, 90, 0, 3, 120)
+    for template, key, bad in (("desk_companion", "servo_wave_deg", 70), ("desk_companion", "servo_waves", 0),
+                               ("desk_companion", "servo_speed_deg_s", 20), ("notifier_clock", "servo_hold_s", 31),
+                               ("notifier_clock", "servo_open_deg", 181)):
+        _, errors = validate_settings(template, {key: bad})
+        assert errors and errors[0].startswith(f"behaviour.settings.{key}:"), (key, errors)
+    # Servo fields belong to the two apps that drive the arm, not to the others.
+    _, errors = validate_settings("sensor_display", {"servo_rest_deg": 90})
+    assert errors == ["behaviour.settings.servo_rest_deg: unknown setting (remove it)"]
+
+
+def test_servo_descriptions_say_they_need_the_arm():
+    from gstudio.firmware.settings import MODELS
+
+    for t in ("desk_companion", "notifier_clock"):
+        for name, f in MODELS[t].model_fields.items():
+            if name.startswith("servo_"):
+                assert (f.description or "").startswith("only with a servo arm:"), (t, name)
+
+
+def test_schedule_is_validated_and_sorted():
+    sched = [{"time": "19:00", "text": "Evening feed"}, {"time": "08:00", "text": "  Morning   feed "}]
+    norm, errors = validate_settings("notifier_clock", {"schedule": sched})
+    assert errors == []
+    assert norm["schedule"] == [{"time": "08:00", "text": "Morning feed"}, {"time": "19:00", "text": "Evening feed"}]
+    _, errors = validate_settings("notifier_clock", {"schedule": [{"time": "9am", "text": "Pills"}]})
+    assert errors and errors[0].startswith("behaviour.settings.schedule.0.time:") and "HH:MM" in errors[0]
+    _, errors = validate_settings("notifier_clock", {"schedule": [{"time": "09:00", "text": "x" * 25}]})
+    assert errors and errors[0].startswith("behaviour.settings.schedule.0.text:")
+    _, errors = validate_settings("notifier_clock", {"schedule": [{"time": "09:00", "text": "Pills ❤"}]})
+    assert errors and "plain English" in errors[0]
+    _, errors = validate_settings("notifier_clock", {"schedule": [{"time": "09:00", "text": "A"}, {"time": "09:00", "text": "B"}]})
+    assert errors and "09:00" in errors[0]
+    nine = [{"time": f"{h:02d}:00", "text": "Notice"} for h in range(9)]
+    _, errors = validate_settings("notifier_clock", {"schedule": nine})
+    assert errors and errors[0].startswith("behaviour.settings.schedule:")
+    _, errors = validate_settings("notifier_clock", {"schedule": [{"time": "09:00", "text": "Pills", "dose": 2}]})
+    assert errors == ["behaviour.settings.schedule.0.dose: unknown setting (remove it)"]
+
+
+def test_soil_settings():
+    norm, errors = validate_settings("sensor_display", {})
+    assert errors == []
+    assert (norm["soil_dry_percent"], norm["soil_raw_dry"], norm["soil_raw_wet"], norm["water_low_warning"]) == (30, 3000, 1300, True)
+    _, errors = validate_settings("sensor_display", {"soil_raw_wet": 3000, "soil_raw_dry": 3000})
+    assert errors and "soil_raw_wet" in errors[0] and "below" in errors[0]
+    _, errors = validate_settings("sensor_display", {"soil_raw_wet": 3200})
+    assert errors and "soil_raw_wet" in errors[0]
+    for key, bad in (("soil_dry_percent", 4), ("soil_dry_percent", 81), ("soil_raw_dry", 4096), ("soil_raw_wet", -1)):
+        _, errors = validate_settings("sensor_display", {key: bad})
+        assert errors and errors[0].startswith(f"behaviour.settings.{key}:"), (key, errors)

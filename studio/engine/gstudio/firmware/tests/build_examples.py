@@ -1,9 +1,12 @@
 """Compile the firmware for every examples/<slug>/spec.json through the real normalize + electrical stages,
-plus the firmware fixtures for templates that have no example yet. Run on the VM from engine/:
+plus every library/packs/examples/<pack>/<slug>/spec.json of the packs that are on (so the builder image's warm-up,
+builder/Dockerfile, also installs the pinned libraries a pack uses), plus the firmware fixtures for templates that
+have no example yet. Run on the VM from engine/:
 
     python -m gstudio.firmware.tests.build_examples <out_root> [--stories-audio] [--only slug,...]
 
-Prints one JSON line per design and writes <out_root>/<slug>/ (electrical.json, firmware/, summary).
+Prints one JSON line per design and writes <out_root>/<slug>/ (electrical.json, firmware/, summary). A pack example
+is named pack-<pack>-<slug>; --only accepts that name or the bare slug.
 """
 from __future__ import annotations
 
@@ -19,6 +22,15 @@ from gstudio.errors import SpecError, StageError
 from gstudio.firmware import run
 
 from .conftest import FIX, example_specs, load_fixture
+
+
+def pack_example_specs() -> list[Path]:
+    """Example specs of the packs that are on (library/packs/enabled.json, GS_PACKS_ENABLED, GS_PACKS_OFF)."""
+    try:
+        from gstudio import packs
+    except ImportError:  # a checkout without the pack mechanism (CATALOG-PLAN 0.5) has no pack examples
+        return []
+    return list(packs.example_specs())
 
 
 class Ctx:
@@ -49,12 +61,14 @@ def main() -> int:
             seen_templates.add(json.loads(sp.read_text())["behaviour"]["template"])
         except Exception:
             pass
+    for sp in pack_example_specs():
+        jobs.append(("example", f"pack-{sp.parent.parent.name}-{sp.parent.name}", sp))
     for t in ("story_player", "desk_companion", "notifier_clock", "ambient_light", "sensor_display"):
         if t not in seen_templates:
             jobs.append(("fixture", f"fixture-{t}", t))
     rc = 0
     for kind, slug, src in jobs:
-        if only and slug not in only:
+        if only and slug not in only and not (isinstance(src, Path) and src.parent.name in only):
             continue
         out = root / slug
         t0 = time.monotonic()
