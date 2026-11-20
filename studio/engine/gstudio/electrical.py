@@ -505,9 +505,12 @@ def power_budget(spec: "Spec", lib: "Library") -> dict:
         basis = "datasheet" if e.get("current_basis") == "library" else ("estimate" if e.get("current_basis") == "estimate" else "none")
         if mx == 0 and inst.role not in ("button", "endstop"):
             basis = "unknown"
-        if inst.role == "servo":
-            # SG90 current is not in the library (0); use a conservative planning figure, labelled
-            typ, mx, basis = 150.0, 700.0, "estimate (no datasheet figure; SG90-class stall planning value)"
+        if inst.role in ("servo", "servo_continuous"):
+            if mx > 0:  # the row's own figures (motion pack rows carry class planning values, labelled estimate)
+                if basis in ("none", "unknown"):
+                    basis = "estimate"
+            else:  # no figure in the row (SG90 row: 0): a conservative planning figure, labelled
+                typ, mx, basis = 150.0, 700.0, "estimate (no datasheet figure; SG90-class stall planning value)"
         capped, cap = mx, None
         if inst.role == "led" and caps["led_max_percent"] is not None:
             capped = max(typ * min(1.0, caps["led_max_percent"] / 100.0), mx * caps["led_max_percent"] / 100.0)
