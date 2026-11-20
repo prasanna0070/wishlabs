@@ -518,6 +518,7 @@ VENDORS = {
 SKU_RES = [re.compile(r"\b(PRO\d{3,5}|TH\d{4}|SBC\d{3,5}|TIFEC\d{3,5}|COM\d{4})\b"), re.compile(r"\bSKU[:\s]+([A-Z0-9][A-Za-z0-9-]{3,})"),
            re.compile(r"\bRobu SKU (R\d{4,8})\b")]
 OOS_RE = re.compile(r"out of stock|sold out|backorder|notify me|out-of-stock", re.I)
+STOCK_VOCAB = ("in_stock", "out_of_stock", "unknown")
 INS_RE = re.compile(r"\bin stock\b|\d+ in stock", re.I)
 
 
@@ -602,6 +603,10 @@ def sourcing_pass(m: dict) -> list[str]:
             else:
                 r["stock"] = "unknown"
             r.setdefault("stock_basis", "parsed from the row's notes" if r["stock"] != "unknown" else "not recorded")
+        elif r["stock"] not in STOCK_VOCAB:
+            # a pack row may say what the page said ("unclear", "ships within 5 days"): keep those words, use the vocabulary
+            r["stock_basis"] = f"the source row said: {r['stock']}" + (f"; {r['stock_basis']}" if r.get("stock_basis") else "")
+            r["stock"] = "unknown"
         if not r.get("checked_at"):
             r["checked_at"] = r.get("seen_on")  # ISO 8601 date; time of day not recorded by the library agents
             r["checked_at_precision"] = "date"

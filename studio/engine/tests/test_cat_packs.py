@@ -41,7 +41,9 @@ SOIL = {
     "aperture": {"needs": "cable_exit", "size_mm": {"w": 6, "h": 6}},
     "electrical": {"supply_v": "3.3-5.5", "logic_v": "3.3", "current_ma_typ": 5, "current_ma_max": 5, "bus": "analog"},
     "firmware": {"arduino_libraries": [], "driver_notes": "analogRead"}, "kicad": {"backplane_footprint": "NONE", "notes": ""},
-    "sourcing_in": [], "price_inr_planning": [55, 130], "evidence": ["unit test row"], "uncertain": ["unit test row"],
+    "sourcing_in": [{"vendor": "Probots", "url": "https://probots.co.in/test-soil.html", "price_inr_seen": 89,
+                     "seen_on": "2026-11-20", "status": "page_read", "stock": "ships in 5 days", "notes": "test row"}],
+    "price_inr_planning": [55, 130], "evidence": ["unit test row"], "uncertain": ["unit test row"],
     "manual": {"word": "soil probe", "noun": "soil probe", "part_kind": "sensor", "mount_type": "cable exit"},
     "merge": {"role": "soil_moisture", "prefix": "SOIL", "placement": "feature", "designable": True,
               "port": {"port": "io", "slots": ["J_IO1", "J_IO2", "J_IO3"], "cable": {"family": "JST-PH 2.0", "pins": 3},
@@ -139,6 +141,8 @@ def test_temp_pack_row_merges_to_a_wired_io_row(merged, monkeypatch):
     assert m["aperture"]["feature_allowed"] and m["aperture"]["required"] and m["merge"]["designable"]
     assert m["electrical"]["supply_rail"] == "+3V3" and m["manual"]["word"] == "soil probe"
     assert m["face_mm"] == [20, 12] and m["depth_mm"] == 15  # the in-shell envelope of a part that sits outside (c-to-e 1)
+    src = m["sourcing_in"][0]  # a pack's own stock words are kept as the basis; the field uses the vocabulary
+    assert src["stock"] == "unknown" and "ships in 5 days" in src["stock_basis"] and src["checked_at"] == "2026-11-20"
     monkeypatch.setenv("GS_PACKS_ENABLED", "testpack")
     lib = Library(merged)
     slot = lib.slot("J_IO1")
