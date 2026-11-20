@@ -23,6 +23,7 @@ DEMO=${DEMO_PID:-p_jfxwcznywysp}
 ERRP=${ERROR_PID:-p_ncqbuf5zkfv6}
 mkdir -p "$OUT" && OUT=$(cd "$OUT" && pwd)
 export PATH=/opt/gs/venv/bin:$PATH
+export SOUND=1   # the sound composer is on by default only with AGENT=gemini; share_serve.sh runs the scripted agent
 STORE="$OUT/store"
 [ -d "$STORE/projects/$DEMO" ] || cp -a "$SRC" "$STORE"
 KEYF="$OUT/.key"; LOGINF="$OUT/.login.json"
@@ -56,6 +57,12 @@ echo "== 1. login"
 start
 echo "session: $(curl -s -b "$J" "$B/api/session")"
 
+HAS_VOICE=$(python3 -c 'import json, sys; print(1 if json.load(open(sys.argv[1])).get("voice") else 0)' \
+  "$STORE/projects/$DEMO/project.json")
+if [ "$HAS_VOICE" = 1 ]; then
+  echo "== 2-3. skipped: the demo copy already carries a spoken wish from an earlier run ($OUT/voice/result.json)"
+  VPID=
+else
 echo "== 2. voice wish over Gemini Live"
 E2E_LINES='["Hi! I want a small desk gadget that glows a calm colour and shows a countdown on a little screen when I press a button, for my focus sessions.", "It is for me, on my work desk. Twenty-five minute sessions, with a soft glow and nothing loud.", "Yes, that is right. Please go ahead and make it.", "Yes, go ahead and make it now.", "That is everything. Please make it."]' \
   BASE="$B" KEY_FILE="$KEYF" OUT="$OUT/voice" python "$STUDIO/web/server/scripts/voice_e2e.py" > "$OUT/voice.log" 2>&1
@@ -92,9 +99,10 @@ path.write_text(json.dumps(dp, indent=1, ensure_ascii=False))
 print(json.dumps({"voice_turns": len(voice.get("turns") or []), "recording": src.exists(), "live_receipts": len(live)}))
 PY
 fi
+fi
 
 echo "== 4. Lyria composition on the demo copy"
-start
+[ -n "$SPID" ] || start
 curl -s -b "$J" -X POST -H 'Content-Type: application/json' -d '{}' -o "$OUT/sound-post.json" \
   -w 'compose %{http_code}\n' "$B/api/projects/$DEMO/sound"
 T0=$(date +%s); ST=
