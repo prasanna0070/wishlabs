@@ -1,0 +1,337 @@
+{
+ "pack": "sensing",
+ "rows": [
+  {
+   "id": "SOIL_CAP_V12_ANALOG",
+   "catalog_row": "P-sensing-1",
+   "catalog_id": null,
+   "role": "sensor",
+   "name": "Capacitive soil moisture probe v1.2 (analog out)",
+   "reference_product": {
+    "maker": "Generic (DFRobot SEN0193 clone)",
+    "mpn_or_model": "Capacitive Soil Moisture Sensor v1.2",
+    "product_url": "https://probots.co.in/soil-moisture-sensor-capacitive-v1-2.html",
+    "datasheet_url": null
+   },
+   "dims_mm": {
+    "x": 98,
+    "y": 23,
+    "z": 4,
+    "notes": "98 x 23 x 4 mm, 15 g (Probots page). The probe sits outside the shell: probe end in the soil, electronics end above it; only its lead enters the shell, through a cable exit."
+   },
+   "pcb_thickness_mm": null,
+   "mount": {
+    "type": "none",
+    "holes": [],
+    "hole_origin": "n/a",
+    "notes": "Not mounted in the shell: pushed into the pot's soil up to its line. Its lead passes a strain-relieved cable exit in the shell wall."
+   },
+   "pins": [
+    {
+     "name": "AO",
+     "func": "analog",
+     "notes": "analog out, lower when the soil is wetter (relative reading, per-unit calibration); listed as AOUT by vendors"
+    },
+    {
+     "name": "VCC",
+     "func": "3v3",
+     "notes": "3.3-5.5 V (Probots page); powered from the J_IO 3.3 V pin"
+    },
+    {
+     "name": "GND",
+     "func": "gnd",
+     "notes": ""
+    }
+   ],
+   "module_connector": {
+    "type": "header_2.54",
+    "pin_order": [
+     "AO",
+     "VCC",
+     "GND"
+    ],
+    "location": "3-pin socket on the electronics end",
+    "notes": "Probots lists 'PH2.54-3P', 'Supports 3-Pin Gravity Sensor interface' (Gravity order signal, +, -). The physical order and whether a Dupont 1x3 harness end mates this socket are UNVERIFIED (first article)."
+   },
+   "backplane_harness": {
+    "backplane_connector": "JST_PH_2.0_3P (J_IO1..3)",
+    "wires": [
+     {
+      "module_pin": "GND",
+      "color": "black"
+     },
+     {
+      "module_pin": "VCC",
+      "color": "red"
+     },
+     {
+      "module_pin": "AO",
+      "color": "white"
+     }
+    ],
+    "length_mm": 300
+   },
+   "aperture": {
+    "needs": "cable_exit",
+    "size_mm": {
+     "w": 6,
+     "h": 6,
+     "d": 0
+    },
+    "notes": "6.5 mm lead exit through the shell wall with an inner strain-relief clamp (two posts and a cable-tie slot); the probe stays outside, water stays outside the shell."
+   },
+   "electrical": {
+    "supply_v": "3.3-5.5",
+    "logic_v": "analog 0-3.3 V at a 3.3 V supply (range UNVERIFIED)",
+    "current_ma_typ": 5,
+    "current_ma_max": 5,
+    "bus": "gpio"
+   },
+   "firmware": {
+    "arduino_libraries": [],
+    "driver_notes": "analogRead on the J_IO SIG (ADC1: GPIO4/5/6, usable with Wi-Fi on), 16-sample average, mapped to 0-100 % between the dry and wet calibration readings (sensor_display settings soil_raw_dry, soil_raw_wet), clamped."
+   },
+   "kicad": {
+    "backplane_footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+    "notes": "Plugs into J_IO1..3; no backplane change."
+   },
+   "sourcing_in": [
+    {
+     "vendor": "Probots",
+     "url": "https://probots.co.in/soil-moisture-sensor-capacitive-v1-2.html",
+     "price_inr_seen": 89,
+     "seen_on": "2026-11-20",
+     "status": "page_read",
+     "stock": "in_stock",
+     "gst": "incl"
+    },
+    {
+     "vendor": "Robocraze",
+     "url": "https://robocraze.com/products/analog-capacitive-soil-moisture-sensor",
+     "price_inr_seen": 55,
+     "seen_on": "2026-11-20",
+     "status": "search_snippet"
+    }
+   ],
+   "price_inr_planning": [
+    55,
+    130
+   ],
+   "evidence": [
+    "https://probots.co.in/soil-moisture-sensor-capacitive-v1-2.html",
+    "https://hackaday.com/2019/07/27/a-capacitive-soil-sensor-hack-for-lower-voltage-supplies",
+    "https://makiuto.github.io/p/capacitive-soil-moisture-sensors-don-t-work-correctly-fix-for-v2-0-v1-2-ard.html"
+   ],
+   "uncertain": [
+    "clone boards with an NE555 (needs 4.5 V) or with no regulator can misbehave at 3.3 V: incoming check at 3.3 V before fitting",
+    "some boards miss the R4-to-GND link (hackmd note), so the reading never settles",
+    "the reading is relative, not volumetric water content: per-unit dry/wet calibration",
+    "the electronics end is not waterproof: it must stay above the soil (conformal coat recommended)",
+    "connector pin order and the Dupont 1x3 fit on the board's socket (first article)",
+    "Robocraze price is a search snippet, not a page read",
+    "never built or measured by us: all checks are digital"
+   ],
+   "manual": {
+    "word": "soil probe",
+    "noun": "soil probe",
+    "part_kind": "component",
+    "mount_type": "cable exit",
+    "face_part": "probe",
+    "selftest": "the soil reading changes when the probe goes into damp soil",
+    "care": "Push the probe into the soil only up to its line; keep the electronics end above the soil and dry."
+   },
+   "merge": {
+    "role": "soil_moisture",
+    "prefix": "SOIL",
+    "placement": "feature",
+    "designable": true,
+    "face_mm": [
+     20,
+     12
+    ],
+    "depth_mm": 15,
+    "port": {
+     "port": "io",
+     "slots": [
+      "J_IO1",
+      "J_IO2",
+      "J_IO3"
+     ],
+     "cable": {
+      "family": "JST-PH 2.0",
+      "pins": 3
+     },
+     "supported": true,
+     "why": "J_IO SIG = GPIO4/5/6 = ESP32-S3 ADC1, readable with Wi-Fi on; 3.3 V supply only (clone probes that need 5 V fail the incoming check)."
+    },
+    "prewire": null
+   }
+  },
+  {
+   "id": "FLOAT_SWITCH_VERTICAL_PP",
+   "catalog_row": "P-sensing-2",
+   "catalog_id": null,
+   "role": "sensor",
+   "name": "Vertical float level switch (PP, dry reed contact)",
+   "reference_product": {
+    "maker": "Generic",
+    "mpn_or_model": "Water level float sensor switch, vertical",
+    "product_url": "https://probots.co.in/water-level-float-sensor-switch-with-digital-output.html",
+    "datasheet_url": null
+   },
+   "dims_mm": {
+    "x": null,
+    "y": null,
+    "z": null,
+    "notes": "Not on the page read. UNVERIFIED typical: M10 stem, about 52-58 mm long, about 24 mm float. It sits outside the shell, in the tank; only its lead enters the shell, through a cable exit."
+   },
+   "pcb_thickness_mm": null,
+   "mount": {
+    "type": "none",
+    "holes": [],
+    "hole_origin": "n/a",
+    "notes": "Not mounted in the shell: fitted in the tank (a clip-on holder over the rim is preferred to a hole in the tank). Its lead passes a strain-relieved cable exit in the shell wall."
+   },
+   "pins": [
+    {
+     "name": "SIG",
+     "func": "gpio_in_pullup",
+     "notes": "reed contact lead 1; read with the ESP32 internal pull-up"
+    },
+    {
+     "name": "GND",
+     "func": "gnd",
+     "notes": "reed contact lead 2"
+    }
+   ],
+   "module_connector": {
+    "type": "wire_leads",
+    "pin_order": [
+     "SIG",
+     "GND"
+    ],
+    "location": "two bare leads from the stem",
+    "notes": "8 cm cable (Probots). Dry contact: either lead can be SIG."
+   },
+   "backplane_harness": {
+    "backplane_connector": "JST_PH_2.0_3P (J_IO1..3); factory pre-wired lead, 3V3 position empty",
+    "wires": [
+     {
+      "module_pin": "GND",
+      "color": "black"
+     },
+     {
+      "module_pin": "SIG",
+      "color": "white"
+     }
+    ],
+    "length_mm": 300
+   },
+   "aperture": {
+    "needs": "cable_exit",
+    "size_mm": {
+     "w": 6,
+     "h": 6,
+     "d": 0
+    },
+    "notes": "6.5 mm lead exit through the shell wall with an inner strain-relief clamp; the float stays in the tank, water stays outside the shell."
+   },
+   "electrical": {
+    "supply_v": "n/a (dry contact; rated 100 V DC, 0.5 A, 50 W per Probots)",
+    "logic_v": "3.3 via the internal pull-up",
+    "current_ma_typ": 0.1,
+    "current_ma_max": 0.1,
+    "bus": "gpio"
+   },
+   "firmware": {
+    "arduino_libraries": [],
+    "driver_notes": "INPUT_PULLUP on the J_IO SIG, debounced (water sloshes). Contact closed = water up (OK); open = tank low. An unplugged or broken lead reads as low, so a fault warns instead of staying quiet."
+   },
+   "kicad": {
+    "backplane_footprint": "Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical",
+    "notes": "Plugs into J_IO1..3 (pins 1 GND and 3 SIG); no backplane change."
+   },
+   "sourcing_in": [
+    {
+     "vendor": "Probots",
+     "url": "https://probots.co.in/water-level-float-sensor-switch-with-digital-output.html",
+     "price_inr_seen": 175,
+     "seen_on": "2026-11-20",
+     "status": "page_read",
+     "stock": "in_stock",
+     "gst": "incl"
+    },
+    {
+     "vendor": "Robocraze",
+     "url": "https://robocraze.com/products/magnetic-float-sensor-fs37a-vertical",
+     "price_inr_seen": 117,
+     "seen_on": "2026-11-20",
+     "status": "search_snippet"
+    }
+   ],
+   "price_inr_planning": [
+    100,
+    200
+   ],
+   "evidence": [
+    "https://probots.co.in/water-level-float-sensor-switch-with-digital-output.html"
+   ],
+   "uncertain": [
+    "dimensions and stem thread",
+    "normally open or closed depends on which way the float is fitted on its stem: fit it so the contact closes when the water is up; the self-test shows the live state",
+    "whether the listing's 'digital output' means anything beyond a reed contact",
+    "the Robocraze price is a search snippet, not a page read (ElectronicsComp Rs 99 ex GST snippet left out: vendor not in the merge list)",
+    "never built or measured by us: all checks are digital"
+   ],
+   "manual": {
+    "word": "float switch",
+    "noun": "float switch",
+    "part_kind": "component",
+    "mount_type": "cable exit",
+    "face_part": "float",
+    "selftest": "the water reading says OK with the float lifted and LOW with it hanging down",
+    "care": "Fit the float so the contact closes when the water is up; keep the gadget itself away from the water."
+   },
+   "merge": {
+    "role": "level_switch",
+    "prefix": "LVL",
+    "placement": "feature",
+    "designable": true,
+    "face_mm": [
+     20,
+     12
+    ],
+    "depth_mm": 15,
+    "port": {
+     "port": "io",
+     "slots": [
+      "J_IO1",
+      "J_IO2",
+      "J_IO3"
+     ],
+     "cable": {
+      "family": "JST-PH 2.0",
+      "pins": 3
+     },
+     "supported": true,
+     "why": "Dry contact between port pins 1 (GND) and 3 (SIG), read with the internal pull-up; the 3V3 pin is not used."
+    },
+    "prewire": {
+     "by": "factory",
+     "lead": "JST-PH 2.0 3p 300 mm",
+     "pads": [
+      "lead 1 (SIG)",
+      "lead 2 (GND)"
+     ],
+     "slot": "J_IO1, J_IO2 or J_IO3",
+     "note": "The factory solders a JST-PH 3-pin lead (stock: CABLE_JSTPH_3P_<len> with the module-end housing cut off; length = the design's harness length class) to the float's two leads, sleeves the joints with heat-shrink and leaves the 3V3 wire cut back and insulated. It plugs into the J_IO port. The maker never solders."
+    }
+   }
+  }
+ ],
+ "prompt_rules": [
+  "A soil probe and a float switch can watch a plant pot or a water tank: the gadget shows soil moisture and a tank-low warning on its screen or light and on its own page on the home Wi-Fi (no push messages). It cannot water the plant (no pump yet), and a light strip is not a grow light.",
+  "The probe and the float stay outside the shell in the pot or tank; their leads come in through a cable exit, so place that feature low on the back or a side and keep the gadget itself dry, next to the pot or tank.",
+  "Use behaviour template sensor_display for soil and tank readings; the soil probe needs a per-probe dry and wet calibration (settings soil_raw_dry and soil_raw_wet), and the reading is relative moisture, not a lab measurement."
+ ]
+}

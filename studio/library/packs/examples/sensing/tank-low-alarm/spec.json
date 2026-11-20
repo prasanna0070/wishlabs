@@ -1,0 +1,32 @@
+{
+  "schema": "gadget-spec/1",
+  "name": "Paani Tank Alarm",
+  "slug": "tank-low-alarm",
+  "tagline": "Beeps once and shows Refill the tank when the water runs low, and keeps an eye on the plant's soil too",
+  "audience": {"child_directed": false},
+  "region": "IN",
+  "colors": {"body": "#4F86C6", "accent": "#EAF2FB", "detail": "#1F3550", "body_name": "water blue", "accent_name": "foam", "detail_name": "deep navy"},
+  "body": {
+    "family": "blob",
+    "primitives": [{"kind": "rounded_box", "center": [0, 0, 42], "size": [104, 92, 94], "radius": 11}],
+    "edge_round": 4,
+    "wall": 2.4,
+    "split": "base_plate",
+    "feet": 4
+  },
+  "decor": [],
+  "features": [
+    {"id": "status_screen", "module": "OLED_096_SSD1306_I2C", "face": "front", "at": [0, 60], "label": "Soil and tank status"},
+    {"id": "alarm", "module": "BUZZER_PASSIVE_TRANSISTOR_MODULE", "face": "top", "at": [0, 0], "label": "Low-water beep",
+     "grille": {"pattern": "dots_ellipse", "w": 14, "h": 14, "hole": 1.8, "pitch": 3.4}},
+    {"id": "soil_probe", "module": "SOIL_CAP_V12_ANALOG", "face": "rear", "at": [0, 58], "label": "Soil probe lead"},
+    {"id": "tank_float", "module": "FLOAT_SWITCH_VERTICAL_PP", "face": "right", "at": [0, 58], "label": "Tank float lead"}
+  ],
+  "electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8", "extra_modules": [], "power": {"input": "usb_c_5v", "adapter_in_box": false}},
+  "behaviour": {
+    "template": "sensor_display",
+    "summary": "Shows the soil moisture and whether the tank float is up. When the float drops it beeps once and the screen says Refill the tank; when the soil reads below 30 % it says Water me. Readings are also on its own page on the home Wi-Fi. It does not pump water.",
+    "settings": {"sample_seconds": 30, "soil_dry_percent": 30, "water_low_warning": true}
+  },
+  "safety": {"flags": [], "notes": "The float and the probe stay in the tank and the pot; the gadget stays dry beside them and only their leads pass the strain-relieved cable exits. No pump, no mains. External certified USB-C 5 V supply."}
+}
