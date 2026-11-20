@@ -311,14 +311,14 @@ def build():
     add_port("J_DISP", PH.format(n=8), 18.85, yb, 0,
              [P(1, "VCC", "+3V3", ALIAS_3V3, "power"), P(2, "GND", "GND", ALIAS_GND, "power"), P(3, "DIN", "SPI_MOSI", ["DIN", "MOSI", "SDA", "SDI"]),
               P(4, "CLK", "SPI_SCK", ["CLK", "SCK", "SCL"]), P(5, "CS", "DISP_CS", ["CS"]), P(6, "DC", "DISP_DC", ["DC", "RS", "A0"]),
-              P(7, "RST", "DISP_RST", ["RST", "RES", "RESET"]), P(8, "BL", "DISP_BL", ["BL", "BLK", "LED"])],
+              P(7, "RST", "DISP_RST", ["RST", "RES", "RESET"]), P(8, "BL", "DISP_BL", ["BL", "BLK", "LED", "BUSY"])],
              ["display"], "SPI colour display", "up", 20.0, "+3V3",
              {"family": "JST-PH 2.0", "pins": 8, "type": "PH-PH 8p same-order cable (matches the Waveshare 2in LCD socket order)"},
              note="Pin order VCC, GND, DIN, CLK, CS, DC, RST, BL equals the Waveshare 2inch LCD PH2.0 socket, so a straight 1:1 cable works. "
                   "This replaces the ARCHITECTURE §6 draft order (GND first) on purpose.")
     i2c_pins = lambda: [P(1, "GND", "GND", ALIAS_GND, "power"), P(2, "3V3", "+3V3", ALIAS_3V3, "power"),
                         P(3, "SDA", "I2C_SDA", ["SDA", "SDI", "DATA"]), P(4, "SCL", "I2C_SCL", ["SCL", "SCK", "CLK"])]
-    i2c_roles = ["display", "light_sensor", "temp_humidity", "pressure", "distance", "imu", "rtc"]
+    i2c_roles = ["display", "light_sensor", "temp_humidity", "pressure", "distance", "imu", "rtc", "nfc", "air_quality"]
     i2c_cable = {"family": "JST-PH 2.0", "pins": 4, "type": "PHR-4 to Dupont 1x4 female; made to drawing when the module's pin order "
                  "differs from GND, 3V3, SDA, SCL (CABLE_JSTPH_4P_DUPONT1X4_<len>[_X<order>])", "module_end_family": "dupont_2.54"}
     add_port("J_I2C1", PH.format(n=4), 38.75, yb, 0, i2c_pins(), i2c_roles, "I2C port 1", "up", 20.0, "+3V3", i2c_cable,
@@ -326,8 +326,8 @@ def build():
     add_port("J_I2C2", PH.format(n=4), 50.65, yb, 0, i2c_pins(), i2c_roles, "I2C port 2", "up", 20.0, "+3V3", i2c_cable)
     # ---- Row A (front edge): IO1..3 JST-PH 3p (3V3) and J_LED JST-XH 3p (5V)
     io_pins = lambda n: [P(1, "GND", "GND", ALIAS_GND, "power"), P(2, "3V3", "+3V3", ALIAS_3V3, "power"),
-                         P(3, "SIG", f"IO{n}_SIG", ["SIG", "S", "OUT", "I/O", "IO", "DO", "D0", "A0", "AO", "NO", "SW"])]
-    io_roles = ["button", "touch", "buzzer", "motion", "light_sensor", "endstop", "hall"]
+                         P(3, "SIG", f"IO{n}_SIG", ["SIG", "S", "OUT", "I/O", "IO", "DO", "D0", "A0", "AO", "AOUT", "NO", "SW"])]
+    io_roles = ["button", "touch", "buzzer", "motion", "light_sensor", "endstop", "hall", "soil_moisture", "level_switch"]
     io_cable = {"family": "JST-PH 2.0", "pins": 3, "type": "PHR-3 to Dupont 1x3 female (CABLE_JSTPH_3P_DUPONT1X3_<len>[_X<order>]) "
                 "or to 2.8 mm female spades (CABLE_JSTPH_3P_SPADE28_<len>)"}
     for n, x in ((1, 9.5), (2, 20.0), (3, 30.5)):
@@ -338,7 +338,7 @@ def build():
     add_port("J_LED", XH3, 41.0, 4.0, 0,
              [P(1, "GND", "GND", ALIAS_GND, "power"), P(2, "5V", "+5V", ALIAS_5V, "power"), {**P(3, "DIN", "LED_DIN_5V", ["DIN", "DI", "IN", "D", "SIG", "PWM", "S"]),
               "source_gpio": GPIO["LED_DIN"], "via": "U3 74AHCT1G125 (3.3 V -> 5 V) + R3 330 ohm"}],
-             ["led", "servo"], "Addressable LED or servo (5 V supply, 5 V data via level shifter)", "up", 20.0, "+5V",
+             ["led", "servo", "servo_continuous"], "Addressable LED or servo (5 V supply, 5 V data via level shifter)", "up", 20.0, "+5V",
              {"family": "JST-XH 2.5", "pins": 3, "type": "XHP-3; port and lead labelled LED 5V"},
              note="DIN is driven by U3 (74AHCT1G125 at 5 V) through R3 330 ohm from GPIO2. JST-XH 2.5 mm (B3B-XH-A), not PH: the "
                   "3V3 PH IO leads (J_IO1..3) cannot mate it and the LED's XHP-3 lead cannot mate a PH port. Silkscreen "

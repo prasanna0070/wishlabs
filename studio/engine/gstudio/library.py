@@ -100,7 +100,12 @@ class Library:
         data = json.loads(self.path.read_text(encoding="utf-8"))
         if isinstance(data, dict):
             data = data.get("modules", [])
-        self.modules: list[dict] = list(data)
+        # CATALOG-PLAN 0.5.3: rows of a pack that is off are invisible (packs.enabled_set() is read once per Library)
+        from . import packs as _packs
+
+        self.packs_on: frozenset = _packs.enabled_set(self.dir)
+        self.all_modules: list[dict] = list(data)
+        self.modules: list[dict] = [m for m in self.all_modules if _packs.visible(m, on=self.packs_on)]
         self._by_id: dict[str, dict] = {}
         for m in self.modules:
             self._by_id[m["id"]] = m
@@ -163,9 +168,11 @@ class Library:
                 and (m.get("backplane_v1") or {}).get("supported")]
 
     def internal_modules(self) -> list[dict]:
-        """Modules allowed in electronics.extra_modules (no aperture, connect on backplane-v1)."""
-        ok = {"imu", "rtc", "hall", "endstop", "servo", "touch", "temp_humidity", "pressure", "light_sensor"}
-        return [m for m in self.modules if m.get("role") in ok and (m.get("backplane_v1") or {}).get("supported")]
+        """Modules allowed in electronics.extra_modules (no aperture, connect on backplane-v1). The bare SG90 row
+        (role servo) is not offered: no app drives it and it gets no CAD mount; the motion pack adds feature rows."""
+        ok = {"imu", "rtc", "hall", "endstop", "touch", "temp_humidity", "pressure", "light_sensor"}
+        return [m for m in self.modules if (m.get("role") in ok and not m.get("merge") or _pack_placed(m, "internal"))
+                and (m.get("backplane_v1") or {}).get("supported")]
 
     def harness_rows(self, slot: Optional[str] = None, length_mm: Optional[int] = None) -> list[dict]:
         """Design harness rows (generated CABLE_* rows with a module_end table), optionally for one port slot and length."""
@@ -234,14 +241,20 @@ class Library:
                 return k
         return None
 
+    def agent_visible(self, m: dict) -> bool:
+        """True when the agent's parts table lists this row as usable (supported on backplane-v1)."""
+        return _agent_role(m) and bool((m.get("backplane_v1") or {}).get("supported"))
+
+    def role_available(self, role: str) -> bool:
+        """True when the agent can design with some row of this role (pack rows only while their pack is on)."""
+        return any(self.agent_visible(m) for m in self.by_role(role))
+
     # ------------------------------------------------------------------ LLM table
     def summary_for_llm(self, include_unsupported: bool = False) -> str:
         """Compact table: id | role | name | dims | aperture | price ₹ (+ how it connects). Only parts a spec may name."""
-        spec_roles = {"core", "display", "led", "mic", "speaker", "buzzer", "button", "touch", "light_sensor", "temp_humidity",
-                      "pressure", "distance", "motion", "imu", "hall", "rtc", "servo", "endstop", "encoder", "fan", "amp", "storage"}
         lines = ["id | role | name | dims mm | aperture | price ₹ | use"]
         for m in self.modules:
-            if m.get("role") not in spec_roles:
+            if not _agent_role(m):
                 continue
             pv1 = m.get("backplane_v1") or {}
             if not pv1.get("supported") and not include_unsupported:
@@ -268,6 +281,23 @@ class Library:
             name = str(m.get("name", ""))[:48]
             lines.append(f"{m['id']} | {role} | {name} | {dims} | {aps} | {pr[0]}-{pr[1]} | {use}")
         return "\n".join(lines)
+
+
+# roles of core rows the agent's table lists; `servo` is left out on purpose (the bare SG90 row has no app and no CAD
+# mount: CATALOG-PLAN E1.6); pack rows are listed when their merge block says designable
+AGENT_ROLES = {"core", "display", "led", "mic", "speaker", "buzzer", "button", "touch", "light_sensor", "temp_humidity",
+               "pressure", "distance", "motion", "imu", "hall", "rtc", "endstop", "encoder", "fan", "amp", "storage"}
+
+
+def _agent_role(m: dict) -> bool:
+    mg = m.get("merge")
+    return bool(mg.get("designable")) if isinstance(mg, dict) else m.get("role") in AGENT_ROLES
+
+
+def _pack_placed(m: dict, placement: str) -> bool:
+    """A pack row (CATALOG-PLAN 0.5.1) the agent may design with, placed as `placement` ("feature" or "internal")."""
+    mg = m.get("merge")
+    return isinstance(mg, dict) and bool(mg.get("designable")) and mg.get("placement") == placement
 
 
 __all__ = ["Library", "UnknownModule", "CABLE_FAMILIES", "cable_family_for", "module_end_family", "port_family"]

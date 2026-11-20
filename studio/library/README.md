@@ -2,6 +2,8 @@
 
 `modules.json` is the merged library (foundation). Only these modules may appear in a design spec. Sources: `modules-a.json` (rows 01-07, 14-18, 20-24, 37) and `modules-b.json` (rows 08-13, 19, 25-33, 36, 38, 41-50); their `*-notes.md` explain every choice. Regenerate with `python3 -I tools/merge_modules.py` after either source changes, and the backplane with `python3 -I tools/gen_backplane_v1.py` (run that first).
 
+Optional packs (`packs/<name>.json`, CATALOG-PLAN 0.5) add rows marked `pack`; a row whose pack is off (`packs/enabled.json`, env `GS_PACKS_ENABLED` / `GS_PACKS_OFF`) is invisible to `gstudio.library.Library`. No pack rows in this file.
+
 Prices are blueprint §3.3 planning ranges (INR, often excluding GST and labour), not quotes. Every unverified number is listed in that module's `uncertain`. `v1` = how the module connects on `backplane-v1.json`.
 
 | id | row | role | name | dims mm (x × y × z) | aperture | v1 slot | price ₹ |
