@@ -220,3 +220,11 @@ def test_open_top_rim_must_keep_its_wall(monkeypatch, lib):
     spec["printed"]["opening"] = "none"
     _, rep = normalize(spec, lib)
     assert not [e for e in rep["errors"] if e.get("code") == "opening_rim"]
+
+
+def test_open_top_rim_on_a_domed_revolve_is_refused(printed_on, lib):
+    """Any family: a revolve pot whose top curves in (a dome) would leave a knife-edge rim around the CAD's mouth."""
+    s = _spec("pen-cup-planter")
+    s["body"]["profile"] = [[0, 0], [30, 0], [34, 50], [32, 80], [20, 92], [0, 95]]
+    _, rep = normalize(s, lib)
+    assert any(e.get("code") == "opening_rim" and e.get("fix") for e in rep["errors"]), rep["errors"]

@@ -154,18 +154,31 @@ def normalize_printed(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spe
 
 
 def _check_open_rim(sp: Spec, geom, errors: list) -> None:
-    """Open top on a blob: the primitives that make the top edge must not be rounded more than the wall, or the vertical
-    mouth meets the rounding and the rim thins to a knife edge (BENCH pre-check 20 Nov: an agent's cat cap, cylinder
-    radius 4 on a 2.4 mm wall, 0.03 mm at the rim, CAD min_wall failed)."""
+    """An open top must keep a real rim. The CAD opens the cavity section a few mm below the cavity top straight up, so
+    (1) on a blob, the primitives that make the top edge must not be rounded more than the wall (BENCH pre-check 20 Nov: an
+    agent's cat cap, cylinder radius 4 on a 2.4 mm wall, 0.03 mm at the rim, CAD min_wall failed), and (2) for any family,
+    the body's own top section must stay a minimum wall wider than that mouth on every side (a domed or inward-curving top
+    tapers to a knife edge); (2) compares the X and Y extents of the outer body (ShellGeometry), decor excluded."""
     b = sp.body
-    if getattr(b, "family", None) != "blob":
-        return
+    wall = float(b.wall)
     top = geom.bbox[5]
-    for k, pr in enumerate(b.primitives):
-        if pr.aabb()[5] >= top - 1.0 and pr.kind in ("rounded_box", "cylinder") and float(pr.radius) > float(b.wall) + 1e-6:
-            _err(errors, f"body.primitives[{k}].radius", f"an open top cuts straight down through this primitive's rounded top "
-                 f"edge (radius {float(pr.radius):g} mm on a {float(b.wall):g} mm wall), leaving a knife-thin rim",
-                 f"set its radius to {float(b.wall):g} or less, or use printed.opening \"none\"", "opening_rim")
+    if getattr(b, "family", None) == "blob":
+        n0 = len(errors)
+        for k, pr in enumerate(b.primitives):
+            if pr.aabb()[5] >= top - 1.0 and pr.kind in ("rounded_box", "cylinder") and float(pr.radius) > wall + 1e-6:
+                _err(errors, f"body.primitives[{k}].radius", f"an open top cuts straight down through this primitive's rounded "
+                     f"top edge (radius {float(pr.radius):g} mm on a {wall:g} mm wall), leaving a knife-thin rim",
+                     f"set its radius to {wall:g} or less, or use printed.opening \"none\"", "opening_rim")
+        if len(errors) > n0:
+            return
+    w_top = _extents(geom, top - 0.6)
+    w_mouth = _extents(geom, top - wall - 3.0)
+    if w_top and w_mouth and any(a < (m - 2 * wall) + 2 * MIN_FLOOR - 1e-6 for a, m in zip(w_top, w_mouth)):
+        _err(errors, "printed.opening", f"the top of the body curves in too fast for an open top: just under the top it is "
+             f"{w_top[0]:.0f} x {w_top[1]:.0f} mm, while the opening the CAD cuts is about {max(0.0, w_mouth[0] - 2 * wall):.0f} x "
+             f"{max(0.0, w_mouth[1] - 2 * wall):.0f} mm, so the rim would be thinner than {MIN_FLOOR:g} mm",
+             "make the top of the body straight-sided for its last few mm (a cup or pot rim), or use opening \"none\"",
+             "opening_rim")
 
 
 CUT_EDGE_MARGIN = 1.5  # mm of material kept around a cut on its face
@@ -209,6 +222,20 @@ def _check_cut(geom, k: int, c: Any, errors: list, warnings: list) -> None:
 
 
 MOUTH_MIN = 10.0  # mm: the smallest open-top mouth, inside the walls
+
+
+def _extents(geom, z: float) -> Optional[tuple[float, float]]:
+    """(X extent, Y extent) in mm of the outer body's section at height z (ShellGeometry sampling); None if empty."""
+    try:
+        x0, x1, y0, y1, _, _ = geom.bbox
+        pts = [(x0 + (x1 - x0) * i / 120.0, y0 + (y1 - y0) * j / 120.0) for i in range(121) for j in range(121)]
+        inside = [(x, y) for x, y in pts if geom.outer_sdf(x, y, z) <= 0.0]
+        if not inside:
+            return None
+        xs, ys = [p[0] for p in inside], [p[1] for p in inside]
+        return (max(xs) - min(xs), max(ys) - min(ys))
+    except Exception:  # noqa: BLE001 - a hint only
+        return None
 
 
 def _top_opening_width(geom) -> Optional[float]:
