@@ -8,7 +8,7 @@
   "colors": {"body": "#4F86C6", "accent": "#EAF2FB", "detail": "#1F3550", "body_name": "water blue", "accent_name": "foam", "detail_name": "deep navy"},
   "body": {
     "family": "blob",
-    "primitives": [{"kind": "rounded_box", "center": [0, 0, 42], "size": [104, 92, 94], "radius": 11}],
+    "primitives": [{"kind": "rounded_box", "center": [0, 0, 47], "size": [110, 96, 106], "radius": 12}],
     "edge_round": 4,
     "wall": 2.4,
     "split": "base_plate",
@@ -16,8 +16,8 @@
   },
   "decor": [],
   "features": [
-    {"id": "status_screen", "module": "OLED_096_SSD1306_I2C", "face": "front", "at": [0, 60], "label": "Soil and tank status"},
-    {"id": "alarm", "module": "BUZZER_PASSIVE_TRANSISTOR_MODULE", "face": "top", "at": [0, 0], "label": "Low-water beep",
+    {"id": "status_screen", "module": "OLED_096_SSD1306_I2C", "face": "front", "at": [0, 66], "label": "Soil and tank status"},
+    {"id": "alarm", "module": "BUZZER_PASSIVE_TRANSISTOR_MODULE", "face": "top", "at": [0, 18], "label": "Low-water beep",
      "grille": {"pattern": "dots_ellipse", "w": 14, "h": 14, "hole": 1.8, "pitch": 3.4}},
     {"id": "soil_probe", "module": "SOIL_CAP_V12_ANALOG", "face": "rear", "at": [0, 58], "label": "Soil probe lead"},
     {"id": "tank_float", "module": "FLOAT_SWITCH_VERTICAL_PP", "face": "right", "at": [0, 58], "label": "Tank float lead"}
