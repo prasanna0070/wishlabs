@@ -254,6 +254,17 @@ def test_csg_repair_messages_name_the_place(monkeypatch):
     assert any("every length in body.csg" in x for x in r["errors"]), r["errors"]
 
 
+def test_kit_meeting_an_inner_wall_is_caught_before_the_build(monkeypatch):
+    """A real Gemini concept (2026-11-20, final1 'Robot Desk Station'): the screen's clamp strap met the wall of the
+    recess cut below it; the full build said 'not buildable' (PRINT_Shell / PRINT_DisplayClip 41 mm3). On a flat face
+    square to the face axis the kit probe now runs for csg bodies too, so validation says it first."""
+    _packs(monkeypatch, "sensing,schedule,freeform")
+    from gstudio import pipeline
+
+    r = pipeline.validate(str(FIX / "robot-desk-station-kit-wall.json"))
+    assert not r["ok"] and any(e.startswith("features[0].at: screen: its kit") and "inner wall" in e for e in r["errors"]), r["errors"]
+
+
 def _pack_off_entries(packs_sets) -> dict:
     """{key: sha256} as _ff/po.py made them on main e8eb54d: schema text + pipeline.validate of every live example."""
     from gstudio import pipeline

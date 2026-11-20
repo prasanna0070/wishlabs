@@ -1,0 +1,164 @@
+{
+ "schema": "gadget-spec/1",
+ "name": "Robot Desk Station",
+ "slug": "robot-desk-station",
+ "tagline": "A helpful retro robot with climate readings",
+ "audience": {
+  "child_directed": false
+ },
+ "region": "IN",
+ "colors": {
+  "body": "#E4EEF8",
+  "accent": "#5B6770",
+  "detail": "#F6B9B4",
+  "body_name": "morning mist",
+  "accent_name": "slate grey",
+  "detail_name": "rose"
+ },
+ "body": {
+  "family": "csg",
+  "csg": {
+   "op": "cut",
+   "node": {
+    "op": "union",
+    "blend": 5,
+    "nodes": [
+     {
+      "op": "box",
+      "size": [
+       150,
+       110,
+       65
+      ],
+      "round": 5
+     },
+     {
+      "op": "move",
+      "to": [
+       0,
+       15,
+       0
+      ],
+      "node": {
+       "op": "box",
+       "size": [
+        100,
+        70,
+        140
+       ],
+       "round": 10
+      }
+     }
+    ]
+   },
+   "minus": [
+    {
+     "op": "move",
+     "to": [
+      0,
+      -20,
+      55
+     ],
+     "node": {
+      "op": "box",
+      "size": [
+       110,
+       50,
+       25
+      ],
+      "round": 5
+     }
+    },
+    {
+     "op": "move",
+     "to": [
+      25,
+      15,
+      120
+     ],
+     "node": {
+      "op": "cylinder",
+      "r": 10,
+      "h": 60,
+      "round": 2
+     }
+    }
+   ]
+  },
+  "wall": 2.4,
+  "edge_round": 3,
+  "split": "base_plate",
+  "feet": 4
+ },
+ "decor": [
+  {
+   "type": "face_plate",
+   "at": [
+    0,
+    100
+   ],
+   "size": [
+    70,
+    50
+   ],
+   "shape": "rounded_rect",
+   "relief": "engrave",
+   "depth": 1.2
+  },
+  {
+   "type": "ear",
+   "style": "antenna",
+   "at": [
+    58,
+    100
+   ],
+   "size": [
+    15,
+    30
+   ],
+   "side": "both"
+  }
+ ],
+ "features": [
+  {
+   "id": "screen",
+   "module": "LCD_200_ST7789_240X320_WAVESHARE",
+   "face": "front",
+   "at": [
+    0,
+    100
+   ],
+   "label": "Screen face for climate readings"
+  },
+  {
+   "id": "climate_sensor",
+   "module": "TEMPHUM_AHT20_ADAFRUIT_4566",
+   "face": "rear",
+   "at": [
+    0,
+    90
+   ],
+   "label": "Room temperature and humidity sensor"
+  }
+ ],
+ "electronics": {
+  "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+  "extra_modules": [],
+  "power": {
+   "input": "usb_c_5v",
+   "adapter_in_box": false
+  }
+ },
+ "behaviour": {
+  "template": "sensor_display",
+  "summary": "Shows the room temperature and humidity on the screen with a 24-hour trend. The readings are also available on its own page on the home Wi-Fi.",
+  "settings": {
+   "sample_seconds": 60,
+   "trend_hours": 24
+  }
+ },
+ "safety": {
+  "flags": [],
+  "notes": "Sensor sits on the back away from the board's warmth. External certified USB-C 5 V supply."
+ }
+}

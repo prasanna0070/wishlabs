@@ -24,7 +24,10 @@ import numpy as np
 from OCP.BRepBuilderAPI import BRepBuilderAPI_Transform
 from OCP.gp import gp_Trsf
 
-from .. import csg as C
+try:
+    from .. import csg as C
+except (ImportError, ValueError):  # the vendored cad/gadget_cad/ copy of a delivered design (export.vendor_source)
+    from . import csg as C  # type: ignore[no-redef]
 from .body import BodyGeom, fix_shape
 from .geom import V, halfspace_z, largest_solid, solids_of, try_fillet
 

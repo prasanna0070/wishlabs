@@ -1478,6 +1478,8 @@ def kit_shell_conflicts(sp: Spec, lib, geom: "ShellGeometry", features: list, to
     out = []
     for f in features:
         flat = isinstance(sp.body, SilhouetteBody) and f.face in ("front", "rear")
+        if not flat and sp.body.family == "csg":  # pack `freeform`: a flat face square to the face axis seats the kit
+            flat = _flat_square(geom, f)  # exactly like a silhouette front (CAD frame = face axis), so the probe holds
         try:
             boxes = FP.kit_footprint(f, None, others=features, skin=sp.body.wall, lib_get=lib.get)
         except Exception:
@@ -1506,12 +1508,23 @@ def kit_shell_conflicts(sp: Spec, lib, geom: "ShellGeometry", features: list, to
                     worst = (bad, b, (px, py, pz))
         if worst:
             bad, b, (px, py, pz) = worst
+            fix = (f"move {f.id} toward the middle of the {f.face} face, away from the rounded edge "
+                   f"(by {math.ceil(bad + 2):.0f} mm or more)")
+            if sp.body.family == "csg":  # the wall it meets may be a cut's pocket, a step or the outside
+                fix = (f"move {f.id} (or the cut, step or slope whose wall is there) by {math.ceil(bad + 2):.0f} mm or more so "
+                       "the kit behind the face clears every inner wall")
             out.append({"feature": f.id, "what": b.get("what"), "mm": round(bad, 1),
                         "msg": f"{f.id}: its kit ({b.get('what')}) reaches {bad:.1f} mm into the shell wall or floor near "
                                f"x {px:.0f}, y {py:.0f}, z {pz:.0f}",
-                        "fix": f"move {f.id} toward the middle of the {f.face} face, away from the rounded edge "
-                               f"(by {math.ceil(bad + 2):.0f} mm or more)"})
+                        "fix": fix})
     return out
+
+
+def _flat_square(geom: "ShellGeometry", f) -> bool:
+    """csg bodies: the face under the feature is a plane square to the face axis (same ray depth over +-12 mm)."""
+    u, v = float(f.at[0]), float(f.at[1])
+    ts = [geom.surface_depth(f.face, u + du, v + dv) for du, dv in ((0, 0), (-12, 0), (12, 0), (0, -12), (0, 12))]
+    return all(t is not None for t in ts) and max(ts) - min(ts) < 0.3
 
 
 SEAM_LIP_REACH = 3.0 + 0.5  # the rear cover's locating lip (and its screw tubes) reach 3 mm in front of the seam, + 0.5 gap
