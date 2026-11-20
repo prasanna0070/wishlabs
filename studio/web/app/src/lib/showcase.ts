@@ -1,6 +1,6 @@
 // What the read-only share page shows: the original wish, the chosen concept, the build's own summary and its files.
 // Pure functions over the shared Project (GET /api/share/{token}).
-import type { ChatMessage, Concept, FileEntry, Project, Version } from "./types";
+import type { Build, ChatMessage, Concept, FileEntry, Project, Version } from "./types";
 import { briefFor } from "./versions";
 
 /** The wish as the person first typed it: the first plain user message (not an answer or a button press). */
@@ -46,6 +46,13 @@ export function resultMessage(p: Pick<Project, "chat"> | null | undefined, n: nu
   if (n == null) return null;
   const list = (p?.chat || []).filter((m) => m.kind === "result" && m.payload?.version === n);
   return list.length ? list[list.length - 1] : null;
+}
+
+/** A printed-only object (catalog pack "printed"): the result summary says kind "printed" (server summary.py), or the
+ * build itself has no PCB, no firmware and no wiring. Such a version never shows a board, firmware or wiring step. */
+export function noElectronics(summary: any, b: Build | null | undefined): boolean {
+  if (summary?.kind === "printed") return true;
+  return !!b && !b.pcb && !b.firmware && !b.wiring?.board && !(b.wiring?.connections?.length);
 }
 
 /** "50/50" -> {passed: 50, total: 50}. */

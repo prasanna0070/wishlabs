@@ -10,6 +10,7 @@ import { Viewer, ViewerControls, type Label, type ViewerHandle } from "../../thr
 import { Dialog, Lightbox, Markdown, Ring, Spinner, ZoomPan } from "../ui";
 import { partLabeler } from "./PreviewTab";
 import { DeviceTools } from "./DeviceTools";
+import { noElectronics, resultMessage } from "../../lib/showcase";
 import type { TabProps } from "./RightPanel";
 
 type Track = "assembly" | "wiring";
@@ -29,6 +30,8 @@ export default function BuildTab({ version }: TabProps) {
       </div>
     );
   if (!build.data) return <div className="empty">This version has no build manual (build.json is missing).</div>;
+  // a printed object (no electronics) shows no Wiring track and no flashing tools
+  const printed = noElectronics(resultMessage(project, version.n)?.payload?.summary, build.data);
   const steps = build.data.steps || [];
   const wsteps = build.data.wiring?.steps || [];
   const list = track === "assembly" ? steps : wsteps;
@@ -50,9 +53,11 @@ export default function BuildTab({ version }: TabProps) {
             <button role="tab" aria-selected={track === "assembly"} className={track === "assembly" ? "on" : ""} onClick={() => setTrack("assembly")}>
               <Wrench size={15} /> Assembly
             </button>
-            <button role="tab" aria-selected={track === "wiring"} className={track === "wiring" ? "on" : ""} onClick={() => setTrack("wiring")}>
-              <Cable size={15} /> Wiring
-            </button>
+            {printed ? null : (
+              <button role="tab" aria-selected={track === "wiring"} className={track === "wiring" ? "on" : ""} onClick={() => setTrack("wiring")}>
+                <Cable size={15} /> Wiring
+              </button>
+            )}
           </div>
           <div className="grow" />
           <span className="muted small">
@@ -67,7 +72,7 @@ export default function BuildTab({ version }: TabProps) {
         <StepStage key={track} track={track} steps={list} build={build.data} comps={comps.data} versionN={version.n} />
         <Checklist track={track} steps={list} build={build.data} versionN={version.n} />
         {track === "wiring" ? <WiringDetails build={build.data} versionN={version.n} /> : null}
-        <DeviceTools version={version} build={build.data} />
+        {printed ? null : <DeviceTools version={version} build={build.data} />}
       </div>
       <ManualDialog open={manual} onClose={() => setManual(false)} versionN={version.n} />
     </div>
