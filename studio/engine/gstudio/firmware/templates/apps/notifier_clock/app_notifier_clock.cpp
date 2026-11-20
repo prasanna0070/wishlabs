@@ -1,7 +1,8 @@
 // notifier_clock: the time (from the internet time service, kept by the RTC when fitted) on the
 // display, and notifications from the local JSON API shown on the screen and the LED ring.
 // Daily reminders (settings `schedule`, 24-hour HH:MM) post a local notice with a chime at their time;
-// each stays until acknowledged. Tap any button-kind input (a button, or a hall or end-stop lid sensor)
+// each stays until acknowledged. With a servo arm or flap (motion pack) and servo_on_notice, a due reminder
+// also opens it for servo_hold_s seconds, then closes it. Tap any button-kind input (a button, or a hall or end-stop lid sensor)
 // to clear the top notification; hold to clear all. Quiet hours dim the ring and mute the chime.
 #include <ArduinoJson.h>
 #include <WiFi.h>
@@ -14,6 +15,7 @@
 #include "gs_display.h"
 #include "gs_led.h"
 #include "gs_light.h"
+#include "gs_motion.h"
 #include "gs_schedule.h"
 #include "gs_sensors.h"
 #include "gs_templates.h"
@@ -43,9 +45,11 @@ class NotifierClockApp : public GsApp {
     }
     configTzTime(GS_CFG_TZ, GS_CFG_NTP_SERVER, "pool.ntp.org");
     sched_.set(kSchedMin, uint8_t(GS_CFG_SCHEDULE_N));
+    gsmotion::begin(GS_CFG_SERVO_REST_DEG);
   }
 
   void loop(uint32_t now) override {
+    gsmotion::tick(now);
     queue_.expire(now);
     tm lt;
     const bool have = time_valid(&lt);
@@ -126,6 +130,12 @@ class NotifierClockApp : public GsApp {
       out["next_reminder_in_min"] = wait;
     }
     out["reminder_note"] = "Reminders only: they show and chime at their time; nothing checks what was taken or eaten.";
+    if (gsmotion::present()) {
+      out["arm_angle"] = gsmotion::angle();
+      out["arm_moving"] = gsmotion::busy();
+      out["arm_note"] = GS_CFG_SERVO_ON_NOTICE ? "The arm or flap opens when a reminder is due, then closes."
+                                               : "The arm or flap does not move for reminders (servo_on_notice is off).";
+    }
     JsonArray arr = out["notices"].to<JsonArray>();
     for (size_t i = 0; i < queue_.count(); ++i) {
       const gs::Notice* n = queue_.at(i);
@@ -156,6 +166,15 @@ class NotifierClockApp : public GsApp {
       last_draw_ = 0;
       return gs_reply(out, 200, "Notification shown.");
     }
+    if (!strcmp(name, "arm_test") || !strcmp(name, "arm_rest")) {
+      if (!gsmotion::present()) return gs_reply(out, 400, "This design has no servo arm.");
+      if (!strcmp(name, "arm_test")) {
+        open_arm();
+        return gs_reply(out, 200, "The arm opens and closes once.");
+      }
+      gsmotion::move_to(GS_CFG_SERVO_REST_DEG, GS_CFG_SERVO_SPEED_DEG_S);
+      return gs_reply(out, 200, "The arm is at its rest angle: fit the horn and the printed part pointing up.");
+    }
     if (!strcmp(name, "notify_clear")) {
       const int id = a["id"] | 0;
       if (!queue_.ack(uint16_t(id))) return gs_reply(out, 404, "No notification with that id.");
@@ -179,7 +198,12 @@ class NotifierClockApp : public GsApp {
     queue_.push(text, gs::Rgb{255, 179, 107}, 5, 0, now);
     last_sched_ = int(i);
     if (GS_CFG_NOTICE_CHIME && !quiet_) gsaudio::play_chime(gs::Chime::Ready);
+    if (GS_CFG_SERVO_ON_NOTICE) open_arm();
     last_draw_ = 0;
+  }
+
+  static void open_arm() {
+    gsmotion::pulse(GS_CFG_SERVO_OPEN_DEG, GS_CFG_SERVO_REST_DEG, uint32_t(GS_CFG_SERVO_HOLD_S) * 1000u, GS_CFG_SERVO_SPEED_DEG_S);
   }
 
   bool time_valid(tm* out) const {

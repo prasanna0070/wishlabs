@@ -2,6 +2,7 @@
 
 #include <string.h>
 
+#include "gs_motion_plan.h"
 #include "gs_schedule.h"
 #include "gs_templates.h"
 
@@ -89,6 +90,24 @@ static void test_daily_schedule_next_and_format() {
   TEST_ASSERT_EQUAL_STRING("00:00", buf);
 }
 
+// Motion pack: a due reminder opens the flap for servo_hold_s, then closes it.
+static void test_servo_pulse_opens_holds_and_closes() {
+  ServoPlanner p;
+  p.begin(0, 0);
+  p.tick(0);
+  p.pulse(90, 0, 3000, 120, 1000);  // 90 deg at 120 deg/s = 750 ms, hold 3 s, 750 ms back
+  uint32_t t = 1000;
+  for (; t <= 1000 + 760; t += 10) p.tick(t);
+  TEST_ASSERT_EQUAL(90, p.angle());
+  for (; t <= 1000 + 750 + 2900; t += 10) p.tick(t);
+  TEST_ASSERT_EQUAL(90, p.angle());  // still holding
+  TEST_ASSERT_TRUE(p.busy());
+  for (; t <= 1000 + 750 + 3000 + 800 && p.busy(); t += 10) p.tick(t);
+  TEST_ASSERT_EQUAL(0, p.angle());
+  TEST_ASSERT_FALSE(p.busy());
+  TEST_ASSERT_TRUE(t > 1000 + 4400 && t < 1000 + 4700);
+}
+
 void setUp(void) {}
 void tearDown(void) {}
 
@@ -100,5 +119,6 @@ int main(int, char**) {
   RUN_TEST(test_daily_schedule_fires_once_a_day);
   RUN_TEST(test_daily_schedule_no_replay_after_boot_and_grace);
   RUN_TEST(test_daily_schedule_next_and_format);
+  RUN_TEST(test_servo_pulse_opens_holds_and_closes);
   return UNITY_END();
 }

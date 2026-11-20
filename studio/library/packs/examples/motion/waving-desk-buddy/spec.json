@@ -1,0 +1,31 @@
+{
+  "schema": "gadget-spec/1",
+  "name": "Wave Buddy",
+  "slug": "waving-desk-buddy",
+  "tagline": "A screen-face desk buddy that waves its printed arm when you tap its head",
+  "audience": {"child_directed": false},
+  "region": "IN",
+  "colors": {"body": "#9FD3C7", "accent": "#FFB36B", "detail": "#2B3A42", "body_name": "mint", "accent_name": "apricot", "detail_name": "slate"},
+  "body": {
+    "family": "silhouette",
+    "outline": [[-55, 0], [55, 0], [60, 14], [61, 62], [60, 110], [52, 126], [30, 132], [0, 133], [-30, 132], [-52, 126], [-60, 110], [-61, 62], [-60, 14]],
+    "depth": 104,
+    "edge_round": 8,
+    "wall": 2.4,
+    "split": "rear_cover",
+    "feet": 4
+  },
+  "decor": [],
+  "features": [
+    {"id": "face", "module": "LCD_200_ST7789_240X320_WAVESHARE", "face": "front", "at": [0, 90], "label": "Screen face"},
+    {"id": "head_touch", "module": "TOUCH_TTP223_SMALL_15X11", "face": "top", "at": [0, 0], "label": "Tap its head"},
+    {"id": "wave_arm", "module": "SERVO_SG90_ARM", "face": "right", "at": [0, 72], "label": "Waving arm"}
+  ],
+  "electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8", "extra_modules": [], "power": {"input": "usb_c_5v", "adapter_in_box": false}},
+  "behaviour": {
+    "template": "desk_companion",
+    "summary": "A face on the screen that blinks, smiles and naps. Tap its head and it smiles and waves its printed arm twice.",
+    "settings": {"servo_wave_on_tap": true, "servo_rest_deg": 90, "servo_wave_deg": 35, "servo_waves": 2, "servo_speed_deg_s": 120}
+  },
+  "safety": {"flags": [], "notes": "One SG90 micro servo on the only 5 V port, so this design has no LED light. The arm is a light printed part; keep fingers clear while it moves. For adults, not for children."}
+}
