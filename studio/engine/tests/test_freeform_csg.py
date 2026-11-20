@@ -236,6 +236,24 @@ def test_bad_tree_errors_reach_the_validator(monkeypatch):
     assert not r["ok"] and any("not one solid" in e and "loose fin" in e for e in r["errors"]), r["errors"]
 
 
+def test_csg_repair_messages_name_the_place(monkeypatch):
+    """Agent requests (contract section 8): cartridge_fit names the binding place and the block to keep free; the bed fix
+    names the csg lengths; both only for csg bodies (other families keep their words, see the pack-off test)."""
+    _packs(monkeypatch, "sensing,schedule,freeform")
+    from gstudio import pipeline
+
+    d = json.loads((EXAMPLES[1]).read_text())  # desk-weather-console
+    assert d["slug"] == "desk-weather-console"
+    d["body"]["csg"]["minus"].append({"op": "move", "name": "rear slot", "to": [0, 45, 20], "node": {"op": "box", "size": [160, 40, 12]}})
+    r = pipeline.validate(d)
+    e = next(x for x in r["errors"] if "core cartridge" in x)
+    assert "at its best place" in e and "rear at" in e and "full block" in e and "z 0..38" in e, e
+    d = json.loads((EXAMPLES[1]).read_text())
+    d["body"]["csg"] = {"op": "box", "size": [240, 230, 120], "round": 4}
+    r = pipeline.validate(d)
+    assert any("every length in body.csg" in x for x in r["errors"]), r["errors"]
+
+
 def _pack_off_entries(packs_sets) -> dict:
     """{key: sha256} as _ff/po.py made them on main e8eb54d: schema text + pipeline.validate of every live example."""
     from gstudio import pipeline
