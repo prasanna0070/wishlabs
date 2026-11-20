@@ -244,8 +244,10 @@ class EngineBridge:
             lines += self._port_rules()
         except Exception as exc:  # noqa: BLE001
             log.info("port rules unavailable: %s", exc)
+        printed = "printed" in self.packs_on()
         lines += ["- Outline points at least 1 mm apart; do not repeat the first point at the end.",
-                  "- Overall size 60-260 mm on every axis, depth included."]
+                  "- Overall size 60-260 mm on every axis, depth included"
+                  + (" (a printed object with no electronics: 20-260 mm)." if printed else ".")]
         return "\n".join(lines)
 
     def _port_rules(self) -> list[str]:

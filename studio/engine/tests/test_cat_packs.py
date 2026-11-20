@@ -46,7 +46,7 @@ SOIL = {
     "merge": {"role": "soil_moisture", "prefix": "SOIL", "placement": "feature", "designable": True,
               "port": {"port": "io", "slots": ["J_IO1", "J_IO2", "J_IO3"], "cable": {"family": "JST-PH 2.0", "pins": 3},
                        "supported": True, "why": "3.3 V analog signal on a simple port"},
-              "prewire": None},
+              "prewire": None, "face_mm": [20, 12], "depth_mm": 15},
 }
 
 
@@ -138,6 +138,7 @@ def test_temp_pack_row_merges_to_a_wired_io_row(merged, monkeypatch):
     assert pv1["supported"] and pv1["slots"] == ["J_IO1", "J_IO2", "J_IO3"] and pv1["cable"] == {"family": "JST-PH 2.0", "pins": 3}
     assert m["aperture"]["feature_allowed"] and m["aperture"]["required"] and m["merge"]["designable"]
     assert m["electrical"]["supply_rail"] == "+3V3" and m["manual"]["word"] == "soil probe"
+    assert m["face_mm"] == [20, 12] and m["depth_mm"] == 15  # the in-shell envelope of a part that sits outside (c-to-e 1)
     monkeypatch.setenv("GS_PACKS_ENABLED", "testpack")
     lib = Library(merged)
     slot = lib.slot("J_IO1")
@@ -307,3 +308,16 @@ def test_notifier_clock_light_rule_names_only_visible_roles(monkeypatch):
     # no motion pack in this checkout: the agent is told about LEDs only, never about a servo it cannot see
     assert e["msg"] == "notifier_clock needs an LED feature for notifications"
     assert "servo" not in e["fix"] and "LED_RING_12_WS2812_50MM" in e["fix"]
+
+
+def test_cable_exit_part_gets_the_longest_lead(merged, monkeypatch):
+    """c-to-e 2: a soil probe lives in the pot, so its lead is always the 300 mm class whatever the in-shell route."""
+    from gstudio.normalize import normalize
+
+    _clean_env(monkeypatch)
+    monkeypatch.setenv("GS_PACKS_ENABLED", "testpack")
+    d = _example("desk-buddy")
+    d["features"].append({"id": "soil", "module": SOIL["id"], "face": "rear", "at": [0, 30], "label": "Soil probe lead"})
+    sp, rep = normalize(d, Library(merged))
+    h = next(h for h in sp.derived.harness if h.ref.startswith("SOIL"))
+    assert h.length_mm == 300 and h.module == "CABLE_JSTPH_3P_DUPONT1X3_300_X321", rep["errors"]

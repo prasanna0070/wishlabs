@@ -154,3 +154,22 @@ def test_wish_of_takes_the_users_first_words():
                   {"role": "user", "kind": "text", "text": "Money plant"},
                   {"role": "user", "kind": "text", "text": "ignored third"}]}
     assert wish_of(p) == "A plant buddy for my desk Money plant" and wish_of(None) == ""
+
+
+def test_build_summary_says_the_kind():
+    from app.summary import build_summary
+
+    payload, _, _ = build_summary("Pen Cup", {"state": "done"}, {"printed": [{"name": "PRINT_Body"}]}, None, None, None, None,
+                                  {"spec": {"kind": "printed", "name": "Pen Cup"}})
+    assert payload["kind"] == "printed" and "no electronics" in payload["made"][0]
+    payload, _, _ = build_summary("Owl", {"state": "done"}, {"printed": [{"name": "PRINT_Shell"}]}, None, None, None, None,
+                                  {"spec": {"name": "Owl"}})
+    assert payload["kind"] == "gadget" and "printed shell" in payload["made"][0]
+
+
+def test_printed_size_range_only_with_the_printed_pack(studio, monkeypatch):
+    _, off = _prompt(studio, monkeypatch, "")
+    assert "20-260 mm" not in off and "Every axis 60-260 mm;" in off
+    _, on = _prompt(studio, monkeypatch, "printed")
+    assert "Every axis 60-260 mm (a printed object: 20-260 mm);" in on
+    assert "depth included (a printed object with no electronics: 20-260 mm)." in on

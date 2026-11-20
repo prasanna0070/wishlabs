@@ -283,7 +283,8 @@ class PromptBuilder:
                    "which part it cannot do yet.")
         moving = "- Nothing mobile, no heaters, nothing safety-critical. Indoor desk or bedside use.\n" + (
             SERVO_SENTENCE if servo else "- No motors or other actuators.")
-        say_yes = SAY_YES.replace("{SCHEDULE}", SCHEDULE_ON if "schedule" in on else SCHEDULE_OFF)
+        # the timetable ships with hack/cat-b-sched: switch `schedule` (or the motion pack, whose examples need it)
+        say_yes = SAY_YES.replace("{SCHEDULE}", SCHEDULE_ON if ("schedule" in on or servo) else SCHEDULE_OFF)
         if self._can("soil_moisture") or self._can("level_switch"):
             say_yes += "\n" + PLANT_SAY_YES
         rules = []
@@ -306,8 +307,11 @@ class PromptBuilder:
             schema = self.bridge.spec_schema_text()
             table = self.bridge.library_table()
             cap = self.capability_blocks()
+            design = DESIGN
+            if "printed" in self._packs_on():  # printed objects (pack `printed`) may be as small as 20 mm per axis
+                design = design.replace("Every axis 60-260 mm;", "Every axis 60-260 mm (a printed object: 20-260 mm);")
             blocks = [ROLE, FLOW, VOICE, HONESTY.replace("{CANNOT}", cap["honesty"]), SAFETY.replace("{MOVING}", cap["moving"]),
-                      cap["say_yes"], DESIGN]
+                      cap["say_yes"], design]
             if cap["packs"]:
                 blocks.append(cap["packs"])
             blocks += [
