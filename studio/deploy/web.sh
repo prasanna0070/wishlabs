@@ -27,15 +27,21 @@ if [ -z "$BUILDER_URL" ]; then
   echo "gstudio-builder is not deployed; set BUILDER_URL or deploy the builder first" >&2; exit 1
 fi
 
-# Sign-in page "See a real build" link (hidden when empty). Pass SHARE_URL=https://.../studio/s/<token> to set it;
-# otherwise the live value is kept, because --set-env-vars below replaces every env var.
-SHARE_URL=${SHARE_URL:-$(gcloud run services describe $SVC --region=$REGION --project=$P --format=json 2>/dev/null \
-  | python3 -c 'import json, sys
+# Values kept from the live service when this shell does not set them, because --set-env-vars below replaces every
+# env var: SHARE_URL (the sign-in page's "See a real build" link, hidden when empty; pass
+# SHARE_URL=https://.../studio/s/<token> to set it) and LIVE_ALLOWED_ORIGINS (set by hand in an emergency with
+# gcloud run services update --update-env-vars, see docs/hackathon/DEPLOY-TONIGHT.md).
+LIVE_ENV_JSON=$(gcloud run services describe $SVC --region=$REGION --project=$P --format=json 2>/dev/null || true)
+live_env() {
+  printf '%s' "$LIVE_ENV_JSON" | python3 -c 'import json, sys
 try:
     env = json.load(sys.stdin)["spec"]["template"]["spec"]["containers"][0].get("env") or []
-    print(next((e.get("value", "") for e in env if e.get("name") == "SHARE_URL"), ""))
+    print(next((e.get("value", "") for e in env if e.get("name") == sys.argv[1]), ""))
 except Exception:
-    pass' || true)}
+    pass' "$1" || true
+}
+SHARE_URL=${SHARE_URL:-$(live_env SHARE_URL)}
+LIVE_ALLOWED_ORIGINS=${LIVE_ALLOWED_ORIGINS:-$(live_env LIVE_ALLOWED_ORIGINS)}
 
 # MAJ-33: story_player builds carry name_audio_url = $PUBLIC_URL/api/device/<token>/name-audio (empty on a first deploy)
 PUBLIC_URL=${PUBLIC_URL:-$(gcloud run services describe $SVC --region=$REGION --project=$P \
@@ -44,11 +50,13 @@ PUBLIC_URL=${PUBLIC_URL:-$(gcloud run services describe $SVC --region=$REGION --
 # Optional feature knobs (voice wish, gadget sound), passed only when set in this shell. --set-env-vars below replaces
 # every env var, so a knob set by hand on the service is lost on the next deploy: set it here instead. No commas.
 #   LIVE_ENABLED=0 bash studio/deploy/web.sh          voice wish off
+#   LIVE_NO_BARGE_IN=1 bash studio/deploy/web.sh      noisy room: Live finishes its line even when it hears sound
 #   SOUND=0 bash studio/deploy/web.sh                 gadget sound off
 #   LYRIA_MODEL=lyria-002 bash studio/deploy/web.sh   Lyria 2 only
 KNOBS=""
-for k in LIVE_ENABLED LIVE_MODEL LIVE_LOCATION LIVE_FALLBACK_MODEL LIVE_ALLOWED_ORIGINS LIVE_MAX_SECONDS SOUND \
-         LYRIA_MODEL LYRIA_LOCATION LYRIA_FALLBACK SOUND_DAILY_CAP SOUND_SESSION_HOURLY; do
+for k in LIVE_ENABLED LIVE_MODEL LIVE_LOCATION LIVE_FALLBACK_MODEL LIVE_ALLOWED_ORIGINS LIVE_MAX_SECONDS \
+         LIVE_NO_BARGE_IN LIVE_START_SENSITIVITY SOUND LYRIA_MODEL LYRIA_LOCATION LYRIA_FALLBACK SOUND_DAILY_CAP \
+         SOUND_SESSION_HOURLY; do
   v="${!k:-}"
   [ -n "$v" ] || continue
   case "$v" in *,*) echo "$k must not contain a comma" >&2; exit 1 ;; esac

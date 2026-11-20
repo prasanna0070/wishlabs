@@ -5,6 +5,8 @@ import { useProject } from "../../store/project";
 import { ModeSelect } from "../ModeSelect";
 import { Spinner } from "../ui";
 import { VoiceWishDialog } from "../voice/VoiceWishDialog";
+import { primeVoiceAudio } from "../../lib/voiceCall";
+import { useAuth } from "../../store/auth";
 
 const TEXT_TYPES = /\.(txt|md|markdown|json|csv|ini|yaml|yml|toml)$/i;
 const MAX_ATTACH = 60_000;
@@ -39,7 +41,8 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
   const nav = useNavigate();
   const running = !!turn?.running;
   // "Talk" while the project is still empty: the voice chat becomes this project's first message
-  const canTalk = project.chat.length === 0 && !running && !project.voice;
+  const voiceOff = useAuth((s) => s.voiceOff);
+  const canTalk = project.chat.length === 0 && !running && !project.voice && !voiceOff;
 
   useImperativeHandle(ref, () => ({
     focus: (prefill) => {
@@ -144,7 +147,10 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
               ref={talkBtn}
               type="button"
               className="talk-btn"
-              onClick={() => setTalking(true)}
+              onClick={() => {
+                primeVoiceAudio(); // inside the click: Safari starts audio only from a user gesture
+                setTalking(true);
+              }}
               disabled={disabled}
               title="Talk to make a wish: a short voice chat with Gemini Live"
             >

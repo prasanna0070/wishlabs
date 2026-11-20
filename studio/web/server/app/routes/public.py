@@ -85,7 +85,16 @@ async def session(request: Request):
     link = share_url()
     if link:  # only when configured: the response keeps its old shape otherwise
         body["share_url"] = link
+    if not _voice_enabled(request):
+        body["voice"] = False  # LIVE_ENABLED=0: the studio hides its Talk buttons (only then: same shape otherwise)
     return JSONResponse(body, headers={"Cache-Control": "no-store"})
+
+
+def _voice_enabled(request: Request) -> bool:
+    from ..voice_live import LiveSettings
+
+    cfg = getattr(request.app.state, "voice_cfg", None) or LiveSettings.from_env()
+    return bool(cfg.enabled)
 
 
 # ------------------------------------------------------------------ share

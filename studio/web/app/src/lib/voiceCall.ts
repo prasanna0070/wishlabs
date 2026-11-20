@@ -45,6 +45,42 @@ const TAP = `class GsMicTap extends AudioWorkletProcessor {
 registerProcessor("gs-mic-tap", GsMicTap);`;
 
 const FRAME_SAMPLES = MIC_RATE / 10; // send 100 ms per WebSocket frame
+/** Microphone bytes still waiting in the socket above which new frames are dropped (about 2 s of speech): on a slow
+ * uplink Live then hears the speaker late by at most that much, instead of falling further and further behind. */
+export const MAX_BUFFERED = 64_000;
+/** How long the call may take to become ready (socket handshake plus the server's connection to Gemini Live). */
+export const CONNECT_TIMEOUT_MS = 15_000;
+
+type AC = typeof AudioContext;
+const audioContextClass = (): AC | undefined =>
+  typeof window === "undefined" ? undefined : window.AudioContext || (window as any).webkitAudioContext;
+
+let primed: AudioContext | null = null;
+
+/** Call synchronously inside the Talk click handler: Safari only lets an audio context start (resume) inside the
+ * user's gesture, and the call itself starts later, from an effect. VoiceCall.start() takes this context. */
+export function primeVoiceAudio(): void {
+  const C = audioContextClass();
+  if (!C) return;
+  try {
+    if (primed && primed.state !== "closed") return;
+    primed = new C();
+    void primed.resume().catch(() => {});
+  } catch {
+    primed = null;
+  }
+}
+
+function takePrimed(): AudioContext | null {
+  const c = primed;
+  primed = null;
+  return c && c.state !== "closed" ? c : null;
+}
+
+/** False when the socket already holds more than MAX_BUFFERED bytes: the frame should be dropped, not queued. */
+export function roomToSend(bufferedAmount: number | undefined): boolean {
+  return !(typeof bufferedAmount === "number" && bufferedAmount > MAX_BUFFERED);
+}
 
 export class VoiceCall {
   private ws: WebSocket | null = null;
@@ -63,23 +99,29 @@ export class VoiceCall {
   private down: Downsampler | null = null;
   private muted = false; // after "Done": the microphone stays open for the meter but nothing more is sent
   private final = false; // the server said how the call ended (ended or error): a close after that is expected
+  private connectTimer: number | null = null;
+  /** Microphone frames dropped because the uplink could not keep up (see MAX_BUFFERED). */
+  dropped = 0;
 
   constructor(private h: VoiceHandlers) {}
 
-  /** Call from a click handler: the audio context must be created inside the user's gesture. */
+  /** The audio context comes from primeVoiceAudio() in the Talk click handler when there is one (Safari needs it made
+   * inside the user's gesture); otherwise it is made here. */
   async start(opts: StartOptions): Promise<void> {
-    const AC: typeof AudioContext | undefined = window.AudioContext || (window as any).webkitAudioContext;
+    const AC = audioContextClass();
     if (!AC || !navigator.mediaDevices?.getUserMedia || typeof WebSocket === "undefined") {
       this.h.onFail("unsupported", "This browser cannot do a voice call here (it needs a secure page and a microphone). Type your wish instead.");
       return;
     }
-    const ctx = new AC();
+    const ctx = takePrimed() || new AC();
     this.ctx = ctx;
     void ctx.resume().catch(() => {});
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
         audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
+      // once the microphone is live Safari allows audio to start; a context left suspended would hear nothing
+      if (ctx.state !== "running") void ctx.resume().catch(() => {});
     } catch (e: any) {
       const name = e?.name || "";
       if (name === "NotFoundError" || name === "OverconstrainedError")
@@ -150,6 +192,13 @@ export class VoiceCall {
     }
     ws.binaryType = "arraybuffer";
     this.ws = ws;
+    // a stalled handshake (venue Wi-Fi) must not leave "Connecting…" up forever
+    this.connectTimer = window.setTimeout(() => {
+      this.connectTimer = null;
+      if (this.ready || this.final || this.closed) return;
+      this.h.onFail("socket", "Gemini Live did not answer in time. Check the connection, then try again or type your wish.");
+      this.close();
+    }, CONNECT_TIMEOUT_MS);
     ws.onopen = () => {
       ws.send(
         JSON.stringify({
@@ -173,7 +222,10 @@ export class VoiceCall {
       } catch {
         return;
       }
-      if (ev.type === "ready") this.ready = true;
+      if (ev.type === "ready") {
+        this.ready = true;
+        this.clearConnectTimer();
+      }
       if (ev.type === "interrupted") this.flushSpeech();
       if (ev.type === "submitted" && ev.client_turn) this.send({ type: "claimed" });
       if (ev.type === "ended" || ev.type === "error") this.final = true;
@@ -181,6 +233,7 @@ export class VoiceCall {
     };
     ws.onclose = () => {
       const wasOpen = !this.closed;
+      this.clearConnectTimer();
       this.ready = false;
       this.stopMic();
       if (wasOpen && !this.final) this.h.onFail("socket", "The voice call dropped. Type your wish instead, or try again.");
@@ -202,7 +255,18 @@ export class VoiceCall {
     }
     this.pending = [];
     this.pendingLen = 0;
-    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(frame.buffer);
+    const ws = this.ws;
+    if (ws?.readyState !== WebSocket.OPEN) return;
+    if (!roomToSend(ws.bufferedAmount)) {
+      this.dropped += 1; // the uplink is behind: skip this 100 ms rather than queue it without limit
+      return;
+    }
+    ws.send(frame.buffer);
+  }
+
+  private clearConnectTimer() {
+    if (this.connectTimer != null) window.clearTimeout(this.connectTimer);
+    this.connectTimer = null;
   }
 
   private play(buf: ArrayBuffer) {
@@ -285,6 +349,7 @@ export class VoiceCall {
     if (this.closed) return;
     this.closed = true;
     this.ready = false;
+    this.clearConnectTimer();
     if (this.meterTimer != null) window.clearInterval(this.meterTimer);
     this.meterTimer = null;
     this.stopMic();

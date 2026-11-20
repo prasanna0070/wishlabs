@@ -32,7 +32,7 @@ Conventions:
 | POST | `/api/login` | `{"key": "<access key>"}` | 200 `{"ok": true, "expires": "<iso>"}` + `Set-Cookie: gs_session=...; HttpOnly; SameSite=Lax; Path=/; Max-Age=2592000` (+ `Secure` on https). 401 on a bad key. 429 after 10 bad keys from one IP in 10 minutes. |
 | POST | `/api/logout` | none | 200 `{"ok": true}`, cookie cleared |
 | GET | `/api/me` | none | 200 `{"authenticated": true, "expires": "<iso>"}` or 401 |
-| GET | `/api/session` | none | always 200: `{"authenticated": true, "expires": "<iso>"}` or `{"authenticated": false, "expires": null}`; `Cache-Control: no-store`. The SPA's start-up probe, so a signed-out visitor gets no 401 in the browser console. |
+| GET | `/api/session` | none | always 200: `{"authenticated": true, "expires": "<iso>"}` or `{"authenticated": false, "expires": null}`; `Cache-Control: no-store`. The SPA's start-up probe, so a signed-out visitor gets no 401 in the browser console. Adds `"share_url"` only when `SHARE_URL` is set, and `"voice": false` only when `LIVE_ENABLED=0` (the SPA then hides its Talk buttons). |
 | GET | `/api/health` | none | 200 `{"ok": true, "version": "0.1.0", "builder": "remote\|local\|fake", "agent": "gemini\|scripted", "store": "gcs\|local", "engine": true}` |
 
 The key comes from env `ACCESS_KEY` (Cloud Run maps Secret Manager `gstudio-access-key` into it), or is read from
@@ -359,11 +359,19 @@ short questions, confirms, then calls `submit_wish(wish, details)`; the server t
 (`ProjectRepo.create`, or the still-empty project given as `project_id`) and its first chat turn through the chat
 route (§3). Code: `web/server/app/voice_live.py`, `app/routes/voice.py`; SPA `components/voice/`, `lib/voiceCall.ts`.
 
-- Handshake: needs the `gs_session` cookie (else closed 4401) and, from a browser, a same-site `Origin` or one listed in
-  `LIVE_ALLOWED_ORIGINS` (else 4403). Admission (fails closed with an `error` frame, then close): `LIVE_ENABLED=0`
-  → `disabled`; one live session per sign-in → `busy`; `LIVE_SESSIONS_PER_HOUR` per sign-in and
-  `LIVE_SESSIONS_PER_HOUR_TOTAL` per instance → `rate_limited`; `LIVE_MAX_CONCURRENT` per instance → `capacity`; Live
-  unreachable after `LIVE_FALLBACK_MODEL` → `unavailable`. A call lasts at most `LIVE_MAX_SECONDS` (default 180).
+- Handshake: needs the `gs_session` cookie (else closed 4401) and, from a browser, an `Origin` whose host equals the
+  request's host (`X-Forwarded-Host`, else `Host`), or one listed in `LIVE_ALLOWED_ORIGINS` or equal to `PUBLIC_URL`
+  (else 4403); another subdomain of the same site is refused. Admission (fails closed with an `error` frame, then
+  close): `LIVE_ENABLED=0` → `disabled`; `LIVE_SESSIONS_PER_HOUR` per sign-in and `LIVE_SESSIONS_PER_HOUR_TOTAL` per
+  instance → `rate_limited`; `LIVE_MAX_CONCURRENT` per instance → `capacity`; Live unreachable after
+  `LIVE_FALLBACK_MODEL` → `unavailable`. One live session per sign-in: a new connection from the same sign-in takes
+  over, and the older call ends at once with `ended {reason: "replaced"}` (or `error {code: "replaced"}` if it had
+  not started yet), so a call whose network dropped never locks Talk out. A call lasts at most `LIVE_MAX_SECONDS`
+  (default 180). Noisy rooms: `LIVE_NO_BARGE_IN=1` (Live finishes its line even when it hears sound) and
+  `LIVE_START_SENSITIVITY=low|high` (Live's start-of-speech detection), both off by default.
+- Browser side (`lib/voiceCall.ts`): microphone frames are dropped while more than 64,000 bytes wait in the socket
+  (about 2 s of speech), so a slow uplink delays Live by at most that much; a call that is not `ready` 15 s after the
+  socket opens is ended with a message.
 - Client → server: first a text frame `{"type": "start", "mode": "fast"|"pro", "keep_audio": bool, "client_turn":
   bool, "text"?: typed wish, "project_id"?: pid}`; then binary frames of 16 kHz 16-bit mono little-endian PCM (at most
   64 KB each) and text frames `{"type": "end"}` (wrap up and submit), `{"type": "cancel"}` (nothing is created),
@@ -373,7 +381,7 @@ route (§3). Code: `web/server/app/voice_live.py`, `app/routes/voice.py`; SPA `c
   max_seconds, recording_allowed}`, `caption {i, role: user|assistant, text, t}` (turn `i` so far, replace it),
   `turn_complete`, `interrupted` (stop playback), `time_left {seconds}`, `ending`, `submitting`, `submitted
   {project_id, name, text, client_turn}` (`text` = the first chat message: the wish plus the voice answers), `error
-  {code, message}`, `ended {reason: submitted|cancelled|time_limit|no_wish|closed|live_closed|bad_audio|error,
+  {code, message}`, `ended {reason: submitted|cancelled|replaced|time_limit|no_wish|closed|live_closed|bad_audio|error,
   project_id, transcript, user_text}`.
 - Stored on the project as `voice`: `{kind: "gemini-live", model, location, voice, started, ended, seconds, wish,
   details: [{question, answer}], questions, turns: [{role, text, t}], audio_url, audio_seconds}`. The voice questions

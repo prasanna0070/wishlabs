@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Downsampler, clock, floatToPcm16, hasVoiceWish, level, liveModelName, liveSocketUrl, pcm16ToFloat, voiceOf, voiceUrl } from "./voice";
 import type { Project } from "./types";
+import { CONNECT_TIMEOUT_MS, MAX_BUFFERED, roomToSend } from "./voiceCall";
 
 const base = { id: "p_x", name: "Moon light", created: "", updated: "", stage: "concepts", chat: [], concepts: [], versions: [] } as unknown as Project;
 
@@ -63,5 +64,19 @@ describe("audio helpers", () => {
     const v = level(new Float32Array(100).fill(0.05));
     expect(v).toBeGreaterThan(0.3);
     expect(v).toBeLessThan(0.6);
+  });
+});
+
+describe("voice call on a slow uplink", () => {
+  it("drops microphone frames once about 2 s of audio is waiting in the socket", () => {
+    expect(MAX_BUFFERED).toBe(64_000);
+    expect(roomToSend(0)).toBe(true);
+    expect(roomToSend(MAX_BUFFERED)).toBe(true);
+    expect(roomToSend(MAX_BUFFERED + 1)).toBe(false);
+    expect(roomToSend(undefined)).toBe(true);
+  });
+  it("gives up on a stalled connection instead of waiting forever", () => {
+    expect(CONNECT_TIMEOUT_MS).toBeGreaterThanOrEqual(10_000);
+    expect(CONNECT_TIMEOUT_MS).toBeLessThanOrEqual(20_000);
   });
 });
