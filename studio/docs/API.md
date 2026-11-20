@@ -241,13 +241,17 @@ heartbeat, and marked `done`/`error` at the end):
  "steps": [{"label": "Thinking", "ts": "..."}, {"label": "Fixing the design (round 1)", "ts": "...",
             "detail": "Moon Bot: ..."}],
  "thoughts": "**Sketching shapes**\n\n...", "user_message_id": "m_...", "action": "answers", "mode": "pro",
- "updated": "...", "quiet_s": 1.4, "error": null}
+ "updated": "...", "quiet_s": 1.4, "quiet": false, "error": null}
 ```
 
-`state` is `idle`, `running`, `stale` (the lock is older than 15 min: the turn stopped unexpectedly and a new message
-is accepted again), `done`, `error` or `ended`. `thoughts` holds the newest ~3 KB of thought summaries. The studio
-polls it every 2 s while `running` (after a reload, a dropped chat stream or a 409), reloads the project when it ends,
-and does not post while a turn runs.
+`state` is `idle`, `running`, `stale` (the lock is older than 15 min and its record has had no write for 60 s: the turn
+stopped unexpectedly and a new message is accepted again), `done`, `error` or `ended`. A lock older than 15 min whose
+own record was written in the last 60 s is a slow turn that is still alive (a long Deep concept turn), so it stays
+`running`. `quiet` is true for a running turn whose record has had no write for 60 s (three missed heartbeats): it has
+probably stopped, although its lock only expires at 15 min. `thoughts` holds the newest ~3 KB of thought summaries. The
+studio polls it every 2 s while `running` (after a reload, a dropped chat stream or a 409) and every 15 s while `stale`,
+reloads the project when it ends, and does not post while a turn runs. The final `done`/`error` record is written in
+the background after the turn's last events, and never over a newer turn's record.
 
 ## 4. Versions, undo/redo, files, export
 
