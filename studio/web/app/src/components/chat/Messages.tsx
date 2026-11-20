@@ -3,6 +3,8 @@ import { AlertTriangle, Check, ChevronRight, Circle, CircleCheck, CircleDashed, 
 import { useProject, type TurnState } from "../../store/project";
 import { useNow, useVersionFile } from "../../lib/hooks";
 import { checkTally, duration, endLists, inr, plainText, stageHasFailures } from "../../lib/format";
+import { stageErrorText } from "../../lib/errors";
+import { ErrorText } from "../ErrorText";
 import { conceptEstimate, waitText } from "../../lib/estimate";
 import { groupConcepts } from "../../lib/concepts";
 import { rewriteShareUrl } from "../../lib/urls";
@@ -304,7 +306,11 @@ export function BuildProgressCard({ m, status: given, compact = false }: { m?: C
             </div>
           ) : null}
           {running ? <div className="muted small" style={{ marginTop: 8 }}>It keeps working if you leave this page.</div> : null}
-          {state === "error" ? <div className="callout danger" style={{ marginTop: 10 }}>{String(status?.error?.message || status?.error || version?.error?.message || version?.error || "The build stopped with an error.")}</div> : null}
+          {state === "error" ? (
+            <div className="callout danger" style={{ marginTop: 10 }}>
+              <ErrorText text={String(status?.error?.message || status?.error || version?.error?.message || version?.error || "The build stopped with an error.")} full={stageErrorText(status)} />
+            </div>
+          ) : null}
         </>
       ) : null}
     </div>
@@ -459,13 +465,18 @@ function ErrorCard({ m }: { m: ChatMessage }) {
   const send = useProject((s) => s.send);
   const readOnly = useProject((s) => s.readOnly);
   const turn = useProject((s) => s.turn);
+  const project = useProject((s) => s.project);
+  const statuses = useProject((s) => s.statuses);
   const retry = m.payload?.retryable;
+  const n: number | undefined = m.payload?.version;
+  const progress = n != null ? project?.chat.find((x) => x.kind === "progress" && x.payload?.version === n) : undefined;
+  const full = n != null ? stageErrorText(statuses[n] || progress?.payload?.status) : null;
   return (
     <div className="msg assistant">
       <div className="callout danger row" style={{ alignItems: "flex-start" }}>
         <AlertTriangle size={16} style={{ marginTop: 2, flex: "none" }} />
         <div className="grow">
-          <Markdown text={m.text || "Something went wrong."} className="compact" />
+          <ErrorText text={m.text} full={full} />
           {retry && !readOnly ? (
             <button className="btn sm" style={{ marginTop: 8 }} disabled={!!turn?.running} onClick={() => void send(m.payload?.code === "builder" ? { action: "retry_build" } : { text: "Please try that again." })}>
               <RotateCw size={14} /> Try again
