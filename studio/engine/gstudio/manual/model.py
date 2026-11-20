@@ -12,6 +12,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Iterable, Optional
 
+from . import words as W
 from .data import Comp, ManualData, camel_words, kebab
 from .geom import (AXES, Vec, axis_phrase, axis_short, bbox_center, bbox_gap, bbox_offset, bbox_size,  # noqa: F401
                    bbox_union, dominant_axis, vadd, vnorm, vscale, vsub)
@@ -21,7 +22,8 @@ REF_ROLES = [
     ("BP", "backplane"), ("DISP", "display"), ("SPK", "speaker"), ("MIC", "mic"), ("BTN", "button"),
     ("LED", "led"), ("AMP", "amp"), ("SD", "sd"), ("U", "core"), ("PWR", "power"), ("J_PWR", "power"),
 ]
-ROLE_WORDS = {
+# role tables answer first from the active pack words (a library row's `manual` block, words.py); built-in otherwise
+ROLE_WORDS = W.RoleTable({
     "backplane": ["backplane"],
     "core": ["esp32", "devkit", "core"],
     "amp": ["amp", "max98357"],
@@ -34,12 +36,12 @@ ROLE_WORDS = {
     "sensor": ["sensor", "bme", "sht", "aht", "bh1750", "imu", "rtc", "ldr", "temperature", "humidity"],
     "buzzer": ["buzzer", "piezo"],
     "touch": ["touch"],
-}
-ROLE_NOUN = {
+}, "word", wrap=W.words_list)
+ROLE_NOUN = W.RoleTable({
     "backplane": "backplane", "core": "core board", "amp": "amplifier", "sd": "microSD module",
     "speaker": "speaker", "display": "display", "led": "light", "button": "button", "mic": "microphone",
     "sensor": "sensor", "buzzer": "buzzer", "touch": "touch pad", "power": "USB-C power input",
-}
+}, "noun")
 HARDWARE_ROLES = {"screws", "inserts", "feet", "ties", "gasket", "harness", "label", "adapter", "usb_cable", "cartridge",
                   "fasteners", "standoffs", "packing"}
 FEATURE_ORDER = ["speaker", "display", "button", "led", "mic", "touch", "buzzer", "sensor"]
@@ -144,6 +146,11 @@ def role_of_ref(ref: Optional[str]) -> Optional[str]:
 
 
 def role_of(c: Comp, data: ManualData) -> Optional[str]:
+    # a library row with a `manual` block (pack rows, words.py) names its own role exactly: no prefix or word guessing
+    row = data.lib.get(c.module_id) if c.module_id else (data.lib.get(data.instance(c.ref).get("module")) if c.ref else {})
+    pr = W.row_role(row)
+    if pr:
+        return pr
     r = role_of_ref(c.ref)
     if r:
         return r
