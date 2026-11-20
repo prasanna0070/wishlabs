@@ -130,7 +130,7 @@ def test_pack_off_hides_the_servo_rows(monkeypatch):
 
 @pytest.mark.parametrize("slug", ["waving-desk-buddy", "pet-feeder-flap"])
 def test_pack_examples_normalize(motion_on, slug):
-    sp, rep = _norm(example(slug, settings=False), motion_on)
+    sp, rep = _norm(example(slug), motion_on)  # with their servo and schedule settings (C-fw settings contract)
     assert rep["ok"], rep["errors"]
     assert any(i.role == "servo" for i in sp.derived.instances)
     assert not any(i.role == "led" for i in sp.derived.instances)
