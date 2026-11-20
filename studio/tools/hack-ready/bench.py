@@ -48,6 +48,9 @@ Rules
   resume     --resume reads <out>/results.json: finished cases are skipped; an interrupted case that has a
              project carries on from that project's server-side state (nothing is re-sent) with a fresh time
              budget, else starts over. Cases of earlier runs stay in the table and the score (also with --only).
+             With --server-local the resumed run starts a new server: the old one's running turns and builds died
+             with it, so an unfinished case starts over on a new project unless its build had ended (the earlier
+             attempt's events move to events/<case>.before-<time>).
   minutes    the runner's wall time for the case, project creation to the share link (for a resumed case: the
              project's creation to the end of the build on the server).
 
@@ -898,8 +901,17 @@ class Stopped(Exception):
 class CaseRun:
     def __init__(self, runner: "Runner", case: dict, prev: dict | None):
         self.R, self.h, self.c = runner, runner.http, case
-        self.resumed = bool(prev and prev.get("project_id") and not prev.get("finished"))
+        inflight = bool(prev and prev.get("project_id") and not prev.get("finished"))
+        # --server-local resume: the new server cannot carry on a turn or build that died with the old one (a dead
+        # turn marker blocks the chat for 15 min, a dead build stays "running"), so such a case starts over
+        ended = ((prev or {}).get("build_progress") or {}).get("state") in FINAL
+        restart = inflight and runner.restart_inflight and not ended
+        self.resumed = inflight and not restart
         self.rec = prev if self.resumed else new_record(case, runner.http.base)
+        if restart:
+            self.rec["runs"] = int(prev.get("runs") or 0)
+            self.rec["notes"].append(f"restarted {now_utc()}: project {prev['project_id']} was in flight on a "
+                                     "--server-local server that is gone")
         self.rec["runs"] = int(self.rec.get("runs") or 0) + 1
         self.rec.update(finished=False, outcome=None, error=None)
         self.run_t0 = time.time()
@@ -908,6 +920,8 @@ class CaseRun:
             self.rec["notes"].append(f"resumed {now_utc()} on project {self.rec['project_id']}")
         self.deadline = time.time() + self.timeout_s
         self.ev_dir = runner.out / "events" / case["id"]
+        if prev is not None and not self.resumed and self.ev_dir.exists():    # keep the earlier attempt's events
+            self.ev_dir.rename(self.ev_dir.with_name(f"{case['id']}.before-{now_utc().replace(':', '')}"))
         self.answers_left = list(case["answers"])[int(self.rec.get("answer_rounds_used") or 0):]
         self.nudges = self.agent_retries = self.regens = 0
         self.p: dict | None = None
@@ -1356,9 +1370,11 @@ def _err_message(body: bytes) -> str:
 class Runner:
     def __init__(self, http_: Http, cases: list[dict], out, *, jobs: int = 2,
                  timeout_min: float = DEFAULT_TIMEOUT_MIN, resume: bool = False, poll_s: float = POLL_S,
-                 idle_poll_s: float = IDLE_POLL_S, sleep=None, log=None, meta: dict | None = None):
+                 idle_poll_s: float = IDLE_POLL_S, sleep=None, log=None, meta: dict | None = None,
+                 restart_inflight: bool = False):
         self.http, self.cases, self.out = http_, cases, Path(out)
         self.jobs = max(1, int(jobs))
+        self.restart_inflight = restart_inflight      # --server-local: a resumed case's old server is gone
         self.timeout_min, self.poll_s, self.idle_poll_s = timeout_min, poll_s, idle_poll_s
         self.stop = threading.Event()
         self.sleep = sleep or (lambda s: self.stop.wait(s))
@@ -1652,7 +1668,8 @@ def main(argv=None) -> int:
                 "jobs": a.jobs, "timeout_min": a.timeout_min, "server_local": bool(a.server_local),
                 "photos": (not a.no_photos) if a.server_local else None, "git": _git_head(), "only": a.only}
         # the Runner checks <out>/results.json (resume or refuse) before any server starts
-        runner = Runner(Http(base), cases, out, jobs=a.jobs, timeout_min=a.timeout_min, resume=a.resume, meta=meta)
+        runner = Runner(Http(base), cases, out, jobs=a.jobs, timeout_min=a.timeout_min, resume=a.resume, meta=meta,
+                        restart_inflight=bool(a.server_local))
         if runner.pending():
             if server is not None:
                 meta["server_health"] = server.start()

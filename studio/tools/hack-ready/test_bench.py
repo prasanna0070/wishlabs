@@ -902,6 +902,45 @@ class VerifierFindings(unittest.TestCase):
         self.assertEqual((r["answer_rounds_used"], r["case_answers"]), (0, 1))
         self.assertIn("questions 0 round(s), case answers used 0 of 1", (self.out / "summary.md").read_text())
 
+    def test_server_local_resume_restarts_cases_whose_work_died_with_the_old_server(self):
+        cases = bench.parse_cases([dict(CASE, id="mid", timeout_min=0.05), dict(CASE, id="built")])
+        fake = FakeStudio(build_finishes=False)
+        recs = {}
+        for c, state in ((cases[0], "running"), (cases[1], "done")):
+            p = fake.create("fast")
+            proj = fake.projects[p["id"]]
+            for body in ({"text": "a calm desk lamp"}, {"text": "for me"}):
+                fake.turn(proj, body)
+            cid = next(x["id"] for x in proj["concepts"] if x["state"] == "ready")
+            fake.turn(proj, {"action": "select_concept", "concept_id": cid})
+            fake.turn(proj, {"action": "approve_brief"})   # "mid": the build died with the old server (stays running)
+            if state == "done":
+                fake.finish_build(proj)                     # "built": it ended before the old server stopped
+            rec = bench.new_record(c, "http://studio.test")
+            rec.update(project_id=p["id"], build_version=1, answer_rounds_used=1,
+                       build_progress={"state": state, "percent": 40 if state == "running" else 100})
+            recs[c["id"]] = rec
+        self.out.mkdir(parents=True)
+        (self.out / "results.json").write_text(json.dumps({"schema": bench.SCHEMA, "runs": [],
+                                                           "order": ["mid", "built"], "cases": recs}))
+        (self.out / "events" / "mid").mkdir(parents=True)
+        (self.out / "events" / "mid" / "01-wish.jsonl").write_text("{}\n")            # the dead attempt's events
+        fake.build_finishes = True                                                      # the new server's builds end
+        runner, _ = make_runner(fake, cases, self.out, resume=True, restart_inflight=True)
+        data = runner.run(KEY)
+        mid, built = data["cases"]["mid"], data["cases"]["built"]
+        self.assertTrue(mid["finished"] and built["finished"])
+        self.assertTrue(mid["buildable"] and built["buildable"], (mid.get("error"), built.get("error")))
+        self.assertNotEqual(mid["project_id"], recs["mid"]["project_id"])       # started over on a new project
+        self.assertTrue(any(n.startswith("restarted") for n in mid["notes"]))
+        self.assertEqual((mid["runs"], len(fake.projects)), (1, 3))
+        self.assertEqual(built["project_id"], recs["built"]["project_id"])      # its build had ended: collected
+        self.assertTrue(any(n.startswith("resumed") for n in built["notes"]))
+        kept = list((self.out / "events").glob("mid.before-*/01-wish.jsonl"))
+        self.assertEqual(len(kept), 1)
+        self.assertEqual(kept[0].read_text(), "{}\n")
+        self.assertNotEqual((self.out / "events" / "mid" / "01-wish.jsonl").read_text(), "{}\n")
+
     def test_local_server_env_never_carries_the_studio_key(self):
         old = os.environ.get("GS_KEY")
         os.environ["GS_KEY"] = KEY
