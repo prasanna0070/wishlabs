@@ -1,0 +1,345 @@
+{
+ "schema": "gadget-spec/1",
+ "name": "Love Note Heart",
+ "slug": "love-note",
+ "tagline": "A bedside heart that glows when you send her a voice note, and plays it when she taps it",
+ "audience": {
+  "child_directed": false
+ },
+ "region": "IN",
+ "colors": {
+  "body": "#EDB1BA",
+  "accent": "#FFF1E4",
+  "detail": "#9B4A5C",
+  "body_name": "dusty rose",
+  "accent_name": "warm white",
+  "detail_name": "deep berry"
+ },
+ "body": {
+  "family": "silhouette",
+  "outline": [
+   [
+    -39.0,
+    0.0
+   ],
+   [
+    39.0,
+    0.0
+   ],
+   [
+    47.8,
+    1.8
+   ],
+   [
+    55.3,
+    6.7
+   ],
+   [
+    60.2,
+    14.2
+   ],
+   [
+    62.0,
+    23.0
+   ],
+   [
+    60.2,
+    31.8
+   ],
+   [
+    55.3,
+    39.3
+   ],
+   [
+    47.8,
+    44.2
+   ],
+   [
+    39.0,
+    46.0
+   ],
+   [
+    34.0,
+    46.0
+   ],
+   [
+    29.0,
+    46.4
+   ],
+   [
+    24.0,
+    48.0
+   ],
+   [
+    34.2,
+    56.9
+   ],
+   [
+    44.4,
+    65.8
+   ],
+   [
+    54.7,
+    74.7
+   ],
+   [
+    64.9,
+    83.6
+   ],
+   [
+    72.5,
+    92.2
+   ],
+   [
+    77.9,
+    102.3
+   ],
+   [
+    80.7,
+    113.4
+   ],
+   [
+    80.6,
+    124.9
+   ],
+   [
+    77.9,
+    136.0
+   ],
+   [
+    72.5,
+    146.1
+   ],
+   [
+    64.8,
+    154.6
+   ],
+   [
+    55.3,
+    161.0
+   ],
+   [
+    44.5,
+    164.9
+   ],
+   [
+    33.1,
+    166.1
+   ],
+   [
+    21.8,
+    164.5
+   ],
+   [
+    11.2,
+    160.1
+   ],
+   [
+    0.0,
+    152.5
+   ],
+   [
+    -11.2,
+    160.1
+   ],
+   [
+    -21.8,
+    164.5
+   ],
+   [
+    -33.1,
+    166.1
+   ],
+   [
+    -44.5,
+    164.9
+   ],
+   [
+    -55.3,
+    161.0
+   ],
+   [
+    -64.8,
+    154.6
+   ],
+   [
+    -72.5,
+    146.1
+   ],
+   [
+    -77.9,
+    136.0
+   ],
+   [
+    -80.6,
+    124.9
+   ],
+   [
+    -80.7,
+    113.4
+   ],
+   [
+    -77.9,
+    102.3
+   ],
+   [
+    -72.5,
+    92.2
+   ],
+   [
+    -64.9,
+    83.6
+   ],
+   [
+    -54.7,
+    74.7
+   ],
+   [
+    -44.4,
+    65.8
+   ],
+   [
+    -34.2,
+    56.9
+   ],
+   [
+    -24.0,
+    48.0
+   ],
+   [
+    -29.0,
+    46.4
+   ],
+   [
+    -34.0,
+    46.0
+   ],
+   [
+    -39.0,
+    46.0
+   ],
+   [
+    -47.8,
+    44.2
+   ],
+   [
+    -55.3,
+    39.3
+   ],
+   [
+    -60.2,
+    31.8
+   ],
+   [
+    -62.0,
+    23.0
+   ],
+   [
+    -60.2,
+    14.2
+   ],
+   [
+    -55.3,
+    6.7
+   ],
+   [
+    -47.8,
+    1.8
+   ]
+  ],
+  "depth": 100.0,
+  "edge_round": 18.0,
+  "wall": 2.4,
+  "split": "rear_cover",
+  "feet": 4
+ },
+ "decor": [
+  {
+   "type": "text",
+   "text": "A + R",
+   "at": [
+    0,
+    23
+   ],
+   "height": 9,
+   "relief": "engrave",
+   "depth": 0.8,
+   "color": "detail"
+  }
+ ],
+ "features": [
+  {
+   "id": "glow",
+   "module": "LED_RING_12_WS2812_50MM",
+   "face": "front",
+   "at": [
+    0,
+    110
+   ],
+   "label": "Warm glow when a new note arrives"
+  },
+  {
+   "id": "tap_heart",
+   "module": "TOUCH_TTP223_SMALL_15X11",
+   "face": "front",
+   "at": [
+    0,
+    72
+   ],
+   "label": "Tap the heart: play the note"
+  },
+  {
+   "id": "speaker",
+   "module": "SPK_28MM_8R_2W",
+   "face": "left",
+   "at": [
+    -14,
+    23
+   ],
+   "label": "Voice note speaker",
+   "grille": {
+    "pattern": "concentric",
+    "w": 25,
+    "h": 25,
+    "hole": 1.8,
+    "pitch": 3.6
+   }
+  },
+  {
+   "id": "setup_button",
+   "module": "BUTTON_TACTILE_KY004",
+   "face": "rear",
+   "at": [
+    0,
+    100
+   ],
+   "label": "Hold: Wi-Fi setup. Tap: volume"
+  }
+ ],
+ "electronics": {
+  "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+  "extra_modules": [],
+  "power": {
+   "input": "usb_c_5v",
+   "adapter_in_box": false
+  }
+ },
+ "behaviour": {
+  "template": "story_player",
+  "summary": "Your recorded voice notes live on its microSD card. When you send a message from your phone on the home Wi-Fi, the heart glows a soft warm white. She taps the heart to hear your note; tap again to stop. The small speaker in the base plays it at a gentle volume.",
+  "settings": {
+   "capture_mode": "none",
+   "night_light": true,
+   "night_light_minutes": 30,
+   "night_light_brightness": 18,
+   "night_light_color": "#FFD9B0",
+   "story_order": "sequential"
+  }
+ },
+ "safety": {
+  "flags": [
+   "NIGHT_USE"
+  ],
+  "notes": "No microphone: it only plays notes you load. Glow brightness capped in firmware. Local Wi-Fi control only; nothing is sent to a cloud. External certified USB-C supply."
+ }
+}

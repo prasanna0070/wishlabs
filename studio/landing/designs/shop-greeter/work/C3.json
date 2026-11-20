@@ -1,0 +1,218 @@
+{
+  "schema": "gadget-spec/1",
+  "name": "Swagat Shop Greeter",
+  "slug": "shop-greeter",
+  "tagline": "An arched counter sign with your shop's name that lights up and chimes a welcome when a customer walks in",
+  "audience": {
+    "child_directed": false
+  },
+  "region": "IN",
+  "colors": {
+    "body": "#F4A81D",
+    "accent": "#B3122E",
+    "detail": "#0B6E69",
+    "body_name": "marigold",
+    "accent_name": "sindoor red",
+    "detail_name": "peacock teal"
+  },
+  "body": {
+    "family": "blob",
+    "edge_round": 0,
+    "wall": 3.0,
+    "split": "base_plate",
+    "feet": 4,
+    "primitives": [
+      {
+        "kind": "rounded_box",
+        "center": [
+          0,
+          0,
+          26
+        ],
+        "size": [
+          196,
+          108,
+          52
+        ],
+        "radius": 12
+      },
+      {
+        "kind": "rounded_box",
+        "center": [
+          0,
+          0,
+          91
+        ],
+        "size": [
+          180,
+          34,
+          110
+        ],
+        "radius": 10
+      },
+      {
+        "kind": "cylinder",
+        "axis": "y",
+        "center": [
+          0,
+          0,
+          152
+        ],
+        "size": [
+          182,
+          34,
+          96
+        ],
+        "radius": 10
+      }
+    ]
+  },
+  "decor": [
+    {
+      "type": "face_plate",
+      "shape": "rounded_rect",
+      "at": [
+        0,
+        114
+      ],
+      "size": [
+        164,
+        30
+      ],
+      "depth": 1.0,
+      "relief": "engrave",
+      "color": "accent"
+    },
+    {
+      "type": "text",
+      "text": "KIRAN STORES",
+      "at": [
+        0,
+        114
+      ],
+      "height": 12,
+      "relief": "engrave",
+      "depth": 0.6,
+      "color": "body"
+    },
+    {
+      "type": "face_plate",
+      "shape": "rounded_rect",
+      "at": [
+        0,
+        26
+      ],
+      "size": [
+        178,
+        30
+      ],
+      "depth": 1.0,
+      "relief": "engrave",
+      "color": "detail"
+    },
+    {
+      "type": "text",
+      "text": "WELCOME",
+      "at": [
+        0,
+        26
+      ],
+      "height": 10,
+      "relief": "engrave",
+      "depth": 0.6,
+      "color": "body"
+    }
+  ],
+  "features": [
+    {
+      "id": "glow",
+      "module": "LED_RING_12_WS2812_50MM",
+      "face": "front",
+      "at": [
+        0,
+        160
+      ],
+      "label": "Welcome glow"
+    },
+    {
+      "id": "speaker",
+      "module": "SPK_40MM_4R_3W",
+      "face": "front",
+      "at": [
+        0,
+        76
+      ],
+      "label": "Welcome chime and message",
+      "grille": {
+        "pattern": "dots_ellipse",
+        "w": 34,
+        "h": 34,
+        "hole": 2.4,
+        "pitch": 4.0
+      }
+    },
+    {
+      "id": "chime_touch",
+      "module": "TOUCH_TTP223_SMALL_15X11",
+      "face": "front",
+      "at": [
+        -64,
+        26
+      ],
+      "label": "Tap: next chime. Hold: quiet"
+    },
+    {
+      "id": "motion",
+      "module": "PIR_AM312_MINI",
+      "face": "front",
+      "at": [
+        64,
+        26
+      ],
+      "label": "Customer sensor"
+    }
+  ],
+  "electronics": {
+    "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "extra_modules": [],
+    "power": {
+      "input": "usb_c_5v",
+      "adapter_in_box": false
+    }
+  },
+  "behaviour": {
+    "template": "ambient_light",
+    "summary": "When a customer walks in, the sun at the top of the arch glows and a short welcome chime or message plays. Tap the ring on the step for the next chime, hold it for quiet mode. It dims back after a couple of minutes with no one around.",
+    "settings": {
+      "scenes": [
+        {
+          "name": "Marigold",
+          "color": "#FFB020",
+          "brightness": 70,
+          "effect": "solid"
+        },
+        {
+          "name": "Diya",
+          "color": "#FF9A3C",
+          "brightness": 55,
+          "effect": "candle"
+        },
+        {
+          "name": "Festive",
+          "color": "#FFFFFF",
+          "brightness": 45,
+          "effect": "rainbow"
+        }
+      ],
+      "auto_dim": false,
+      "motion_wake": true,
+      "off_after_minutes": 2
+    }
+  },
+  "safety": {
+    "flags": [
+      "MOTION_SENSING"
+    ],
+    "notes": "A passive infrared sensor detects movement only; there is no camera and no microphone, so nothing about customers is recorded. External certified USB-C supply."
+  }
+}

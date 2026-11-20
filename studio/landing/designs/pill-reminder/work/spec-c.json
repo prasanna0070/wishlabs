@@ -1,0 +1,156 @@
+{
+  "schema": "gadget-spec/1",
+  "name": "Dose Pill Reminder",
+  "slug": "pill-reminder",
+  "tagline": "A big friendly capsule that shows, chimes and says which tablet to take now",
+  "audience": {
+    "child_directed": false
+  },
+  "region": "IN",
+  "colors": {
+    "body": "#F2F5F3",
+    "accent": "#F7F8F6",
+    "detail": "#2E9E92",
+    "body_name": "clinic white",
+    "accent_name": "white",
+    "detail_name": "teal"
+  },
+  "body": {
+    "family": "blob",
+    "primitives": [
+      {
+        "kind": "capsule",
+        "axis": "x",
+        "center": [
+          0,
+          0,
+          38
+        ],
+        "size": [
+          248,
+          128,
+          128
+        ],
+        "radius": 0
+      },
+      {
+        "kind": "cylinder",
+        "axis": "x",
+        "center": [
+          34,
+          0,
+          38
+        ],
+        "size": [
+          52,
+          132,
+          132
+        ],
+        "radius": 1.2
+      },
+      {
+        "kind": "sphere",
+        "center": [
+          60,
+          0,
+          38
+        ],
+        "size": [
+          132,
+          132,
+          132
+        ],
+        "radius": 0
+      }
+    ],
+    "edge_round": 3,
+    "wall": 2.4,
+    "split": "base_plate",
+    "feet": 4
+  },
+  "decor": [
+    {
+      "type": "face_plate",
+      "shape": "rounded_rect",
+      "at": [
+        68,
+        52
+      ],
+      "size": [
+        118,
+        108
+      ],
+      "depth": 0.6,
+      "relief": "emboss",
+      "color": "detail"
+    }
+  ],
+  "features": [
+    {
+      "id": "dose_screen",
+      "module": "LCD_200_ST7789_240X320_WAVESHARE",
+      "face": "front",
+      "at": [
+        -44,
+        42
+      ],
+      "label": "Which tablet to take now"
+    },
+    {
+      "id": "taken_button",
+      "module": "BUTTON_ARCADE_30MM_SNAPIN",
+      "face": "top",
+      "at": [
+        54,
+        -6
+      ],
+      "label": "Press when the tablet is taken"
+    },
+    {
+      "id": "voice_speaker",
+      "module": "SPK_40MM_4R_3W",
+      "face": "top",
+      "at": [
+        -44,
+        0
+      ],
+      "label": "Chime and spoken reminder",
+      "grille": {
+        "pattern": "concentric",
+        "w": 36,
+        "h": 36,
+        "hole": 2.0,
+        "pitch": 4.0
+      }
+    },
+    {
+      "id": "dose_light",
+      "module": "LED_RING_12_WS2812_50MM",
+      "face": "left",
+      "at": [
+        0,
+        40
+      ],
+      "label": "Glows when a dose is due"
+    }
+  ],
+  "electronics": {
+    "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "extra_modules": [
+      "RTC_DS3231_ZS042"
+    ],
+    "power": {
+      "input": "usb_c_5v",
+      "adapter_in_box": false
+    }
+  },
+  "behaviour": {
+    "template": "notifier_clock",
+    "summary": "Shows the time and the next tablet in big colour pictures. At each set time the end light glows, it chimes and announces the dose; press the big top button once the tablet is taken. Family sets the schedule from their phone over Wi-Fi; the clock keeps time through power cuts.",
+    "settings": {}
+  },
+  "safety": {
+    "flags": [],
+    "notes": "Reminder aid only, not a medical device. External certified USB-C supply. The RTC coin cell sits under the screwed base plate."
+  }
+}
