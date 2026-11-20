@@ -1,0 +1,46 @@
+{
+  "schema": "gadget-spec/1",
+  "name": "Stepped Desk Tower",
+  "slug": "stepped-desk-tower",
+  "tagline": "A three-step desk organiser with trays, pen cups and a phone slot, and a clock that flags your reminders",
+  "audience": {"child_directed": false},
+  "region": "IN",
+  "colors": {"body": "#D9CBB0", "accent": "#6B4F3A", "detail": "#2E2E2E", "body_name": "oat", "accent_name": "walnut", "detail_name": "charcoal"},
+  "body": {
+    "family": "csg",
+    "csg": {
+      "op": "cut", "name": "stepped organiser tower",
+      "node": {"op": "union", "name": "three steps, rising to the back", "nodes": [
+        {"op": "box", "name": "front step", "size": [160, 120, 55], "round": 5},
+        {"op": "move", "to": [0, 22.5, 0], "node": {"op": "box", "name": "middle step", "size": [160, 75, 105], "round": 5}},
+        {"op": "move", "to": [0, 42.5, 0], "node": {"op": "box", "name": "back step", "size": [160, 35, 150], "round": 5}}
+      ]},
+      "minus": [
+        {"op": "move", "name": "left tray", "to": [-42, -38, 41], "node": {"op": "box", "size": [64, 34, 30], "round": 6}},
+        {"op": "move", "name": "right tray", "to": [42, -38, 41], "node": {"op": "box", "size": [64, 34, 30], "round": 6}},
+        {"op": "move", "name": "pen cup 1", "to": [-62, 6, 62], "node": {"op": "cylinder", "r": 10, "h": 60, "round": 2}},
+        {"op": "move", "name": "pen cup 2", "to": [-38, 6, 62], "node": {"op": "cylinder", "r": 10, "h": 60, "round": 2}},
+        {"op": "move", "name": "pen cup 3", "to": [38, 6, 62], "node": {"op": "cylinder", "r": 10, "h": 60, "round": 2}},
+        {"op": "move", "name": "pen cup 4", "to": [62, 6, 62], "node": {"op": "cylinder", "r": 10, "h": 60, "round": 2}},
+        {"op": "move", "name": "phone slot", "to": [10, 33, 134], "node": {"op": "box", "size": [110, 10, 30], "round": 2}}
+      ]
+    },
+    "wall": 2.4,
+    "edge_round": 3,
+    "split": "base_plate",
+    "feet": 4
+  },
+  "decor": [],
+  "features": [
+    {"id": "clock", "module": "OLED_130_SH1106_I2C", "face": "front", "at": [0, 80], "label": "Time and the next reminder"},
+    {"id": "notice_light", "module": "LED_WS2812B_1PX_MODULE", "face": "front", "at": [0, 118], "label": "Lights up for a reminder"},
+    {"id": "clear_button", "module": "BUTTON_TACTILE_KY004", "face": "front", "at": [-55, 26], "label": "Clear the reminder"}
+  ],
+  "electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8", "extra_modules": [], "power": {"input": "usb_c_5v", "adapter_in_box": false}},
+  "behaviour": {
+    "template": "notifier_clock",
+    "summary": "Shows the time (from the internet over the home Wi-Fi) and the next reminder. At 11:00 and 16:30 it shows a stretch reminder and the light comes on until you press the button on the front.",
+    "settings": {"schedule": [{"time": "11:00", "text": "Stand up and stretch"}, {"time": "16:30", "text": "Water and a walk"}]}
+  },
+  "safety": {"flags": [], "notes": "Trays, pen cups and the phone slot are closed pockets in the printed shell, walled off from the electronics. External certified USB-C 5 V supply."}
+}

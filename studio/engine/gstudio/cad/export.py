@@ -576,7 +576,7 @@ if __name__ == "__main__":
 '''
 
 
-def vendor_source(cad_dir: Path, name: str, engine: str) -> None:
+def vendor_source(cad_dir: Path, name: str, engine: str, extra: tuple = ()) -> None:
     src = Path(__file__).resolve().parent
     dst = cad_dir / "gadget_cad"
     if dst.exists():
@@ -585,6 +585,10 @@ def vendor_source(cad_dir: Path, name: str, engine: str) -> None:
     for f in VENDOR:
         if (src / f).exists():
             shutil.copy2(src / f, dst / f)
+    for f in extra:  # pack `freeform`: a csg body also needs its builder and the light tree compiler (gstudio/csg.py)
+        p = (src / f) if (src / f).exists() else (src.parent / f)
+        if p.exists():
+            shutil.copy2(p, dst / Path(f).name)
     (dst / "__init__.py").write_text('"""Vendored Wish Labs CAD modules (see ../gadget_cad.py)."""\n')
     (cad_dir / "gadget_cad.py").write_text(SCRIPT.format(name=name, engine=engine))
     lock = src / "requirements.lock"
@@ -643,5 +647,6 @@ def write_all(model, cad_dir: Path, print_dir: Path, vendor: bool = True, engine
     tm["step"] = round(_t.time() - t, 1)
     files["timings"] = tm
     if vendor:
-        vendor_source(cad_dir, model.params.get("name", "Gadget"), engine)
+        csg_files = ("csg_body.py", "csg.py") if (model.params.get("body") or {}).get("family") == "csg" else ()
+        vendor_source(cad_dir, model.params.get("name", "Gadget"), engine, extra=csg_files)
     return files

@@ -284,7 +284,21 @@ class BlobBody(_BodyCommon):
         return prims
 
 
-Body = Annotated[Union[SilhouetteBody, RevolveBody, BlobBody], Field(discriminator="family")]
+class CsgBody(_BodyCommon):
+    """Freeform form (pack `freeform`, gstudio.csg): the OUTER shape as a tree of JSON nodes (box, cylinder, cone, sphere,
+    torus, extrude, revolve, move, union, cut, intersect), hollowed by the engine. Data only: no code is ever run."""
+
+    family: Literal["csg"]
+    csg: dict[str, Any] = Field(..., description="CSG node tree (see the freeform rules): the outer form, mm, z = 0 is the table")
+    edge_round: float = Field(3.0, ge=0, le=25, description="round of the bottom edge where the shape meets the table, mm "
+                              "(rounded pieces standing on z = 0 keep a flat, square-edged bottom; this rounds it)")
+    # no rear_cover: on csg forms the rear-cover seam gave collisions, thin walls and no cord tie in VM tests (2026-11-21)
+    split: Literal["base_plate", "none"] = Field("base_plate", description="base_plate (the electronics go in from the "
+                                                 "bottom) or none (one-piece printed object)")
+
+
+FREEFORM_PACK = "freeform"
+Body = Annotated[Union[SilhouetteBody, RevolveBody, BlobBody, CsgBody], Field(discriminator="family")]
 
 _FAMILY_KEYS = {
     "silhouette": {"outline", "depth"},
@@ -554,6 +568,14 @@ class Spec(_M):
     @classmethod
     def _drop_foreign_nulls(cls, v: Any) -> Any:
         """The §3 example lists every family's keys with nulls; drop null keys that belong to other families."""
+        if isinstance(v, dict) and v.get("family") is None and v.get("kind") == "csg":
+            v = {**{k: val for k, val in v.items() if k != "kind"}, "family": "csg"}  # contract alias: body.kind "csg"
+        if isinstance(v, dict) and v.get("family") == "csg":  # pack `freeform`: drop the other families' null keys
+            foreign = set().union(*_FAMILY_KEYS.values())
+            v = {k: val for k, val in v.items() if not (k in foreign and val is None)}
+            if v.get("squash_y") in (1, 1.0):
+                v.pop("squash_y", None)
+            return v
         if isinstance(v, dict) and v.get("family") in _FAMILY_KEYS:
             fam = v["family"]
             foreign = set().union(*(k for f, k in _FAMILY_KEYS.items() if f != fam))
@@ -669,6 +691,17 @@ def pack_checks(spec: Spec) -> list[dict]:
                                 "use rounded_box, sphere, ellipsoid, cylinder or capsule"))
             if any(pr.rot):
                 errs.append(_na(f"body.primitives[{k}].rot", "turning a primitive (rot)", "leave rot out (no rotation)"))
+    if spec.body.family == "csg":
+        if FREEFORM_PACK not in on:
+            errs.append(_na("body.family", "a freeform CSG body (family 'csg')", "use body family silhouette, revolve or blob"))
+        else:
+            from . import csg as _csg  # light: pure Python + numpy
+
+            cerrs = _csg.validate_tree(spec.body.csg, "body.csg")
+            if not cerrs:
+                cerrs = _csg.solid_checks(spec.body.csg, "printed" if spec.kind == "printed" else "gadget", "body.csg",
+                                          wall=spec.body.wall)
+            errs += cerrs
     tmpl = spec.behaviour.template if spec.behaviour is not None else None
     if tmpl in PACK_TEMPLATES and PACK_TEMPLATES[tmpl] not in on:
         errs.append(_na("behaviour.template", f"the {tmpl} app", "use another template"))
@@ -743,7 +776,7 @@ def validate_spec(data: Any) -> tuple[Optional[Spec], list[dict]]:
 
 
 # --------------------------------------------------------------------------------------------- error formatting
-_TAGS = {"silhouette", "revolve", "blob", "face_plate", "eye", "mouth", "blush", "ear", "text"}
+_TAGS = {"silhouette", "revolve", "blob", "csg", "face_plate", "eye", "mouth", "blush", "ear", "text"}
 
 
 def _is_tag(loc: tuple, k: int) -> bool:
@@ -804,6 +837,7 @@ _UNION_MEMBERS: dict[str, type[BaseModel]] = {
     "silhouette": SilhouetteBody,
     "revolve": RevolveBody,
     "blob": BlobBody,
+    "csg": CsgBody,
     "face_plate": FacePlate,
     "eye": Eye,
     "mouth": Mouth,
@@ -846,6 +880,11 @@ def pydantic_errors(e: ValidationError) -> list[dict]:
             tag = err.get("ctx", {}).get("discriminator", "").strip("'")
             msg = f"unknown {tag or 'type'} {inp if not isinstance(inp, dict) else inp.get(tag)!r}"
             fix = "use one of: " + err.get("ctx", {}).get("expected_tags", "")
+            if "'csg'" in fix:
+                from . import packs
+
+                if FREEFORM_PACK not in packs.enabled_set():
+                    fix = fix.replace(", 'csg'", "").replace("'csg', ", "")
         elif typ == "union_tag_not_found":
             tag = err.get("ctx", {}).get("discriminator", "").strip("'")
             msg = f"missing '{tag}'"
@@ -916,6 +955,18 @@ def _pack_schema(sch: dict, packs_on: Optional[Any] = None) -> dict:
     beh = ((defs.get("Behaviour") or {}).get("properties") or {}).get("template") or {}
     if isinstance(beh.get("enum"), list):
         beh["enum"] = [t for t in beh["enum"] if t not in PACK_TEMPLATES or PACK_TEMPLATES[t] in on]
+    if FREEFORM_PACK not in on:  # pack `freeform`: no trace of the csg family in the schema
+        bod = props.get("body") or {}
+        if isinstance(bod.get("oneOf"), list):
+            bod["oneOf"] = [r for r in bod["oneOf"] if r.get("$ref") != "#/$defs/CsgBody"]
+        mp = (bod.get("discriminator") or {}).get("mapping")
+        if isinstance(mp, dict):
+            mp.pop("csg", None)
+        defs.pop("CsgBody", None)
+    elif "printed" not in on:
+        sp = ((defs.get("CsgBody") or {}).get("properties") or {}).get("split") or {}
+        if isinstance(sp.get("enum"), list):
+            sp["enum"] = [v for v in sp["enum"] if v != "none"]
     used = json.dumps(props)
     for name in ("PrintedOpts", "Cut", "Mount"):
         if f'"#/$defs/{name}"' not in used:

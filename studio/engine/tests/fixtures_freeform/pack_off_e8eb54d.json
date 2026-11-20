@@ -1,0 +1,29 @@
+{
+ "sha256": {
+  "schema|": "9019aaf251fb76022052a51a0fdd6f1fda197068a7d4f30316890c7da7c578a3",
+  "schema|sensing,schedule": "9019aaf251fb76022052a51a0fdd6f1fda197068a7d4f30316890c7da7c578a3",
+  "schema|sensing,schedule,motion,printed,printed_cuts,mount,sculpt": "35099f25897219afba1a9f978fd494215e545608b73f2933eaa8663a38ab17cd",
+  "validate|sensing,schedule,motion,printed,printed_cuts,mount,sculpt|examples/bedtime-robot": "bd5775ed4564970c4fdf9519d899a59fc79aebae8cda7f0479337cbf757bd365",
+  "validate|sensing,schedule,motion,printed,printed_cuts,mount,sculpt|examples/cloud-lamp": "c44cb8beff7e6b498cd7e85a4fa6c29c6bc9b90b016ee3260f53ad8276523491",
+  "validate|sensing,schedule,motion,printed,printed_cuts,mount,sculpt|examples/desk-buddy": "b03432c1a0660726a991086b453f2746bef1a3fa2a8a6dee6a4cf21569c1db7d",
+  "validate|sensing,schedule,motion,printed,printed_cuts,mount,sculpt|motion/pet-feeder-flap": "fc0d48d02bc6b8a61c52f5086521fe5e481ca1c86703c2f76d98bbfd70774393",
+  "validate|sensing,schedule,motion,printed,printed_cuts,mount,sculpt|motion/waving-desk-buddy": "8153acf2090e571287948028fb5f71472091a43614f095752d3cb7ee5c218a2c",
+  "validate|sensing,schedule,motion,printed,printed_cuts,mount,sculpt|sensing/plant-monitor": "70cda95454a02c4df9e128ad0e80aae5e428c7950f16dd35830435e328f55856",
+  "validate|sensing,schedule,motion,printed,printed_cuts,mount,sculpt|sensing/tank-low-alarm": "c640fda0c03555b11afb6783a2781f09098bf4e7d78ccb812bf9ce3bd38b658e",
+  "validate|sensing,schedule|examples/bedtime-robot": "bd5775ed4564970c4fdf9519d899a59fc79aebae8cda7f0479337cbf757bd365",
+  "validate|sensing,schedule|examples/cloud-lamp": "c44cb8beff7e6b498cd7e85a4fa6c29c6bc9b90b016ee3260f53ad8276523491",
+  "validate|sensing,schedule|examples/desk-buddy": "b03432c1a0660726a991086b453f2746bef1a3fa2a8a6dee6a4cf21569c1db7d",
+  "validate|sensing,schedule|motion/pet-feeder-flap": "4df2fca90144712c3af5e920a1eec2b51ead9dd04c86b1e09d13799d254ee4a2",
+  "validate|sensing,schedule|motion/waving-desk-buddy": "5bc2d2596809466ce35a4b17235403dcf1c008ec9fc2f17454f17817eca113ae",
+  "validate|sensing,schedule|sensing/plant-monitor": "70cda95454a02c4df9e128ad0e80aae5e428c7950f16dd35830435e328f55856",
+  "validate|sensing,schedule|sensing/tank-low-alarm": "c640fda0c03555b11afb6783a2781f09098bf4e7d78ccb812bf9ce3bd38b658e",
+  "validate||examples/bedtime-robot": "bd5775ed4564970c4fdf9519d899a59fc79aebae8cda7f0479337cbf757bd365",
+  "validate||examples/cloud-lamp": "c44cb8beff7e6b498cd7e85a4fa6c29c6bc9b90b016ee3260f53ad8276523491",
+  "validate||examples/desk-buddy": "b03432c1a0660726a991086b453f2746bef1a3fa2a8a6dee6a4cf21569c1db7d",
+  "validate||motion/pet-feeder-flap": "4df2fca90144712c3af5e920a1eec2b51ead9dd04c86b1e09d13799d254ee4a2",
+  "validate||motion/waving-desk-buddy": "5bc2d2596809466ce35a4b17235403dcf1c008ec9fc2f17454f17817eca113ae",
+  "validate||sensing/plant-monitor": "cd508e8d79208b3e046e0c45a61f3723928de12e53a748e1ed11e4de31c8e12e",
+  "validate||sensing/tank-low-alarm": "b8d7643157a919184572af8116274c89643b5796bded611cddc572e044c00639"
+ },
+ "source": "main e8eb54d (live), _ff/po.py: schema text + pipeline.validate of examples/* and library/packs/examples/{sensing,motion}/* under three pack sets"
+}

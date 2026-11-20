@@ -190,6 +190,22 @@ class ShellGeometry:
             self.poly_pts = pts
             rmax = max(r for r, _ in pts)
             self.bbox = (-rmax, rmax, -rmax * b.squash_y, rmax * b.squash_y, 0.0, max(z for _, z in pts))
+        elif getattr(b, "family", None) == "csg":  # pack `freeform`: the compiled CSG tree (gstudio.csg, pure Python)
+            from .csg import CsgError, compile_tree, solid_checks
+
+            self.csg_info: dict = {}
+            try:
+                self.csg = compile_tree(b.csg, "body.csg")
+            except CsgError:
+                self.csg = None  # the spec checks report the tree errors; nothing is inside an invalid tree
+            if self.csg is not None:  # cached grid analysis: which hollow piece the CAD keeps (inside() honours it)
+                try:
+                    solid_checks(b.csg, "printed" if getattr(spec, "kind", "gadget") == "printed" else "gadget", "body.csg",
+                                 info=self.csg_info, wall=b.wall)
+                except Exception:  # noqa: BLE001 - without it inside() is the plain distance test
+                    self.csg_info = {}
+            bb = self.csg.bounds if self.csg is not None else None
+            self.bbox = tuple(bb) if bb else (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         else:
             boxes = [_prim_bounds(p) for p in b.primitives]
             self.bbox = (min(q[0] for q in boxes), max(q[1] for q in boxes), min(q[2] for q in boxes),
@@ -206,6 +222,8 @@ class ShellGeometry:
             rho = math.sqrt(x * x + (y / b.squash_y) ** 2)
             d = self.poly.sdf(rho, z)
             return d * min(1.0, b.squash_y) if d < 0 else d
+        if b.family == "csg":
+            return self.csg.sdf(x, y, z) if self.csg is not None else 1.0
         d = min(_prim_sdf(p, x, y, z) for p in b.primitives)
         return max(d, -z)
 
@@ -218,7 +236,12 @@ class ShellGeometry:
 
     def inside(self, x: float, y: float, z: float, margin: float = 0.0) -> bool:
         """True when the point lies in the inner cavity with `margin` mm to the inner wall surface."""
-        return self.outer_sdf(x, y, z) <= -(self.wall + margin) and z >= self.floor_z + margin - 1e-9
+        ok = self.outer_sdf(x, y, z) <= -(self.wall + margin) and z >= self.floor_z + margin - 1e-9
+        if ok and self.family == "csg":  # a csg piece whose hollow does not join the main one prints solid (cad.csg_body)
+            from .csg import in_main_hollow
+
+            return in_main_hollow(getattr(self, "csg_info", None) or {}, x, y, z)
+        return ok
 
     def solid(self, x: float, y: float, z: float) -> bool:
         return self.outer_sdf(x, y, z) <= 0.0
@@ -340,7 +363,8 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
         return normalize_printed(sp, lib, raise_on_error)
     sp = sp.model_copy(deep=True)
     errors: list[dict] = list(cross_check(sp))
-    if sp.behaviour is None:  # a gadget needs behaviour (cross_check says so); nothing else can be checked without it
+    if sp.behaviour is None or (sp.body.family == "csg" and any(  # pack `freeform`: no geometry from a bad CSG tree
+            str(e.get("path", "")).startswith("body.csg") or (e.get("path") == "body.family") for e in errors)):
         if raise_on_error:
             raise SpecError(errors)
         return sp, _bare_report(errors)
@@ -627,6 +651,12 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
     # the full envelope the CAD builds: its own outline spline plus every ear and antenna where decor.apply_ears puts them
     # (live failure 2026-11-02: the old estimate said 148 x 105 x 195 mm for a shell the CAD made 167.6 x 97.6 x 212.7 mm)
     env = full_envelope(sp, geom)
+    if sp.body.family == "csg":  # pack `freeform`: engine adjustments, and pieces that print solid
+        warnings += list(getattr(getattr(geom, "csg", None), "notes", None) or [])
+        for pc in (getattr(geom, "csg_info", None) or {}).get("solid_pieces") or []:
+            warnings.append(f"body.csg: {pc['label']} prints solid ({pc['cm3']:.0f} cm3 of plastic): its hollow does not join the "
+                            f"main hollow, so nothing can mount behind its faces; overlap it with the main body by at least "
+                            f"{2 * sp.body.wall + 1:.0f} mm if it should be hollow")
     x0, x1, y0, y1, z0, z1 = env["bbox"]
     warnings += [f"envelope: {n}" for n in env["notes"]]
     size = (x1 - x0, y1 - y0, z1 - z0)
@@ -660,8 +690,9 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
         k = math.floor(fit["scale_to_fit"] * 0.98 * 100) / 100  # 2 % margin on the CAD estimate
         _err(errors, "body", f"the full envelope (body, ears and antennae, as the CAD builds them) is {dims} and does not fit the "
              f"{BED[0]:.0f} x {BED[1]:.0f} x {BED[2]:.0f} mm printer in any orientation{sticks}",
-             f"scale the whole design by {k:.2f} or less (multiply every body.outline point, body.depth and every decor and feature "
-             f"size and position by {k:.2f}) so the longest side is <= {BED[0]:.0f} mm and the other two <= {BED[1]:.0f} mm"
+             f"scale the whole design by {k:.2f} or less (multiply " + ("every length in body.csg (sizes, radii, heights, outline "
+             "points and move positions)" if sp.body.family == "csg" else "every body.outline point, body.depth") +
+             f" and every decor and feature size and position by {k:.2f}) so the longest side is <= {BED[0]:.0f} mm and the other two <= {BED[1]:.0f} mm"
              + (", or make the ears/antennae shorter (decor size[1])" if sticks else ""), "bed")
     elif not fit["upright"]:
         k = math.floor(fit["scale_to_fit_upright"] * 0.98 * 100) / 100
@@ -695,9 +726,10 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
             y_cap = y_seam - SEAM_BOSS_MARGIN - holes_y
         usb_slot = lib.slot("J_PWR")
         usb_bx = (usb_slot["courtyard"][0] + usb_slot["courtyard"][1]) / 2
+        ctrace = [] if sp.body.family == "csg" else None  # pack `freeform`: name the binding place, not the rear wall
         y_off, cart_box, why = _place_cartridge(geom, W, (kx0, kx1, ky0, ky1), floor, kz, rear_gap, kb, bosses,
                                                 cart["board_bottom_above_floor"], y_cap, usb_bx=usb_bx,
-                                                base_plate=sp.body.split == "base_plate")
+                                                base_plate=sp.body.split == "base_plate", trace=ctrace)
         if y_off is not None:
             warnings += boss_warnings(geom, bosses, y_off, floor, cart["board_bottom_above_floor"])
         if y_off is None:
@@ -712,6 +744,8 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
             if "base-plate opening" in why:
                 fix = (f"the board goes in through the base-plate opening: make the flat bottom at least {kx1 - kx0 + 2 * geom.wall:.0f} x "
                        f"{ky1 - ky0 + 2 * geom.wall:.0f} mm (smaller bottom fillets), or use split rear_cover")
+            if ctrace and "base-plate opening" not in why:
+                why, fix = _csg_cartridge_text(ctrace, geom, why, fix)
             _err(errors, "body", f"the core cartridge ({kx1 - kx0:.0f} x {ky1 - ky0:.0f} x {kz:.0f} mm keep-out) does not fit inside the shell: {why}",
                  fix, "cartridge_fit")
     derived_cart = None
@@ -1145,7 +1179,7 @@ def seam_y(geom: ShellGeometry, W: float, floor: float) -> float:
 
 
 def _place_cartridge(geom: ShellGeometry, W, plan, floor, kz, rear_gap, kb=0.0, bosses=(), boss_top=6.4, y_cap=None,
-                     usb_bx=None, base_plate=False, step=1.0):
+                     usb_bx=None, base_plate=False, step=1.0, trace: Optional[list] = None):
     """Board y offset (board y=0 -> world y_off), mirroring gstudio.cad.enclosure.place_cartridge so normalize and CAD agree:
     start with the USB-C face `rear_gap` inside the inner rear wall (ray at the receptacle x, board top + 1.6), cap by
     the rear-cover seam rule (`y_cap`), then step forward 1 mm until the keep-out (CLEAR mm on every side, rear minus
@@ -1182,6 +1216,11 @@ def _place_cartridge(geom: ShellGeometry, W, plan, floor, kz, rear_gap, kb=0.0, 
         ys = _lin(yo + ky0 - CLEAR, yo + ky1 + CLEAR - 0.3, (ky1 - ky0 + 2 * CLEAR - 0.3) / 8)
         # checked against the cavity with the silhouette's edge rounds (fit_sdf), like gstudio.cad.enclosure
         zs = (floor + z_bottom, floor + kz * 0.5, floor + kz)
+        if trace is not None:  # pack `freeform` (csg bodies only): every failing sample of this try, for the error text
+            bad = [(x, yy, z) for z in zs for x in xs for yy in ys
+                   if (x in (xs[0], xs[-1]) or yy in (ys[0], ys[-1])) and geom.fit_sdf(x, yy, z) > -geom.wall]
+            trace.append({"y0": yo, "fails": bad, "n": 3 * (2 * len(xs) + 2 * len(ys) - 4),
+                          "box": (xs[0], xs[-1], ys[0], ys[-1], zs[0], zs[-1])})
         for z in zs:
             for x in xs:
                 for yy in (ys[0], ys[-1]):
@@ -1221,6 +1260,33 @@ def _place_cartridge(geom: ShellGeometry, W, plan, floor, kz, rear_gap, kb=0.0, 
             opening = opening or "base-plate opening" in why
             y0 -= step
     return None, None, first + ("; the plan also never fits the base-plate opening" if opening and "base-plate opening" not in first else "")
+
+
+def _csg_cartridge_text(trace: list, geom: "ShellGeometry", why: str, fix: str) -> tuple[str, str]:
+    """pack `freeform`: the cartridge try that came closest (fewest samples in the wall), where it fails and the block
+    the csg body must keep free (keep-out + clearance + wall, spec coordinates). The rear-most try always fails on the
+    rear wall by construction, so its reason never told the agent what to change (agent request 4)."""
+    tries = [t for t in trace if t["fails"]]
+    if not tries:
+        return why, fix
+    best = min(tries, key=lambda t: (len(t["fails"]), -t["y0"]))
+    x0, x1, y0, y1, z0, z1 = best["box"]
+    w = geom.wall
+    sides = []
+    for nm, test in (("top", lambda p: abs(p[2] - z1) < 1e-6), ("front", lambda p: abs(p[1] - y0) < 1e-6),
+                     ("rear", lambda p: abs(p[1] - y1) < 1e-6), ("right (-x)", lambda p: abs(p[0] - x0) < 1e-6),
+                     ("left (+x)", lambda p: abs(p[0] - x1) < 1e-6), ("bottom", lambda p: abs(p[2] - z0) < 1e-6)):
+        pts = [p for p in best["fails"] if test(p)]
+        if pts:
+            sides.append(f"{nm} at x {min(p[0] for p in pts):.0f}..{max(p[0] for p in pts):.0f}, y {min(p[1] for p in pts):.0f}.."
+                         f"{max(p[1] for p in pts):.0f}, z {min(p[2] for p in pts):.0f}..{max(p[2] for p in pts):.0f}")
+    why = (f"at its best place ({len(best['fails'])} of {best['n']} checked points in the wall) the keep-out box x {x0:.0f}..{x1:.0f}, "
+           f"y {y0:.0f}..{y1:.0f}, z {z0:.0f}..{z1:.0f} still meets the wall on its " + "; ".join(sides[:3]))
+    fix = (f"keep the csg body a full block with no slope, step, cut or groove inside x {x0 - w:.0f}..{x1 + w:.0f}, "
+           f"y {y0 - w:.0f}..{y1 + w:.0f}, z 0..{z1 + w:.0f} (the cartridge keep-out plus clearance and the {w:g} mm wall): move "
+           "or raise what cuts into that block (a slope's low end, a lower step, a tray or groove), or make the lower body bigger; "
+           + fix)
+    return why, fix
 
 
 def _silhouette_cartridge_fix(sp: Spec, W, plan, floor, kz, rear_gap, kb, bosses, boss_top, holes, usb_bx) -> str:
@@ -1303,7 +1369,16 @@ def _place_feature(geom: ShellGeometry, f: Feature, m: dict, k: int, errors, war
                 return None
     plane = max(ts) + geom.wall
     tunnel = max(ts) - min(ts)
-    if tunnel > 8.0:
+    tilted = None
+    if tunnel > 8.0 and geom.family == "csg":  # pack `freeform`: a flat face at a slope (wedge consoles) is no curve
+        tmm, tmp_, tpm, tpp = ts[1], ts[2], ts[3], ts[4]  # (-u,-v), (-u,+v), (+u,-v), (+u,+v)
+        if abs(t0 - (tmm + tmp_ + tpm + tpp) / 4) < 0.6 and abs((tpp - tpm) - (tmp_ - tmm)) < 0.6:
+            du_, dv_ = ((tpm + tpp) - (tmm + tmp_)) / 2 / max(fw, 1e-6), ((tmp_ + tpp) - (tmm + tpm)) / 2 / max(fh, 1e-6)
+            tilted = math.degrees(math.atan(math.hypot(du_, dv_)))
+    if tilted is not None:
+        warnings.append(f"features[{k}] {f.id}: the {face} face is a flat slope here (about {tilted:.0f} deg); the CAD mounts the "
+                        "module square to the slope")
+    elif tunnel > 8.0:
         warnings.append(f"features[{k}] {f.id}: the face curves {tunnel:.0f} mm across the module; CAD adds a mounting boss and a deep window")
     # available depth along the centre ray
     avail = 0.0
@@ -1315,15 +1390,27 @@ def _place_feature(geom: ShellGeometry, f: Feature, m: dict, k: int, errors, war
         avail += 1.0
     avail += 0.5
     back_ok = avail >= depth
+    bad_corners = []
     if back_ok:
         for du in (-fw / 2, fw / 2):
             for dv in (-fh / 2, fh / 2):
                 p = geom.point(face, u + du * 0.9, v + dv * 0.9, plane + max(depth, 0.6))
                 if not geom.inside(*p, margin=0.0):
                     back_ok = False
+                    bad_corners.append(("lower" if dv < 0 else "upper") + "-" + ("left" if du < 0 else "right"))
     if not back_ok:
-        _err(errors, f"features[{k}].at", f"{f.id}: {m['id']} needs {depth:.0f} mm behind the wall (module + cable); about {avail:.0f} mm is available at {list(f.at)}",
-             "move it where the body is deeper (toward the centre) or make the body deeper", "feature_depth")
+        fix = "move it where the body is deeper (toward the centre) or make the body deeper"
+        pcs = (getattr(geom, "csg_info", None) or {}).get("solid_pieces") if geom.family == "csg" else None
+        if pcs:  # pack `freeform`: say why a csg piece has no room inside
+            fix += (f"; note {', '.join(p['label'] for p in pcs[:2])} print solid because their hollow does not join the main "
+                    f"hollow: overlap such a piece with the main body by at least {2 * geom.wall + 1:.0f} mm")
+        msg = f"{f.id}: {m['id']} needs {depth:.0f} mm behind the wall (module + cable); about {avail:.0f} mm is available at {list(f.at)}"
+        if geom.family == "csg" and bad_corners:  # pack `freeform` (agent request 2): the centre has room, corners do not
+            msg = (f"{f.id}: {m['id']} needs {depth:.0f} mm behind the wall (module + cable): the centre has about {avail:.0f} mm, but "
+                   f"its {', '.join(bad_corners)} corner(s) (in {face}-face coordinates) reach the wall or leave the main hollow "
+                   "at that depth")
+            fix = "move it toward the middle of the body, away from those corners, or make the body deeper there; " + fix
+        _err(errors, f"features[{k}].at", msg, fix, "feature_depth")
     a = geom.point(face, u - fw / 2, v - fh / 2, plane)
     b = geom.point(face, u + fw / 2, v + fh / 2, plane + depth)
     box = (min(a[0], b[0]), max(a[0], b[0]), min(a[1], b[1]), max(a[1], b[1]), min(a[2], b[2]), max(a[2], b[2]))
@@ -1391,6 +1478,8 @@ def kit_shell_conflicts(sp: Spec, lib, geom: "ShellGeometry", features: list, to
     out = []
     for f in features:
         flat = isinstance(sp.body, SilhouetteBody) and f.face in ("front", "rear")
+        if not flat and sp.body.family == "csg":  # pack `freeform`: a flat face square to the face axis seats the kit
+            flat = _flat_square(geom, f)  # exactly like a silhouette front (CAD frame = face axis), so the probe holds
         try:
             boxes = FP.kit_footprint(f, None, others=features, skin=sp.body.wall, lib_get=lib.get)
         except Exception:
@@ -1419,12 +1508,23 @@ def kit_shell_conflicts(sp: Spec, lib, geom: "ShellGeometry", features: list, to
                     worst = (bad, b, (px, py, pz))
         if worst:
             bad, b, (px, py, pz) = worst
+            fix = (f"move {f.id} toward the middle of the {f.face} face, away from the rounded edge "
+                   f"(by {math.ceil(bad + 2):.0f} mm or more)")
+            if sp.body.family == "csg":  # the wall it meets may be a cut's pocket, a step or the outside
+                fix = (f"move {f.id} (or the cut, step or slope whose wall is there) by {math.ceil(bad + 2):.0f} mm or more so "
+                       "the kit behind the face clears every inner wall")
             out.append({"feature": f.id, "what": b.get("what"), "mm": round(bad, 1),
                         "msg": f"{f.id}: its kit ({b.get('what')}) reaches {bad:.1f} mm into the shell wall or floor near "
                                f"x {px:.0f}, y {py:.0f}, z {pz:.0f}",
-                        "fix": f"move {f.id} toward the middle of the {f.face} face, away from the rounded edge "
-                               f"(by {math.ceil(bad + 2):.0f} mm or more)"})
+                        "fix": fix})
     return out
+
+
+def _flat_square(geom: "ShellGeometry", f) -> bool:
+    """csg bodies: the face under the feature is a plane square to the face axis (same ray depth over +-12 mm)."""
+    u, v = float(f.at[0]), float(f.at[1])
+    ts = [geom.surface_depth(f.face, u + du, v + dv) for du, dv in ((0, 0), (-12, 0), (12, 0), (0, -12), (0, 12))]
+    return all(t is not None for t in ts) and max(ts) - min(ts) < 0.3
 
 
 SEAM_LIP_REACH = 3.0 + 0.5  # the rear cover's locating lip (and its screw tubes) reach 3 mm in front of the seam, + 0.5 gap

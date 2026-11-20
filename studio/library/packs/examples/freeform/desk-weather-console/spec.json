@@ -1,0 +1,37 @@
+{
+  "schema": "gadget-spec/1",
+  "name": "Desk Weather Console",
+  "slug": "desk-weather-console",
+  "tagline": "A wedge console for the desk: air pressure and temperature trends on a screen tilted up toward you",
+  "audience": {"child_directed": false},
+  "region": "IN",
+  "colors": {"body": "#5B6770", "accent": "#F2EFE8", "detail": "#2A9D8F", "body_name": "slate grey", "accent_name": "warm white", "detail_name": "teal"},
+  "body": {
+    "family": "csg",
+    "csg": {
+      "op": "cut", "name": "wedge console",
+      "node": {"op": "extrude", "name": "side profile, front at -y", "axis": "x", "h": 150, "round": 6,
+               "points": [[-60, 0], [60, 0], [60, 104], [22, 104], [-60, 30]]},
+      "minus": [
+        {"op": "move", "name": "pen groove", "to": [0, 42, 97], "node": {"op": "box", "size": [110, 14, 20], "round": 4}}
+      ]
+    },
+    "wall": 2.4,
+    "edge_round": 3,
+    "split": "base_plate",
+    "feet": 4
+  },
+  "decor": [],
+  "features": [
+    {"id": "screen", "module": "LCD_200_ST7789_240X320_WAVESHARE", "face": "front", "at": [0, 72], "label": "Pressure, temperature and the day's trend"},
+    {"id": "page_button", "module": "BUTTON_TACTILE_KY004", "face": "front", "at": [-52, 44], "label": "Next page"},
+    {"id": "air_sensor", "module": "BARO_BMP280_GY_3V3_I2C", "face": "rear", "at": [0, 60], "label": "Air pressure and temperature"}
+  ],
+  "electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8", "extra_modules": [], "power": {"input": "usb_c_5v", "adapter_in_box": false}},
+  "behaviour": {
+    "template": "sensor_display",
+    "summary": "Reads the air pressure and temperature every minute and shows them with a 24-hour trend on the tilted screen; a falling pressure trend often comes before rain. Press the button for the next page. The same readings are on its own page on the home Wi-Fi.",
+    "settings": {"sample_seconds": 60, "trend_hours": 24}
+  },
+  "safety": {"flags": [], "notes": "The sensor sits behind a vent on the back, away from the board's warmth; readings are indicative room values, not a calibrated instrument or a forecast. External certified USB-C 5 V supply."}
+}
