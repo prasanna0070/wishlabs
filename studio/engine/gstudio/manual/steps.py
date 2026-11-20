@@ -26,19 +26,20 @@ from .issues import Issues, load_issues
 from .model import (ROLE_NOUN, Assembly, Group, Vec, anchors_for, axis_phrase, axis_short, bbox_center,
                     bbox_size, comp_qty, connector_dir, dominant_axis, overhang_dir, vadd, vnorm, vscale)
 from .text import axis_words, dedupe, parent_name, tools_line, wrap
+from . import words as W
 
 FOLD_MM = 40  # suggested Z-fold length for spare cable (guidance, stated as such in the text)
 FOOTER = "Rendered from the saved CAD | +Z up | purchased parts are simplified envelopes | not a physical test"
-FACE_PART = {"speaker": "cone", "display": "screen", "button": "cap", "led": "LEDs", "mic": "sound port",
-             "sensor": "sensor face", "touch": "pad", "buzzer": "sound opening"}
-SELFTEST_CHECK = {
+FACE_PART = W.RoleTable({"speaker": "cone", "display": "screen", "button": "cap", "led": "LEDs", "mic": "sound port",
+                         "sensor": "sensor face", "touch": "pad", "buzzer": "sound opening"}, "face_part")
+SELFTEST_CHECK = W.RoleTable({
     "speaker": "the speaker plays the test sound clearly, without crackle",
     "display": "the display shows the test image the right way up",
     "button": "each press of the button is reported once",
     "led": "the light shows each test colour",
     "mic": "the microphone level reacts when you speak near it",
     "sd": "the microSD check reports pass with the card inserted",
-}
+}, "selftest")
 
 
 @dataclass
@@ -209,6 +210,16 @@ MOUNT_TYPES = {"panel_snap": "snap_out", "panel": "panel_nut", "holes": "screws"
 
 
 def mount_kind(module: dict) -> str:
+    mt = W.block(module).get("mount_type")  # a pack row's own words first (words.py)
+    if mt:
+        key = mt.lower().replace("-", " ").strip()
+        if key in ("cable exit", "cable_exit", "lead exit", "outside"):
+            return "cable_exit"
+        if key.replace(" ", "_") in MOUNT_TYPES:
+            return MOUNT_TYPES[key.replace(" ", "_")]
+        if key.replace(" ", "_") in set(MOUNT_TYPES.values()) | {"snap", "clamp"}:
+            return key.replace(" ", "_")
+        module = {**module, "mount": mt}
     m = module.get("mount") if isinstance(module, dict) else None
     if isinstance(m, dict) and str(m.get("type", "")).lower() in MOUNT_TYPES:
         return MOUNT_TYPES[str(m["type"]).lower()]
@@ -232,7 +243,7 @@ def retention_kind(mk: str, g: Group) -> str:
     """The verb comes from the parts actually in the group (MAJ-15): a clip or screws means it is clamped, never
     'peel the backing', whatever the library mount type says."""
     clip = [c for c in g.prints if re.search(r"clip|clamp|strap|ring|retain|bracket|holder", f"{c.name} {c.label}", re.I)]
-    if mk in ("snap_out", "panel_nut"):
+    if mk in ("snap_out", "panel_nut", "cable_exit"):
         return mk
     if clip and g.fasteners:
         return "clamp_screws"
@@ -402,6 +413,12 @@ class Planner:
 
     def harnessed(self) -> list[Group]:
         return [g for g in [*self.A.features, *self.A.internals] if g.ref and g.ref in self.ends]
+
+    def loose_ends(self) -> list[str]:
+        """Harnessed modules with a module-end record but no CAD part: an extra module the CAD does not mount (an RTC in
+        electronics.extra_modules). Their cable is fitted in the bench test like every other (MAJ-10, hand-off b-to-a #3)."""
+        grouped = {g.ref for g in [*self.A.features, *self.A.internals] if g.ref}
+        return sorted(r for r in self.ends if r not in grouped and self.d.comp_for_ref(r) is None)
 
     def mod_fasteners(self) -> Counter:
         """Screws per kit ref from the CAD fastener records (cad/digital-checks.json fastener_engagement)."""
@@ -783,10 +800,13 @@ class Planner:
         usb_row = self.usb_cable_row()
         cable_rows = self.harness_rows()
         groups = self.harnessed()
+        loose = self.loose_ends()
         fits = []
         for g in groups:
             me = self.ends[g.ref]
             fits.append(f"**{g.label or n.noun(g).capitalize()}** ({g.ref}): " + me.instruction(n.name(g.module)))
+        for r in loose:
+            fits.append(f"**{d.module_name(r)}** ({r}): " + self.ends[r].instruction(d.module_name(r)))
         how, exp = self.selftest_text()
         mods = [g for g in [*A.features, *A.internals] if g.module]
         checks = dedupe([SELFTEST_CHECK.get(g.role, f"the {n.noun(g)} responds") for g in mods]
@@ -805,6 +825,7 @@ class Planner:
             "cables fitted on the modules. Nothing here records the test as passed: you do."
         )
         stops = [s for g in groups for s in self.ends[g.ref].stop_rules(n.name(g.module))]
+        stops += [s for r in loose for s in self.ends[r].stop_rules(d.module_name(r))]
         if uart_stop:
             stops.append(uart_stop)
         self.add(Step(
@@ -819,9 +840,10 @@ class Planner:
             extra_stops=stops,
             parts=[c.name for c in [A.backplane, A.core, *A.cartridge_mods] if c] + [g.module.name for g in mods],
             highlight=[c.name for c in [A.backplane, A.core, *A.cartridge_mods] if c],
-            rows=[r.get("module_id") for r in ([usb_row] if usb_row else []) + cable_rows if r.get("module_id")],
-            extra_images=["manual/wiring.png"] + [f"manual/cable-end-{g.ref.lower()}.png" for g in groups],
-            module_end=[g.ref for g in groups],
+            rows=[r.get("module_id") for r in ([usb_row] if usb_row else []) + cable_rows if r.get("module_id")]
+                 + [m for m in (d.instance(r).get("module") for r in loose) if m],  # no CAD part: its purchased row (MAJ-14)
+            extra_images=["manual/wiring.png"] + [f"manual/cable-end-{r.lower()}.png" for r in [g.ref for g in groups] + loose],
+            module_end=[g.ref for g in groups] + loose,
         ))
 
     # ------------------------------------------------------------------ 6-7. prints
@@ -1234,7 +1256,14 @@ class Planner:
             seq.append(f"Push the {lc(n.human(c))} (`{c.name}`) into the {g.label.lower() if g.label else noun} opening from inside, "
                        f"its smooth face toward {face_dir}, until it sits flush with the wall.")
         face = f"{fp} toward {face_dir}" if has_conn or g.role in FACE_PART else f"toward {face_dir}"
-        if rk == "snap_out":
+        fit_line = W.word(g.role, "fit")  # a pack row's own fitting sentence (words.py) replaces the generic one
+        if fit_line:
+            how = fit_line.replace("{name}", f"**{name}**")
+        elif rk == "cable_exit":
+            how = (f"Pass the lead of the **{name}** through its cable exit ({g.label}) from outside" if g.label else
+                   f"Pass the lead of the **{name}** through its cable exit from outside") + \
+                  f", so the {noun} itself stays outside the shell. Do not pull on the lead to seat it."
+        elif rk == "snap_out":
             how = (f"From the outside, push the **{name}** straight into its opening, {face}, until its "
                    "clips catch. Check from inside that every clip has caught; do not lever against the cap.")
         elif rk == "panel_nut":
@@ -1250,6 +1279,10 @@ class Planner:
             how = f"Seat the **{name}** {where} so the {fp} {'face' if plural(fp) else 'faces'} {face_dir}. It must sit flat and square to the opening."
         seq.append(how)
         for c in sorted(clamps, key=depth, reverse=True):
+            if rk == "cable_exit":
+                seq.append(f"Fit the {lc(n.human(c))} (`{c.name}`) on the lead from inside, so a gentle pull on the lead "
+                           "outside does not reach its connector.")
+                continue
             seq.append(f"Fit the {lc(n.human(c))} (`{c.name}`) over the {noun} from inside, so it presses the {noun} toward {face_dir}"
                        + (" against its gasket" if g.extras else "") + ".")
         for c in g.fasteners:
@@ -1270,6 +1303,9 @@ class Planner:
             lines.append("Keep the sound port clear: no foam, tape or glue over the hole itself.")
         if g.role == "led":
             lines.append("Do not look directly into the LEDs from close up when they are tested later.")
+        care = W.word(g.role, "care")
+        if care:
+            lines.append(care)
         body = "\n".join(lines[: len(seq)]) + ("\n\n" + "\n\n".join(x.strip() for x in lines[len(seq):]) if lines[len(seq):] else "")
 
         thick = abs(sum(g.module.size[i] * normal[i] for i in range(3)))
@@ -1331,8 +1367,12 @@ class Planner:
                   + (["Sharp scissors or a craft knife and a ruler"] if any(re.search(r"gasket|foam", f"{c.name} {c.label}", re.I) for c in g.extras) else []),
             tools_note="" if (g.fasteners or g.extras) else "Fingers only.",
             body=body,
-            expected=f"The {noun} sits square {('behind its opening' if not internal else 'in its place')} with the {fp} toward {face_dir}, held without force, and its cable is free.",
-            stop=f"the {noun} does not sit flat, the {fp} {'are' if plural(fp) else 'is'} not centred on its opening, or anything needs force. Photograph it from inside and outside before changing anything; do not drill, cut or glue",
+            expected=(f"The {noun} stays outside the shell, its lead passes the cable exit and is held from inside, and a gentle pull "
+                      "on the lead outside does not move anything inside." if rk == "cable_exit" else
+                      f"The {noun} sits square {('behind its opening' if not internal else 'in its place')} with the {fp} toward {face_dir}, held without force, and its cable is free."),
+            stop=(f"the lead does not pass the cable exit without force, or it slips when pulled gently. Photograph the exit from inside and outside before changing anything; do not drill, cut or glue"
+                  if rk == "cable_exit" else
+                  f"the {noun} does not sit flat, the {fp} {'are' if plural(fp) else 'is'} not centred on its opening, or anything needs force. Photograph it from inside and outside before changing anything; do not drill, cut or glue"),
             extra_stops=stops,
             parts=[c.name for c in order] + cable_rows, highlight=[c.name for c in comps], figures=figs,
             adds=[c.name for c in comps], rows=cable_rows, module_end=[g.ref] if me else [],
@@ -1375,7 +1415,10 @@ class Planner:
                 desc += f", {int(length)} mm"
             wires = h.get("wires") or []
             order = ", ".join(f"{w.get('slot_pin')} {w.get('color')} {w.get('module_pin')}" for w in sorted(wires, key=lambda w: w.get("slot_pin") or 0) if w.get("color"))
-            lines.append(f"**{inst['slot']}** ← {nm} ({inst['ref']}): {desc}." + (f" Pin order at the port: {order}." if order else ""))
+            lines.append(f"**{inst['slot']}** ← {nm} ({inst['ref']}): {desc}." + (f" Pin order at the port: {order}." if order else "")
+                         + ("" if c else f" The {nm} has no printed mount in this design, so nothing holds it: lay it flat inside "
+                                         "the shell, clear of the cartridge, the openings and every other module (not modelled; "
+                                         "physical check)."))
             used.append(inst["slot"])
             if c:
                 parts.append(c.name)

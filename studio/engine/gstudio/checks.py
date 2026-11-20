@@ -876,6 +876,12 @@ def harness_length_checks(out: Path, build: dict, electrical: dict | None, lib: 
             lens["cable-routes"] = route_len
         if len(set(lens.values())) > 1:
             mism.append(f"{ref}: " + ", ".join(f"{k} {v:.0f} mm" for k, v in lens.items()))
+        inst = next((i for i in (electrical or {}).get("instances") or [] if i.get("ref") == ref), {})
+        if ((_lib_get(lib, inst.get("module")) or {}).get("aperture") or {}).get("needs") == "cable_exit":
+            # hand-off c-to-a #1: a cable-exit part's lead continues outside the shell to the probe or float, so a long
+            # lead is by design; QB-15 (route <= harness) above still applies
+            slack_ok.append(f"{ref} {have:.0f}/{route:.0f} mm (lead continues outside the shell through a cable exit)")
+            continue
         want = next((L for L in stocked if L >= route + 40), None)
         if have - route < 40:
             slack_warn.append(f"{ref}: {have:.0f} mm leaves {have - route:.0f} mm over the {route:.0f} mm route (under 40 mm)")
