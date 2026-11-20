@@ -2,7 +2,25 @@
 
 #include <Wire.h>
 
+#include "config.h"
 #include "hardware.h"
+
+#ifndef GS_HAS_SOIL
+#define GS_HAS_SOIL 0
+#endif
+#ifndef GS_HAS_LEVEL
+#define GS_HAS_LEVEL 0
+#endif
+#if GS_HAS_SOIL
+#include "gs_soil.h"
+// Only sensor_display carries the calibration settings; another app reading a probe uses the defaults.
+#ifndef GS_CFG_SOIL_RAW_DRY
+#define GS_CFG_SOIL_RAW_DRY 3000
+#endif
+#ifndef GS_CFG_SOIL_RAW_WET
+#define GS_CFG_SOIL_RAW_WET 1300
+#endif
+#endif
 
 #if GS_HAS_BMP280
 #include <Adafruit_BMP280.h>
@@ -68,14 +86,28 @@ bool begin() {
   s_rtc_ok = s_rtc.begin(&Wire);
   any = any || s_rtc_ok;
 #endif
+#if GS_HAS_SOIL
+  // Capacitive soil probe on a J_IO SIG: ADC1 (GPIO4/5/6), so it reads with Wi-Fi on. 11 dB = about 0-3.1 V.
+  pinMode(GS_PIN_SOIL, INPUT);
+  analogReadResolution(12);
+  analogSetPinAttenuation(GS_PIN_SOIL, ADC_11db);
+  any = true;
+#endif
+#if GS_HAS_LEVEL
+  // Float switch: a dry contact between SIG and GND. Closed (LOW) = water up; open (HIGH) = tank low, which is
+  // also what an unplugged lead reads, so a fault warns instead of staying quiet.
+  pinMode(GS_PIN_LEVEL, INPUT_PULLUP);
+  any = true;
+#endif
   return any;
 }
 
 int sensor_count() {
-  return GS_HAS_BMP280 + GS_HAS_AHT20 + GS_HAS_BH1750 + GS_HAS_DS3231 + GS_HAS_VL53L0X;
+  return GS_HAS_BMP280 + GS_HAS_AHT20 + GS_HAS_BH1750 + GS_HAS_DS3231 + GS_HAS_VL53L0X + GS_HAS_SOIL + GS_HAS_LEVEL;
 }
 
-__attribute__((unused)) static void put(Reading* out, int cap, int* n, const char* sensor, const char* q, const char* unit, float v, bool ok) {
+__attribute__((unused)) static void put(Reading* out, int cap, int* n, const char* sensor, const char* q, const char* unit, float v, bool ok,
+                                        int raw = -1) {
   if (*n >= cap) return;
   Reading& r = out[(*n)++];
   r.sensor = sensor;
@@ -83,7 +115,28 @@ __attribute__((unused)) static void put(Reading* out, int cap, int* n, const cha
   r.unit = unit;
   r.value = v;
   r.ok = ok && !isnan(v);
+  r.raw = raw;
 }
+
+#if GS_HAS_SOIL
+static int soil_raw() {
+  int v[16];
+  for (int i = 0; i < 16; ++i) v[i] = analogRead(GS_PIN_SOIL);
+  return gs::mean_of(v, 16);
+}
+#endif
+
+#if GS_HAS_LEVEL
+// Majority of 7 reads 1 ms apart: rides over contact bounce. Sloshing is filtered by the app over samples.
+static bool water_up() {
+  int closed = 0;
+  for (int i = 0; i < 7; ++i) {
+    closed += digitalRead(GS_PIN_LEVEL) == LOW ? 1 : 0;
+    if (i < 6) delay(1);
+  }
+  return closed >= 4;
+}
+#endif
 
 int read_all(Reading* out, int cap) {
   int n = 0;
@@ -113,6 +166,18 @@ int read_all(Reading* out, int cap) {
     const float lx = s_bh_ok ? s_bh.readLightLevel() : NAN;
     put(out, cap, &n, "bh1750", "light", "lx", lx, s_bh_ok && lx >= 0);
   }
+#endif
+#if GS_HAS_SOIL
+  {
+    const int raw = soil_raw();
+    const int pct = gs::soil_percent(raw, GS_CFG_SOIL_RAW_DRY, GS_CFG_SOIL_RAW_WET);
+    // A working probe sits between the rails; 0 or full scale means a short or an open lead: no moisture value then.
+    const bool rail = raw <= 50 || raw >= 4050;
+    put(out, cap, &n, "soil", "soil", "%", pct < 0 ? NAN : float(pct), pct >= 0 && !rail, raw);
+  }
+#endif
+#if GS_HAS_LEVEL
+  put(out, cap, &n, "float", "water", "", water_up() ? 1.0f : 0.0f, true);
 #endif
   return n;
 }

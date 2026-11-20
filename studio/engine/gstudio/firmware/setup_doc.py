@@ -152,6 +152,40 @@ The card also carries short spoken instructions for the child (`prompts/`); wher
 plays a chime instead."""
 
 
+def _sensing(spec: dict, template: str, settings: dict) -> str | None:
+    """Soil probe and tank float (sensing pack): calibration, fitting and what the warnings mean. None without them."""
+    from .hw import DRIVERS
+
+    kinds = {(DRIVERS.get(str(f.get("module") or "")) or {}).get("kind") for f in spec.get("features") or [] if isinstance(f, dict)}
+    soil, level = "soil" in kinds, "level" in kinds
+    if template != "sensor_display" or not (soil or level):
+        return None
+    L = ["## 4. Soil probe and tank float", "",
+         "The probe and the float live outside the gadget, in the pot and the tank; only their leads come in, through the "
+         "strain-relieved cable exits. Keep the gadget itself dry and away from the water. It does not water the plant "
+         "and it has no pump."]
+    if soil:
+        L += ["", f"**Soil probe.** The soil reading is relative moisture, not a lab measurement: 0 % is this probe's "
+                  f"reading in dry air (`soil_raw_dry`, now {settings.get('soil_raw_dry')}) and 100 % its reading in water up "
+                  f"to the line on the probe (`soil_raw_wet`, now {settings.get('soil_raw_wet')}). Every probe differs, so "
+                  "calibrate yours: the parent page and the self-test show the raw number next to the soil reading. Note it "
+                  "with the probe in dry air, then with the probe in a glass of water up to its line (never deeper: the top "
+                  "edge carries the electronics), put both numbers in the design's settings and rebuild. Push the probe into "
+                  f"the soil only up to its line. Below {settings.get('soil_dry_percent')} % the screen says **Water me**"
+                  + (", the warning light breathes" if settings.get("led_warning") else "") + " and the gadget chimes once "
+                  "(if it has a buzzer or speaker). A raw reading stuck at 0 or at full scale means a short or an open lead: "
+                  "the screen then says **Check the probe** and shows no percent."]
+    if level:
+        L += ["", "**Tank float.** Fit the float so its contact closes when the water is up (most floats can be flipped on "
+                  "their stem to swap this). An open contact reads as low, so an unplugged or broken lead also shows "
+                  "**Refill the tank**" + ("" if settings.get("water_low_warning", True) else " on the readings (the warning "
+                  "is off in this build)") + ". The state changes after two readings in a row, so sloshing water does not "
+                  "make it flicker. Lift the float and let it drop during the self-test: the water state must follow."]
+    L += ["", "Physical checks still needed: these parts were chosen and checked digitally; no probe, float or lead of "
+              "this design has been built and measured yet."]
+    return "\n".join(L)
+
+
 def _privacy(template: str, settings: dict) -> str:
     """The one privacy rule, exactly as this firmware behaves (MAJ-1). The design agent's SAFETY rule says the same."""
     if template != "story_player":
@@ -249,6 +283,9 @@ def setup_markdown(spec: dict, template: str, settings: dict, fw: dict, story: d
             line = ("**This build has the story text but no audio yet.** Generate the story audio in the app "
                     "(Code tab, Generate story audio), then copy the new card folder. Until then a tap plays a short low chime.")
         parts.append(SD_TEXT.format(audio_line=line))
+    sensing = _sensing(spec, template, settings)
+    if sensing:
+        parts.append(sensing)
     parts += [_privacy(template, settings), _selftest(), _ota(fw)]
     return "\n\n".join(parts) + "\n"
 

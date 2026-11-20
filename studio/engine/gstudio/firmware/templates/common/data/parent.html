@@ -191,7 +191,7 @@ function noticeCard(a){const rows=a.notices.map(x=>`<li><span>${esc(x.text)}</sp
 function sceneCard(a){const btn=a.scenes.map((s,i)=>`<button data-scene="${i}" class="${i===a.scene?"primary":""}">${esc(s.name)}</button>`).join("");
   return `<section class="card"><h2>Light</h2><div class="row">${btn}</div><div class="row" style="margin-top:10px"><button data-act="${a.on?"off":"on"}">${a.on?"Turn off":"Turn on"}</button></div>
   <label>Brightness: <b>${a.brightness}</b>%</label><input type="range" id="bri" min="1" max="100" value="${a.brightness}"><p class="note">${esc(a.auto_dim_note||"")}</p></section>`}
-function sensorCard(a){const rows=a.readings.map(r=>`<li><span>${esc(r.quantity)}</span><b>${r.ok?esc(r.value+" "+r.unit):"no reading"}</b></li>`).join("");
+function sensorCard(a){const rows=a.readings.map(r=>`<li><span>${esc(r.quantity)}</span><b>${r.ok?esc(r.text||(r.value+" "+r.unit))+(r.raw!=null?` <small>(raw ${esc(r.raw)})</small>`:""):"no reading"}</b></li>`).join("");
   const t=a.trend||[];let svg="";if(t.length>1){const mn=Math.min(...t),mx=Math.max(...t),sp=(mx-mn)||1;svg=`<svg class="spark" viewBox="0 0 ${t.length-1} 60" preserveAspectRatio="none"><polyline fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke" points="${t.map((v,i)=>i+","+(56-52*(v-mn)/sp)).join(" ")}"/></svg>`}
   return `<section class="card"><h2>Readings</h2><ul class="list">${rows}</ul>${svg?`<p class="note">${esc(a.trend_label||"")}</p>`+svg:""}${a.warning?`<p class="chip bad">${esc(a.warning)}</p>`:""}<p class="note">Readings, not calibrated measurements.</p></section>`}
 function bind(){

@@ -1,0 +1,31 @@
+{
+  "schema": "gadget-spec/1",
+  "name": "Tulsi Plant Monitor",
+  "slug": "plant-monitor",
+  "tagline": "Sits beside your pot and glows when the soil is dry, with the moisture and its trend on a colour screen",
+  "audience": {"child_directed": false},
+  "region": "IN",
+  "colors": {"body": "#7FA36B", "accent": "#F3E9D2", "detail": "#3F4A3A", "body_name": "leaf green", "accent_name": "cream", "detail_name": "moss"},
+  "body": {
+    "family": "blob",
+    "primitives": [{"kind": "rounded_box", "center": [0, 0, 47], "size": [110, 96, 106], "radius": 12}],
+    "edge_round": 4,
+    "wall": 2.4,
+    "split": "base_plate",
+    "feet": 4
+  },
+  "decor": [],
+  "features": [
+    {"id": "screen", "module": "LCD_200_ST7789_240X320_WAVESHARE", "face": "front", "at": [0, 66], "label": "Soil moisture and trend"},
+    {"id": "dry_light", "module": "LED_RING_12_WS2812_50MM", "face": "top", "at": [0, 18], "label": "Glows when the soil is dry"},
+    {"id": "page_button", "module": "BUTTON_TACTILE_KY004", "face": "right", "at": [0, 52], "label": "Next page"},
+    {"id": "soil_probe", "module": "SOIL_CAP_V12_ANALOG", "face": "rear", "at": [0, 58], "label": "Soil probe lead"}
+  ],
+  "electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8", "extra_modules": [], "power": {"input": "usb_c_5v", "adapter_in_box": false}},
+  "behaviour": {
+    "template": "sensor_display",
+    "summary": "Reads the soil probe every minute and shows the moisture as a percent and a 24-hour trend. Below 30 % the ring breathes and the screen says Water me. The same readings are on its own page on the home Wi-Fi. It does not water the plant.",
+    "settings": {"sample_seconds": 60, "trend_hours": 24, "soil_dry_percent": 30, "soil_raw_dry": 3000, "soil_raw_wet": 1300}
+  },
+  "safety": {"flags": [], "notes": "The probe stays in the pot and the gadget stays dry beside it; only the probe lead passes the strain-relieved cable exit. Moisture is a relative reading after a per-probe calibration. External certified USB-C 5 V supply."}
+}

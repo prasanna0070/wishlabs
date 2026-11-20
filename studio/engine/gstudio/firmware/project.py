@@ -263,6 +263,18 @@ def config_h(spec: dict, template: str, settings: dict, binding: Binding, fw_ver
               f"#define GS_CFG_SOIL_RAW_DRY {int(s['soil_raw_dry'])}",
               f"#define GS_CFG_SOIL_RAW_WET {int(s['soil_raw_wet'])}",
               f"#define GS_CFG_WATER_LOW_WARNING {1 if s['water_low_warning'] else 0}"]
+    elif template == "latch":
+        tags = [c_str(t) for t in s.get("known_tags") or []]
+        L += ["// latch (motion2 + sensing2 packs)",
+              f"#define GS_CFG_OPEN_DEG {int(s['open_deg'])}",
+              f"#define GS_CFG_CLOSED_DEG {int(s['closed_deg'])}",
+              f"#define GS_CFG_OPEN_SECONDS {int(s['open_seconds'])}",
+              "// known tag UIDs, upper-case hex without separators (GS_CFG_KNOWN_TAG_N entries; never a zero-size array)",
+              f"#define GS_CFG_KNOWN_TAG_N {len(tags)}",
+              "#define GS_CFG_KNOWN_TAGS { " + (", ".join(tags) if tags else '""') + " }",
+              f"#define GS_CFG_LEARN_WITH_BUTTON_HOLD {1 if s['learn_with_button_hold'] else 0}",
+              f"#define GS_CFG_LOG_SIZE {int(s['log_size'])}",
+              f"#define GS_CFG_SERVO_SPEED_DEG_S {int(s['servo_speed_deg_s'])}"]
     pem = ota_pubkey_pem.strip()
     L += ["", "// Signed OTA: public key that update images must verify against (empty = Wi-Fi updates off).",
           "#define GS_OTA_PUBKEY_PEM " + (" \\\n  ".join(c_str(line + "\n") for line in pem.splitlines()) if pem else '""'), ""]

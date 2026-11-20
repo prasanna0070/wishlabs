@@ -1,5 +1,6 @@
-// I2C sensors from the module library. Only the drivers for sensors present in this design are
-// compiled (hardware.h sets GS_HAS_<SENSOR>).
+// Sensors from the module library: the I2C sensors, plus the sensing pack's soil probe (analog, J_IO) and
+// float switch (dry contact, J_IO). Only the drivers for sensors present in this design are compiled
+// (hardware.h sets GS_HAS_<SENSOR>).
 #pragma once
 #include <Arduino.h>
 #include <time.h>
@@ -8,10 +9,11 @@ namespace gssensors {
 
 struct Reading {
   const char* sensor = "";    // e.g. "aht20"
-  const char* quantity = "";  // temperature | humidity | pressure | light | distance
-  const char* unit = "";      // C | % | hPa | lx | mm
+  const char* quantity = "";  // temperature | humidity | pressure | light | distance | soil | water
+  const char* unit = "";      // C | % | hPa | lx | mm ("" for water: 1 = OK, 0 = low)
   float value = 0;
   bool ok = false;
+  int raw = -1;               // soil: the averaged 12-bit reading behind the percent; -1 for the others
 };
 
 bool begin();

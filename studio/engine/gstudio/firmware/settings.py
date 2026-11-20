@@ -25,7 +25,7 @@ NAME = re.compile(r"^[A-Za-z][A-Za-z '.\-]{0,31}$")
 HHMM = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 POSIX_TZ = re.compile(r"^[A-Za-z<>+\-0-9:,./]{3,48}$")
 
-TEMPLATES = ("story_player", "desk_companion", "notifier_clock", "ambient_light", "sensor_display")
+TEMPLATES = ("story_player", "desk_companion", "notifier_clock", "ambient_light", "sensor_display", "latch")
 
 
 def _clean_name(v: str) -> str:
@@ -283,12 +283,48 @@ class SensorDisplay(Common):
         return self
 
 
+UID_HEX = re.compile(r"^(?:[0-9A-F]{8}|[0-9A-F]{14}|[0-9A-F]{20})$")  # 4, 7 or 10 byte ISO 14443A UIDs
+
+
+class Latch(Common):
+    """latch (motion2 + sensing2 packs): a known NFC tag (collar tag, card, figure) or the button opens a servo latch
+    for open_seconds. It reads 13.56 MHz tags only: never a pet's implanted microchip (134.2 kHz)."""
+    open_deg: int = Field(90, ge=0, le=180, description="servo angle with the latch open, in degrees")
+    closed_deg: int = Field(0, ge=0, le=180, description="servo angle with the latch closed, in degrees")
+    open_seconds: int = Field(5, ge=1, le=30, description="how long the latch stays open after a known tag or a press")
+    known_tags: list[str] = Field(default_factory=list, max_length=16,
+                                  description="UIDs of the tags that open it, hex, e.g. 04A2B3C4D5E6F7 (colons allowed); "
+                                              "more can be learned with a button hold")
+    learn_with_button_hold: bool = Field(True, description="hold the button, then show a tag, to add that tag")
+    log_size: int = Field(20, ge=1, le=50, description="last events kept for the parent page")
+    servo_speed_deg_s: int = Field(120, ge=30, le=360, description="top latch speed in degrees per second")
+
+    @field_validator("known_tags")
+    @classmethod
+    def check_tags(cls, v: list) -> list:
+        out = []
+        for t in v:
+            u = re.sub(r"[\s:\-]", "", str(t)).upper()
+            if not UID_HEX.match(u):
+                raise ValueError(f"{t!r} is not a tag UID: use 8, 14 or 20 hex digits (4, 7 or 10 bytes), e.g. 04A2B3C4D5E6F7")
+            if u not in out:
+                out.append(u)
+        return out
+
+    @model_validator(mode="after")
+    def check_travel(self):
+        if abs(self.open_deg - self.closed_deg) < 10:
+            raise ValueError(f"open_deg ({self.open_deg}) and closed_deg ({self.closed_deg}) must differ by at least 10 degrees")
+        return self
+
+
 MODELS: dict[str, type[Common]] = {
     "story_player": StoryPlayer,
     "desk_companion": DeskCompanion,
     "notifier_clock": NotifierClock,
     "ambient_light": AmbientLight,
     "sensor_display": SensorDisplay,
+    "latch": Latch,
 }
 
 
