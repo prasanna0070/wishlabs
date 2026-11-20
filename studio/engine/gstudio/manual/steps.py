@@ -445,7 +445,8 @@ class Planner:
         flashing or self-test step because the design has no electronics."""
         A = self.A
         bed = self.bed_figure() if (self.d.print_files or A.prints) else None
-        self.step_check_parts([])
+        if A.purchases or self.d.purchased():  # nothing to check when the object is only its print (no feet)
+            self.step_check_parts([])
         if A.prints:
             self.step_print(bed)
         self.installed.extend(self.body_names())
@@ -488,6 +489,8 @@ class Planner:
         self.step_flash()
         if A.covers:
             self.step_close()
+        if self.wall_mount():
+            self.step_hang()
         self.step_final()
         gs = sorted({i + 1 for i, st in enumerate(self.steps) if st.id != "check-parts"
                      and any(self.d.comps.get(p) is not None and self.d.is_accessory(self.d.comps[p])
@@ -509,23 +512,31 @@ class Planner:
         n_print = len(A.prints)
         bom = self.d.purchased()
         use = (join_and([f"{int(p.get('quantity') or 1)} × **{n.row_name(p)}**" for p in bom]) + ".") if bom else n.use(buys)
-        body = (
-            "Lay every purchased item on a clear table and tick it off against the parts list: exact module, "
-            "quantity and connector pin count. Keep screws, inserts and feet in a small tray"
-            + (", away from children" if self.child() else "") + ".\n\n"
-            "Do not substitute a module. The backplane ports, cable pin counts and firmware pin numbers are fixed "
-            "for these exact modules. Compare each module's printed pin labels with the wiring table "
-            "(`manual/wiring.png`) now, before anything is printed or plugged.\n\n"
-            + (f"The {n_print} printed part{'s' if n_print != 1 else ''} come later, after the bench test. " if n_print else "")
-            + "The exploded view shows where every part ends up."
-        )
+        if self.printed:  # catalog package A: a printed-only object has no modules, cables or bench test
+            body = ("Lay every purchased item on a clear table and tick it off against the parts list, with its quantity. Keep "
+                    "small parts in a tray" + (", away from children" if self.child() else "") + ".\n\n"
+                    + (f"The {n_print} printed part{'s' if n_print != 1 else ''} {'are' if n_print != 1 else 'is'} printed in the next "
+                       "step. " if n_print else "") + "The exploded view shows where every part ends up.")
+        else:
+            body = (
+                "Lay every purchased item on a clear table and tick it off against the parts list: exact module, "
+                "quantity and connector pin count. Keep screws, inserts and feet in a small tray"
+                + (", away from children" if self.child() else "") + ".\n\n"
+                "Do not substitute a module. The backplane ports, cable pin counts and firmware pin numbers are fixed "
+                "for these exact modules. Compare each module's printed pin labels with the wiring table "
+                "(`manual/wiring.png`) now, before anything is printed or plugged.\n\n"
+                + (f"The {n_print} printed part{'s' if n_print != 1 else ''} come later, after the bench test. " if n_print else "")
+                + "The exploded view shows where every part ends up."
+            )
         self.add(Step(
             id="check-parts", title="Check the parts",
             use=use,
             tools=[], tools_note="A clear table, a small parts tray and the parts list.",
             body=body,
-            expected="Every line of the parts list is present in the stated quantity, and each module's printed pin labels match the wiring table.",
-            stop="a module, its pin labels or a cable's pin count differ from the parts list or the wiring table. Photograph both sides of the module and ask before continuing; do not swap in a similar part.",
+            expected=("Every line of the parts list is present in the stated quantity." if self.printed else
+                      "Every line of the parts list is present in the stated quantity, and each module's printed pin labels match the wiring table."),
+            stop=("a part is missing or differs from the parts list. Photograph it and ask before continuing." if self.printed else
+                  "a module, its pin labels or a cable's pin count differ from the parts list or the wiring table. Photograph both sides of the module and ask before continuing; do not swap in a similar part."),
             parts=[c.name for c in buys], highlight=[c.name for c in buys],
             figures=[f for f in (kit_fig, ex_fig) if f],
         ))
@@ -576,7 +587,8 @@ class Planner:
                               meshes=meshes)],
             footer="Saved CAD envelopes of the purchased parts, not product photos | modelled parts to one scale | glyphs not to scale",
             alt="Every purchased row laid out on a table, one of each, labelled with the quantity used and its name.",
-            caption="CAD envelopes and placeholder glyphs, not photos: check the real parts against the parts list and the wiring table.",
+            caption=("CAD envelopes, not photos: check the real parts against the parts list." if self.printed else
+                     "CAD envelopes and placeholder glyphs, not photos: check the real parts against the parts list and the wiring table."),
             size=(2000, 1500),
         )
 
@@ -624,8 +636,9 @@ class Planner:
             panels=[PanelSpec(subtitle=f"Parts separated along {axis_phrase(ax)}, the direction they are fitted from; seen from the gadget's left",
                               show=show, offsets=offs, view_dir=view, focus=list(show), labels=labels, label_room=0.04)],
             footer=FOOTER,
-            alt=f"Exploded view of the {self.d.product_name}: shell, front modules, core cartridge and closing part separated along one axis.",
-            caption="Separation distances are for clarity only. Cables are hidden.",
+            alt=(f"Exploded view of the {self.d.product_name}: the printed part and its feet separated along one axis." if self.printed else
+                 f"Exploded view of the {self.d.product_name}: shell, front modules, core cartridge and closing part separated along one axis."),
+            caption="Separation distances are for clarity only." + ("" if self.printed else " Cables are hidden."),
             size=(2000, 1100),
         )
 
@@ -1758,6 +1771,55 @@ class Planner:
             rows=[p.get("module_id") for p in adapters + ([usb_row] if usb_row else []) if p.get("module_id")],
         ))
 
+    # ------------------------------------------------------------------ wall mount (catalog package D, hand-off d-to-a #3)
+    def wall_mount(self) -> dict:
+        """The CAD's wall-mount record (cad-summary info.split_info.mount, written by D's rear cover), else {}."""
+        m = ((self.d.cad_summary().get("info") or {}).get("split_info") or {}).get("mount") or {}
+        return m if isinstance(m, dict) and m.get("kind") == "wall" and m.get("keyholes") else {}
+
+    def wall_rows(self) -> list[dict]:
+        """The wall screw + plug set the parts list carries (a purchased row with no CAD part)."""
+        return [p for p in self.d.purchased() if re.search(r"^WALL_|wall plug|wall screw", f"{p.get('module_id') or ''} {p.get('name') or ''}", re.I)]
+
+    def step_hang(self) -> None:
+        """Hang it on the wall: every number comes from the CAD's mount record; screw pull-out is not modelled."""
+        n, m = self.n, self.wall_mount()
+        rows = self.wall_rows()
+        kh = m.get("keyholes") or []
+        hang_z = min(float(k["hang"][1]) for k in kh if isinstance(k.get("hang"), (list, tuple))) if kh else None
+        sp, so = m.get("spacing_mm"), m.get("screw_standoff_mm")
+        slot = (m.get("keyhole_mm") or {}).get("slot_len")
+        notch = m.get("plug_notch") or {}
+        what = f"the **{n.row_name(rows[0])}**" if rows else "two wall screws in wall plugs"
+        lines = [
+            (f"Mark two points {float(sp):g} mm apart on a level line, where the screws will go." if sp else
+             "Mark the two screw points on a level line, as far apart as the two keyholes.")
+            + (f" The gadget hangs below them: its bottom edge ends up {hang_z:g} mm below the marks." if hang_z is not None else ""),
+            f"Drill a hole for a wall plug at each mark, tap the plugs in, and drive the screws ({what}) in"
+            + (f" until each head stands {float(so):g} mm off the wall." if so else " until each head stands just off the wall."),
+        ]
+        if notch:
+            lines.append("Plug a right-angle (L-shaped) USB-C cable into the gadget first: the plug sits in the notch under the USB-C "
+                         "opening and the cord runs out under the gadget. A straight plug would push the gadget off the wall.")
+        lines.append("Put the round ends of the two keyholes over the screw heads, push the gadget flat to the wall and lower it"
+                     + (f" {float(slot):g} mm" if slot else "") + " until it rests on the screws.")
+        lines.append("Screw pull-out and the wall are not modelled: pull gently down and out before you let go. Physical check "
+                     "still needed.")
+        body = "\n".join(f"{i + 1}. {t}" for i, t in enumerate(lines))
+        self.add(Step(
+            id="hang-on-wall", title="Hang it on the wall",
+            use=f"The closed {self.d.product_name}" + (f" and {n.row_name(rows[0])}" if rows else " and two wall screws with wall plugs") + ".",
+            tools=["Pencil and a spirit level", "Drill with a bit that fits the wall plugs", "A screwdriver that fits the wall screws"],
+            body=body,
+            expected="Both screw heads sit in the narrow ends of the keyholes, the gadget is flat against the wall and level, and it does "
+                     "not lift off when pulled gently down and out.",
+            stop="a plug turns in its hole, a screw head does not pass the keyhole, or the gadget tips away from the wall. Take it down; "
+                 "do not leave it hanging",
+            parts=[c.name for c in self.A.body + self.A.covers] + [p.get("module_id") for p in rows if p.get("module_id")],
+            highlight=[c.name for c in self.A.covers or self.A.body],
+            rows=[p.get("module_id") for p in rows if p.get("module_id")],
+        ))
+
     # ------------------------------------------------------------------ printed-only (catalog package A)
     def feet_position(self, feet: list[Comp]) -> str:
         """Where the feet go, from the CAD's saved foot points (cad-summary info.feet) and the feet component box."""
@@ -1823,7 +1885,7 @@ class Planner:
                                       "passed results: record what you observe.")
         self.add(Step(
             id="final-checks", title="Final checks",
-            use=f"The finished {d.product_name}.", tools=[], tools_note="None" + (" (adult supervision)." if self.child() else "."),
+            use=f"The finished {d.product_name}.", tools=[], tools_note="Adult supervision." if self.child() else "",
             body=body,
             expected="Every final check is done and recorded, and the part stands level and whole.",
             stop="a part is cracked, has sharp edges or rocks on the table. Do not use it until it is reprinted",

@@ -335,6 +335,48 @@ def fastener_parts(fasteners: list, fz: dict) -> list:
 DRAIN_D = 6.0  # mm, printed-only open-top objects (planters): one drain hole through the floor centre
 
 
+# printed cuts (pack `printed_cuts`): face -> (inward direction, face u axis, ray origin from the face coords (u, v))
+CUT_FACES = {
+    "front": ((0.0, 1.0, 0.0), (1.0, 0.0, 0.0), lambda bb, u, v: (u, bb.ymin - 10.0, v)),
+    "rear": ((0.0, -1.0, 0.0), (1.0, 0.0, 0.0), lambda bb, u, v: (u, bb.ymax + 10.0, v)),
+    "left": ((-1.0, 0.0, 0.0), (0.0, 1.0, 0.0), lambda bb, u, v: (bb.xmax + 10.0, u, v)),  # the object's own left = +X
+    "right": ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), lambda bb, u, v: (bb.xmin - 10.0, u, v)),
+    "top": ((0.0, 0.0, -1.0), (1.0, 0.0, 0.0), lambda bb, u, v: (u, v, bb.zmax + 10.0)),
+}
+
+
+def cut_tools(cuts: list, probeO, bb) -> tuple[list, list, list]:
+    """(tool solids, info rows, warnings) for printed cuts: each a pocket (rounded rectangle), slot (stadium) or hole (round
+    when w ~ h, else a stadium) of size [w, h] on its face, from outside the body to `depth` mm below the surface hit at its
+    centre (catalog package A, pack printed_cuts)."""
+    from .geom import rounded_rect_face_fast
+
+    tools, info, warns = [], [], []
+    for i, c in enumerate(cuts or []):
+        face = str(c.get("face") or "front")
+        if face not in CUT_FACES:
+            warns.append(f"cuts[{i}]: unknown face {face!r}; skipped")
+            continue
+        n, ux, org = CUT_FACES[face]
+        u, v = (float(x) for x in c.get("at") or (0.0, 0.0))
+        w, h = (float(x) for x in c.get("size") or (5.0, 5.0))
+        depth = float(c.get("depth") or 1.0)
+        o = org(bb, u, v)
+        _, _, dist = probeO.hits([o], [n])
+        d0 = float(dist[0])
+        if not math.isfinite(d0):
+            warns.append(f"cuts[{i}] ({c.get('kind')} on the {face} face at {[u, v]}) misses the body; skipped")
+            continue
+        kind = str(c.get("kind") or "pocket")
+        r = (min(w, h) / 2 if kind in ("slot", "hole") else min(1.0, w / 4, h / 4))
+        f = rounded_rect_face_fast(w, h, r)
+        pl = cq.Plane(origin=V(*o), xDir=V(*ux), normal=V(*n))
+        tools.append(prism(f, 0.0, d0 + depth).moved(cq.Location(pl)))
+        info.append({"index": i, "kind": kind, "face": face, "at": [u, v], "size": [w, h], "depth_mm": depth,
+                     "surface_hit_mm_from_bbox": round(d0 - 10.0, 2)})
+    return tools, info, warns
+
+
 def _mouth_solid(poly, z0: float, z1: float):
     """Vertical solid over an open-top mouth section: a cylinder or elliptic cylinder when the section is round or oval (a
     revolve cavity: a polygon prism there split the rim into ~80 faces and the tessellated volume check read 39 % off),
@@ -396,6 +438,10 @@ def build_printed(params: dict, progress: Optional[Callable] = None, on_draft: O
             if cand is not None and not cand.is_empty and cand.area > 1.0:
                 mouth_poly, z_m = cand, cb.zmax - dz
                 break
+        if mouth_poly is not None:
+            mx0, my0, mx1, my1 = mouth_poly.bounds
+            if min(mx1 - mx0, my1 - my0) < 5.0:  # a slit through a fin or an ear is not an opening (normalize refuses these)
+                mouth_poly = None
         mouth = _mouth_solid(mouth_poly, z_m - 0.5, bb.zmax + 5.0) if mouth_poly is not None else None
         if mouth is None:
             M.warnings.append("open top: the cavity has no flat top to open; printed solid instead")
@@ -414,6 +460,13 @@ def build_printed(params: dict, progress: Optional[Callable] = None, on_draft: O
                 else:
                     M.warnings.append("drain hole: the cavity floor does not cover the centre; no drain hole cut")
     T.mark("opening")
+    if params.get("cuts"):  # pack printed_cuts: pockets, slots and holes cut into the body
+        tools, cinfo, cw = cut_tools(params["cuts"], probeO, bb)
+        M.warnings += cw
+        if tools:
+            S = S.cut(*tools).clean()
+        oinfo["cuts"] = cinfo
+        T.mark("cuts")
     # ---------------------------------------------------------------- feet
     foot = fz["foot"]
     nfeet = int(body.get("feet", 4))

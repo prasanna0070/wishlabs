@@ -370,7 +370,7 @@ def fix_wiring(w: Any, purchased: list[dict], u1_pins: list[dict]) -> Any:
     return w
 
 
-def digital_tests(checks: list[dict], existing: list[dict] | None = None) -> list[dict]:
+def digital_tests(checks: list[dict], existing: list[dict] | None = None, printed: bool = False) -> list[dict]:
     """A short `tests[]` list of kind digital, one per stage family, derived from the checks. Families the manual
     stage already reports as digital tests (firmware, backplane DRC) are not repeated."""
     have = " ".join(str(t.get("title", "")).lower() for t in existing or [] if isinstance(t, dict) and t.get("kind") == "digital")
@@ -385,7 +385,8 @@ def digital_tests(checks: list[dict], existing: list[dict] | None = None) -> lis
               "firmware": ("Firmware compile and unit tests", "the firmware compiles for ESP32-S3 and every native unit test passes"),
               "order": ("Print slicing and parts list", "every print part fits the bed and slices; every purchased row is complete"),
               "manual": ("Build manual checks", "every manual image exists and is referenced"),
-              "pipeline": ("Cross-stage consistency", "CAD, parts list, wiring, firmware pins and electrical data agree")}
+              "pipeline": ("Cross-stage consistency", "CAD, parts list and the printed-only design (no electronics) agree" if printed
+                           else "CAD, parts list, wiring, firmware pins and electrical data agree")}
     out = []
     for st, (title, expected) in titles.items():
         cs = groups.get(st)
@@ -479,7 +480,8 @@ def final_tests(base: list[dict], checks: list[dict], spec: dict, records: dict 
     pipeline adds (MIN-20). The package stage recomputes this from checks/digital-checks.json (MIN-21)."""
     kept = [t for t in base or [] if isinstance(t, dict) and t.get("source") != "checks"]
     have = {str(t.get("title")) for t in kept}
-    extra = [t for t in digital_tests(checks, kept) + physical_tests(checks, spec, records, out) if str(t.get("title")) not in have]
+    extra = [t for t in digital_tests(checks, kept, printed=spec.get("kind") == "printed") + physical_tests(checks, spec, records, out)
+             if str(t.get("title")) not in have]
     return kept + extra
 
 

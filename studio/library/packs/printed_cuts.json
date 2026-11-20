@@ -1,0 +1,9 @@
+{
+ "pack": "printed_cuts",
+ "rows": [],
+ "known_harness_gaps": [],
+ "prompt_rules": [
+  "A printed object can have up to 8 cuts: a pocket (rounded rectangle), slot (rounded ends) or hole, each with a face, a centre at, a size [w, h] and a depth in mm. Cut from the top face for pen holes and card or phone slots; a cut into a side face makes a ceiling that needs print supports.",
+  "Keep 1.5 mm of material around every cut on its face, and at least 1.2 mm under a pocket or slot that does not go right through. A key-ring loop is a hole through a thin tab; no load or fit is promised."
+ ]
+}

@@ -79,15 +79,7 @@ def normalize_printed(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spe
     warnings: list[str] = []
     added: list[str] = []
 
-    # ---------------------------------------------------------------- nothing electronic (the spec validator says so too)
-    if getattr(sp, "features", None):
-        _err(errors, "features", "a printed-only design has no features (no electronics)", "remove every feature", "printed_features")
-    elec = getattr(sp, "electronics", None)
-    if elec is not None and getattr(elec, "extra_modules", None):
-        _err(errors, "electronics.extra_modules", "a printed-only design has no modules", "remove electronics.extra_modules",
-             "printed_features")
-    if getattr(sp, "behaviour", None) is not None:
-        _err(errors, "behaviour", "a printed-only design has no behaviour (no firmware)", "remove behaviour", "printed_features")
+    # nothing electronic, the pack gate and drain hole rules: spec.cross_check (pack_checks, E2) already reported them
     split = getattr(sp.body, "split", None)
     if split not in (None, "none"):
         warnings.append(f"body.split {split!r}: a printed-only object is printed as one part; the split is ignored")
@@ -125,9 +117,16 @@ def normalize_printed(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spe
                         f"upright, so it prints on its side with supports. To print it upright, scale the whole design by {k:.2f}")
     if opts["opening"] == "top":
         top_w = _top_opening_width(geom)
-        if top_w is not None and top_w < 2 * sp.body.wall + 4.0:
-            _err(errors, "printed.opening", f"the top is only about {top_w:.0f} mm across inside the walls, too narrow for an open top",
-                 "give the body a flat, wider top (a cup or pot profile) or use opening \"none\"", "opening")
+        need = 2 * sp.body.wall + MOUTH_MIN
+        if top_w is not None and top_w < need:
+            _err(errors, "printed.opening", f"the top of the body is only about {top_w:.0f} mm across, too narrow for an open top "
+                 f"(the CAD opens the highest part of the body straight down)",
+                 f"give the body a flat top at least {need:.0f} mm across in both directions (a cup, pot or vase shape) with nothing "
+                 "sticking up above it, or use opening \"none\"", "opening")
+
+    # ---------------------------------------------------------------- cuts (pack printed_cuts; the pack gate is in cross_check)
+    for k, c in enumerate(getattr(sp, "cuts", None) or []):
+        _check_cut(geom, k, c, errors, warnings)
 
     # ---------------------------------------------------------------- decor on the body (normalize.py:701-703)
     for dk, d in enumerate(sp.decor):
@@ -153,16 +152,60 @@ def normalize_printed(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spe
     return sp, report
 
 
+CUT_EDGE_MARGIN = 1.5  # mm of material kept around a cut on its face
+MIN_FLOOR = 1.2  # mm under a blind pocket or slot (the CAD min-wall rule)
+
+
+def _through(geom, face: str, u: float, v: float) -> Optional[tuple[float, float]]:
+    """(entry, exit) distances along the inward ray at face coords (u, v), measured from the face's start plane; None on a miss.
+    Solid body assumed (outer surface only)."""
+    t_in = geom.surface_depth(face, u, v)
+    if t_in is None:
+        return None
+    t = t_in + 0.3
+    for _ in range(4000):
+        p = geom.point(face, u, v, t)
+        if geom.outer_sdf(*p) > 0.05:
+            return t_in, t
+        t += 0.25
+    return t_in, t
+
+
+def _check_cut(geom, k: int, c: Any, errors: list, warnings: list) -> None:
+    face, (u, v), (w, h), depth = c.face, c.at, c.size, float(c.depth)
+    path = f"cuts[{k}]"
+    span = _through(geom, face, u, v)
+    if span is None:
+        _err(errors, f"{path}.at", f"the {c.kind} at {list(c.at)} on the {face} face is not on the body",
+             f"put it where the {face} face is (front/rear [x, z], left/right [y, z], top [x, y] in mm)", "cut_off_body")
+        return
+    m = CUT_EDGE_MARGIN
+    corners = [(u + sx * (w / 2 + m), v + sy * (h / 2 + m)) for sx in (-1, 1) for sy in (-1, 1)]
+    if any(geom.surface_depth(face, cu, cv) is None for cu, cv in corners):
+        _err(errors, f"{path}.size", f"the {c.kind} ({w:g} x {h:g} mm) runs off the edge of the {face} face",
+             f"move it inward or make it smaller so {m:g} mm of material stays around it", "cut_edge")
+    thick = span[1] - span[0]
+    if depth >= thick - 1e-6:
+        warnings.append(f"{path}: the {c.kind} goes all the way through ({depth:g} mm deep, the body is about {thick:.0f} mm there)")
+    elif c.kind in ("pocket", "slot") and thick - depth < MIN_FLOOR:
+        _err(errors, f"{path}.depth", f"the {c.kind} leaves only {thick - depth:.1f} mm of material under it (minimum {MIN_FLOOR:g} mm)",
+             f"make it at most {max(0.6, thick - MIN_FLOOR):.0f} mm deep, or at least {thick:.0f} mm to cut right through", "cut_floor")
+
+
+MOUTH_MIN = 10.0  # mm: the smallest open-top mouth, inside the walls
+
+
 def _top_opening_width(geom) -> Optional[float]:
-    """Approximate inner width (mm) of the body's top, sampled 1 mm below the top along X at y = 0."""
+    """Outer width (mm) of the body's highest part, 1 mm below its top: the smaller of the X and Y extents there."""
     try:
-        x0, x1, _, _, _, z1 = geom.bbox
+        x0, x1, y0, y1, _, z1 = geom.bbox
         z = z1 - 1.0
-        xs = [x0 + (x1 - x0) * i / 200.0 for i in range(201)]
-        inside = [x for x in xs if geom.outer_sdf(x, 0.0, z) <= 0.0]
+        pts = [(x0 + (x1 - x0) * i / 120.0, y0 + (y1 - y0) * j / 120.0) for i in range(121) for j in range(121)]
+        inside = [(x, y) for x, y in pts if geom.outer_sdf(x, y, z) <= 0.0]
         if not inside:
             return 0.0
-        return max(inside) - min(inside)
+        xs, ys = [p[0] for p in inside], [p[1] for p in inside]
+        return min(max(xs) - min(xs), max(ys) - min(ys))
     except Exception:  # noqa: BLE001 - a hint only
         return None
 
