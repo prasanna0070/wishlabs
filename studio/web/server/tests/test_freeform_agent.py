@@ -378,15 +378,10 @@ class _BoxesShape:
 
 
 def test_placeholder_draws_csg_silhouettes(monkeypatch):
-    import sys
-    import types
-
     from app.builder import placeholder as ph
 
-    fake = types.ModuleType("gstudio.csg")
-    # steps rising to the back: low front block, tall rear block
-    fake.compile_tree = lambda tree: _BoxesShape([(-90, 90, -70, 70, 0, 50), (-90, 90, 20, 70, 0, 130)])
-    monkeypatch.setitem(sys.modules, "gstudio.csg", fake)
+    # steps rising to the back: low front block, tall rear block (a stand-in shape, engine or not)
+    monkeypatch.setattr(ph, "_csg_shape", lambda body: _BoxesShape([(-90, 90, -70, 70, 0, 50), (-90, 90, 20, 70, 0, 130)]))
     ph._CSG_CACHE.clear()
     body = {"family": "csg", "csg": STEPS}
     v = ph.csg_views(body)
@@ -452,3 +447,25 @@ def test_csg_validation_errors_get_the_csg_hint_only_with_the_pack(tmp_path, mon
         assert any("csg" in e for e in first["errors"])
         assert (CSG_HINT in first["instruction"]) is hint
         assert first["instruction"].startswith("These concepts did not validate.")
+
+
+def test_placeholder_with_the_engine_csg():
+    """With the engine's gstudio.csg (skipped without it): the stepped pattern's side view rises to the back."""
+    import sys
+
+    eng = str(Path(__file__).resolve().parents[3] / "engine")
+    if eng not in sys.path:
+        sys.path.insert(0, eng)
+    pytest.importorskip("gstudio.csg")
+    from app.agent.prompt import CSG_PATTERNS
+    from app.builder import placeholder as ph
+
+    ph._CSG_CACHE.clear()
+    body = {"family": "csg", "csg": dict(CSG_PATTERNS)["stepped organiser rising to the back"]}
+    v = ph.csg_views(body)
+    front_z = max(z for y, z in v["side"] if y < -30)
+    rear_z = max(z for y, z in v["side"] if y > 30)
+    assert front_z < 60 and rear_z > 120
+    env = ph.envelope_mm({"body": body})
+    assert abs(env["w_mm"] - 180) <= 4 and abs(env["d_mm"] - 140) <= 4 and abs(env["h_mm"] - 130) <= 4
+    ph._CSG_CACHE.clear()
