@@ -24,15 +24,17 @@ function Gate({ children }: { children: ReactNode }) {
 export function App() {
   const setAuthed = useAuth((s) => s.setAuthed);
   const setShareUrl = useAuth((s) => s.setShareUrl);
+  const setVoiceOff = useAuth((s) => s.setVoiceOff);
   useEffect(() => {
     api.session().then(
       (r) => {
         setShareUrl(safeShareUrl(r?.share_url));
+        setVoiceOff(r?.voice === false);
         setAuthed(!!r?.authenticated);
       },
       () => setAuthed(false),
     );
-  }, [setAuthed, setShareUrl]);
+  }, [setAuthed, setShareUrl, setVoiceOff]);
   return (
     <BrowserRouter basename={STUDIO_BASE || "/"}>
       <Routes>

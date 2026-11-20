@@ -61,7 +61,9 @@ export default function OverviewTab({ onTab }: { onTab: (t: TabId) => void }) {
   const ctx = useProject((s) => s.ctx)!;
   const readOnly = useProject((s) => s.readOnly);
   const v = showcaseVersion(project);
-  const wish = originalWish(project);
+  // a spoken wish (Gemini Live) starts the chat with the wish plus the call's questions and answers: show the wish
+  const spoken = typeof project.voice?.wish === "string" && project.voice.wish.trim() ? project.voice.wish.trim() : null;
+  const wish = spoken || originalWish(project);
   const chosen = chosenConcept(project, v);
   const result = resultMessage(project, v?.n);
   const summary = result?.payload?.summary || null;
@@ -115,7 +117,10 @@ export default function OverviewTab({ onTab }: { onTab: (t: TabId) => void }) {
               <blockquote className="ov-wish">
                 <QuoteIcon size={18} aria-hidden="true" />
                 <p>{wish}</p>
-                <footer>The wish, as typed{project.created ? `, ${dateOnly(project.created)}` : ""}</footer>
+                <footer>
+                  {spoken ? "The wish, as spoken" : "The wish, as typed"}
+                  {project.created ? `, ${dateOnly(project.created)}` : ""}
+                </footer>
               </blockquote>
             ) : null}
             <p className="ov-lede">
@@ -507,7 +512,7 @@ function AiReceipts({ receipts }: { receipts: Receipts | null }) {
       <SecHead
         icon={<Sparkles size={18} />}
         title="AI receipts"
-        sub="Which Google model did what in this project. Every call ran on Vertex AI; the counts come from the usage metadata Vertex AI returned with each call."
+        sub="Which Google model did what in this project. Every call ran on Vertex AI. Token counts come from the usage metadata Vertex AI returned with each call; Lyria is priced per clip and has no token counts."
       />
       {receipts ? (
         <div className="ov-receipts card" role="table" aria-label="Google AI calls in this project">
@@ -541,11 +546,11 @@ function AiReceipts({ receipts }: { receipts: Receipts | null }) {
                 {r.calls}
                 {r.images ? <em> · {r.images} image{r.images === 1 ? "" : "s"}</em> : null}
               </span>
-              <span className="num" role="cell" data-l="Tokens in">
-                {compact(r.inputTokens)}
+              <span className="num" role="cell" data-l="Tokens in" title={r.noTokens ? "Priced per clip: no token counts" : undefined}>
+                {r.noTokens ? "–" : compact(r.inputTokens)}
               </span>
-              <span className="num" role="cell" data-l="Tokens out" title={r.thinkingTokens ? `${r.thinkingTokens.toLocaleString("en-IN")} of them thinking tokens` : undefined}>
-                {compact(r.outputTokens + r.thinkingTokens)}
+              <span className="num" role="cell" data-l="Tokens out" title={r.noTokens ? "Priced per clip: no token counts" : r.thinkingTokens ? `${r.thinkingTokens.toLocaleString("en-IN")} of them thinking tokens` : undefined}>
+                {r.noTokens ? "–" : compact(r.outputTokens + r.thinkingTokens)}
               </span>
               <span className="num" role="cell" data-l="Est. cost" title={r.costUsd ? undefined : "No rate is configured for this model"}>
                 {r.costUsd ? usd(r.costUsd) : "–"}
@@ -574,7 +579,7 @@ function AiReceipts({ receipts }: { receipts: Receipts | null }) {
               {usd(receipts.costUsd)}
             </span>
           </div>
-          <p className="muted small rc-note">Costs are estimates from per-token rates set in our server, not a bill. Tokens out include the model's thinking tokens.</p>
+          <p className="muted small rc-note">Costs are estimates from rates set in our server, not a bill: per token for Gemini, and a flat per-clip estimate for Lyria. Tokens out include the model's thinking tokens.</p>
         </div>
       ) : (
         <div className="callout">No model usage was recorded for this project.</div>

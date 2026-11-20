@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aiReceipts, compact, modelName, roleOf, usd } from "./receipts";
+import { agentTurns, aiReceipts, compact, modelName, roleOf, usd } from "./receipts";
 import { bestStageErrorText, engineFix, friendlyError, isTechnical, stageErrorText } from "./errors";
 import { buildTime, chosenConcept, fileGroups, originalWish, resultMessage, showcaseVersion, testCount, PRICE_LINE } from "./showcase";
 import { safeShareUrl } from "./urls";
@@ -48,6 +48,26 @@ describe("AI receipts", () => {
     expect(roleOf("some-model", "lyria")).toBe("sound");
     expect(roleOf("gemini-3-pro-image", "image")).toBe("photos");
     expect(roleOf("gemini-3.5-flash", "text")).toBe("agent");
+  });
+  it("counts only design-agent turns, and shows no token counts for Lyria (priced per clip)", () => {
+    const u = {
+      turns: [
+        { action: "chat", calls: [call("gemini-3.5-flash", "text")] },
+        { action: "voice_wish", calls: [call("gemini-live-2.5-flash-native-audio", "live")] },
+        { action: "sound", calls: [call("lyria-3-clip-preview", "music", { input_tokens: 0, output_tokens: 0, thinking_tokens: 0, cost_usd_est: 0.04 })] },
+      ],
+      totals: { turns: 3 },
+    };
+    const r = aiReceipts(u)!;
+    expect(r.turns).toBe(1);
+    expect(agentTurns(u)).toBe(1);
+    expect(agentTurns({ turns: [{ action: "chat" }], totals: { turns: 7 } })).toBe(7); // older turns trimmed from the list
+    expect(agentTurns({ turns: [{ action: "sound" }], totals: { turns: 1 } })).toBe(0);
+    expect(agentTurns(null)).toBe(0);
+    const sound = r.rows.find((x) => x.role === "sound")!;
+    expect(sound.noTokens).toBe(true);
+    expect(sound.costUsd).toBeCloseTo(0.04, 6);
+    expect(r.rows.find((x) => x.role === "voice")!.noTokens).toBe(false);
   });
   it("returns null when nothing was recorded", () => {
     expect(aiReceipts(null)).toBeNull();
@@ -159,7 +179,7 @@ describe("share page data", () => {
     ]);
   });
   it("carries the decided price line with the rupee sign", () => {
-    expect(PRICE_LINE).toBe("First units ₹19k to 28k; under ₹10k at volume (modelled).");
+    expect(PRICE_LINE).toBe("₹19k to 28k for first units; under ₹10k at volume (modelled).");
   });
 });
 

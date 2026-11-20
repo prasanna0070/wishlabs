@@ -10,6 +10,7 @@ import { ModeSelect } from "../components/ModeSelect";
 import { readAttachment } from "../components/chat/Composer";
 import { searchWithoutWish, takeWish } from "../lib/wish";
 import { VoiceWishDialog } from "../components/voice/VoiceWishDialog";
+import { primeVoiceAudio } from "../lib/voiceCall";
 
 const EXAMPLES = [
   { icon: Moon, label: "Bedtime story robot", name: "Bedtime Story Robot", prompt: "I want a cute robot that tells my daughter bedtime stories and remembers her favourite characters." },
@@ -32,6 +33,7 @@ export function HomePage() {
   const nav = useNavigate();
   const loc = useLocation();
   const setAuthed = useAuth((s) => s.setAuthed);
+  const voiceOff = useAuth((s) => s.voiceOff);
   const wishTaken = useRef(false);
 
   // A wish from the landing page (?wish=..., or kept through sign-in) fills the composer. It is never sent for the
@@ -159,16 +161,21 @@ export function HomePage() {
                 else setText((t) => `${t}${t ? "\n\n" : ""}${r.text}`);
               }}
             />
-            <button
-              ref={talkBtn}
-              type="button"
-              className="talk-btn"
-              onClick={() => setTalking(true)}
-              disabled={busy}
-              title="Talk to make a wish: a short voice chat with Gemini Live"
-            >
-              <Mic size={16} /> Talk
-            </button>
+            {voiceOff ? null : (
+              <button
+                ref={talkBtn}
+                type="button"
+                className="talk-btn"
+                onClick={() => {
+                  primeVoiceAudio(); // inside the click: Safari starts audio only from a user gesture
+                  setTalking(true);
+                }}
+                disabled={busy}
+                title="Talk to make a wish: a short voice chat with Gemini Live"
+              >
+                <Mic size={16} /> Talk
+              </button>
+            )}
             <div className="grow" />
             <ModeSelect value={mode} onChange={setMode} />
             <button className="send-btn" aria-label="Start" disabled={!text.trim() || busy}>

@@ -222,27 +222,76 @@ def test_fallback_model_is_used(voice_app):
     assert events[0]["model"] == "m2" and [m for m, _ in seen] == ["m2"]
 
 
-def test_one_session_per_login_and_hourly_cap(voice_app):
+def ended_reason(ws, timeout: float = 10.0) -> str | None:
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        m = ws.receive()
+        if m.get("type") == "websocket.close":
+            return None
+        if m.get("text") and json.loads(m["text"])["type"] == "ended":
+            return json.loads(m["text"])["reason"]
+    return None
+
+
+def test_one_session_per_login_takeover_and_hourly_cap(voice_app):
     app, c = voice_app
-    app.state.voice_connect = connector(make=lambda: FakeLive(after_bytes=None))
+    seen = []
+    app.state.voice_connect = connector(make=lambda: FakeLive(after_bytes=None), seen=seen)
     with c.websocket_connect("/api/voice/live") as ws1:
         ws1.send_text(json.dumps({"type": "start"}))
         assert json.loads(ws1.receive_text())["type"] == "ready"
+        hub = app.state.voice_hub
+        first = hub._active[next(iter(hub._active))]
+        # the same sign-in connects again (say its Wi-Fi dropped): the new call takes over, the old one ends now
         with c.websocket_connect("/api/voice/live") as ws2:
-            ev = json.loads(ws2.receive_text())
-        assert ev["type"] == "error" and ev["code"] == "busy"
-        ws1.send_text(json.dumps({"type": "cancel"}))
-        while True:
-            m = ws1.receive()
-            if m.get("text") and json.loads(m["text"])["type"] == "ended":
-                assert json.loads(m["text"])["reason"] == "cancelled"
-                break
-    assert c.get("/api/projects").json()["projects"] == []          # a cancelled call creates nothing
-    hub = app.state.voice_hub
-    hub.cfg.sessions_per_hour = 1
+            assert ended_reason(ws1) == "replaced"
+            ws2.send_text(json.dumps({"type": "start"}))
+            assert json.loads(ws2.receive_text())["type"] == "ready"
+            assert len(hub._active) == 1 and hub._active[next(iter(hub._active))] is not first
+            ws2.send_text(json.dumps({"type": "cancel"}))
+            assert ended_reason(ws2) == "cancelled"
+    assert len(seen) == 2
+    assert c.get("/api/projects").json()["projects"] == []          # neither call created anything
+    t0 = time.time()
+    while hub._active and time.time() - t0 < 5:                     # the slot is free again
+        time.sleep(0.05)
+    assert hub._active == {}
+    hub.cfg.sessions_per_hour = 2                                    # both calls counted against the hour
     with c.websocket_connect("/api/voice/live") as ws3:
         ev = json.loads(ws3.receive_text())
     assert ev["code"] == "rate_limited"
+
+
+def test_hub_release_keeps_the_newer_holder():
+    hub = voice_live.VoiceHub(LiveSettings(max_concurrent=1))
+    a, b = voice_live.VoiceTicket(), voice_live.VoiceTicket()
+    assert hub.admit("x", a) is None
+    assert hub.admit("y", voice_live.VoiceTicket())[0] == "capacity"   # another login: the instance cap holds
+    assert hub.admit("x", b) is None and a.replaced and not b.replaced  # same login: b takes over from a
+    hub.release("x", a)                                                 # a's late release must not free b's slot
+    assert hub._active == {"x": b}
+    hub.release("x", b)
+    assert hub._active == {}
+
+
+def test_noisy_room_switches(monkeypatch):
+    monkeypatch.setenv("LIVE_NO_BARGE_IN", "1")
+    monkeypatch.setenv("LIVE_START_SENSITIVITY", "low")
+    cfg = LiveSettings.from_env()
+    assert cfg.no_barge_in and cfg.start_sensitivity == "low"
+    rt = voice_live.live_config(cfg).realtime_input_config
+    assert rt.activity_handling == types.ActivityHandling.NO_INTERRUPTION
+    assert rt.automatic_activity_detection.start_of_speech_sensitivity == types.StartSensitivity.START_SENSITIVITY_LOW
+    monkeypatch.delenv("LIVE_NO_BARGE_IN")
+    monkeypatch.delenv("LIVE_START_SENSITIVITY")
+    assert voice_live.live_config(LiveSettings.from_env()).realtime_input_config is None   # default: unchanged
+
+
+def test_session_probe_hides_talk_when_voice_is_off(voice_app):
+    app, c = voice_app
+    assert "voice" not in c.get("/api/session").json()
+    app.state.voice_cfg = LiveSettings(enabled=False)
+    assert c.get("/api/session").json()["voice"] is False
 
 
 def test_time_limit_ends_without_project(voice_app):

@@ -38,6 +38,8 @@ export interface ReceiptRow {
   images: number;
   seconds: number;
   costUsd: number;
+  /** Token counts do not apply (Lyria is priced per clip): show "–" instead of 0. */
+  noTokens: boolean;
 }
 
 export interface Receipts {
@@ -50,6 +52,7 @@ export interface Receipts {
   outputTokens: number;
   images: number;
   costUsd: number;
+  /** Design-agent turns only: the voice call and each sound composition are recorded as turns too, not counted here. */
   turns: number;
 }
 
@@ -112,7 +115,7 @@ export function aiReceipts(usage: Usage | null | undefined): Receipts | null {
     const key = `${role}:${c.model}`;
     let r = rows.get(key);
     if (!r) {
-      r = { key, role, label: ROLES[role].label, what: ROLES[role].what, model: c.model!, modelName: modelName(c.model!), calls: 0, inputTokens: 0, outputTokens: 0, thinkingTokens: 0, images: 0, seconds: 0, costUsd: 0 };
+      r = { key, role, label: ROLES[role].label, what: ROLES[role].what, model: c.model!, modelName: modelName(c.model!), calls: 0, inputTokens: 0, outputTokens: 0, thinkingTokens: 0, images: 0, seconds: 0, costUsd: 0, noTokens: role === "sound" };
       rows.set(key, r);
     }
     r.calls += 1;
@@ -132,8 +135,21 @@ export function aiReceipts(usage: Usage | null | undefined): Receipts | null {
     outputTokens: list.reduce((a, r) => a + r.outputTokens + r.thinkingTokens, 0),
     images: list.reduce((a, r) => a + r.images, 0),
     costUsd: list.reduce((a, r) => a + r.costUsd, 0),
-    turns: n(usage.totals?.turns) || (usage.turns || []).length,
+    turns: agentTurns(usage),
   };
+}
+
+/** Turns recorded by the voice wish or the gadget sound (usage.py records each as a turn, like an agent turn). */
+const NON_AGENT_ACTIONS = new Set(["voice_wish", "sound"]);
+
+/** How many design-agent turns the project had: usage.totals.turns counts every recorded turn, voice and sound
+ * included, so it is corrected by the voice and sound turns still in the kept list. */
+export function agentTurns(usage: Usage | null | undefined): number {
+  if (!usage) return 0;
+  const kept = usage.turns || [];
+  const other = kept.filter((t) => t && NON_AGENT_ACTIONS.has(String(t.action || ""))).length;
+  const total = n(usage.totals?.turns) || kept.length;
+  return Math.max(0, total - other);
 }
 
 /** 1234567 -> "1.2M", 38474 -> "38k", 512 -> "512". */

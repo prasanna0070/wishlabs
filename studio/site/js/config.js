@@ -6,7 +6,7 @@
   /* "See a real build": the read-only share link of a finished design, e.g. "/studio/s/<token>" (or the full
      https://wish.plugbook.si/studio/s/<token>). Every "See a real build" button stays hidden while this is empty. */
   var SHARE_URL = "";
-  /* The two Buildathon features (talk to make a wish with Gemini Live; every gadget gets its own sound by Lyria) are
+  /* The two Buildathon features (talk to make a wish with Gemini Live; each new design's own sound by Lyria) are
      named in ONE block in How it works (index.html, class "story-new"). Keep false until both are live. */
   var NEW_FEATURES = false;
 

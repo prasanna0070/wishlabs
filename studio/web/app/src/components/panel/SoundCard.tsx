@@ -217,7 +217,7 @@ export function SoundCard({ project, version, ctx, readOnly, compact = false }: 
   const working =
     status === "generating" ? (
       <span className="pill primary sound-working" role="status">
-        <Spinner /> Lyria is composing{elapsed ? ` · ${elapsed} s` : ""} <span className="muted">(usually 15 to 30 s)</span>
+        <Spinner /> Lyria is composing{elapsed ? ` · ${elapsed} s` : ""} <span className="muted">(usually 15 to 45 s)</span>
       </span>
     ) : null;
 

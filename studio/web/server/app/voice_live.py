@@ -11,8 +11,11 @@ turns with roles and times, plus the speaker's recording when they opt in) and s
 also on read-only share links.
 
 Credentials stay on the server (the service account). Limits, all failing closed: studio login required, same-origin
-browsers only, one live session per login, LIVE_MAX_SECONDS per session (default 180), LIVE_SESSIONS_PER_HOUR per
-login (default 12), LIVE_MAX_CONCURRENT per instance (default 4). LIVE_ENABLED=0 turns the feature off.
+browsers only, one live session per login (a new connection from the same login takes over and ends the old one, so a
+call whose Wi-Fi dropped does not lock Talk out), LIVE_MAX_SECONDS per session (default 180), LIVE_SESSIONS_PER_HOUR
+per login (default 12), LIVE_MAX_CONCURRENT per instance (default 4). LIVE_ENABLED=0 turns the feature off.
+Noisy rooms: LIVE_NO_BARGE_IN=1 stops Live from cutting itself off when it hears sound while it talks, and
+LIVE_START_SENSITIVITY=low makes it slower to decide that someone started speaking.
 """
 from __future__ import annotations
 
@@ -110,6 +113,8 @@ class LiveSettings:
     max_concurrent: int = 4
     allow_recording: bool = True
     allowed_origins: tuple[str, ...] = ()
+    no_barge_in: bool = False           # LIVE_NO_BARGE_IN=1: Live finishes its line even if it hears the room
+    start_sensitivity: str | None = None  # LIVE_START_SENSITIVITY=low|high: Live's start-of-speech detection
 
     @classmethod
     def from_env(cls) -> "LiveSettings":
@@ -128,26 +133,32 @@ class LiveSettings:
             max_concurrent=int(os.environ.get("LIVE_MAX_CONCURRENT") or cls.max_concurrent),
             allow_recording=_flag("LIVE_ALLOW_RECORDING", True),
             allowed_origins=origins,
+            no_barge_in=_flag("LIVE_NO_BARGE_IN", False),
+            start_sensitivity=((os.environ.get("LIVE_START_SENSITIVITY") or "").strip().lower() or None),
         )
 
 
 class VoiceHub:
     """Per-instance admission: one active session per login, an hourly cap per login and per instance (everyone
-    shares one access key, so a fresh sign-in must not mean a fresh budget), and a concurrency cap."""
+    shares one access key, so a fresh sign-in must not mean a fresh budget), and a concurrency cap.
+
+    A new connection from a login that already holds a session takes the slot over: the earlier holder is told to
+    stop (replace()), so it stays one call per login. That earlier call is usually one whose Wi-Fi dropped, which the
+    server would otherwise only notice after its ping timeout (about 40 s), keeping Talk locked out and the orphaned
+    Live session running meanwhile."""
 
     def __init__(self, cfg: LiveSettings):
         self.cfg = cfg
         self._lock = threading.Lock()
-        self._active: set[str] = set()
+        self._active: dict[str, Any] = {}       # login -> its holder (anything; replace() is called if it has one)
         self._starts: dict[str, deque] = defaultdict(deque)
         self._all: deque = deque()
 
-    def admit(self, login: str) -> tuple[str, str] | None:
+    def admit(self, login: str, holder: Any = None) -> tuple[str, str] | None:
         """None when admitted, else (code, message)."""
         with self._lock:
-            if login in self._active:
-                return ("busy", "A voice wish is already open for this sign-in. Finish or cancel it first.")
-            if len(self._active) >= self.cfg.max_concurrent:
+            prev = self._active.get(login)
+            if prev is None and len(self._active) >= self.cfg.max_concurrent:
                 return ("capacity", "Voice is busy right now. Type your wish, or try again in a minute.")
             q = self._starts[login]
             cut = time.time() - 3600
@@ -159,12 +170,34 @@ class VoiceHub:
             now = time.time()
             q.append(now)
             self._all.append(now)
-            self._active.add(login)
-            return None
+            self._active[login] = holder if holder is not None else True
+        if prev is not None and prev is not holder:
+            replace = getattr(prev, "replace", None)
+            if callable(replace):
+                with contextlib.suppress(Exception):
+                    replace()
+        return None
 
-    def release(self, login: str) -> None:
+    def release(self, login: str, holder: Any = None) -> None:
+        """Frees the login's slot, unless a newer connection has taken it over (then that one keeps it)."""
         with self._lock:
-            self._active.discard(login)
+            cur = self._active.get(login)
+            if cur is not None and (holder is None or cur is holder):
+                del self._active[login]
+
+
+class VoiceTicket:
+    """One browser connection's hold on its login's voice slot. replace() ends its session (if one is running) within
+    a quarter second; a connection still waiting for its start message sees `replaced` and stops there."""
+
+    def __init__(self) -> None:
+        self.replaced = False
+        self.session: "VoiceSession | None" = None
+
+    def replace(self) -> None:
+        self.replaced = True
+        if self.session is not None:
+            self.session.stop("replaced")
 
 
 def login_id(cookie: str) -> str:
@@ -210,7 +243,18 @@ def live_config(cfg: LiveSettings):
             },
             required=["wish"]),
     )
+    extra: dict = {}
+    rt: dict = {}
+    if cfg.no_barge_in:
+        rt["activity_handling"] = types.ActivityHandling.NO_INTERRUPTION
+    sens = {"low": types.StartSensitivity.START_SENSITIVITY_LOW,
+            "high": types.StartSensitivity.START_SENSITIVITY_HIGH}.get(cfg.start_sensitivity or "")
+    if sens is not None:
+        rt["automatic_activity_detection"] = types.AutomaticActivityDetection(start_of_speech_sensitivity=sens)
+    if rt:
+        extra["realtime_input_config"] = types.RealtimeInputConfig(**rt)
     return types.LiveConnectConfig(
+        **extra,
         response_modalities=[types.Modality.AUDIO],
         speech_config=types.SpeechConfig(voice_config=types.VoiceConfig(
             prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=cfg.voice))),
@@ -499,8 +543,14 @@ class VoiceSession:
         self.live: Adapter | None = None
         self.send_lock = asyncio.Lock()
         self.closed = False
+        self.stop_reason: str | None = None     # set by stop(): the clock ends the session within a quarter second
         self.usage = {"input_tokens": 0, "output_tokens": 0, "thinking_tokens": 0, "cached_tokens": 0}
         self.usage_msgs = 0
+
+    def stop(self, reason: str) -> None:
+        """End this session soon (a newer connection from the same login took over)."""
+        if self.stop_reason is None:
+            self.stop_reason = reason
 
     # browser side ------------------------------------------------------------
     async def send(self, obj: dict) -> None:
@@ -543,6 +593,8 @@ class VoiceSession:
             return "unavailable"
         self.live = Adapter(session)
         try:
+            if self.stop_reason:            # taken over while connecting: close Live before it says anything
+                raise Ended(self.stop_reason)
             await self.send({"type": "ready", "model": self.model, "max_seconds": self.cfg.max_seconds,
                              "recording_allowed": self.cfg.allow_recording})
             await self.live.text(GREETING_WITH_TEXT.format(text=self.typed.replace('"', "'")) if self.typed
@@ -564,6 +616,8 @@ class VoiceSession:
             for t in pending:
                 with contextlib.suppress(BaseException):
                     await t
+        except Ended as e:
+            reason = e.reason
         finally:
             with contextlib.suppress(BaseException):
                 await cm.__aexit__(None, None, None)
@@ -702,6 +756,10 @@ class VoiceSession:
         nudged = False
         while True:
             await asyncio.sleep(0.25)
+            if self.stop_reason:
+                raise Ended(self.stop_reason)
+            if self.closed:                 # a send to the browser failed: it is gone, so stop paying for Live
+                raise Ended("closed")
             now = time.monotonic()
             el = now - self.t0
             if self.goodbye_deadline is not None and now > self.goodbye_deadline:

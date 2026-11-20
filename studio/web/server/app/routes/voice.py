@@ -11,7 +11,8 @@ import re
 from fastapi import APIRouter, Depends, Request, Response, WebSocket
 
 from ..auth import COOKIE, require_session
-from ..voice_live import AUDIO_KEY, LiveSettings, VoiceHub, VoiceSession, login_id, origin_ok, vertex_live
+from ..voice_live import (AUDIO_KEY, LiveSettings, VoiceHub, VoiceSession, VoiceTicket, login_id, origin_ok,
+                          vertex_live)
 from .common import err, load_project, svc_of
 
 log = logging.getLogger("gstudio.voice")
@@ -45,14 +46,16 @@ async def voice_live(ws: WebSocket):
 
     async def fail(code: str, message: str) -> None:
         await ws.send_text(json.dumps({"type": "error", "code": code, "message": message}))
-        await ws.close(code=4000 + {"disabled": 3, "busy": 9, "rate_limited": 29, "capacity": 29}.get(code, 0))
+        await ws.close(code=4000 + {"disabled": 3, "busy": 9, "replaced": 8, "rate_limited": 29,
+                                    "capacity": 29}.get(code, 0))
 
     if not cfg.enabled:
         await fail("disabled", "Voice wishes are switched off on this server. Type your wish instead.")
         return
     hub = _hub(app)
     login = login_id(cookie or "")
-    refused = hub.admit(login)
+    ticket = VoiceTicket()
+    refused = hub.admit(login, ticket)      # a call already open for this login is ended: this one takes over
     if refused:
         await fail(*refused)
         return
@@ -64,6 +67,9 @@ async def voice_live(ws: WebSocket):
             return
         if first.get("type") == "websocket.disconnect":
             return
+        if ticket.replaced:
+            await fail("replaced", "This voice wish was started again in another window.")
+            return
         try:
             opts = json.loads(first.get("text") or "")
         except ValueError:
@@ -72,14 +78,16 @@ async def voice_live(ws: WebSocket):
             await fail("invalid", "Send a start message first.")
             return
         connect = getattr(app.state, "voice_connect", None) or vertex_live
-        reason = await VoiceSession(ws, app, svc, cfg, connect, opts).run()
+        session = VoiceSession(ws, app, svc, cfg, connect, opts)
+        ticket.session = session
+        reason = await session.run()
         log.info("voice session ended: %s", reason)
         try:
             await ws.close(code=1000)
         except Exception:  # noqa: BLE001 - already closed by the browser
             pass
     finally:
-        hub.release(login)
+        hub.release(login, ticket)
 
 
 # ------------------------------------------------------------------ the stored recording

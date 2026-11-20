@@ -415,7 +415,9 @@ asks at most 3 short questions, confirms, and calls `submit_wish(wish, details)`
 `ProjectRepo.create` and runs its first turn through the normal chat path (`Turn`), so the design flow is not forked.
 The transcript (and, if the speaker opts in, their trimmed recording) is stored as `project.voice` and shown by
 `VoiceWishCard` in the project and on share links; the call is one `kind: "live"` entry in the usage receipts. Limits:
-login, same origin, one call per sign-in, hourly caps per sign-in and per instance, 3 minutes per call, fail closed.
+login, same origin, one call per sign-in (a new call from the same sign-in replaces the old one), hourly caps per
+sign-in and per instance, 3 minutes per call, fail closed. On a slow uplink the browser drops microphone frames once
+about 2 s are waiting, and gives up on a call that is not ready within 15 s.
 
 **Frontend** (React SPA): the layout replicates the benchmark's (see docs/ref/benchmark-ui.md):
 - left: the chat;

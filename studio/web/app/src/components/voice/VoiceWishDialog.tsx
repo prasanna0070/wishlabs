@@ -150,7 +150,9 @@ export function VoiceWishDialog({
                       ? "That is the end of the three minutes for one voice wish. Type the rest of your wish, or start again."
                       : ev.reason === "no_wish"
                         ? "The call ended before the wish was clear. Type it instead, or start again."
-                        : "The call ended. Type your wish instead, or start again.",
+                        : ev.reason === "replaced"
+                          ? "This voice wish continued in another window. Type your wish here instead, or start again."
+                          : "The call ended. Type your wish instead, or start again.",
                 },
               );
             }
@@ -278,7 +280,7 @@ export function VoiceWishDialog({
             />
             <span>
               Save my voice recording with the project. Anyone with its share link can play it. The written transcript is
-              saved either way.
+              saved either way and shows on the share link.
             </span>
           </label>
         ) : null}
