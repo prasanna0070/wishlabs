@@ -188,10 +188,10 @@ DESIGN_FREEFORM = """# Design rules for useful, printable, safe objects
 # through the pack rules. The patterns below follow contract v1 (boxes, cylinders, cones and z-extrudes stand on
 # z = 0, centred in x and y) and stay PROVISIONAL until the engine's validated examples cover them.
 CSG_RULES = """# Designing with csg bodies (freeform)
-A csg body ("family": "csg") is the shell's outer form as a small tree of solid shapes, in the csg language listed
-under "Parts and objects added this week". It is data, never code. The engine hollows it, adds the seam, the core
-cartridge and the module mounts, puts each feature on its named face where that face's surface is, and runs every
-check; an error names the node path: fix that node and resend.
+A csg body ("family": "csg") is the shell's outer form as a small tree of solid shapes, in the csg language
+listed above under "Parts and objects added this week". It is data, never code. The engine hollows it, adds the
+seam, the core cartridge and the module mounts, puts each feature on its named face where that face's surface is,
+and runs every check; an error names the node path: fix that node and resend.
 - Use a csg body for at least 3 of the 6 concepts, wherever a shape serves the function; silhouette, revolve and
   blob bodies are fine for the rest.
 - Build the function from shapes: a tray is a rounded box cut down into the top, a slot is a thin box cut down from
@@ -451,10 +451,10 @@ class PromptBuilder:
                 design = design.replace("Every axis 60-260 mm;", "Every axis 60-260 mm (a printed object: 20-260 mm);")
             blocks = [ROLE, FLOW_FREEFORM if freeform else FLOW, VOICE, HONESTY.replace("{CANNOT}", cap["honesty"]),
                       SAFETY.replace("{MOVING}", cap["moving"]), cap["say_yes"], design]
-            if freeform:
-                blocks.append(csg_rules("printed" in self._packs_on()))
             if cap["packs"]:
                 blocks.append(cap["packs"])
+            if freeform:                                  # after the pack rules, which hold the csg language
+                blocks.append(csg_rules("printed" in self._packs_on()))
             blocks += [
                 "# Spec schema (gadget-spec/1). Unknown keys are rejected; every number has bounds.\n" + schema,
                 "# Parts catalog (the only parts that exist). Use these ids exactly.\n" + table,
