@@ -10,7 +10,7 @@ from ..genai_client import get_client
 from ..projects import make_message
 from ..usage import record_from_response
 from .history import build_contents
-from .prompt import PromptBuilder
+from .prompt import PromptBuilder, wish_of
 from .tools import TERMINAL, declarations
 from .voice import lint
 
@@ -26,12 +26,12 @@ class GeminiBrain:
         self.svc = svc
         self.prompts = PromptBuilder(svc.bridge, svc.settings)
 
-    def _config(self, allowed: list[str]):
+    def _config(self, allowed: list[str], wish: str | None = None):
         from google.genai import types
 
         s = self.svc.settings
         kw = dict(
-            system_instruction=self.prompts.system_prompt(),
+            system_instruction=self.prompts.system_prompt(wish),
             temperature=1.0,
             max_output_tokens=32768,
             tools=[types.Tool(function_declarations=declarations(allowed))],
@@ -96,8 +96,9 @@ class GeminiBrain:
         allowed = turn.allowed(p)
         contents = await asyncio.to_thread(build_contents, self.svc, p, allowed, turn.instruction)
         await turn.status("Thinking")
+        wish = wish_of(p)  # picks the worked examples closest to the user's own words (CATALOG-PLAN E3)
         for step in range(MAX_STEPS):
-            config = self._config(allowed)
+            config = self._config(allowed, wish)
             try:
                 parts, calls, msg = await self._call_with_retry(turn, model, contents, config)
             except Exception as exc:  # noqa: BLE001
