@@ -1,0 +1,24 @@
+/* Gadget sound (SoundCard.tsx): the strip under the 3D view and the card on share pages. */
+.sound-strip { flex: none; display: flex; flex-direction: column; gap: 8px; padding: 8px 16px; border-top: 1px solid var(--line); background: var(--panel); font-size: 13px; }
+.sound-row { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; }
+.sound-row .grow { flex: 1 1 auto; }
+.sound-title { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.sound-card .sound-row + .sound-row, .sound-card .sound-details { margin-top: 10px; }
+/* 64 bars at 1 px + 1 px gaps fit in the 140 px minimum, so the bars never spill over the controls beside them */
+.sound-wave { display: flex; align-items: center; gap: 1px; height: 28px; flex: 1 1 160px; min-width: 140px; max-width: 320px; overflow: hidden; cursor: pointer; border-radius: 4px; }
+.sound-wave i { display: block; flex: 1 1 0; min-width: 1px; border-radius: 2px; background: var(--line-strong); transition: background 0.1s; }
+.sound-wave i.on { background: var(--primary); }
+.sound-wave:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.sound-credit { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+.sound-working { display: inline-flex; align-items: center; gap: 6px; }
+.sound-details { display: flex; flex-direction: column; gap: 6px; }
+.sound-prompt { margin: 0; padding: 8px 10px; font-size: 12.5px; line-height: 1.5; color: var(--ink-2); background: var(--surface-soft); border: 1px solid var(--line); border-radius: 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sound-caption { font-style: italic; }
+.sound-meta { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.sound-device { display: inline-flex; align-items: center; gap: 5px; width: fit-content; }
+.sound-msg { margin: 0; }
+@media (max-width: 560px) {
+  .sound-strip { padding: 8px 12px; }
+  .sound-wave { flex-basis: 100%; max-width: none; order: 5; }
+  .sound-credit { white-space: normal; }
+}
