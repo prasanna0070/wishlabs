@@ -138,7 +138,8 @@
     "mount_type": "cable exit",
     "face_part": "probe",
     "selftest": "the soil reading changes when the probe goes into damp soil",
-    "care": "Push the probe into the soil only up to its line; keep the electronics end above the soil and dry."
+    "care": "Push the probe into the soil only up to its line; keep the electronics end above the soil and dry.",
+    "fit": "Pass the lead of the {name} through its cable exit from outside, so the probe itself stays outside the shell. Inside, lay the lead between the two posts and close one cable tie through both post slots over it. Do not pull on the lead to seat it."
    },
    "merge": {
     "role": "soil_moisture",
@@ -290,7 +291,8 @@
     "mount_type": "cable exit",
     "face_part": "float",
     "selftest": "the water reading says OK with the float lifted and LOW with it hanging down",
-    "care": "Fit the float so the contact closes when the water is up; keep the gadget itself away from the water."
+    "care": "Fit the float so the contact closes when the water is up; keep the gadget itself away from the water.",
+    "fit": "Pass the lead of the {name} through its cable exit from outside, so the float itself stays outside the shell. Inside, lay the lead between the two posts and close one cable tie through both post slots over it. Do not pull on the lead to seat it."
    },
    "merge": {
     "role": "level_switch",
