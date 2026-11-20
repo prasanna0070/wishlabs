@@ -171,3 +171,15 @@ def test_generated_project_carries_the_contract(tmp_path):
     inc = tmp_path / "firmware" / "include"
     cfg, hw = _defines((inc / "config.h").read_text()), _defines((inc / "hardware.h").read_text())
     assert cfg["GS_CFG_SOIL_RAW_DRY"] == "3000" and hw["GS_HAS_SOIL"] == "1" and hw["GS_HAS_LEVEL"] == "1"
+
+
+def test_setup_doc_explains_calibration_and_the_float():
+    from gstudio.firmware.setup_doc import setup_markdown
+
+    spec, _ = _sensing_design()
+    settings = validate_settings("sensor_display", {"soil_raw_dry": 2900})[0]
+    md = setup_markdown(spec, "sensor_display", settings, {"version": "t"}, None)
+    assert "## 4. Soil probe and tank float" in md
+    assert "2900" in md and "Water me" in md and "Refill the tank" in md and "does not water the plant" in md
+    plain, _ = load_fixture("sensor_display")
+    assert "Soil probe" not in setup_markdown(plain, "sensor_display", validate_settings("sensor_display", {})[0], {}, None)
