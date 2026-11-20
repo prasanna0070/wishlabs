@@ -41,11 +41,26 @@ except Exception:
 PUBLIC_URL=${PUBLIC_URL:-$(gcloud run services describe $SVC --region=$REGION --project=$P \
   --format='value(status.url)' 2>/dev/null || true)}
 
+# Optional feature knobs (voice wish, gadget sound), passed only when set in this shell. --set-env-vars below replaces
+# every env var, so a knob set by hand on the service is lost on the next deploy: set it here instead. No commas.
+#   LIVE_ENABLED=0 bash studio/deploy/web.sh          voice wish off
+#   SOUND=0 bash studio/deploy/web.sh                 gadget sound off
+#   LYRIA_MODEL=lyria-002 bash studio/deploy/web.sh   Lyria 2 only
+KNOBS=""
+for k in LIVE_ENABLED LIVE_MODEL LIVE_LOCATION LIVE_FALLBACK_MODEL LIVE_ALLOWED_ORIGINS LIVE_MAX_SECONDS SOUND \
+         LYRIA_MODEL LYRIA_LOCATION LYRIA_FALLBACK SOUND_DAILY_CAP SOUND_SESSION_HOURLY; do
+  v="${!k:-}"
+  [ -n "$v" ] || continue
+  case "$v" in *,*) echo "$k must not contain a comma" >&2; exit 1 ;; esac
+  KNOBS="$KNOBS,$k=$v"
+done
+[ -z "$KNOBS" ] || echo "feature knobs: ${KNOBS#,}"
+
 gcloud run deploy $SVC --project=$P --region=$REGION --image=$IMAGE \
   --service-account=$SA --allow-unauthenticated \
   --cpu=1 --memory=1Gi --no-cpu-throttling --min-instances=0 --max-instances=3 --concurrency=40 \
   --timeout=3600 --execution-environment=gen2 \
-  --set-env-vars="BUILDER=remote,BUILDER_URL=$BUILDER_URL,BUCKET=$BUCKET,AGENT=gemini,GOOGLE_CLOUD_PROJECT=$P${PUBLIC_URL:+,PUBLIC_URL=$PUBLIC_URL}${SHARE_URL:+,SHARE_URL=$SHARE_URL}" \
+  --set-env-vars="BUILDER=remote,BUILDER_URL=$BUILDER_URL,BUCKET=$BUCKET,AGENT=gemini,GOOGLE_CLOUD_PROJECT=$P${PUBLIC_URL:+,PUBLIC_URL=$PUBLIC_URL}${SHARE_URL:+,SHARE_URL=$SHARE_URL}$KNOBS" \
   --set-secrets="ACCESS_KEY=gstudio-access-key:latest"
 URL=$(gcloud run services describe $SVC --region=$REGION --project=$P --format='value(status.url)')
 echo "deployed: $URL"
