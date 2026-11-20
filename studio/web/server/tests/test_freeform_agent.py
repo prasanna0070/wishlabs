@@ -103,7 +103,9 @@ def test_pack_on_shows_csg_examples_first(tmp_path):
     off = PromptBuilder(_StubBridge([], []), s).example_paths("a desk station")
     assert off[0] == robot and tray not in off
     on = PromptBuilder(_StubBridge(["freeform"], [tray, wedge]), s).example_paths("a wedge console for my desk")
-    assert on[:2] == [wedge, tray] and on[2] == plain and on[3] in (robot, owl) and len(on) == 4
+    assert on[:2] == [wedge, tray] and len(on) == 4 and set(on[2:]) <= {robot, owl, plain}
+    one = PromptBuilder(_StubBridge(["freeform"], [tray]), s).example_paths("an owl lamp")
+    assert one[0] == tray and one[1] == plain                     # one csg example: faceless ones come next
 
 
 def test_tool_wording_follows_the_pack():
@@ -395,3 +397,14 @@ def test_placeholder_draws_csg_silhouettes(monkeypatch):
     png = ph.render_png({"body": body, "colors": {"body": "#E7D7C1"}}, 96)
     assert png[:8] == b"\x89PNG\r\n\x1a\n"
     ph._CSG_CACHE.clear()
+
+
+def test_csg_patterns_pass_the_engine_checks():
+    """The prompt's csg patterns pass the engine's language and solid checks (skipped until gstudio.csg exists)."""
+    csg = pytest.importorskip("gstudio.csg")
+    from app.agent.prompt import CSG_PATTERNS, csg_rules
+
+    for name, tree in CSG_PATTERNS:
+        assert csg.validate_tree(tree) == [], name
+        assert csg.solid_checks(tree, kind="gadget") == [], name
+        assert f"  {name}: {json.dumps(tree, separators=(',', ':'))}" in csg_rules()

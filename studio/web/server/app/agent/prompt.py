@@ -202,22 +202,29 @@ check; an error names the node path: fix that node and resend.
 - Features sit on flat or gently curved areas of their face, away from cuts, blends and edges.
 - Prefer 3-15 nodes; a union blend of 4-12 mm makes the parts read as one product.
 - Patterns (each is a body.csg value):
-  dock with a front tray groove: {"op":"cut","node":{"op":"box","size":[200,130,70],"round":10},"minus":[{"op":"move",
-  "to":[0,-30,45],"node":{"op":"box","size":[150,50,40],"round":8}}]}
-  wedge console with a sloped screen face: {"op":"extrude","axis":"x","points":[[-65,0],[65,0],[65,95],[-15,95],
-  [-65,35]],"h":190,"round":6}
-  stepped organiser rising to the back: {"op":"union","blend":6,"nodes":[{"op":"box","size":[180,140,50],"round":8},
-  {"op":"move","to":[0,25,0],"node":{"op":"box","size":[180,90,90],"round":8}},{"op":"move","to":[0,45,0],
-  "node":{"op":"box","size":[180,50,130],"round":8}}]}
-  tower on a plinth: {"op":"union","blend":10,"nodes":[{"op":"cylinder","r":75,"h":20,"round":6},{"op":"move",
-  "to":[0,0,15],"node":{"op":"box","size":[115,110,170],"round":20}}]}{PRINTED}"""
+{PATTERNS}{PRINTED}"""
+CSG_PATTERNS: list[tuple[str, dict]] = [
+    ("dock with a front tray groove", {"op": "cut", "node": {"op": "box", "size": [200, 130, 70], "round": 10},
+                                       "minus": [{"op": "move", "to": [0, -30, 45],
+                                                  "node": {"op": "box", "size": [150, 50, 40], "round": 8}}]}),
+    ("wedge console with a sloped screen face", {"op": "extrude", "axis": "x", "h": 190, "round": 6,
+                                                 "points": [[-65, 0], [65, 0], [65, 95], [-15, 95], [-65, 35]]}),
+    ("stepped organiser rising to the back", {"op": "union", "blend": 6, "nodes": [
+        {"op": "box", "size": [180, 140, 50], "round": 8},
+        {"op": "move", "to": [0, 25, 0], "node": {"op": "box", "size": [180, 90, 90], "round": 8}},
+        {"op": "move", "to": [0, 45, 0], "node": {"op": "box", "size": [180, 50, 130], "round": 8}}]}),
+    ("tower on a plinth", {"op": "union", "blend": 10, "nodes": [
+        {"op": "cylinder", "r": 85, "h": 20, "round": 6},
+        {"op": "move", "to": [0, 0, 15], "node": {"op": "box", "size": [115, 110, 170], "round": 20}}]}),
+]
 CSG_PRINTED = ("\n- A printed object (kind printed, no electronics) may use a csg body too, for example a sculpted "
                "teapot or a stepped desk tidy.")
 
 
 def csg_rules(printed: bool = False) -> str:
     """How to design with csg bodies (pack `freeform`); the printed-object line only while pack `printed` is on."""
-    return CSG_RULES.replace("{PRINTED}", CSG_PRINTED if printed else "")
+    pats = "\n".join(f"  {name}: {json.dumps(tree, separators=(',', ':'))}" for name, tree in CSG_PATTERNS)
+    return CSG_RULES.replace("{PATTERNS}", pats).replace("{PRINTED}", CSG_PRINTED if printed else "")
 
 
 MAX_EXAMPLES = 4
@@ -290,8 +297,8 @@ class PromptBuilder:
         """Several worked examples of different forms, so the agent does not anchor on one bear: bedtime-robot first,
         then the examples whose name, tagline or slug share the most words with the wish (in candidate order when the
         wish matches nothing or is not known), at most MAX_EXAMPLES. With pack `freeform` on, the csg examples come
-        first (up to FREEFORM_CSG_EXAMPLES, closest to the wish), then the rest by the wish, faceless ones first: the
-        face-and-ears examples alone made every concept the same rounded shell."""
+        first (up to FREEFORM_CSG_EXAMPLES, closest to the wish), then the rest by the wish (faceless ones first while
+        fewer than two csg examples exist): the face-and-ears examples alone made every concept one rounded shell."""
         cands = self.candidate_paths()
         if not cands:
             return []
@@ -318,7 +325,9 @@ class PromptBuilder:
         csg = [p for p in cands if (specs[p].get("body") or {}).get("family") == "csg"]
         rest = [p for p in cands if p not in csg]
         out = rank(csg)[:FREEFORM_CSG_EXAMPLES]
-        return (out + rank(rest, faceless_first=True))[:MAX_EXAMPLES]
+        # with two or more csg product examples the rest may show a character (the wildcard); with fewer, faceless
+        # examples come first so the face-and-ears ones do not set the tone
+        return (out + rank(rest, faceless_first=len(out) < 2))[:MAX_EXAMPLES]
 
     def _example_text(self, p: Path) -> str:
         sp = self._read_example(p) or {}
