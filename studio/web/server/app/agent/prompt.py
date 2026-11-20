@@ -156,9 +156,11 @@ DESIGN_FREEFORM = """# Design rules for useful, printable, safe objects
   least one concept per tier, and say the noun in the title or blurb; animals or objects are allowed only as
   styling of that subject (a robot can be owl-styled, but it is still a robot).
 - Robots: at least 4 of the 6 concepts read as robots and carry two or more robot cues each: antenna ears (decor
-  ear style "antenna"), a visor face plate (face_plate shape "rounded_rect"), a screen face (the 2.0 in LCD as the
-  face), a head-on-body stack (a silhouette outline that narrows to a neck between a wider head and body, or a
-  blob body with a head primitive on a body primitive), or a boxy body (rounded_box primitives).
+  ear style "antenna"), a screen (the 2.0 in LCD, shown as a screen), a head-on-body stack (a silhouette outline that
+  narrows to a neck between a wider head and body, a blob body with a head primitive on a body primitive, or a csg
+  head box on a body box), or a boxy body (rounded_box primitives or csg boxes). Face cues (a visor face plate, a
+  screen drawn as a face) follow the face rule above: the wildcard character, or any concept when the wish is
+  playful or for a child.
 - Exact formats (the validator rejects anything else): every decor item has "type", "at": [x, z] and "size":
   [w, h] (text has "text" and "height" instead of size); a blob primitive is exactly {"kind", "center": [x, y, z],
   "size": [sx, sy, sz], "radius", "axis"} with kind one of rounded_box, sphere, ellipsoid, cylinder, capsule and no
@@ -205,7 +207,7 @@ and runs every check; an error names the node path: fix that node and resend.
   keep its rear part (the back 95 mm, the middle 90 mm of the width) a full block up to 40 mm high: no slope, step or
   cut starts there below 40 mm.
 - A piece that carries a screen, button or sensor must share the main hollow: overlap it with the main body by at
-  least 10 mm, or its module has no room behind the wall.
+  least 6 mm (2 x wall + 1), or its hollow does not join the main one and its module has no room behind the wall.
 - Cuts stay inside: keep at least 6 mm of material under and around every tray, slot or groove, never cut through
   a wall or across the joint of two union pieces (that splits the shape into pieces), and keep each cut box well
   inside the outline it carves.

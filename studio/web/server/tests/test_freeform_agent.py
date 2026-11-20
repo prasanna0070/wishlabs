@@ -641,14 +641,26 @@ def test_csg_patterns_keep_the_floor_rule():
         assert fl and any(w >= 100 + 2 * r and d >= 110 + 2 * r for w, d, r in fl), (name, fl)
 
 
-def test_csg_patterns_overlap_their_pieces_by_10_mm():
-    """The prompt asks for 10 mm of overlap between stacked pieces that share the hollow; its own patterns comply."""
-    from app.agent.prompt import CSG_PATTERNS
+def test_csg_patterns_overlap_their_pieces_by_6_mm():
+    """The prompt asks for 6 mm (2 x wall + 1, the engine's own number) of overlap between stacked pieces that share
+    the hollow; its own patterns comply."""
+    from app.agent.prompt import CSG_PATTERNS, CSG_RULES
 
+    assert "least 6 mm (2 x wall + 1)" in CSG_RULES and "least 10 mm" not in CSG_RULES
     tower = dict(CSG_PATTERNS)["tower on a plinth"]
     plinth, body = tower["nodes"]
     z0 = body["to"][2] if body["op"] == "move" else 0.0         # the tower stands on the table through its plinth
-    assert plinth["h"] - z0 >= 10
+    assert plinth["h"] - z0 >= 6
+
+
+def test_freeform_robot_rule_keeps_face_cues_to_the_face_rule():
+    """Review 2026-11-21 (M5): the freeform Robots rule must not ask for a visor or a screen face on every robot."""
+    from app.agent.prompt import DESIGN, DESIGN_FREEFORM
+
+    robots = DESIGN_FREEFORM.split("- Robots:")[1].split("\n- ")[0]
+    assert "the face rule above" in robots and "the wildcard character" in robots
+    assert "a screen face (the 2.0 in LCD as the" not in robots
+    assert "a screen face (the 2.0 in LCD as the" in DESIGN                # pack off: the live rule, unchanged
 
 
 def test_explain_error_adds_the_missing_half():
