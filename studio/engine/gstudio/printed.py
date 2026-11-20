@@ -20,10 +20,10 @@ from typing import Any, Optional
 
 from .envelope import fit_orientations, full_envelope
 from .errors import SpecError
-from .spec import Derived, DHardware, Spec, cross_check, load_spec
+from .spec import PRINTED_MIN_SIZE, Derived, DHardware, Spec, cross_check, load_spec
 from .version import ENGINE_VERSION
 
-PRINTED_SIZE_MIN = 20.0  # mm per axis (catalog plan E2: printed floor 20 mm instead of the gadget's 60)
+PRINTED_SIZE_MIN = float(PRINTED_MIN_SIZE)  # mm per axis (E2: the printed floor, 20 mm, instead of the gadget's 60)
 REASON = "printed-only design: no electronics"
 
 
