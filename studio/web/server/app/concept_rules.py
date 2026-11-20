@@ -69,6 +69,7 @@ PLAYFUL_WORDS = frozenset((
 CHARACTER_SUBJECTS = frozenset(("robot", "owl", "bear", "cat", "bunny", "dog", "fox", "panda", "penguin", "frog",
                                 "dinosaur", "dragon", "unicorn", "elephant", "alien", "monster"))
 CHARACTER_TIER = "wildcard"
+STACK_MM = 30.0     # a csg union part lifted this much above another reads as a head on a body
 
 
 def _tokens(text: str) -> list[str]:
@@ -174,6 +175,34 @@ def _neck(outline: list) -> bool:
     return False
 
 
+def _csg_ops(node: Any) -> list[str]:
+    """Every op in a csg tree (pack freeform), depth first."""
+    if isinstance(node, list):
+        return [o for n in node for o in _csg_ops(n)]
+    if not isinstance(node, dict):
+        return []
+    out = [str(node["op"])] if node.get("op") else []
+    for k in ("node", "nodes", "minus"):
+        out += _csg_ops(node.get(k))
+    return out
+
+
+def _csg_stacked(node: Any) -> bool:
+    """A union with one part lifted at least STACK_MM above another (a head on a body), at any depth."""
+    if isinstance(node, list):
+        return any(_csg_stacked(n) for n in node)
+    if not isinstance(node, dict):
+        return False
+    if node.get("op") == "union":
+        zs = []
+        for ch in node.get("nodes") or []:
+            to = ch.get("to") if isinstance(ch, dict) and ch.get("op") == "move" else None
+            zs.append(float(to[2]) if isinstance(to, list) and len(to) == 3 and isinstance(to[2], (int, float)) else 0.0)
+        if len(zs) >= 2 and max(zs) - min(zs) >= STACK_MM:
+            return True
+    return any(_csg_stacked(node.get(k)) for k in ("node", "nodes", "minus"))
+
+
 def archetype_cues(spec: dict, names: dict[str, dict], archetype: str | None) -> set[str]:
     cues: set[str] = set()
     decor = [d for d in spec.get("decor") or [] if isinstance(d, dict)]
@@ -192,6 +221,12 @@ def archetype_cues(spec: dict, names: dict[str, dict], archetype: str | None) ->
             cues.add("head-on-body stack")
         if any(p.get("kind") in ("rounded_box", "cylinder") for p in prims):
             cues.add("boxy body")
+        if body.get("family") == "csg":                  # pack freeform: the same cues read from the csg tree
+            tree = body.get("csg")
+            if {"box", "cylinder"} & set(_csg_ops(tree)):
+                cues.add("boxy body")
+            if _csg_stacked(tree):
+                cues.add("head-on-body stack")
     elif archetype in ("owl", "bear", "cat", "bunny"):
         style = {"owl": "owl_tuft", "bear": "bear", "cat": "cat", "bunny": "bunny"}[archetype]
         if any(d.get("type") == "ear" and d.get("style") == style for d in decor):

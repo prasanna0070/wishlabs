@@ -270,6 +270,7 @@ def test_pack_on_render_failure_goes_back_to_the_agent(tmp_path, monkeypatch):
         first = svc.brain.calls[0]
         assert first["render_failures"] == ["Wedge Robot"] and first["kept"] == ["Desk Robot"]
         assert first["errors_by_concept"] == {"Wedge Robot": [CSG_ERR]} and "CAD render failed" in first["instruction"]
+        assert "silhouette, revolve or blob body instead" in first["instruction"]
         cons = events_named(evs, "concepts")[0]["concepts"]
         assert [x["title"] for x in cons] == ["Desk Robot", "Wedge Robot"]
         assert all(x["state"] == "ready" and "render_errors" not in x for x in cons)
@@ -401,6 +402,11 @@ def test_placeholder_draws_csg_silhouettes(monkeypatch):
 
 def test_csg_patterns_pass_the_engine_checks():
     """The prompt's csg patterns pass the engine's language and solid checks (skipped until gstudio.csg exists)."""
+    import sys
+
+    eng = str(Path(__file__).resolve().parents[3] / "engine")
+    if eng not in sys.path:
+        sys.path.insert(0, eng)
     csg = pytest.importorskip("gstudio.csg")
     from app.agent.prompt import CSG_PATTERNS, csg_rules
 
@@ -408,3 +414,41 @@ def test_csg_patterns_pass_the_engine_checks():
         assert csg.validate_tree(tree) == [], name
         assert csg.solid_checks(tree, kind="gadget") == [], name
         assert f"  {name}: {json.dumps(tree, separators=(',', ':'))}" in csg_rules()
+
+
+def test_csg_robot_cues():
+    from app.concept_rules import archetype_cues
+
+    head_on_body = {"op": "union", "blend": 8, "nodes": [
+        {"op": "box", "size": [120, 110, 90], "round": 12},
+        {"op": "move", "to": [0, 0, 85], "node": {"op": "sphere", "r": 50}}]}
+    cues = archetype_cues({"body": {"family": "csg", "csg": head_on_body}}, {}, "robot")
+    assert cues == {"boxy body", "head-on-body stack"}
+    flat = {"op": "extrude", "axis": "x", "h": 190, "points": [[-65, 0], [65, 0], [65, 95], [-65, 35]]}
+    assert archetype_cues({"body": {"family": "csg", "csg": flat}}, {}, "robot") == set()
+
+
+class _CsgInvalidBrain(_RenderBrain):
+    async def run(self, turn):
+        base, other = self._specs()
+        bad = copy.deepcopy(other)
+        bad["body"] = {"family": "csg", "csg": {"op": "box"}, "wall": 2.4, "feet": 4}
+        r = await turn.call_tool("propose_concepts", {"message": "Choose the robot shape you prefer.", "concepts": [
+            {"title": "Desk Robot", "tier": "expected", "blurb": "a robot desk station", "spec": base},
+            {"title": "Wedge Robot", "tier": "wildcard", "blurb": "a wedge robot", "spec": bad}]})
+        self.calls.append(r.response)
+
+
+@pytest.mark.parametrize("packs,hint", [("sensing,schedule,freeform", True), ("sensing,schedule", False)])
+def test_csg_validation_errors_get_the_csg_hint_only_with_the_pack(tmp_path, monkeypatch, packs, hint):
+    from app.agent.turn import CSG_HINT
+
+    c, svc = _client(tmp_path, monkeypatch, packs, CSG_ERR)
+    svc.brain = _CsgInvalidBrain(svc)
+    with c:
+        _run(c)
+        first = svc.brain.calls[0]
+        assert list(first["errors_by_concept"]) == ["Wedge Robot"]
+        assert any("csg" in e for e in first["errors"])
+        assert (CSG_HINT in first["instruction"]) is hint
+        assert first["instruction"].startswith("These concepts did not validate.")

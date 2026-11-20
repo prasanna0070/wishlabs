@@ -33,6 +33,8 @@ CONCEPT_RULE_ROUNDS = 2
 # failed; not after the turn has run this long (the turn lock is TURN_STALE_S), and never for a builder outage.
 RENDER_REPAIR_ROUNDS = 2
 RENDER_REPAIR_MAX_AGE_S = 8 * 60
+CSG_HINT = (" For a csg body, change the node each error names (its path, e.g. body.csg.nodes[1]); if a concept's csg "
+            "body has failed twice, give that concept a silhouette, revolve or blob body instead.")
 RENDER_INFRA = re.compile(r"timed out|HTTP \d{3}|no answer|not JSON|builder /preview|is not available yet|"
                           r"Connection (refused|reset|aborted)|ConnectError|ReadTimeout|ConnectTimeout", re.I)
 
@@ -601,10 +603,11 @@ class Turn:
         if bad:
             flat = [f"{t}: {e}" for t, es in bad.items() for e in es]
             await self.emit("repair", {"round": self.repairs["propose_concepts"] + 1, "errors": flat[:20]})
+            hint = CSG_HINT if self.freeform() and any("csg" in str(e) for e in flat) else ""
             r = None if infra else self._repair_or_fail(
                 "propose_concepts", flat,
                 "These concepts did not validate. Call propose_concepts again with ONLY the corrected concepts "
-                f"({', '.join(bad)}), same titles and tiers, complete specs. The valid ones are kept.")
+                f"({', '.join(bad)}), same titles and tiers, complete specs. The valid ones are kept." + hint)
             if r:
                 r.response["errors_by_concept"] = bad
                 r.response["kept"] = [e["title"] for e in good]
@@ -717,7 +720,8 @@ class Turn:
                 "These concepts passed the spec check but their CAD render failed. Call propose_concepts again with "
                 f"ONLY these concepts corrected ({', '.join(bad)}), same titles and tiers, complete specs. Fix exactly "
                 "what each error names (for a csg body: the named node; make it simpler, thicker or better joined if "
-                "the error is about the shape). The other concepts are rendered and kept.", limit=RENDER_REPAIR_ROUNDS)
+                "the error is about the shape). The other concepts are rendered and kept." + CSG_HINT,
+                limit=RENDER_REPAIR_ROUNDS)
             if r:
                 for e in failed:
                     self.concept_pool.pop(e["title"].lower(), None)

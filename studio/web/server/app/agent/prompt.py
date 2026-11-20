@@ -201,6 +201,8 @@ check; an error names the node path: fix that node and resend.
   and slots at the front or high on the top, with their floors above the cartridge.
 - Features sit on flat or gently curved areas of their face, away from cuts, blends and edges.
 - Prefer 3-15 nodes; a union blend of 4-12 mm makes the parts read as one product.
+- An edit to a csg body changes only the node that carries the asked shape (a deeper tray: its cut box moved down; a
+  wider base: the plinth's size) and keeps every other node exactly as it is.
 - Patterns (each is a body.csg value):
 {PATTERNS}{PRINTED}"""
 CSG_PATTERNS: list[tuple[str, dict]] = [
