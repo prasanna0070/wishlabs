@@ -184,7 +184,7 @@ class SensorDisplayApp : public GsApp {
         else snprintf(buf, sizeof(buf), "--");
         gsdisp::text((w - gsdisp::text_width(buf, 3)) / 2, h / 12, buf, 3, soil_warn() ? warn : fg);
         snprintf(buf, sizeof(buf), "soil moisture");
-        gsdisp::text((w - gsdisp::text_width(buf, 1)) / 2, h / 12 + 28, buf, 1, fg);
+        gsdisp::text((w - gsdisp::text_width(buf, 1)) / 2, h / 12 + 26, buf, 1, fg);
       } else if (find("temperature", &t)) {
         snprintf(buf, sizeof(buf), "%.1f%s", GS_CFG_FAHRENHEIT ? t * 9 / 5 + 32 : t, GS_CFG_FAHRENHEIT ? "F" : "C");
         gsdisp::text((w - gsdisp::text_width(buf, 3)) / 2, h / 12, buf, 3, temp_warn_.active() ? warn : fg);
@@ -197,7 +197,7 @@ class SensorDisplayApp : public GsApp {
       }
       if (GS_HAS_LEVEL && (GS_HAS_SOIL || find("temperature", &t))) {
         snprintf(buf, sizeof(buf), "tank %s", water_.value() ? "OK" : "LOW");
-        gsdisp::text((w - gsdisp::text_width(buf, 1)) / 2, h * 2 / 3 - 4, buf, 1, water_warn() ? warn : fg);
+        gsdisp::text((w - gsdisp::text_width(buf, 1)) / 2, h * 2 / 3, buf, 1, water_warn() ? warn : fg);
       } else if (find("humidity", &hu)) {
         snprintf(buf, sizeof(buf), "%.0f%% humidity", hu);
         gsdisp::text((w - gsdisp::text_width(buf, 1)) / 2, h * 2 / 3, buf, 1, hum_warn_.active() ? warn : fg);
