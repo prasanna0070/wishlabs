@@ -241,11 +241,11 @@ main > section, .foot { overflow-x: clip; }
   min-height: calc(2 * 1.4em + 8px);
 }
 .wish-field textarea { border: 0; outline: 0; resize: none; background: transparent; color: var(--ink); overflow: hidden; }
-.wish-field textarea::placeholder { color: #9A94AE; }
+.wish-field textarea::placeholder { color: var(--muted); }   /* 5.3:1 on white; #9A94AE was 2.9:1 */
 .wishbox.auto textarea::placeholder { color: transparent; }
 .wish-typed { position: absolute; inset: 0; pointer-events: none; color: var(--ink); opacity: 0; }
 .wishbox.auto .wish-typed { opacity: 1; }
-.wish-pre { color: #9A94AE; }
+.wish-pre { color: var(--muted); }
 .caret { display: inline-block; width: 2.5px; height: 1.15em; margin-left: 2px; vertical-align: -.18em; background: var(--accent); border-radius: 2px; animation: blink 1s steps(1) infinite; }
 @keyframes blink { 50% { opacity: 0; } }
 .wish-foot { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding-left: 52px; }
@@ -788,7 +788,15 @@ html.fine .bc-hint { display: inline-flex; }
   .spot span { display: none; }
   .spot i { width: 11px; height: 11px; box-shadow: 0 0 0 2.5px rgba(124, 92, 255, .7), 0 3px 8px rgba(22, 19, 43, .35); }
   .spot i::after { inset: -3px; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .9); }
+  /* The dot stays small, but the tap area is 32 px (WCAG 2.5.8 asks for at least 24). */
+  .spot::before { content: ""; position: absolute; left: 50%; top: 50%; width: 32px; height: 32px; transform: translate(-50%, -50%); border-radius: 50%; }
   .btn-xl { --h: 60px; padding: 0 30px; font-size: 18px; }
+}
+
+/* Phones narrower than 385 px: some example wishes take 3 lines, and a box with room for 2 let them spill out
+   (measured: 1 of 6 examples at 375-380 px, 3 at 360 px, 5 at 320 px; none at 385 px and wider). */
+@media (max-width: 384px) {
+  .wish-field textarea, .wish-typed { min-height: calc(3 * 1.4em + 8px); }
 }
 
 /* Reduced motion: no smooth scroll, no particles, no pinning, no looping animations */

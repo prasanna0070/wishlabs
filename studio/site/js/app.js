@@ -183,6 +183,22 @@ function syncStudioLinks() {
   if (href) $$("[data-studio-link]").forEach((a) => a.setAttribute("href", href));
 }
 input.addEventListener("input", syncStudioLinks);
+/* The box grows with a long wish (it used to clip everything past its last line), up to about 7 lines, then
+   scrolls. With a short wish it keeps its CSS height. */
+const INPUT_MAX_H = 210;
+let fitTimer = 0;
+function fitInput() {
+  const before = input.offsetHeight;
+  input.style.height = "";
+  input.style.overflowY = "";
+  const need = input.scrollHeight;
+  if (need > input.clientHeight + 1) input.style.height = Math.min(need, INPUT_MAX_H) + "px";
+  if (need > INPUT_MAX_H) input.style.overflowY = "auto";
+  /* The pinned story below measures its scroll positions once; tell it when the hero changes height. */
+  if (input.offsetHeight !== before && LIBS) { clearTimeout(fitTimer); fitTimer = setTimeout(() => ScrollTrigger.refresh(), 400); }
+}
+input.addEventListener("input", fitInput);
+if (input.value) fitInput();
 form.addEventListener("submit", (e) => {
   e.preventDefault();
   const v = input.value.trim();
