@@ -235,7 +235,7 @@ def _render_csg_png(spec: dict, size: int) -> bytes:
     detail_c = _hex_rgb((spec.get("colors") or {}).get("detail"), (43, 58, 66))
     accent_c = _hex_rgb((spec.get("colors") or {}).get("accent"), (244, 241, 234))
     v = csg_views(spec.get("body") or {})
-    front, side = v["front"], [(-y, z) for y, z in v["side"]]      # side view: the front (-y) on the left
+    front, side = v["front"], v["side"]                             # side view (y, z): the front (-y) on the left
     fx = [q[0] for q in front]
     sx = [q[0] for q in side]
     zt = max(max(q[1] for q in front), max(q[1] for q in side), 1.0)
