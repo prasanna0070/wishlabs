@@ -449,6 +449,27 @@ def printed_shape(params: dict, pv: dict, probeO=None) -> tuple:
     return S, C_open, oinfo, warns
 
 
+def printed_lying_is_better(sh: Part) -> tuple[bool, dict]:
+    """A printed silhouette is its outline extruded along y, so lying on its back (rear face on the bed) every layer is
+    the outline and nothing overhangs but its edge rounds; upright, a shark's fins and belly overhang its own surfaces
+    (BENCH shark-teapot: 1046 mm2 over the 500 mm2 limit). Lying wins only when it leaves less unsupported down-facing
+    area by the CAD check's own measure (checks.unsupported_ceiling) and still fits the bed; a tie keeps upright."""
+    from dataclasses import replace
+
+    from .checks import BED, unsupported_ceiling
+    from .export import print_orient
+
+    out = {}
+    for up in ("z", "-y"):
+        p = replace(sh, print_info={**(sh.print_info or {}), "up": up})
+        s, _ = print_orient(p)
+        b = s.BoundingBox()
+        out[up] = {"counted_mm2": float(unsupported_ceiling(p)["counted_mm2"]),
+                   "fits_bed": bool(b.xlen <= BED[0] and b.ylen <= BED[1] and b.zlen <= BED[2])}
+    lying = out["-y"]["fits_bed"] and out["-y"]["counted_mm2"] + 1.0 < out["z"]["counted_mm2"]
+    return lying, out
+
+
 def build_printed(params: dict, progress: Optional[Callable] = None, on_draft: Optional[Callable] = None) -> Model:
     """Printed-only object (params["kind"] == "printed", catalog package A): the body with its decor as ONE print, with no
     cartridge, kits, cover or base plate, USB-C tunnel, cord tie, tie anchors, cables or fit coupons.
@@ -508,6 +529,18 @@ def build_printed(params: dict, progress: Optional[Callable] = None, on_draft: O
     sh = Part("PRINT_Shell", "PRINT", "printed object", colors["body"], spec_path="body", mass_source="computed", role="shell",
               print_info={"up": "z", "reason": why, "material": mat_name})
     sh.add("Shell", S)
+    if fam == "silhouette" and oinfo["opening"] != "top":
+        try:
+            lying, cmp_ = printed_lying_is_better(sh)
+        except Exception as e:  # pragma: no cover - keep upright, as before
+            lying, cmp_ = False, {"error": str(e)[:200]}
+        M.info["print_orientation"] = cmp_
+        if lying:
+            sh.print_info["up"] = "-y"
+            sh.print_info["reason"] = (
+                "lying on its back (rear face on the bed, front face up): every layer is the outline, so it overhangs "
+                f"its own surfaces by {cmp_['-y']['counted_mm2']:g} mm2 instead of {cmp_['z']['counted_mm2']:g} mm2 upright"
+                "; printed solid with the slicer's infill")
     parts = [sh]
     if feet:
         fp = Part("PURCHASE_Feet", "PURCHASE", f"adhesive bumper feet x{len(feet)}", (0.20, 0.20, 0.21), module_id=foot.get("module") or HW_MODULE["Feet"],

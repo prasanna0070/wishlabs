@@ -65,6 +65,8 @@ def test_printed_checks_pass_and_skip_what_does_not_apply(built, slug):
         assert checks[cid]["status"] == "passed", (cid, checks[cid]["detail"])
     for cid in ("fit_coupon", "power_entry"):
         assert checks[cid]["status"] == "not_run" and "not applicable" in checks[cid]["detail"], cid
+    if "bottom_edge_round" in checks:  # silhouettes only: a gadget shell's look, not a rule for an object printed flat
+        assert checks["bottom_edge_round"]["status"] == "not_run" and "not applicable" in checks["bottom_edge_round"]["detail"]
     gate = [c for c in checks.values() if c["status"] == "failed"]
     assert not gate, [(c["id"], c["detail"][:200]) for c in gate]
 
@@ -216,3 +218,40 @@ def test_weld_slivers_closes_a_sub_micron_gap_only():
     assert w is not None and w.is_watertight and abs(w.volume - 1000.0) < 1e-3
     holed = trimesh.Trimesh(vertices=box.vertices, faces=box.faces[2:], process=False)  # a whole side missing
     assert weld_slivers(holed) is None  # filling a whole missing side would change the volume: refused
+
+
+def _extruded(outline, depth=60.0):
+    """A printed silhouette as build_printed makes it: the outline in x-z, extruded along y, centred on y = 0."""
+    import cadquery as cq
+
+    from gstudio.cad.parts import Part
+
+    s = cq.Workplane("XZ").polyline(outline).close().extrude(depth / 2, both=True).val()
+    p = Part("PRINT_Shell", "PRINT", "printed object", (1.0, 1.0, 1.0), print_info={"up": "z", "reason": "upright"})
+    p.add("Shell", s)
+    return p
+
+
+def test_a_silhouette_with_a_side_notch_prints_lying():
+    from gstudio.cad.build import printed_lying_is_better
+
+    # a "C": the notch's roof (40 x 60 mm) sits above the lower arm, which build-plate supports cannot reach upright
+    c = [(-40, 0), (40, 0), (40, 20), (0, 20), (0, 50), (40, 50), (40, 70), (-40, 70)]
+    lying, cmp_ = printed_lying_is_better(_extruded(c))
+    assert lying and cmp_["-y"]["fits_bed"]
+    assert cmp_["z"]["counted_mm2"] > 2000 and cmp_["-y"]["counted_mm2"] < 1.0, cmp_
+
+
+def test_a_plain_block_stays_upright():
+    from gstudio.cad.build import printed_lying_is_better
+
+    lying, cmp_ = printed_lying_is_better(_extruded([(-30, 0), (30, 0), (30, 40), (-30, 40)]))
+    assert not lying and cmp_["z"]["counted_mm2"] == 0.0  # a tie keeps the upright print
+
+
+def test_a_long_silhouette_that_would_not_fit_lying_stays_upright():
+    from gstudio.cad.build import printed_lying_is_better
+
+    c = [(-40, 0), (40, 0), (40, 20), (0, 20), (0, 50), (40, 50), (40, 70), (-40, 70)]
+    lying, cmp_ = printed_lying_is_better(_extruded(c, depth=230.0))  # 230 mm tall when lying: over the 210 mm bed height
+    assert not lying and not cmp_["-y"]["fits_bed"]

@@ -981,10 +981,16 @@ def run_checks(model, files: dict, step_path: Optional[Path] = None, exact: bool
     if br:
         vals = [v for v in br.values() if v is not None]
         low = [k for k, v in br.items() if v is None or v < 3.0 - 0.05]  # 0.05 mm: below the 0.1 mm section probe resolution
-        checks.append(_c("bottom_edge_round", "Shell bottom perimeter is rounded (>= 3 mm) on every side", "failed" if low else "passed",
-                         ", ".join(f"{k} {v} mm" for k, v in br.items()) + (f"; under 3 mm: {low}" if low else ""), None,
-                         {"radii_mm": br, "method": "tightest bend of the y = 0 and x = 0 section outlines within 7 mm of each bottom corner",
-                          "built": (model.info.get("body") or {}).get("bottom_round")}))
+        radii = ", ".join(f"{k} {v} mm" for k, v in br.items())
+        data = {"radii_mm": br, "method": "tightest bend of the y = 0 and x = 0 section outlines within 7 mm of each bottom corner",
+                "built": (model.info.get("body") or {}).get("bottom_round")}
+        if printed:  # a gadget shell's look (REVIEW-1 MIN-39); a printed object prints flat on its base, where a sharp edge holds best
+            checks.append(_c("bottom_edge_round", "Shell bottom perimeter is rounded (>= 3 mm) on every side", "not_run",
+                             f"not applicable: a printed-only object prints flat on its base (radii {radii}); check its edges by hand",
+                             None, data))
+        else:
+            checks.append(_c("bottom_edge_round", "Shell bottom perimeter is rounded (>= 3 mm) on every side", "failed" if low else "passed",
+                             radii + (f"; under 3 mm: {low}" if low else ""), None, data))
     usb = model.info.get("usb_c") or {}
     lp = usb.get("load_path")
     if printed:
