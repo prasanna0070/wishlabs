@@ -1024,8 +1024,9 @@ class Planner:
             how + "\n\n" + "\n".join(lines) + "\n\n"
             + (f"{settings}\n\n" if settings else "")
             + (f"The design colour is {colour}. " if colour else "")
-            + ("Remove all support material and any strings or flakes, especially inside openings and the drain hole. Check the "
-               "surfaces are whole and the part stands flat on the table." if self.printed else
+            + ("Remove all support material and any strings or flakes, especially inside openings"
+               + (" and the drain hole" if ((self.d.spec.get("printed") or {}).get("drain_hole")) else "")
+               + ". Check the surfaces are whole and the part stands flat on the table." if self.printed else
                "Remove all support material. Deburr every opening (grille holes, windows, button and screw holes) "
                "so no strings or flakes are left. Check that every boss and clip is whole. Try the closing part on the "
                "empty shell before adding anything: it should seat evenly by hand.")

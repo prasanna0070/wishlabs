@@ -126,6 +126,8 @@ def test_pipeline_end_to_end(tmp_path):
     assert not {"core_prep", "flash_provision", "functional_test", "cable_route", "insert_heatset"} & set(ops), ops
     md = (out / "BUILD_GUIDE.md").read_text()
     assert "## Wiring" not in md and "no electronics" in md and "not food-safe" in md and "wiring table" not in md
+    assert "you print it, clean it and fit its feet." in md and "**+X is the object's left**" in md
+    assert "drain hole" not in md  # the card stand has none
     assert "Built the printed object" in json.dumps(s["stages"]["cad"])
     b = json.loads((out / "build.json").read_text())
     assert [x["id"] for x in b["steps"]] == ["check-parts", "print-parts", "fit-feet", "final-checks"]

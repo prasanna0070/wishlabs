@@ -195,7 +195,7 @@ def write_guide(data: ManualData, A: Assembly, steps: list[Step], visuals: dict[
     L.append("")
     printed_only = data.spec.get("kind") == "printed"  # catalog package A: no electronics, so no power, wiring or firmware text
     safety = [
-        "**Before you start:** this design has no electronics: you print it, clean it" + (" and fit its feet." if A.feet else "."),
+        "**Before you start:** this design has no electronics: you print it" + (", clean it and fit its feet." if A.feet else " and clean it."),
         "Keep cut support material and small parts in a tray" + (" and away from children" if child else "") + ".",
         "Printed plastic is not food-safe and not for hot liquids.",
         "Use it on a stable surface.",
@@ -213,10 +213,11 @@ def write_guide(data: ManualData, A: Assembly, steps: list[Step], visuals: dict[
     L.append("")
     L.append("## How to read the pictures")
     L.append("")
+    thing = "object" if printed_only else "gadget"
     L.append("The pictures are rendered from the saved CAD (`cad/components/*.brep`) by a script, so they show this exact design. "
-             "They keep **+Z up** with the front at **-Y**. Left and right are the gadget's own: **+X is the gadget's left**, which "
+             f"They keep **+Z up** with the front at **-Y**. Left and right are the {thing}'s own: **+X is the {thing}'s left**, which "
              "is on your right when you face its front. A view from the rear says so in its subtitle: seen from the rear, the "
-             "gadget's left (+X) is on your left. A transparent shell only reveals what is inside; it is not an instruction to "
+             f"{thing}'s left (+X) is on your left. A transparent shell only reveals what is inside; it is not an instruction to "
              "print clear plastic. Parts drawn apart (A panels) show the direction a part is fitted from, and the blue arrows "
              "point along that direction; the distances are for clarity.")
     L.append("")
