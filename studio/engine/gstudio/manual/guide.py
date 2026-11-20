@@ -160,6 +160,23 @@ def evidence_section() -> list[str]:
             ""]
 
 
+def night_light_lines(data: ManualData, A: Assembly) -> list[str]:
+    """Review M2 (i-to-a.md): a night light with a motion sensor is not a baby monitor, and a child's night light and its
+    cord stay out of reach. Only for NIGHT_USE designs; the cot line only when the design is for a child."""
+    flags = set((data.spec.get("safety") or {}).get("flags") or [])
+    if "NIGHT_USE" not in flags:
+        return []
+    kid = bool((data.spec.get("audience") or {}).get("child_directed")) or "CHILD_DIRECTED" in flags
+    motion = any(g.role == "motion" for g in [*A.features, *A.internals])
+    out = []
+    if motion:
+        out.append("This is a night light, not a baby monitor: the motion sensor can miss small movements, for example under "
+                   "a blanket.")
+    if kid:
+        out.append("Place the light and its USB cable out of the child's reach, never in or on a cot or bed.")
+    return out
+
+
 def write_guide(data: ManualData, A: Assembly, steps: list[Step], visuals: dict[str, list[dict]], tests: list[dict],
                 wiring: dict, issues: Optional[Issues] = None) -> str:
     name = data.product_name
@@ -176,7 +193,13 @@ def write_guide(data: ManualData, A: Assembly, steps: list[Step], visuals: dict[
     L.append(" ".join(x for x in [f"{tagline}." if tagline and not tagline.endswith(".") else tagline, _size_line(A),
                                     f"The build has {len(steps)} steps; each one has a checklist ID that stays the same across design versions."] if x))
     L.append("")
+    printed_only = data.spec.get("kind") == "printed"  # catalog package A: no electronics, so no power, wiring or firmware text
     safety = [
+        "**Before you start:** this design has no electronics: you print it" + (", clean it and fit its feet." if A.feet else " and clean it."),
+        "Keep cut support material and small parts in a tray" + (" and away from children" if child else "") + ".",
+        "Printed plastic is not food-safe and not for hot liquids.",
+        "Use it on a stable surface.",
+    ] if printed_only else [
         "**Before you start:** an adult assembles and tests this gadget.",
         "Keep screws, inserts, feet and cut cable-tie tails in a tray" + (" and away from children" if child else "") + ".",
         "Disconnect USB-C power before plugging, unplugging or moving any part.",
@@ -184,18 +207,24 @@ def write_guide(data: ManualData, A: Assembly, steps: list[Step], visuals: dict[
         "The USB-C supply stays outside the gadget. Route the cord where nobody trips on it" + (" and away from a bed" if child else "") + ".",
         "Use the gadget on a stable surface with its openings clear.",
     ]
+    if not printed_only:
+        safety += night_light_lines(data, A)
     L.append(" ".join(s for s in safety if s))
     L.append("")
     L.append("## How to read the pictures")
     L.append("")
+    thing = "object" if printed_only else "gadget"
     L.append("The pictures are rendered from the saved CAD (`cad/components/*.brep`) by a script, so they show this exact design. "
-             "They keep **+Z up** with the front at **-Y**. Left and right are the gadget's own: **+X is the gadget's left**, which "
+             f"They keep **+Z up** with the front at **-Y**. Left and right are the {thing}'s own: **+X is the {thing}'s left**, which "
              "is on your right when you face its front. A view from the rear says so in its subtitle: seen from the rear, the "
-             "gadget's left (+X) is on your left. A transparent shell only reveals what is inside; it is not an instruction to "
+             f"{thing}'s left (+X) is on your left. A transparent shell only reveals what is inside; it is not an instruction to "
              "print clear plastic. Parts drawn apart (A panels) show the direction a part is fitted from, and the blue arrows "
              "point along that direction; the distances are for clarity.")
     L.append("")
-    L.append("**Evidence limits:** purchased parts are simplified envelopes from published dimensions; pins, latches, threads "
+    L.append("**Evidence limits:** the printed part is shown as designed; purchased feet are simplified envelopes. No picture "
+             "proves a fit, a load, retention or safety, and no physical "
+             if printed_only else
+             "**Evidence limits:** purchased parts are simplified envelopes from published dimensions; pins, latches, threads "
              "and cable stiffness are simplified or absent. Cable routes are display envelopes. The wiring diagram is drawn from "
              "the saved backplane and electrical data. No picture proves a fit, a connection, retention or safety, and no physical "
              "test is recorded as passed in this guide.")
@@ -304,25 +333,30 @@ def write_guide(data: ManualData, A: Assembly, steps: list[Step], visuals: dict[
             L.append(f"*{v['caption']}*")
             L.append("")
     # ---------------------------------------------------------------- wiring
-    L.append("## Wiring")
-    L.append("")
-    L.append("The full diagram is `manual/wiring.png` (vector copy: [manual/wiring.svg](manual/wiring.svg)). "
-             "In the Build tab the same connections are listed as steps:")
-    L.append("")
-    for ws in wiring.get("steps", []):
-        L.append(f"- **{ws['title']}** (`{ws['id']}`): {parent_name(ws['text'])}")
-    L.append("")
+    if not printed_only:
+        L.append("## Wiring")
+        L.append("")
+        L.append("The full diagram is `manual/wiring.png` (vector copy: [manual/wiring.svg](manual/wiring.svg)). "
+                 "In the Build tab the same connections are listed as steps:")
+        L.append("")
+        for ws in wiring.get("steps", []):
+            L.append(f"- **{ws['title']}** (`{ws['id']}`): {parent_name(ws['text'])}")
+        L.append("")
     # ---------------------------------------------------------------- stop points
     L.append("## Stop points and evidence to collect")
     L.append("")
     L.append("Stop at a failed fit, a missing part or anything that needs force. Note the checklist ID and collect:")
     L.append("")
     L.append("- **Print or fit:** the part name, material and printer, the measured hole or gap, and a photo of where it binds.")
-    L.append("- **Module or cable:** the exact marking on the module, photos of both ends of the cable, and the port it should go to.")
-    L.append("- **Firmware or self-test:** the saved serial monitor output, including the self-test summary line, and which module did not respond.")
-    L.append("- **Closing:** a photo of the open seam showing what is in the way.")
-    L.append("")
-    L.append("Do not invent pin assignments, substitute modules, force a closure or leave out a fastener to continue.")
+    if printed_only:
+        L.append("")
+        L.append("Do not sand, glue or force a part to make it fit; reprint it.")
+    else:
+        L.append("- **Module or cable:** the exact marking on the module, photos of both ends of the cable, and the port it should go to.")
+        L.append("- **Firmware or self-test:** the saved serial monitor output, including the self-test summary line, and which module did not respond.")
+        L.append("- **Closing:** a photo of the open seam showing what is in the way.")
+        L.append("")
+        L.append("Do not invent pin assignments, substitute modules, force a closure or leave out a fastener to continue.")
     L.append("")
     L += final_section(tests)
     L += evidence_section()

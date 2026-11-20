@@ -405,7 +405,65 @@ def print_orient(part) -> tuple[cq.Shape, str]:
     return s, info.get("reason", "default")
 
 
-def _stl(shape, f: Path, tol: float = 0.02, ang: float = 0.1) -> None:
+def weld_slivers(m):
+    """A watertight copy of a mesh whose only defects are sub-micron slivers (OCC tessellation where a cut meets a fillet
+    seam, seen on a printed card stand: 16 open edges between vertices 0.3 um apart), else None. Welds vertices to 1 um,
+    drops the zero-area faces, fills pinholes; kept only when it closes and the volume stays within 0.01 % (+1 mm3)."""
+    import trimesh
+
+    w = m.copy()
+    w.merge_vertices(digits_vertex=3)
+    w.update_faces(w.nondegenerate_faces(height=1e-9))
+    w.remove_unreferenced_vertices()
+    if not w.is_watertight:
+        trimesh.repair.fill_holes(w)
+    if w.is_watertight and abs(abs(w.volume) - abs(m.volume)) <= 1e-4 * max(abs(m.volume), 1.0) + 1.0:
+        return w
+    return None
+
+
+PINHOLE_MM = 1.0  # a hole whose every open edge lies inside a box this small is a tessellation pinhole, not an opening
+
+
+def fill_pinholes(m, max_box: float = PINHOLE_MM):
+    """(watertight copy, holes filled) when every open edge of the mesh belongs to a simple loop that fits inside a
+    max_box-mm box (a tessellation pinhole where a blend meets a body: a sculpted shark's tail had one 0.2 x 0.3 x 0.2 mm
+    loop of 32 edges that welding cannot close), else (None, 0). Each loop is closed by a fan from its centre, kept only
+    when the result is watertight, consistently wound and one body as before, with the volume within 0.01 % (+1 mm3)."""
+    import trimesh
+
+    g = trimesh.grouping.group_rows(m.edges_sorted, require_count=1)
+    if not len(g):
+        return None, 0
+    be = np.asarray(m.edges)[g]  # open edges in their face's winding order
+    deg = np.bincount(be.ravel(), minlength=len(m.vertices))
+    if (deg[np.unique(be)] != 2).any():
+        return None, 0  # two loops share a vertex, or an edge is used three times: not a simple pinhole
+    new_v, new_f = [], []
+    for comp in trimesh.graph.connected_components(be, min_len=3):
+        idx = np.asarray(sorted(int(x) for x in comp))
+        pts = np.asarray(m.vertices)[idx]
+        if float((pts.max(0) - pts.min(0)).max()) > max_box:
+            return None, 0  # a real opening
+        ci = len(m.vertices) + len(new_v)
+        new_v.append(pts.mean(0))
+        inloop = np.isin(be[:, 0], idx)
+        new_f.extend([b, a, ci] for a, b in be[inloop])
+    if not new_v or len(new_f) != len(be):
+        return None, 0
+    w = trimesh.Trimesh(vertices=np.vstack([np.asarray(m.vertices), np.asarray(new_v)]),
+                        faces=np.vstack([np.asarray(m.faces), np.asarray(new_f)]), process=False)
+    if not (w.is_watertight and w.is_winding_consistent):
+        return None, 0
+    if len(w.split(only_watertight=False)) != len(m.split(only_watertight=False)):
+        return None, 0
+    if abs(abs(w.volume) - abs(m.volume)) > 1e-4 * max(abs(m.volume), 1.0) + 1.0:
+        return None, 0
+    return w, len(new_v)
+
+
+def _stl(shape, f: Path, tol: float = 0.02, ang: float = 0.1) -> list:
+    """Write the STL; returns the repairs made to OCC's mesh beyond dropping zero-area slivers (empty: none)."""
     import trimesh
     from OCP.BRepTools import BRepTools
 
@@ -414,11 +472,22 @@ def _stl(shape, f: Path, tol: float = 0.02, ang: float = 0.1) -> None:
     shape.exportStl(str(f), tolerance=tol, angularTolerance=ang, ascii=False, relative=False, parallel=True)
     m = trimesh.load_mesh(f)
     changed = False
+    repairs = []
     nd = m.nondegenerate_faces(height=1e-9)
     if not nd.all():  # OCC's writer can leave zero-area slivers at seams and poles
         m.update_faces(nd)
         m.remove_unreferenced_vertices()
         changed = True
+    if not m.is_watertight:
+        w = weld_slivers(m)
+        if w is not None:
+            m, changed = w, True
+            repairs.append("welded sub-micron slivers")
+    if not m.is_watertight:
+        w, n = fill_pinholes(m)
+        if w is not None:
+            m, changed = w, True
+            repairs.append(f"closed {n} pinhole{'s' if n > 1 else ''} under {PINHOLE_MM:g} mm across")
     if not m.is_watertight:
         parts = m.split(only_watertight=False)
         keep = [p for p in parts if p.is_watertight and abs(p.volume) > 1e-3]
@@ -431,6 +500,7 @@ def _stl(shape, f: Path, tol: float = 0.02, ang: float = 0.1) -> None:
         changed = True
     if changed:
         m.export(f)
+    return repairs
 
 
 def write_stls(dirp: Path, model) -> dict:
@@ -441,11 +511,13 @@ def write_stls(dirp: Path, model) -> dict:
             continue
         s, reason = print_orient(p)
         f = dirp / f"{p.name}.stl"
-        _stl(s, f)
+        repairs = _stl(s, f)
         vol = accurate_volume(s)
         p.extra["_volume"] = vol
         out[p.name] = {"file": f"print/{f.name}", "orientation_note": reason, "brep_volume_mm3": vol,
                        "material": (p.print_info or {}).get("material") or ((model.params or {}).get("print_material") or {}).get("name", "PLA")}
+        if repairs:
+            out[p.name]["stl_repairs"] = repairs
     for name, c in model.coupons.items():
         s = c["shape"]
         b = s.BoundingBox()
@@ -522,7 +594,8 @@ def write_json(path: Path, obj) -> None:
 
 # ------------------------------------------------------------------------------------------------ standalone source
 VENDOR = ["geom.py", "shapes2d.py", "probe.py", "body.py", "decor.py", "modules.py", "refs_provisional.py", "parts.py",
-          "footprint.py", "features.py", "internals.py", "enclosure.py", "build.py", "cables.py", "export.py", "checks.py"]
+          "footprint.py", "features.py", "internals.py", "enclosure.py", "build.py", "cables.py", "export.py", "checks.py",
+          "mount.py"]  # mount.py: wall-mount keyholes (catalog package D, hand-off d-to-a #2); skipped while absent
 
 SCRIPT = '''#!/usr/bin/env python3
 """{name}: editable parametric CAD source (generated by Wish Labs, engine {engine}).
@@ -582,7 +655,7 @@ def vendor_source(cad_dir: Path, name: str, engine: str) -> None:
     if dst.exists():
         shutil.rmtree(dst)
     dst.mkdir(parents=True)
-    for f in VENDOR:
+    for f in VENDOR + sorted(p.name for p in src.glob("kits_*.py")):  # pack kit registry + pack kits (hand-off b-to-a #1)
         if (src / f).exists():
             shutil.copy2(src / f, dst / f)
     (dst / "__init__.py").write_text('"""Vendored Wish Labs CAD modules (see ../gadget_cad.py)."""\n')

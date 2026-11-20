@@ -1,0 +1,123 @@
+{
+ "schema": "gadget-spec/1",
+ "kind": "printed",
+ "name": "Owl figurine",
+ "slug": "owl-figurine",
+ "tagline": "A printed object with no electronics: a round owl figurine with ear tufts and big eyes for a shelf or desk",
+ "audience": {
+  "child_directed": false
+ },
+ "colors": {
+  "body": "#8A6A52",
+  "accent": "#F2E3C6",
+  "detail": "#2B3A42",
+  "body_name": "owl brown",
+  "accent_name": "cream"
+ },
+ "body": {
+  "family": "blob",
+  "split": "none",
+  "feet": 4,
+  "edge_round": 4,
+  "wall": 2.4,
+  "primitives": [
+   {
+    "kind": "ellipsoid",
+    "center": [
+     0,
+     0,
+     40
+    ],
+    "size": [
+     70,
+     58,
+     80
+    ]
+   },
+   {
+    "kind": "rounded_box",
+    "center": [
+     0,
+     0,
+     5
+    ],
+    "size": [
+     54,
+     44,
+     10
+    ],
+    "radius": 4
+   }
+  ]
+ },
+ "printed": {
+  "opening": "none",
+  "drain_hole": false
+ },
+ "decor": [
+  {
+   "type": "face_plate",
+   "shape": "ellipse",
+   "at": [
+    0,
+    52
+   ],
+   "size": [
+    46,
+    26
+   ],
+   "depth": 1.0,
+   "relief": "engrave",
+   "color": "accent"
+  },
+  {
+   "type": "eye",
+   "style": "dot",
+   "at": [
+    -11,
+    53
+   ],
+   "size": [
+    11,
+    11
+   ],
+   "relief": "emboss",
+   "depth": 0.8,
+   "color": "detail"
+  },
+  {
+   "type": "eye",
+   "style": "dot",
+   "at": [
+    11,
+    53
+   ],
+   "size": [
+    11,
+    11
+   ],
+   "relief": "emboss",
+   "depth": 0.8,
+   "color": "detail"
+  },
+  {
+   "type": "ear",
+   "style": "owl_tuft",
+   "side": "both",
+   "at": [
+    20,
+    76
+   ],
+   "size": [
+    14,
+    16
+   ],
+   "tilt": 12
+  }
+ ],
+ "features": [],
+ "safety": {
+  "flags": [],
+  "notes": "Printed-only object: no electronics; decorative."
+ }
+}

@@ -112,6 +112,10 @@ def render(b: Bundle) -> str:
         ["Checks", link("checks/digital-checks.json", out) + ", " + link("checks/delivery-checks.json", out), ""],
         ["Manifest and export", "`manifest.json`, `export.zip`", "every delivered file with bytes and sha256"],
     ]
+    if sp.get("kind") == "printed":  # catalog package A: a printed-only object has no electronics deliverables
+        rows = [r for r in rows if r[0] not in ("Electrical pin map and harness", "Backplane PCB", "Firmware", "Software setup")]
+        L += ["This is a printed-only design: it has no electronics, so there is no wiring, backplane PCB, firmware or software "
+              "setup in this version.", ""]
     L.append(table(["Artefact", "Files", "Notes"], rows))
 
     # ---- frame

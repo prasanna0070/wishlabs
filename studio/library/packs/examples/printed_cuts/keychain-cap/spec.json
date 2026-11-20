@@ -1,0 +1,79 @@
+{
+ "schema": "gadget-spec/1",
+ "kind": "printed",
+ "name": "Keychain bottle cap",
+ "slug": "keychain-cap",
+ "tagline": "A printed object with no electronics: a small cap with a key-ring tab and loop hole; fit on a bottle is a physical check",
+ "audience": {
+  "child_directed": false
+ },
+ "colors": {
+  "body": "#F28C28",
+  "accent": "#2B3A42",
+  "detail": "#2B3A42",
+  "body_name": "bright orange"
+ },
+ "body": {
+  "family": "blob",
+  "split": "none",
+  "feet": 0,
+  "edge_round": 1.5,
+  "wall": 2.4,
+  "primitives": [
+   {
+    "kind": "cylinder",
+    "center": [
+     0,
+     0,
+     10
+    ],
+    "size": [
+     34,
+     34,
+     20
+    ],
+    "radius": 2,
+    "axis": "z"
+   },
+   {
+    "kind": "rounded_box",
+    "center": [
+     22,
+     0,
+     18
+    ],
+    "size": [
+     16,
+     12,
+     4
+    ],
+    "radius": 1.5
+   }
+  ]
+ },
+ "printed": {
+  "opening": "top",
+  "drain_hole": false
+ },
+ "cuts": [
+  {
+   "kind": "hole",
+   "face": "top",
+   "at": [
+    24,
+    0
+   ],
+   "size": [
+    5,
+    5
+   ],
+   "depth": 4
+  }
+ ],
+ "decor": [],
+ "features": [],
+ "safety": {
+  "flags": [],
+  "notes": "Printed-only object: no electronics. No thread, seal or filter: it does not clean water, and fit on a bottle neck is a physical check."
+ }
+}

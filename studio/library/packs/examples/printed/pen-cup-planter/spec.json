@@ -1,0 +1,68 @@
+{
+ "schema": "gadget-spec/1",
+ "kind": "printed",
+ "name": "Pen cup planter",
+ "slug": "pen-cup-planter",
+ "tagline": "A printed object with no electronics: a round pot for pens or a small plant (or a vase), open at the top, with a drain hole",
+ "audience": {
+  "child_directed": false
+ },
+ "colors": {
+  "body": "#C8643B",
+  "accent": "#F4F1EA",
+  "detail": "#2B3A42",
+  "body_name": "terracotta"
+ },
+ "body": {
+  "family": "revolve",
+  "profile": [
+   [
+    0,
+    0
+   ],
+   [
+    30,
+    0
+   ],
+   [
+    32,
+    30
+   ],
+   [
+    34,
+    60
+   ],
+   [
+    35,
+    86
+   ],
+   [
+    35,
+    92
+   ],
+   [
+    18,
+    92
+   ],
+   [
+    0,
+    92
+   ]
+  ],
+  "squash_y": 1.0,
+  "edge_round": 3,
+  "wall": 2.4,
+  "split": "none",
+  "feet": 4
+ },
+ "printed": {
+  "opening": "top",
+  "drain_hole": true
+ },
+ "decor": [],
+ "features": [],
+ "safety": {
+  "flags": [],
+  "notes": "Printed-only object: no electronics. PETG is not food-safe; stand it on a saucer when planted."
+ }
+}

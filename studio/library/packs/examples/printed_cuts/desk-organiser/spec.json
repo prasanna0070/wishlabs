@@ -1,0 +1,103 @@
+{
+ "schema": "gadget-spec/1",
+ "kind": "printed",
+ "name": "Desk organiser",
+ "slug": "desk-organiser",
+ "tagline": "A printed object with no electronics: a desk block with three pen holes and a slot for a phone or cards",
+ "audience": {
+  "child_directed": false
+ },
+ "colors": {
+  "body": "#E7E1D3",
+  "accent": "#2B3A42",
+  "detail": "#2B3A42",
+  "body_name": "warm white"
+ },
+ "body": {
+  "family": "blob",
+  "split": "none",
+  "feet": 4,
+  "edge_round": 4,
+  "wall": 2.4,
+  "primitives": [
+   {
+    "kind": "rounded_box",
+    "center": [
+     0,
+     0,
+     35
+    ],
+    "size": [
+     120,
+     70,
+     70
+    ],
+    "radius": 6
+   }
+  ]
+ },
+ "printed": {
+  "opening": "none",
+  "drain_hole": false
+ },
+ "cuts": [
+  {
+   "kind": "hole",
+   "face": "top",
+   "at": [
+    -38,
+    -14
+   ],
+   "size": [
+    16,
+    16
+   ],
+   "depth": 55
+  },
+  {
+   "kind": "hole",
+   "face": "top",
+   "at": [
+    -12,
+    -14
+   ],
+   "size": [
+    16,
+    16
+   ],
+   "depth": 55
+  },
+  {
+   "kind": "hole",
+   "face": "top",
+   "at": [
+    14,
+    -14
+   ],
+   "size": [
+    16,
+    16
+   ],
+   "depth": 55
+  },
+  {
+   "kind": "slot",
+   "face": "top",
+   "at": [
+    0,
+    18
+   ],
+   "size": [
+    96,
+    12
+   ],
+   "depth": 35
+  }
+ ],
+ "decor": [],
+ "features": [],
+ "safety": {
+  "flags": [],
+  "notes": "Printed-only object: no electronics."
+ }
+}

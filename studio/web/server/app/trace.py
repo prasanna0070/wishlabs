@@ -148,10 +148,19 @@ def _detail_row(d: dict, quote: Any, build: dict, stories: Any) -> dict | None:
     return None
 
 
+def _printed_row(item: str, kind: str, roles: list[str]) -> dict:
+    return {"item": item, "kind": kind, "status": "unverified",
+            "evidence": f"A printed object has no electronics, so the words that suggest a {' or '.join(roles[:2])} here "
+                        "describe its shape or decor; check them against the build files.", "paths": []}
+
+
 def requirements(brief: dict | None, *, electrical: Any = None, build: Any = None, components: Any = None,
                  fw_text: str | None = None, story: dict | None = None, stories: Any = None,
-                 quote: Any = None) -> list[dict]:
-    """[{item, kind, status, evidence, paths}] in brief order: functions, size, power, details."""
+                 quote: Any = None, printed: bool = False) -> list[dict]:
+    """[{item, kind, status, evidence, paths}] in brief order: functions, size, power, details. `printed` (spec kind
+    "printed", pack `printed`): the object has no electronics, so words like "eyes", "playful" or "light blue" describe
+    its shape or decor, not a module; such items are unverified (check them yourself), never "not met" for a missing
+    module."""
     if not isinstance(brief, dict):
         return []
     build = build if isinstance(build, dict) else {}
@@ -163,6 +172,9 @@ def requirements(brief: dict | None, *, electrical: Any = None, build: Any = Non
         title, value = str(fx.get("title") or ""), _v(fx)
         item = f"{title}: {value}".strip(": ")
         roles = roles_for(title, value)
+        if roles and printed:
+            rows.append(_printed_row(item, "function", roles))
+            continue
         if not roles:
             rows.append({"item": item, "kind": "function", "status": "unverified",
                          "evidence": "No automatic evidence for this item; check it against the build files.",
@@ -198,7 +210,9 @@ def requirements(brief: dict | None, *, electrical: Any = None, build: Any = Non
         if row is None:
             item = f"{d.get('topic') or ''}: {_v(d)}".strip(": ")
             roles = roles_for(str(d.get("topic") or ""), _v(d))
-            if roles:
+            if roles and printed:
+                row = _printed_row(item, "detail", roles)
+            elif roles:
                 status, ev, paths = "implemented", [], []
                 for r in roles[:2]:
                     st, e, pth = _role_evidence(r, electrical, tests, story, build)

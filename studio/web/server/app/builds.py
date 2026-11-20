@@ -245,7 +245,8 @@ class BuildManager:
                          None) or (p.get("brief") if v.get("brief_version") is None else None)
             story = story_audio_state(spec, stories, check_counts(dc))
             reqs = requirements(brief, electrical=electrical, build=build, components=comps, fw_text=fw_text,
-                                story=story, stories=stories, quote=quote) if status["state"] == "done" else []
+                                story=story, stories=stories, quote=quote,
+                                printed=(spec or {}).get("kind") == "printed") if status["state"] == "done" else []
             payload, text, one = build_summary(name, status, build, manifest, dc, quote, v.get("brief_version"),
                                                {"manual_summary": msum, "stories": stories, "spec": spec,
                                                 "requirements": reqs, "cad_summary": cad_sum})

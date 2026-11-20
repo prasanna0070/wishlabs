@@ -27,8 +27,12 @@ def run(ctx) -> dict:
     b = bundle(ctx)
     files = {}
     # MAJ-21: PROJECT.md links the other documents, so it is written last (after the files it names exist)
-    for name, fn in (("PARTS_EVIDENCE.md", lambda: parts.render(b, ctx.lib)), ("SOFTWARE_SETUP.md", lambda: software.render(b)),
-                     ("PROJECT.md", lambda: project.render(b))):
+    docs = [("PARTS_EVIDENCE.md", lambda: parts.render(b, ctx.lib)), ("SOFTWARE_SETUP.md", lambda: software.render(b)),
+            ("PROJECT.md", lambda: project.render(b))]
+    if b.spec.get("kind") == "printed":  # catalog package A: no firmware, so no software setup document
+        docs = [d for d in docs if d[0] != "SOFTWARE_SETUP.md"]
+        (b.out / "SOFTWARE_SETUP.md").unlink(missing_ok=True)
+    for name, fn in docs:
         ctx.progress(STAGE, f"writing {name}", None)
         text = fn()
         (b.out / name).write_text(text, encoding="utf-8")

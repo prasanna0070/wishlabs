@@ -120,6 +120,15 @@ def mount_params(sd: dict) -> dict:
     return out
 
 
+def printed_params(sd: dict) -> Optional[dict]:
+    """{opening, drain_hole} of a printed-only spec (catalog package A), else None."""
+    if not isinstance(sd, dict) or sd.get("kind") != "printed":
+        return None
+    p = sd.get("printed") if isinstance(sd.get("printed"), dict) else {}
+    opening = p.get("opening") if p.get("opening") in ("none", "top") else "none"
+    return {"opening": opening, "drain_hole": bool(p.get("drain_hole")) and opening == "top"}
+
+
 def build_params(spec: Any, lib: Any = None, electrical: Optional[dict] = None, options: Optional[dict] = None) -> dict:
     sd = as_dict(spec)
     L = LibAccess(lib)
@@ -230,6 +239,9 @@ def build_params(spec: Any, lib: Any = None, electrical: Optional[dict] = None, 
         "hardware_modules": {h.get("id"): h.get("module") for h in hw if isinstance(h, dict)},
         "cartridge_hint": derived.get("cartridge"),
         "template": tmpl,
+        "kind": "printed" if sd.get("kind") == "printed" else "gadget",
+        "printed": printed_params(sd),
+        "cuts": [dict(c) for c in (sd.get("cuts") or []) if isinstance(c, dict)] if sd.get("kind") == "printed" else [],
         "mount": mount_params(sd),
         "print_material": {"name": mat, "density_g_cm3": MATERIAL_DENSITY.get(mat.upper(), 1.24),
                            "density_source": "typical datasheet value for the material (estimate)"},
