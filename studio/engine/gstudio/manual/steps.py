@@ -874,7 +874,8 @@ class Planner:
             extra_stops=stops,
             parts=[c.name for c in [A.backplane, A.core, *A.cartridge_mods] if c] + [g.module.name for g in mods],
             highlight=[c.name for c in [A.backplane, A.core, *A.cartridge_mods] if c],
-            rows=[r.get("module_id") for r in ([usb_row] if usb_row else []) + cable_rows if r.get("module_id")],
+            rows=[r.get("module_id") for r in ([usb_row] if usb_row else []) + cable_rows if r.get("module_id")]
+                 + [m for m in (d.instance(r).get("module") for r in loose) if m],  # no CAD part: its purchased row (MAJ-14)
             extra_images=["manual/wiring.png"] + [f"manual/cable-end-{r.lower()}.png" for r in [g.ref for g in groups] + loose],
             module_end=[g.ref for g in groups] + loose,
         ))

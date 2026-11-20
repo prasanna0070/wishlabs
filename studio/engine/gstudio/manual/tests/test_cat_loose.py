@@ -23,6 +23,7 @@ def test_module_without_cad_part_gets_its_cable_end(minibot_ctx):
     steps = plan(classify(data))
     bench = next(s for s in steps if s.id == "bench-test")
     assert "RTC1" in bench.module_end and "(RTC1)" in bench.body
+    assert loose["module"] in bench.rows  # its purchased row is used in a step (MAJ-14), though it has no CAD part
     assert module_end_missing(data, steps) == []
     plug = next(s for s in steps if s.id == "plug-harnesses")
     assert "no printed mount in this design" in plug.body and "physical check" in plug.body
