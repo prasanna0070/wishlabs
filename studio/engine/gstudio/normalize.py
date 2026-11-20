@@ -30,12 +30,13 @@ from typing import Any, Optional
 from .envelope import fit_orientations, full_envelope
 from .errors import SpecError
 from .spec import (
-    BlobBody, DCartridge, DHardware, DHarness, DInstance, Derived, Feature, RevolveBody, SilhouetteBody, Spec,
-    cross_check, load_spec, outline_points, polygon_area,
+    PRINTED_MIN_SIZE, BlobBody, DCartridge, DHardware, DHarness, DInstance, Derived, Feature, RevolveBody, SilhouetteBody,
+    Spec, cross_check, load_spec, outline_points, polygon_area,
 )
 from .version import ENGINE_VERSION
 
 SIZE_MIN, SIZE_MAX = 60.0, 260.0
+SIZE_MIN_PRINTED = PRINTED_MIN_SIZE  # 20 mm per axis for kind printed (gstudio.printed uses it instead of SIZE_MIN)
 BED = (250.0, 210.0, 210.0)
 ENVELOPE_MARGIN = 3.0  # mm per axis kept in hand when the envelope is a distance-field estimate (blob, revolve)
 CLEAR = 3.0  # cartridge clearance to the inner wall
@@ -267,10 +268,31 @@ def _role_available(lib, role: str) -> bool:
 
 
 # =============================================================================================== main
+def _bare_report(errors: list[dict]) -> dict:
+    """The report shape for a spec that cannot be normalized at all (same keys as a full report)."""
+    return {"ok": not errors, "errors": errors, "warnings": [], "added": [], "nudges": [], "size_mm": [0.0, 0.0, 0.0],
+            "envelope": {"bbox": [0.0] * 6, "source": "none", "fits_upright": False, "fits_any_orientation": False, "ears": []},
+            "instances": [], "slots": {}}
+
+
 def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]:
     sp = load_spec(spec) if not isinstance(spec, Spec) else spec
+    if getattr(sp, "kind", "gadget") == "printed":  # CATALOG-PLAN 0.5.5: printed objects (pack `printed`, gstudio.printed)
+        try:
+            from .printed import normalize_printed
+        except ImportError:
+            errs = list(cross_check(sp)) + [{"path": "kind", "msg": "a printed object with no electronics (kind 'printed') is "
+                                             "not available yet", "fix": "design a gadget (kind 'gadget')", "code": "not_available"}]
+            if raise_on_error:
+                raise SpecError(errs)
+            return sp, _bare_report(errs)
+        return normalize_printed(sp, lib, raise_on_error)
     sp = sp.model_copy(deep=True)
     errors: list[dict] = list(cross_check(sp))
+    if sp.behaviour is None:  # a gadget needs behaviour (cross_check says so); nothing else can be checked without it
+        if raise_on_error:
+            raise SpecError(errors)
+        return sp, _bare_report(errors)
     warnings: list[str] = []
     added: list[str] = []
     bp = lib.backplane
@@ -934,7 +956,7 @@ def _module_end(m: dict) -> str:
 # REVIEW-1 MAJ-12: one purchased row per screw length (library SCREW_<thread>X<len>_SHCS_A2, each with its own SKU) and the
 # insert that is actually bought (INSERT_HEATSET_M2_5X4_MEC8005, pack of 10). `id` is the CAD fastener group name, so the
 # parts list joins PURCHASE_<group> by name; `module` is the library row that is bought.
-MODULE_POSTS = {"speaker": 3, "touch": 0}
+MODULE_POSTS = {"speaker": 3, "touch": 0, "servo": 0, "servo_continuous": 0}  # servo: its own tab screws into pilot holes (B hand-off 1)
 # planned lengths: cartridge from backplane-v1 (boss.screw_length_mm); cover and module clamp lengths are what the CAD's
 # pick_screw rule chose on the benchmark shells (12 and 8); the CAD picks per design and its components.json size wins
 PLANNED_SCREW_LEN = {"CoverScrews": 12, "PlateScrews": 12, "ModuleScrews": 8, "SupportPostScrews": 6}
