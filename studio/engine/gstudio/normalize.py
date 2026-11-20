@@ -349,6 +349,37 @@ def _bare_report(errors: list[dict]) -> dict:
             "instances": [], "slots": {}}
 
 
+def _settings_hint(fw, tmpl) -> str:
+    """One line naming the template's settings and their ranges, added when a setting is unknown. The agent prompt does
+    not list settings, so the model guesses: on 2026-11-21 it wrote humidity_dry_percent for sensor_display's
+    humidity_low, and every concept of the jurors' wish failed its render. With this line it can move the value into
+    the right setting instead of dropping it."""
+    import types
+    import typing
+
+    model = (getattr(fw, "MODELS", None) or {}).get(tmpl)
+    if model is None:
+        return ""
+    parts = []
+    for name, f in model.model_fields.items():
+        ann = f.annotation
+        if typing.get_origin(ann) in (typing.Union, types.UnionType):
+            ann = next((a for a in typing.get_args(ann) if a is not type(None)), ann)
+        if typing.get_origin(ann) is typing.Literal:
+            kind = "|".join(str(a) for a in typing.get_args(ann))
+        elif ann is bool:
+            kind = "true|false"
+        else:
+            lo = next((m.ge for m in f.metadata if getattr(m, "ge", None) is not None), None)
+            hi = next((m.le for m in f.metadata if getattr(m, "le", None) is not None), None)
+            kind = f"{lo:g} to {hi:g}" if isinstance(lo, (int, float)) and isinstance(hi, (int, float)) else ""
+        desc = f.description or ""
+        only = desc.split(":")[0] if desc.startswith("only with") else ""
+        parts.append(name + (f" ({kind})" if kind else "") + (f" [{only}]" if only else ""))
+    return (f"{tmpl} takes only these settings: {', '.join(parts)}. Use these names exactly, and put each value the "
+            "person asked for into the matching setting instead of dropping it.")
+
+
 def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]:
     sp = load_spec(spec) if not isinstance(spec, Spec) else spec
     if getattr(sp, "kind", "gadget") == "printed":  # CATALOG-PLAN 0.5.5: printed objects (pack `printed`, gstudio.printed)
@@ -518,6 +549,10 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
                         _err(errors, head, rest, code="settings")
                     else:
                         _err(errors, "behaviour.settings", txt, code="settings")
+            if any("unknown setting" in str(x) for x in (serrs or [])):
+                hint = _settings_hint(_fw, tmpl)
+                if hint:
+                    _err(errors, "behaviour.settings", hint, code="settings")
         except Exception as exc:  # the hook must never crash normalize
             warnings.append(f"firmware.validate_settings failed: {exc}")
 

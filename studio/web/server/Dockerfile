@@ -11,6 +11,8 @@ RUN npm run build && test -f dist/index.html
 
 # ---------- 2. light engine subset (spec, library, normalize and the other top-level modules). Of the stage packages
 # only cad/ ships, for its pure-Python kit footprints (normalize's kit overlap checks); CadQuery is not installed.
+# firmware/ ships only __init__.py and settings.py (pydantic): normalize checks behaviour.settings with them, so the
+# design agent repairs an unknown setting before a concept render instead of the builder refusing it (422).
 FROM python:3.12-slim AS engine
 WORKDIR /stage
 COPY engine/gstudio/ /tmp/gstudio/
@@ -18,6 +20,8 @@ COPY examples/ /tmp/examples/
 RUN mkdir -p engine/gstudio examples \
  && cp /tmp/gstudio/*.py engine/gstudio/ \
  && for d in /tmp/gstudio/data /tmp/gstudio/library /tmp/gstudio/cad; do [ -d "$d" ] && cp -r "$d" engine/gstudio/ || true; done \
+ && mkdir -p engine/gstudio/firmware \
+ && cp /tmp/gstudio/firmware/__init__.py /tmp/gstudio/firmware/settings.py engine/gstudio/firmware/ \
  && for f in /tmp/examples/*/spec.json; do [ -f "$f" ] || continue; s=$(basename $(dirname "$f")); \
       mkdir -p examples/$s && cp "$f" examples/$s/; done
 
