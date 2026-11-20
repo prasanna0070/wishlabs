@@ -242,14 +242,40 @@ function setChip(g, animate = true) {
   if (animate && LIBS && !RM) gsap.fromTo(chip, { y: 14, opacity: 0, scale: 0.9 }, { y: 0, opacity: 1, scale: 1, duration: 0.7, ease: "back.out(2)", overwrite: true });
 }
 
+/* Slow networks: if the first 3D model is still downloading POSTER_MS after the page started loading, its engine
+   render stands in until the model is on stage (on slow 4G the stage stayed empty for 4 to 6 s). On a fast network
+   the model is ready by then and the poster never shows. */
+const POSTER_MS = 2000;
+let posterTimer = 0, posterAt = 0, heroReady = false;
+function posterOn() {
+  if (heroReady || stage.classList.contains("fallback")) return;
+  stage.classList.add("poster");
+  void fallbackImg.offsetWidth;           /* paint it at opacity 0 first, so the fade-in runs */
+  stage.classList.add("poster-on");
+  posterAt = performance.now();
+}
+function posterOff() {
+  clearTimeout(posterTimer);
+  if (!stage.classList.contains("poster")) return;
+  /* Stay up at least 0.7 s, so a fade-in is never cut short into a flicker. */
+  setTimeout(() => {
+    stage.classList.remove("poster-on");
+    setTimeout(() => { if (!stage.classList.contains("poster-on")) stage.classList.remove("poster"); }, 650);
+  }, Math.max(0, 700 - (performance.now() - posterAt)));
+}
+
 function showFallback(g) {
+  clearTimeout(posterTimer);
+  /* The poster already shows this very picture: keep it still instead of animating it in again. */
+  const same = stage.classList.contains("poster-on") && fallbackImg.getAttribute("src") === `assets/img/fallback/${g.slug}.webp`;
+  stage.classList.remove("poster", "poster-on");
   stage.classList.add("fallback");
   fallbackImg.alt = g.name + ", an example design rendered by our engine";
   fallbackImg.style.visibility = "";
   fallbackImg.onerror = () => { fallbackImg.style.visibility = "hidden"; };
   fallbackImg.src = `assets/img/fallback/${g.slug}.webp`;
   note.textContent = "Engine renders of real example designs";
-  if (LIBS && !RM) gsap.fromTo(fallbackImg, { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.9, ease: "back.out(1.6)" });
+  if (LIBS && !RM && !same) gsap.fromTo(fallbackImg, { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.9, ease: "back.out(1.6)" });
 }
 
 function poof() {
@@ -266,7 +292,7 @@ function poof() {
 async function heroLoop(hero) {
   const list = SITE.GADGETS;
   let i = 0;
-  if (hero) hero.prepare(list[0]);
+  if (hero) hero.prepare(list[0]).then((it) => { if (it) heroReady = true; });
   await wait(900);
   for (;;) {
     const g = list[i];
@@ -283,7 +309,7 @@ async function heroLoop(hero) {
       try { await Promise.race([hero.show(g), wait(9000).then(() => { throw new Error("slow"); })]); ok = true; }
       catch (e) { ok = false; }
     }
-    if (ok) stage.classList.remove("fallback"); else showFallback(g);
+    if (ok) { stage.classList.remove("fallback"); posterOff(); } else showFallback(g);
     setChip(g);
     if (hero) hero.prepare(list[(i + 1) % list.length]);
     await wait(4200);
@@ -301,6 +327,7 @@ async function initHero() {
   if (RM || !LIBS) { showFallback(SITE.GADGETS[0]); return; }
   let hero = null;
   if (GL) {
+    posterTimer = setTimeout(posterOn, Math.max(0, POSTER_MS - performance.now()));
     try {
       const mod = await import("./hero3d.js");
       hero = mod.createHero($("#hero-canvas"));
