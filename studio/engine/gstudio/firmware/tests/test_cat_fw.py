@@ -183,3 +183,44 @@ def test_setup_doc_explains_calibration_and_the_float():
     assert "2900" in md and "Water me" in md and "Refill the tank" in md and "does not water the plant" in md
     plain, _ = load_fixture("sensor_display")
     assert "Soil probe" not in setup_markdown(plain, "sensor_display", validate_settings("sensor_display", {})[0], {}, None)
+
+# ---- C-fw2: latch config.h and the NFC reader binding
+
+
+def test_latch_defines_and_requirements():
+    spec, elec, gpio = _servo_design("SERVO_SG90_ARM")
+    norm, errors = validate_settings("latch", {"known_tags": ["04A2B3C4D5E6F7"], "open_seconds": 8})
+    assert errors == []
+    b = bind(elec, spec, LOOKUP)
+    d = _defines(config_h(spec, "latch", norm, b, "0.0.0+test", "test", ""))
+    assert (d["GS_TEMPLATE_LATCH"], d["GS_CFG_OPEN_DEG"], d["GS_CFG_CLOSED_DEG"], d["GS_CFG_OPEN_SECONDS"]) == ("1", "90", "0", "8")
+    assert d["GS_CFG_KNOWN_TAG_N"] == "1" and d["GS_CFG_KNOWN_TAGS"] == '{ "04A2B3C4D5E6F7" }'
+    assert (d["GS_CFG_LEARN_WITH_BUTTON_HOLD"], d["GS_CFG_LOG_SIZE"], d["GS_CFG_SERVO_SPEED_DEG_S"]) == ("1", "20", "120")
+    empty = _defines(config_h(spec, "latch", validate_settings("latch", {})[0], b, "0.0.0+test", "test", ""))
+    assert empty["GS_CFG_KNOWN_TAG_N"] == "0" and empty["GS_CFG_KNOWN_TAGS"] == '{ "" }'
+    # the desk_companion fixture has a button: with the servo it is a complete latch (button only), with a warning for tags
+    warns = check_template("latch", b, norm)
+    assert any("no NFC reader" in w for w in warns)
+    no_servo_spec, no_servo = load_fixture("desk_companion")
+    with pytest.raises(StageError):
+        check_template("latch", bind(no_servo, no_servo_spec, LOOKUP), norm)
+
+
+def test_nfc_reader_binds_on_i2c():
+    spec, elec = load_fixture("sensor_display")
+    spec, elec = copy.deepcopy(spec), copy.deepcopy(elec)
+    baro = next(i for i in elec["instances"] if i["ref"] == "BARO1")
+    baro["ref"], baro["module"] = "NFC1", "NFC_PN532_V3_I2C"
+    for c in elec["connections"]:
+        if c["from"].startswith("BARO1."):
+            c["from"] = "NFC1." + c["from"].split(".", 1)[1]
+    for bus in elec["buses"]:
+        for dev in bus.get("devices") or []:
+            if dev.get("ref") == "BARO1":
+                dev["ref"] = "NFC1"
+                dev.pop("addr", None)
+    hw = _defines(hardware_h(bind(elec, spec, LOOKUP)))
+    assert hw["GS_HAS_NFC"] == "1" and hw["GS_NFC_ADDR"] == "0x24"
+    assert "0x24" in hw["GS_I2C_EXPECTED"]
+    plain_spec, plain = load_fixture("sensor_display")
+    assert _defines(hardware_h(bind(plain, plain_spec, LOOKUP)))["GS_HAS_NFC"] == "0"
