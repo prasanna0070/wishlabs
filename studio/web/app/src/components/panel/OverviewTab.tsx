@@ -15,10 +15,13 @@ import { buildTime, chosenConcept, conceptImage, fileGroups, originalWish, PRICE
 import type { Build, Concept, Quote, Version } from "../../lib/types";
 import { Logo, Spinner } from "../ui";
 import type { TabId } from "./RightPanel";
-import { cardWanted, SOUND_CARD, VOICE_CARD, type CardProps, type MountedCard } from "./cards";
+import { cardWanted, pickCard, type CardProps, type MountedCard } from "./cards";
 import "./OverviewTab.css";
 
 const ShareViewer = lazy(() => import("../share/ShareViewer"));
+// Gemini Live voice wish and Lyria gadget sound cards, when their features are part of this build (see ./cards.ts).
+const VOICE_CARD = pickCard(import.meta.glob<Record<string, unknown>>("/src/**/VoiceWishCard.tsx", { eager: true }), "VoiceWishCard", "hasVoiceWish");
+const SOUND_CARD = pickCard(import.meta.glob<Record<string, unknown>>("/src/**/SoundCard.tsx", { eager: true }), "SoundCard", "hasSound");
 
 class Quiet extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };

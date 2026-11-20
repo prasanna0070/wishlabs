@@ -1,7 +1,7 @@
-// Feature cards that other streams add to the Overview tab of a share link, found by file name so this tab builds
-// with or without them: any src/**/VoiceWishCard.tsx (Gemini Live voice wish) and src/**/SoundCard.tsx (Lyria
-// gadget sound). A card module exports the component (default or by its name) and may export a predicate
-// hasVoiceWish(project, version) / hasSound(project, version); without one the card returns null when it has no data.
+// Feature cards that other streams add to the Overview tab of a share link, found by file name (OverviewTab.tsx globs
+// src/**/VoiceWishCard.tsx and src/**/SoundCard.tsx) so the tab builds with or without them. A card module exports
+// the component (default or by its name) and may export a predicate hasVoiceWish(project, version) /
+// hasSound(project, version); without one the card returns null when it has no data. Pure: no imports of the cards.
 import type { ComponentType } from "react";
 import type { Project, Version } from "../../lib/types";
 import type { Ctx } from "../../lib/urls";
@@ -40,7 +40,3 @@ export function cardWanted(m: MountedCard | null, project: Project, version: Ver
   }
 }
 
-export const VOICE_CARD = pickCard(import.meta.glob<Record<string, unknown>>("/src/**/VoiceWishCard.tsx", { eager: true }), "VoiceWishCard", "hasVoiceWish");
-export const SOUND_CARD = pickCard(import.meta.glob<Record<string, unknown>>("/src/**/SoundCard.tsx", { eager: true }), "SoundCard", "hasSound");
-/** Which feature cards are part of this build. */
-export const mountedCards = { voice: !!VOICE_CARD, sound: !!SOUND_CARD };
