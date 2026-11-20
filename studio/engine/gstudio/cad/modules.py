@@ -19,6 +19,11 @@ from typing import Optional
 
 from . import refs_provisional as P
 
+try:
+    from . import kits_ext  # pack kits (cad/kits_*.py)
+except ImportError:  # pragma: no cover - a vendored gadget_cad copy without the registry (export.VENDOR)
+    kits_ext = None
+
 # ------------------------------------------------------------------------------------------------ library notes
 # Each value is copied from the named library entry's dims/mount/aperture notes (library/modules-*.json, 2026-11-01).
 LIB_DETAIL: dict[str, dict] = {
@@ -118,6 +123,9 @@ def classify(entry: dict) -> str:
         return "touch"
     if needs in ("vent", "sensor_window", "window", "lens"):
         return "sensor_window"
+    pk = kits_ext.classify_need(needs) if kits_ext is not None else None  # pack kits: before the role fallback
+    if pk:
+        return pk
     return ROLE_KIND.get(role, "generic")
 
 
@@ -232,6 +240,11 @@ def describe(entry: dict) -> dict:
         if kind == "sensor_window":
             aw, ah = d["aperture"].get("w") or 4.0, d["aperture"].get("h") or 4.0
             d["window"] = {"w": float(np.clip(aw, 3.0, d["pcb"]["w"] - 2)), "h": float(np.clip(ah, 3.0, d["pcb"]["h"] - 2))}
+    if kits_ext is not None and kits_ext.is_pack_kind(kind):  # pack kits (cad/kits_*.py) add their own geometry
+        d["dims"] = {"x": x, "y": y, "z": z}
+        fn = kits_ext.describe_fn(kind)
+        if fn is not None:
+            fn(d, entry)
     d["provisional"] = bool(d["provisional_fields"])
     return d
 
