@@ -217,6 +217,7 @@ def test_cat_printed_kind(monkeypatch):
     assert s.kind == "printed" and s.behaviour is None and s.printed.opening == "top" and s.body.split == "none"
     again = load_spec(s.to_json_dict())
     assert again.to_json_dict() == s.to_json_dict() and again.to_json_dict()["kind"] == "printed"
+    assert "electronics" not in s.to_json_dict() and s.module_ids() == []  # no default core listed as a part
     small = cup()  # a 30 x 30 x 25 mm keychain cap: printed floors (20 mm per axis, 10 mm flat bottom)
     small["body"]["profile"] = [[0, 0], [15, 0], [15, 25], [0, 25]]
     small["printed"] = None

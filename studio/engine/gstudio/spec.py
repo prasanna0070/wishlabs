@@ -574,6 +574,8 @@ class Spec(_M):
         # pack fields at their defaults are left out, so a gadget dumps exactly as before the packs existed
         if d.get("kind") == "gadget":
             d.pop("kind", None)
+        elif d.get("kind") == "printed" and d.get("electronics") == Electronics().model_dump(mode="json"):
+            d.pop("electronics", None)  # a printed object has no core: never list the default board as one of its parts
         for k, empty in (("printed", None), ("cuts", []), ("mount", None)):
             if d.get(k) == empty:
                 d.pop(k, None)
@@ -593,6 +595,8 @@ class Spec(_M):
         return next((f for f in self.features if f.id == fid), None)
 
     def module_ids(self) -> list[str]:
+        if self.kind == "printed":
+            return []  # no electronics at all
         ids = [self.electronics.core] + [f.module for f in self.features] + list(self.electronics.extra_modules)
         return ids
 
