@@ -658,6 +658,7 @@ class EventLog:
         self.f = open(path, "w", encoding="utf-8")
         self.produced: list = []        # kinds of the assistant messages this turn stored
         self.errors: list = []
+        self.repairs: list = []         # spec validation repair rounds the agent went through
         self.project: dict | None = None
         self.build_version = None
         self.timeline: dict = {}
@@ -680,6 +681,9 @@ class EventLog:
                     self.errors.append({"t": t, "text": (m.get("text") or "")[:600], "payload": m.get("payload")})
         elif ev == "error":
             self.errors.append({"t": t, "code": d.get("code"), "message": (d.get("message") or "")[:600]})
+        elif ev == "repair":
+            self.repairs.append({"t": t, "round": d.get("round"), "errors": [str(x)[:300] for x in
+                                                                           (d.get("errors") or [])[:6]]})
         elif ev == "build.started":
             v = d.get("version")
             self.build_version = v.get("n") if isinstance(v, dict) else v
@@ -815,20 +819,24 @@ def summary_md(data: dict) -> str:
         for s in (r.get("build") or {}).get("stages") or []:
             if s.get("id") and s["id"] not in stage_ids:
                 stage_ids.append(s["id"])
-    cols = ["create", "wish_to_concepts", "concepts_to_brief", "build", "collect", "total"]
+    cols = ["create", "wish_to_concepts", "questions", "concepts_to_brief", "build", "collect", "total"]
     out += ["", "## Timings (seconds)", "",
-            "| Case | " + " | ".join(cols) + (" | " + " | ".join(stage_ids) if stage_ids else "") + " |",
-            "|---" * (1 + len(cols) + len(stage_ids)) + "|"]
+            "| Case | " + " | ".join(cols) + (" | " + " | ".join(stage_ids) if stage_ids else "")
+            + " | repair rounds | model USD (est.) |",
+            "|---" * (3 + len(cols) + len(stage_ids)) + "|"]
     for r in rows:
         t = r.get("timings_s") or {}
         st = {s.get("id"): s.get("seconds") for s in (r.get("build") or {}).get("stages") or []}
+        cost = (r.get("usage_totals") or {}).get("cost_usd_est")
         cells = [str(t.get(c, "-")) for c in cols] + [str(st.get(s) if st.get(s) is not None else "-")
                                                     for s in stage_ids]
+        cells += [str(r.get("repair_rounds", "-")), f"{cost:.3f}" if isinstance(cost, (int, float)) else "-"]
         out.append(f"| {_cell(r['id'])} | " + " | ".join(cells) + " |")
     out += ["", "Buildable = the version finished and the engine's CAD collision gate passed (status.buildable). "
             "Parts = the design's own modules (implied parts such as cables and the backplane are in results.json "
             "and count for parts_any / parts_all). Minutes = the runner's wall time per case, project creation to "
-            "share link. Builder stage seconds come from the version's status.json.", ""]
+            "share link. Builder stage seconds come from the version's status.json. Repair rounds = spec validation "
+            "repairs the agent needed; model USD = the project's usage estimate (not billing data).", ""]
     return "\n".join(out)
 
 
@@ -961,6 +969,7 @@ class CaseRun:
             if rec["outcome"] == "runner_error":
                 rec["error"] = rec.get("error") or "the build did not reach a final state"
                 final = False
+        rec["repair_rounds"] = sum(len(t.get("repairs") or []) for t in rec.get("turns") or [])
         rec["expect_results"], rec["expectations_met"] = check_expect(self.c["expect"], rec)
         rec["ended_utc"] = now_utc()
         rec["timings_s"]["total"] = round(time.time() - float(rec["started_epoch"]), 1)
@@ -1109,6 +1118,8 @@ class CaseRun:
                              produced=log.produced, timeline=log.timeline)
                 if log.errors:
                     entry["turn_errors"] = log.errors
+                if log.repairs:
+                    entry["repairs"] = entry.get("repairs", []) + log.repairs
                 if log.build_version is not None:
                     self.rec["build_version"] = entry["build_version"] = log.build_version
                 if st is not None and 200 <= st < 300:
@@ -1562,6 +1573,10 @@ def main(argv=None) -> int:
     out = out.resolve()
     out.mkdir(parents=True, exist_ok=True)
     server = None
+
+    def _term(signum, frame):       # `kill <pid>` runs the finally below, so a --server-local server is stopped too
+        raise KeyboardInterrupt()
+    signal.signal(signal.SIGTERM, _term)
     try:
         if a.server_local:
             server = LocalServer(a.server_local, out, photos=not a.no_photos,

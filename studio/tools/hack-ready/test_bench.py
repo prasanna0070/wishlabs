@@ -170,6 +170,8 @@ class FakeStudio:
                                   {"action": action} if action else None))
         last = next((m for m in reversed(p["chat"]) if m["role"] == "assistant"), None)
         out = []
+        if action is None and last is None:
+            ev.append(("repair", {"seq": 2, "round": 1, "errors": ["body.outline[0]: Input should be a valid tuple"]}))
         if action is None and last is None and self.questions:
             qs = [{"id": "who", "question": "Who is it for?", "options": ["Me", "A child"]},
                   {"id": "look", "question": "What look do you like?", "options": ["Calm", "Playful"]}]
@@ -439,6 +441,8 @@ class EndToEndWithFakeStudio(unittest.TestCase):
         self.assertEqual(r["questions"][0]["sent"], {"text": "for me, on my desk"})
         self.assertEqual([s["seconds"] for s in r["build"]["stages"]], [180.0, 90.0])
         self.assertEqual([t["step"] for t in r["turns"]], ["wish", "answers1", "select-concept", "build"])
+        self.assertEqual(r["repair_rounds"], 1)
+        self.assertEqual(r["turns"][0]["repairs"][0]["errors"], ["body.outline[0]: Input should be a valid tuple"])
         for k in ("create", "wish_to_concepts", "concepts_to_brief", "build", "collect", "total"):
             self.assertIn(k, r["timings_s"])
         self.assertEqual(fake.logins, 1)
@@ -446,6 +450,7 @@ class EndToEndWithFakeStudio(unittest.TestCase):
         self.assertIn("| lamp | yes | Rs 16,599 delivered (estimate) |", md)
         self.assertIn("**Score: 1 of 1 buildable; median", md)
         self.assertIn("Walls thick enough: 1.1 mm at the rear cover", md)
+        self.assertIn("| repair rounds | model USD (est.) |", md)
         self.assertEqual(json.loads((self.out / "results.json").read_text())["score"], data["score"])
         self.assertTrue(list((self.out / "events" / "lamp").glob("01-wish.jsonl")))
         everything = (self.out / "results.json").read_text() + md + "\n".join(lines)
