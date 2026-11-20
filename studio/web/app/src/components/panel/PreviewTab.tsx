@@ -8,6 +8,7 @@ import type { Components } from "../../lib/types";
 import { Viewer, ViewerControls, type ModelInfo, type SizeRef, type ViewerHandle } from "../../three/Viewer";
 import { BuildProgressCard } from "../chat/Messages";
 import { TweakDrawer } from "./TweakDrawer";
+import { SoundCard } from "./SoundCard";
 import type { TabProps } from "./RightPanel";
 
 /** The decor entry (components.json PRINT_Shell.decor[]) a decor selection such as "PRINT_Shell#decor[1]" names. */
@@ -269,6 +270,7 @@ export function PreviewTab({ version }: TabProps) {
           />
         ) : null}
       </div>
+      <SoundCard project={project} version={version} ctx={ctx} readOnly={readOnly} compact />
     </div>
   );
 }
