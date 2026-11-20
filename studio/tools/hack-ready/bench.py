@@ -654,9 +654,10 @@ def parse_sse_block(block: bytes):
 class EventLog:
     """Writes each SSE event of one turn with its arrival time; keeps what the runner needs from the stream."""
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, on_progress=None):
         path.parent.mkdir(parents=True, exist_ok=True)
         self.path = path
+        self.on_progress = on_progress
         self.f = open(path, "w", encoding="utf-8")
         self.produced: list = []        # kinds of the assistant messages this turn stored
         self.errors: list = []
@@ -694,6 +695,8 @@ class EventLog:
             keep = {"version_n": d.get("version_n"), "state": st.get("state"), "percent": st.get("percent"),
                     "stages": [[s.get("id"), s.get("state")] for s in st.get("stages") or [] if isinstance(s, dict)],
                     "buildable": st.get("buildable")}
+            if self.on_progress:
+                self.on_progress(d.get("version_n"), st)
         self.f.write(json.dumps({"t": t, "event": ev, "data": keep}, ensure_ascii=False) + "\n")
         self.f.flush()
 
@@ -1121,7 +1124,7 @@ class CaseRun:
                 self.check()
                 entry["attempts"] += 1
                 name = f"{entry['n']:02d}-{step}" + (f"-try{entry['attempts']}" if entry["attempts"] > 1 else "")
-                log = EventLog(self.ev_dir / f"{name}.jsonl")
+                log = EventLog(self.ev_dir / f"{name}.jsonl", on_progress=self.note_progress if build else None)
                 try:
                     res = self.h.sse(f"/api/projects/{self.pid}/chat", body, log.on_event, deadline=self.deadline)
                 finally:
@@ -1205,17 +1208,26 @@ class CaseRun:
                 self.R.sleep(min(5.0, self.R.poll_s))
         self.mark("build_final")
 
+    def note_progress(self, n, st: dict) -> None:
+        """Build progress from the stream or from polling: kept in the record, logged at each 10 % step."""
+        if not isinstance(st, dict):
+            return
+        self.rec["build_progress"] = {"state": st.get("state"), "percent": st.get("percent"), "at": now_utc()}
+        try:
+            key = (st.get("state"), int(float(st.get("percent") or 0)) // 10)
+        except (TypeError, ValueError):
+            key = (st.get("state"), None)
+        if key != getattr(self, "_progress_key", None):
+            self._progress_key = key
+            running = [s.get("id") for s in st.get("stages") or [] if isinstance(s, dict) and s.get("state") == "running"]
+            self.say(f"build v{n}: {st.get('state')} {st.get('percent')}%" + (f" ({', '.join(running)})" if running else ""))
+
     def poll_status(self, n: int) -> dict | None:
-        last = None
         while True:
             r = self.get(f"/api/projects/{self.pid}/v/{n}/status")
             st = r.json() if r.status == 200 else None
             if isinstance(st, dict):
-                self.rec["build_progress"] = {"state": st.get("state"), "percent": st.get("percent"), "at": now_utc()}
-                key = (st.get("state"), int(float(st.get("percent") or 0)) // 10)
-                if key != last:
-                    last = key
-                    self.say(f"build v{n}: {st.get('state')} {st.get('percent')}%")
+                self.note_progress(n, st)
                 if st.get("state") in FINAL:
                     return st
             self.check()
@@ -1236,7 +1248,10 @@ class CaseRun:
         spec = None
         files: list = []
         if v:
-            vd = self.get(f"/api/projects/{pid}/v/{n}").json() or {}
+            vr = self.get(f"/api/projects/{pid}/v/{n}")
+            vd = vr.json() if vr.status == 200 else None
+            if not isinstance(vd, dict):    # never call a case finished on a read that failed: --resume retries it
+                raise CaseFail("runner_error", f"could not read version {n}: {vr.err_text() or vr.status}")
             st = vd.get("status") or {}
             files = [f.get("path") for f in vd.get("files") or [] if isinstance(f, dict)]
             rec["build"] = {"version": n, "state": v.get("state"), "finalized": v.get("finalized"),

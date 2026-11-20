@@ -448,6 +448,8 @@ class EndToEndWithFakeStudio(unittest.TestCase):
         for k in ("create", "wish_to_concepts", "concepts_to_brief", "build", "collect", "total"):
             self.assertIn(k, r["timings_s"])
         self.assertEqual(fake.logins, 1)
+        self.assertTrue(any("build v1: done 100%" in ln for ln in lines))      # progress from the stream
+        self.assertEqual(r["build_progress"]["state"], "done")
         md = (self.out / "summary.md").read_text()
         self.assertIn("| lamp | yes | Rs 16,599 delivered (estimate) |", md)
         self.assertIn("**Score: 1 of 1 buildable; median", md)
@@ -595,6 +597,26 @@ class EndToEndWithFakeStudio(unittest.TestCase):
         self.assertTrue(r["buildable"], r.get("error"))
         self.assertEqual(r["build"]["verdict"], "buildable")
         self.assertEqual(waits, [2.0, 7.0, 8.0])     # backoff 2 s, then Retry-After 7 s, then backoff 8 s
+
+    def test_a_failed_result_read_leaves_the_case_for_resume(self):
+        fake = FakeStudio()
+
+        def version_down(st, method, path, body):
+            if method == "GET" and path.endswith("/v/1"):
+                return FakeRaw(503, b"Service Unavailable")
+            return None
+        fake.inject.append(version_down)
+        data, _ = self.run_cases(fake, [CASE])
+        r = data["cases"]["lamp"]
+        self.assertFalse(r["finished"])
+        self.assertEqual(r["outcome"], "runner_error")
+        self.assertTrue(any("could not read version 1" in n for n in r["notes"]))
+        fake.inject.clear()                                   # the service is back: --resume finishes the case
+        runner, _ = make_runner(fake, bench.parse_cases([CASE]), self.out, resume=True)
+        r = runner.run(KEY)["cases"]["lamp"]
+        self.assertTrue(r["finished"] and r["buildable"], r.get("error"))
+        self.assertEqual(len(fake.projects), 1)
+        self.assertEqual(len([c for c in fake.calls if c[1].endswith("/chat")]), 4)   # nothing sent twice
 
     def test_429_on_a_chat_post_is_resent_after_checking(self):
         fake = FakeStudio()
