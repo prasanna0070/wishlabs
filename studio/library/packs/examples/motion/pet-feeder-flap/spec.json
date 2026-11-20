@@ -1,0 +1,32 @@
+{
+  "schema": "gadget-spec/1",
+  "name": "Kibble Clock",
+  "slug": "pet-feeder-flap",
+  "tagline": "A feeding clock that swings a printed flap open at 8 am and 7 pm and shows the time and the next feed",
+  "audience": {"child_directed": false},
+  "region": "IN",
+  "colors": {"body": "#F2D16B", "accent": "#3A6EA5", "detail": "#2B2B2B", "body_name": "mustard", "accent_name": "blue", "detail_name": "charcoal"},
+  "body": {
+    "family": "silhouette",
+    "outline": [[-62, 0], [62, 0], [66, 16], [66, 130], [56, 146], [0, 150], [-56, 146], [-66, 130], [-66, 16]],
+    "depth": 104,
+    "edge_round": 8,
+    "wall": 2.4,
+    "split": "rear_cover",
+    "feet": 4
+  },
+  "decor": [],
+  "features": [
+    {"id": "screen", "module": "OLED_130_SH1106_I2C", "face": "front", "at": [0, 122], "label": "Clock screen"},
+    {"id": "fed_button", "module": "BUTTON_ARCADE_30MM_SNAPIN", "face": "front", "at": [-36, 74], "label": "Fed button: clears the reminder"},
+    {"id": "food_flap", "module": "SERVO_MG90S_ARM", "face": "front", "at": [18, 64], "label": "Food flap"}
+  ],
+  "electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8", "extra_modules": ["RTC_DS3231_ZS042"], "power": {"input": "usb_c_5v", "adapter_in_box": false}},
+  "behaviour": {
+    "template": "notifier_clock",
+    "summary": "Shows the time. At 08:00 and 19:00 it shows a feeding reminder, chimes and swings the printed flap open for 3 seconds, then closes it. Press the button to clear the reminder. The flap fits your own food chute: portion size is a physical check, not promised, and it does not weigh the bowl.",
+    "settings": {"schedule": [{"time": "08:00", "text": "Breakfast"}, {"time": "19:00", "text": "Dinner"}],
+                 "servo_on_notice": true, "servo_open_deg": 90, "servo_rest_deg": 0, "servo_hold_s": 3, "servo_speed_deg_s": 120}
+  },
+  "safety": {"flags": [], "notes": "One MG90S servo on the only 5 V port (no LED light). The printed flap is not food-safe certified; it only swings in front of your own food chute. Portion size is not measured. Keep fingers clear of the flap. Not for children."}
+}
