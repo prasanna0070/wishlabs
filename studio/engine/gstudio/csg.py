@@ -1011,47 +1011,46 @@ def _nudge_cyl(B, earlier: list, notes: list) -> bool:
 def _nudge_one(B, earlier: list, notes: list) -> bool:
     if isinstance(B, Cylinder):
         return _nudge_cyl(B, earlier, notes)
-    if True:
-        for A in earlier:
-            if not isinstance(A, Box):
+    for A in earlier:
+        if not isinstance(A, Box):
+            continue
+        if A.round <= 0.0 and B.round <= 0.0:
+            continue
+        if any(abs(A.R[r][c] - B.R[r][c]) > 1e-9 for r in range(3) for c in range(3)):
+            continue
+        ext = []
+        for X in (A, B):  # extents in the shared box frame
+            c = tuple(a + b for a, b in zip(_mv(X.R, (0.0, 0.0, X.h[2])), X.t))
+            cl = tuple(sum(X.R[k][i] * c[k] for k in range(3)) for i in range(3))
+            ext.append([(cl[i] - X.h[i], cl[i] + X.h[i]) for i in range(3)])
+        ea, eb = ext
+        moves = []
+        for i in range(3):
+            others = [k for k in range(3) if k != i]
+            if not all(eb[k][0] < ea[k][1] + 0.5 and ea[k][0] < eb[k][1] + 0.5 for k in others):
                 continue
-            if A.round <= 0.0 and B.round <= 0.0:
-                continue
-            if any(abs(A.R[r][c] - B.R[r][c]) > 1e-9 for r in range(3) for c in range(3)):
-                continue
-            ext = []
-            for X in (A, B):  # extents in the shared box frame
-                c = tuple(a + b for a, b in zip(_mv(X.R, (0.0, 0.0, X.h[2])), X.t))
-                cl = tuple(sum(X.R[k][i] * c[k] for k in range(3)) for i in range(3))
-                ext.append([(cl[i] - X.h[i], cl[i] + X.h[i]) for i in range(3)])
-            ea, eb = ext
-            moves = []
-            for i in range(3):
-                others = [k for k in range(3) if k != i]
-                if not all(eb[k][0] < ea[k][1] + 0.5 and ea[k][0] < eb[k][1] + 0.5 for k in others):
-                    continue
-                for side in (0, 1):
-                    if abs(ea[i][side] - eb[i][side]) < 0.5 and not (i == 2 and side == 0 and B.t[2] < 1e-6 and A.t[2] < 1e-6):
-                        moves.append((i, side))
-            if not moves:
-                continue
-            size = list(B.size)
-            shift = [0.0, 0.0, 0.0]
-            for i, side in moves:
-                size[i] -= NUDGE
-                if i < 2:
-                    shift[i] += -NUDGE / 2 if side == 1 else NUDGE / 2
-                elif side == 0:
-                    shift[2] += NUDGE
-            if min(size) < MIN_FEATURE:
-                continue
-            t2 = tuple(a + b for a, b in zip(_mv(B.R, tuple(shift)), B.t))
-            nb = Box(size, B.round, B.R, t2, B.path, B.name)
-            B.__dict__.update(nb.__dict__)
-            what = ", ".join(f"{'-+'[sd]}{'xyz'[i]}" for i, sd in moves)
-            notes.append(f"{B.label()}: its {what} face(s) moved in {NUDGE:g} mm so they do not coincide with the rounded faces of "
-                         f"{A.label()} (the CAD kernel cannot join exactly coincident rounded faces)")
-            return True
+            for side in (0, 1):
+                if abs(ea[i][side] - eb[i][side]) < 0.5 and not (i == 2 and side == 0 and B.t[2] < 1e-6 and A.t[2] < 1e-6):
+                    moves.append((i, side))
+        if not moves:
+            continue
+        size = list(B.size)
+        shift = [0.0, 0.0, 0.0]
+        for i, side in moves:
+            size[i] -= NUDGE
+            if i < 2:
+                shift[i] += -NUDGE / 2 if side == 1 else NUDGE / 2
+            elif side == 0:
+                shift[2] += NUDGE
+        if min(size) < MIN_FEATURE:
+            continue
+        t2 = tuple(a + b for a, b in zip(_mv(B.R, tuple(shift)), B.t))
+        nb = Box(size, B.round, B.R, t2, B.path, B.name)
+        B.__dict__.update(nb.__dict__)
+        what = ", ".join(f"{'-+'[sd]}{'xyz'[i]}" for i, sd in moves)
+        notes.append(f"{B.label()}: its {what} face(s) moved in {NUDGE:g} mm so they do not coincide with the rounded faces of "
+                     f"{A.label()} (the CAD kernel cannot join exactly coincident rounded faces)")
+        return True
     return False
 
 
