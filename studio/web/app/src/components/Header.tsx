@@ -121,7 +121,7 @@ export function Header({ onTab: _onTab }: { onTab: (t: TabId) => void }) {
         </span>
       ) : null}
 
-      {hasVersions ? (
+      {hasVersions && !readOnly ? (
         <div className="row" style={{ gap: 2 }}>
           <button className="icon-btn" aria-label="Undo design change" title="Previous version" disabled={!canUndo || building} onClick={() => void undo()}>
             <Undo2 size={18} />

@@ -3,7 +3,7 @@ import { AlertTriangle, Check, ChevronRight, Circle, CircleCheck, CircleDashed, 
 import { useProject, type TurnState } from "../../store/project";
 import { useNow, useVersionFile } from "../../lib/hooks";
 import { checkTally, duration, endLists, inr, plainText, stageHasFailures } from "../../lib/format";
-import { stageErrorText } from "../../lib/errors";
+import { bestStageErrorText } from "../../lib/errors";
 import { ErrorText } from "../ErrorText";
 import { conceptEstimate, waitText } from "../../lib/estimate";
 import { groupConcepts } from "../../lib/concepts";
@@ -308,7 +308,7 @@ export function BuildProgressCard({ m, status: given, compact = false }: { m?: C
           {running ? <div className="muted small" style={{ marginTop: 8 }}>It keeps working if you leave this page.</div> : null}
           {state === "error" ? (
             <div className="callout danger" style={{ marginTop: 10 }}>
-              <ErrorText text={String(status?.error?.message || status?.error || version?.error?.message || version?.error || "The build stopped with an error.")} full={stageErrorText(status)} />
+              <ErrorText text={String(status?.error?.message || status?.error || version?.error?.message || version?.error || "The build stopped with an error.")} full={bestStageErrorText(status, m?.payload?.status)} />
             </div>
           ) : null}
         </>
@@ -470,7 +470,7 @@ function ErrorCard({ m }: { m: ChatMessage }) {
   const retry = m.payload?.retryable;
   const n: number | undefined = m.payload?.version;
   const progress = n != null ? project?.chat.find((x) => x.kind === "progress" && x.payload?.version === n) : undefined;
-  const full = n != null ? stageErrorText(statuses[n] || progress?.payload?.status) : null;
+  const full = n != null ? bestStageErrorText(statuses[n], progress?.payload?.status) : null;
   return (
     <div className="msg assistant">
       <div className="callout danger row" style={{ alignItems: "flex-start" }}>

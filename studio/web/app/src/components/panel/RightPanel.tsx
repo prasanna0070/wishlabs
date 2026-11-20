@@ -8,7 +8,7 @@ import { BuildProgressCard } from "../chat/Messages";
 import { ChecksCard } from "./Checks";
 import { PreviewTab } from "./PreviewTab";
 import { ErrorText } from "../ErrorText";
-import { stageErrorText } from "../../lib/errors";
+import { bestStageErrorText } from "../../lib/errors";
 
 const PartsTab = lazy(() => import("./PartsTab"));
 const OrderTab = lazy(() => import("./OrderTab"));
@@ -122,6 +122,7 @@ function NotReady({ version }: { version: Version }) {
   const readOnly = useProject((s) => s.readOnly);
   const last = lastDoneVersion(project);
   const progressMsg = project.chat.find((m) => m.kind === "progress" && m.payload?.version === version.n);
+  const statuses = useProject((s) => s.statuses);
   if (version.state === "error")
     return (
       <div className="empty">
@@ -130,7 +131,7 @@ function NotReady({ version }: { version: Version }) {
         </div>
         <h3>Version {version.n} stopped with an error</h3>
         <div style={{ maxWidth: 480, textAlign: "left" }}>
-          <ErrorText text={String(version.error?.message || version.error || "The builder reported an error.")} full={stageErrorText(progressMsg?.payload?.status)} />
+          <ErrorText text={String(version.error?.message || version.error || "The builder reported an error.")} full={bestStageErrorText(statuses[version.n], progressMsg?.payload?.status)} />
         </div>
         <div className="row">
           {!readOnly ? (

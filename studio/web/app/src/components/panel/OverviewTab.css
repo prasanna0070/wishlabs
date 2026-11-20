@@ -3,7 +3,7 @@
 .ov-scroll { flex: 1 1 auto; min-height: 0; overflow: auto; container-type: inline-size; background: var(--paper); scroll-behavior: smooth; }
 .ov { max-width: 1080px; margin: 0 auto; padding: 4px 28px 40px; }
 
-.ov-nav { position: sticky; top: 0; z-index: 3; display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; padding: 8px 24px; background: rgba(246, 245, 241, 0.92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.ov-nav { position: sticky; top: 0; z-index: 5; display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; padding: 8px 24px; background: rgba(246, 245, 241, 0.92); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
 .ov-nav::-webkit-scrollbar { display: none; }
 .ov-nav button { flex: none; height: 30px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: var(--ink-2); font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .ov-nav button:hover { background: var(--panel); color: var(--ink); }
@@ -49,12 +49,12 @@
 .ov-concept.chosen figcaption span { color: var(--primary-press); font-weight: 600; }
 
 /* 3D */
-.ov-viewer { position: relative; height: clamp(320px, 52cqi, 520px); border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: var(--viewport); }
+.ov-viewer { position: relative; isolation: isolate; height: clamp(320px, 52cqi, 520px); border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: var(--viewport); }
 .ov-viewer > .empty { height: 100%; }
 .sh-viewer-inner { position: absolute; inset: 0; }
 .sh-viewer-inner .viewer { position: absolute; inset: 0; }
 .sh-viewer-inner.idle .viewer { pointer-events: none; }
-.sh-viewer-tap { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 4; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); box-shadow: var(--sh-popover); font: inherit; font-size: 13px; color: var(--ink); cursor: pointer; }
+.sh-viewer-tap { position: absolute; left: 12px; bottom: 12px; z-index: 4; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); box-shadow: var(--sh-popover); font: inherit; font-size: 13px; color: var(--ink); cursor: pointer; }
 
 /* engineering pack */
 .ov-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }

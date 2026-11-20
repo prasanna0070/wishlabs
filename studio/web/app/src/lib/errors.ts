@@ -30,10 +30,14 @@ function sentence(s: string): string {
 
 /** The engine's own "Fix: ..." advice from a full error text, if it is there and was not cut short. */
 export function engineFix(full: string | null | undefined): string | null {
-  const m = /\bFix:\s*([^\n]+)/.exec((full || "").trim());
+  const text = (full || "").trim();
+  const m = /\bFix:\s*([^\n]+)/.exec(text);
   if (!m) return null;
   const fix = m[1].replace(/\s+/g, " ").trim();
   if (fix.length < 8 || fix.length > 400) return null;
+  // the last line of a text the engine cut short ("... Fix: move speaker toward th") is not advice
+  const atEnd = m.index + m[0].length >= text.length;
+  if (atEnd && !/([.)!?\d]|\bmore|\bless|\bmm)$/i.test(fix)) return null;
   return sentence(fix.replace(/[.\s]+$/, "")) + ".";
 }
 
@@ -63,6 +67,16 @@ export function friendlyError(text: string | null | undefined, full?: string | n
       : "the details are technical";
   const headline = lead ? `${sentence(lead)}: ${why}.` : `${sentence(why)}.`;
   return { headline, rest, fix: engineFix(fullText), details: fullText || head };
+}
+
+/** The longest failed-stage message among several copies of a build status (live status.json, the chat's copy). */
+export function bestStageErrorText(...statuses: (Status | null | undefined)[]): string | null {
+  let best: string | null = null;
+  for (const s of statuses) {
+    const t = stageErrorText(s);
+    if (t && (!best || t.length > best.length)) best = t;
+  }
+  return best;
 }
 
 /** The failed stage's own message in a build status (it is not cut short like version.error). */

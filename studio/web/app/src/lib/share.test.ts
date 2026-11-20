@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { aiReceipts, compact, modelName, roleOf, usd } from "./receipts";
-import { engineFix, friendlyError, isTechnical, stageErrorText } from "./errors";
+import { bestStageErrorText, engineFix, friendlyError, isTechnical, stageErrorText } from "./errors";
 import { buildTime, chosenConcept, fileGroups, originalWish, resultMessage, showcaseVersion, testCount, PRICE_LINE } from "./showcase";
 import { safeShareUrl } from "./urls";
 import { cardWanted, pickCard } from "../components/panel/cards";
@@ -100,6 +100,16 @@ describe("friendly errors", () => {
     expect(stageErrorText(st)).toMatch(/longer text/);
     expect(engineFix(stageErrorText(st))).toBe("Do this first.");
     expect(stageErrorText({ state: "done", stages: [] } as any)).toBeNull();
+  });
+  it("drops a fix the engine cut short and prefers the longest copy of the stage text", () => {
+    expect(engineFix("SpecError: features[3].at: speaker reaches the wall Fix: move speaker toward th")).toBeNull();
+    expect(engineFix("SpecError: features[2].at: button kit overlaps Fix: button touches the led clamp post -: move button up 22 mm or more")).toBe(
+      "Button touches the led clamp post -: move button up 22 mm or more.",
+    );
+    const cut = { state: "error", stages: [{ id: "normalize", state: "failed", message: "SpecError: x Fix: move th" }] } as any;
+    const whole = { state: "error", stages: [{ id: "normalize", state: "failed", message: "SpecError: x Fix: move the speaker 13 mm or more" }] } as any;
+    expect(bestStageErrorText(cut, null, whole)).toMatch(/13 mm or more$/);
+    expect(bestStageErrorText(null, undefined)).toBeNull();
   });
 });
 
