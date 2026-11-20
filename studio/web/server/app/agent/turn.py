@@ -659,6 +659,8 @@ class Turn:
                 if not r.get("ok") and any(not FORMAT_SLIP.search(str(e)) for e in r.get("errors") or ["invalid"]):
                     self.spec_fails[str(c.get("title") or "").strip()[:60].lower()] += 1
         if bad:
+            if freeform:                                # explain engine messages that mislead (contract 8, requests 2, 4)
+                bad = {t: [explain_error(e) for e in es] for t, es in bad.items()}
             flat = [f"{t}: {e}" for t, es in bad.items() for e in es]
             await self.emit("repair", {"round": self.repairs["propose_concepts"] + 1, "errors": flat[:20]})
             hint = ""
@@ -1002,6 +1004,27 @@ def out_of_scope(base: dict, new: dict, spec_path: str, named: list[str] | None 
     selection no longer lets decor or feature positions change unless the request names them (MAJ-34)."""
     allowed = {spec_path, "colors", *(named or [])}
     return [p for p in ch.changed_paths(base, new) if not ch.in_scope(p, allowed)]
+
+
+DEPTH_MSG = re.compile(r"needs (\d+(?:\.\d+)?) mm behind the wall \(module \+ cable\); about (\d+(?:\.\d+)?) mm is "
+                       r"available")
+CART_MSG = re.compile(r"core cartridge \(.*?\) does not fit inside the shell: wall reached at ")
+
+
+def explain_error(err: str) -> str:
+    """Pack freeform: add the missing half of two engine messages that sent live repairs the wrong way.
+    - "needs 20 mm behind the wall ...; about 22 mm is available": the centre has room, a corner of the module does not.
+    - "core cartridge ... does not fit ...: wall reached at ...": the place named is the rear-most try (always the rear
+      wall); the cartridge never fit further forward either."""
+    m = DEPTH_MSG.search(err)
+    if m and float(m.group(2)) >= float(m.group(1)):
+        return err + (" (The centre has room but a corner of the module reaches the outer wall: move it to where the "
+                      "body is thick behind the whole module, away from slopes, cuts and rounded edges.)")
+    if CART_MSG.search(err):
+        return err + (" (That point is only the rear wall; the cartridge did not fit anywhere further forward either. "
+                      "Keep the rear of the lowest piece a full block about 95 mm deep and 90 mm wide up to 40 mm high: "
+                      "no slope, step, tray or cut there.)")
+    return err
 
 
 def _render_key(e: dict) -> str:

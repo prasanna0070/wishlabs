@@ -649,3 +649,17 @@ def test_csg_patterns_overlap_their_pieces_by_10_mm():
     plinth, body = tower["nodes"]
     z0 = body["to"][2] if body["op"] == "move" else 0.0         # the tower stands on the table through its plinth
     assert plinth["h"] - z0 >= 10
+
+
+def test_explain_error_adds_the_missing_half():
+    from app.agent.turn import explain_error
+
+    corner = ("features[0].at: screen: LCD_200_ST7789_240X320_WAVESHARE needs 20 mm behind the wall (module + cable); "
+              "about 22 mm is available at [0.0, 60.0] Fix: move it where the body is deeper")
+    assert "a corner of the module reaches the outer wall" in explain_error(corner)
+    shallow = corner.replace("about 22 mm", "about 4 mm")
+    assert explain_error(shallow) == shallow                       # a real lack of depth: as the engine says
+    cart = ("body: the core cartridge (70 x 79 x 32 mm keep-out) does not fit inside the shell: wall reached at x=-40, "
+            "y=60, z=4 Fix: make the lower body at least 81 mm wide and 87 mm deep")
+    assert "only the rear wall" in explain_error(cart)
+    assert explain_error("body.csg: thin") == "body.csg: thin"
