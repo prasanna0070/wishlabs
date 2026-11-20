@@ -351,6 +351,38 @@ run.app URL, `/` and the old SPA routes (`/login`, `/p/...`, `/s/...`) redirect 
 `/studio/?wish=<text>` pre-fills the new-project composer (at most 500 characters, kept through sign-in, never sent
 automatically).
 
+## 7a. Voice wish (Gemini Live)
+
+`GET /api/voice/live` (WebSocket). "Talk to make a wish": the browser streams the microphone, Gemini Live (Vertex AI,
+`LIVE_MODEL` in `LIVE_LOCATION`, through the google-genai SDK `client.aio.live.connect`) talks back, asks at most 3
+short questions, confirms, then calls `submit_wish(wish, details)`; the server turns that into a normal project
+(`ProjectRepo.create`, or the still-empty project given as `project_id`) and its first chat turn through the chat
+route (§3). Code: `web/server/app/voice_live.py`, `app/routes/voice.py`; SPA `components/voice/`, `lib/voiceCall.ts`.
+
+- Handshake: needs the `gs_session` cookie (else closed 4401) and, from a browser, a same-site `Origin` or one listed in
+  `LIVE_ALLOWED_ORIGINS` (else 4403). Admission (fails closed with an `error` frame, then close): `LIVE_ENABLED=0`
+  → `disabled`; one live session per sign-in → `busy`; `LIVE_SESSIONS_PER_HOUR` per sign-in and
+  `LIVE_SESSIONS_PER_HOUR_TOTAL` per instance → `rate_limited`; `LIVE_MAX_CONCURRENT` per instance → `capacity`; Live
+  unreachable after `LIVE_FALLBACK_MODEL` → `unavailable`. A call lasts at most `LIVE_MAX_SECONDS` (default 180).
+- Client → server: first a text frame `{"type": "start", "mode": "fast"|"pro", "keep_audio": bool, "client_turn":
+  bool, "text"?: typed wish, "project_id"?: pid}`; then binary frames of 16 kHz 16-bit mono little-endian PCM (at most
+  64 KB each) and text frames `{"type": "end"}` (wrap up and submit), `{"type": "cancel"}` (nothing is created),
+  `{"type": "keep_audio", "value": bool}`, `{"type": "claimed"}` (the browser will send the first chat turn itself;
+  unclaimed after 8 s the server runs it).
+- Server → client: binary frames of Live's speech (24 kHz 16-bit mono PCM) and JSON text frames: `ready {model,
+  max_seconds, recording_allowed}`, `caption {i, role: user|assistant, text, t}` (turn `i` so far, replace it),
+  `turn_complete`, `interrupted` (stop playback), `time_left {seconds}`, `ending`, `submitting`, `submitted
+  {project_id, name, text, client_turn}` (`text` = the first chat message: the wish plus the voice answers), `error
+  {code, message}`, `ended {reason: submitted|cancelled|time_limit|no_wish|closed|live_closed|bad_audio|error,
+  project_id, transcript, user_text}`.
+- Stored on the project as `voice`: `{kind: "gemini-live", model, location, voice, started, ended, seconds, wish,
+  details: [{question, answer}], questions, turns: [{role, text, t}], audio_url, audio_seconds}`. The voice questions
+  count towards the agent's 3-question budget (`questions_asked`). The call is one `usage.turns[]` entry with
+  `kind: "live"`, `label: "Voice wish (Gemini Live)"` and one call record (Live's reported tokens, est. cost).
+- Recording (only with `keep_audio`): the speaker's own voice, long pauses trimmed, 16 kHz WAV at
+  `projects/<pid>/voice/wish.wav`; `GET, HEAD /api/projects/{pid}/voice/wish.wav` (session) and
+  `/api/share/{token}/voice/wish.wav` (share link; `audio_url` is rewritten there like every asset URL).
+
 ## 8. Agent behaviour the UI can rely on
 
 - Stages: `clarify` (usually one round; at most 3 questions in the whole project; defaults disclosed, not asked) →
@@ -372,3 +404,5 @@ automatically).
 | `FAKE_EXAMPLES` | `1`/`0` | fake builds copy `examples/<slug>/_out/` when it exists (default 1); 0 always writes the placeholder tree |
 | `MODEL_PRICES_JSON` | JSON | per-model `{in, out, image}` USD rates for `usage.cost_usd_est` |
 | `STUDIO_ROOT`, `STATIC_DIR`, `COOKIE_SECURE`, `AGENT_THINKING` (`low`/`high`) | | paths, cookie flag, model thinking level |
+| `LIVE_ENABLED`, `LIVE_MODEL`, `LIVE_FALLBACK_MODEL`, `LIVE_LOCATION`, `LIVE_VOICE` | `1`, `gemini-live-2.5-flash-native-audio`, `gemini-3.8-live`, `us-central1`, `Aoede` | the voice wish (§7a) |
+| `LIVE_MAX_SECONDS`, `LIVE_SESSIONS_PER_HOUR`, `LIVE_SESSIONS_PER_HOUR_TOTAL`, `LIVE_MAX_CONCURRENT`, `LIVE_ALLOW_RECORDING`, `LIVE_ALLOWED_ORIGINS` | `180`, `12`, `60`, `4`, `1`, empty | voice limits (per instance) and extra allowed browser origins |
