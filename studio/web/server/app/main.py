@@ -54,6 +54,8 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
         return JSONResponse({"error": {"code": "invalid", "message": "Invalid request.", "details": {"errors": errs}}},
                             status_code=422)
 
+    from .routes import sound as sound_routes   # gadget sound (Lyria): owner, read-only share and device routes
+    app.include_router(sound_routes.router)
     app.include_router(public_routes.router)
     app.include_router(device_routes.router)
     app.include_router(project_routes.router)

@@ -15,6 +15,7 @@ from typing import AsyncIterator
 from . import export_extras
 from .brief import revise_brief, size_from_spec
 from .projects import NotFound, find_message, find_version, make_message, pkey, vkey
+from .sound import maybe_auto
 from .summary import build_summary, check_counts, story_audio_state
 from .trace import cad_size, requirements
 from .util import new_id, now_iso, parse_iso, spec_hash
@@ -282,6 +283,8 @@ class BuildManager:
             await self.repo.aupdate(pid, mut)
         except NotFound:
             return None
+        if holder and status["state"] == "done":
+            await maybe_auto(self.svc, pid, n)      # the gadget's sound: once, after its first successful build
         return holder or None
 
     async def reconcile(self, p: dict) -> dict:
