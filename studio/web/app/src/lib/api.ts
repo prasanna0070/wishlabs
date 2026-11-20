@@ -1,6 +1,6 @@
 // Thin fetch client for /api (same origin, cookie auth). Any 401 flips the auth store to "show login".
 import { useAuth } from "../store/auth";
-import type { Mode, Project, ProjectSummary, Version, VersionDetail } from "./types";
+import type { Mode, Project, ProjectSummary, Upload, Version, VersionDetail } from "./types";
 import type { TurnView } from "./working";
 
 export class ApiError extends Error {
@@ -59,7 +59,13 @@ export const api = {
   project: (pid: string) => request<Project>("GET", `/api/projects/${pid}`),
   /** Is a chat turn running, and what is it doing (step, steps, thought summaries)? For a reload or a dropped stream. */
   turnStatus: (pid: string, signal?: AbortSignal) => request<TurnView>("GET", `/api/projects/${pid}/turn`, undefined, signal ? { signal } : {}),
-  patchProject: (pid: string, body: { name?: string; mode?: Mode }) => request<Project>("PATCH", `/api/projects/${pid}`, body),
+  patchProject: (pid: string, body: { name?: string; mode?: Mode; share_uploads?: boolean }) => request<Project>("PATCH", `/api/projects/${pid}`, body),
+  /** Let share links show the uploaded images (off by default; the image brief is shared either way). */
+  setShareUploads: (pid: string, on: boolean) => request<Project>("PATCH", `/api/projects/${pid}`, { share_uploads: on }),
+  /** DELETE an upload no message carries (a composer image removed before sending); 409 once a message has it. */
+  deleteUpload: (pid: string, id: string) => request<{ ok: boolean }>("DELETE", `/api/projects/${pid}/uploads/${encodeURIComponent(id)}`),
+  /** POST /api/projects/{pid}/uploads, with upload progress (see uploadImage below). */
+  uploadImage: (pid: string, file: Blob, name: string, opts?: UploadOpts) => uploadImage(pid, file, name, opts),
   deleteProject: (pid: string) => request("DELETE", `/api/projects/${pid}`),
   checklist: (pid: string, body: { assembly?: Record<string, boolean>; wiring?: Record<string, boolean> }) =>
     request<{ checklist: any }>("PATCH", `/api/projects/${pid}/checklist`, body),
@@ -103,4 +109,72 @@ export function fetchFile(url: string, as: "json" | "text" | "blob" = "json", no
 
 export function clearFileCache(prefix?: string) {
   for (const k of [...cache.keys()]) if (!prefix || k.includes(prefix)) cache.delete(k);
+}
+
+// ---------------------------------------------------------------- image uploads (_notes/image-contract.md §1)
+
+function friendlyUploadError(status: number, serverMessage: string | undefined, name: string): string {
+  const said = (serverMessage || "").trim();
+  if (said && !/^\d{3}\b/.test(said)) return said.toLowerCase().includes(name.toLowerCase()) ? said : `${name}: ${said}`;
+  switch (status) {
+    case 0:
+      return `${name} did not upload: the connection dropped. Check the network and try again.`;
+    case 409:
+    case 413:
+      return `${name} could not be added: an image can be up to 15 MB, a message can carry 4 images and a project 12.`;
+    case 415:
+      return `${name}: the studio cannot read this image. Export it as a JPEG or PNG and try again.`;
+    case 422:
+      return `${name} could not be read as an image. Export it as a JPEG or PNG and try again.`;
+    case 429:
+      return `${name}: too many uploads at once. Wait a moment and try again.`;
+    default:
+      return `${name} did not upload (${status}). Try again.`;
+  }
+}
+
+export interface UploadOpts {
+  onProgress?: (fraction: number) => void;
+  signal?: AbortSignal;
+}
+
+/** POST /api/projects/{pid}/uploads (multipart, field "file"), through XMLHttpRequest because fetch reports no upload
+ * progress. Rejects with an ApiError whose message is ready to show: the server's own sentence when it sent one
+ * (prefixed with the file name), else a plain one for the status. */
+export function uploadImage(pid: string, file: Blob, name: string, opts: UploadOpts = {}): Promise<Upload> {
+  return new Promise((resolve, reject) => {
+    if (opts.signal?.aborted) {
+      reject(new ApiError(0, "aborted", "Upload cancelled."));
+      return;
+    }
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `/api/projects/${encodeURIComponent(pid)}/uploads`);
+    xhr.withCredentials = true;
+    xhr.setRequestHeader("Accept", "application/json");
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && e.total > 0) opts.onProgress?.(Math.min(0.99, e.loaded / e.total));
+    };
+    xhr.onload = () => {
+      let body: any = null;
+      try {
+        body = JSON.parse(xhr.responseText || "null");
+      } catch {
+        /* not JSON (a proxy's error page) */
+      }
+      if (xhr.status === 401) useAuth.getState().setAuthed(false);
+      if (xhr.status >= 200 && xhr.status < 300 && body && typeof body.id === "string") {
+        opts.onProgress?.(1);
+        resolve(body as Upload);
+        return;
+      }
+      const e = body?.error || {};
+      reject(new ApiError(xhr.status, e.code || "error", friendlyUploadError(xhr.status, e.message, name), e.details));
+    };
+    xhr.onerror = () => reject(new ApiError(0, "network", friendlyUploadError(0, undefined, name)));
+    xhr.onabort = () => reject(new ApiError(0, "aborted", "Upload cancelled."));
+    opts.signal?.addEventListener("abort", () => xhr.abort(), { once: true });
+    const form = new FormData();
+    form.append("file", file, name);
+    xhr.send(form);
+  });
 }

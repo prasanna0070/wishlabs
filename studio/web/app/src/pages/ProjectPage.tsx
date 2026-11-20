@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useProject } from "../store/project";
 import { useUI } from "../store/ui";
 import { Header } from "../components/Header";
@@ -9,10 +9,12 @@ import { Spinner } from "../components/ui";
 import { clamp } from "../lib/format";
 import { behindLatest } from "../lib/versions";
 import { History } from "lucide-react";
+import { takePending } from "../lib/uploads";
 
 export function ProjectPage({ shared = false }: { shared?: boolean }) {
   const { pid, token, tab } = useParams();
   const nav = useNavigate();
+  const loc = useLocation();
   const project = useProject((s) => s.project);
   const loading = useProject((s) => s.loading);
   const error = useProject((s) => s.error);
@@ -29,19 +31,16 @@ export function ProjectPage({ shared = false }: { shared?: boolean }) {
   }, [shared, pid, token, load, loadShare]);
   useEffect(() => () => stopFollow(), [stopFollow]);
 
-  // first prompt typed on the Home page
+  // first prompt typed on the Home page (or said in a voice chat), with any images it uploaded; storage first, the
+  // router state as a backup (a private window without sessionStorage)
   useEffect(() => {
     if (!project || shared || sentPending.current === project.id) return;
-    let pending: string | null = null;
-    try {
-      pending = sessionStorage.getItem(`gs.pending.${project.id}`);
-      if (pending) sessionStorage.removeItem(`gs.pending.${project.id}`);
-    } catch {
-      /* ignore */
-    }
+    const routed = (loc.state as { first?: { text?: unknown; attachments?: unknown } } | null)?.first;
+    const fromRoute = routed && typeof routed.text === "string" ? { text: routed.text, ...(Array.isArray(routed.attachments) && routed.attachments.length ? { attachments: routed.attachments as { id: string }[] } : {}) } : null;
+    const pending = takePending(project.id) || fromRoute;
     sentPending.current = project.id;
-    if (pending && project.chat.length === 0) void send({ text: pending });
-  }, [project, shared, send]);
+    if (pending && (pending.text.trim() || pending.attachments?.length) && project.chat.length === 0) void send(pending);
+  }, [project, shared, send, loc.state]);
 
   useEffect(() => {
     if (project) document.title = `${project.name || "Untitled gadget"} · Wish Labs`;
@@ -100,7 +99,7 @@ export function ProjectPage({ shared = false }: { shared?: boolean }) {
         className={`ws-body${split ? " split" : ""}${!showChat ? " no-chat" : ""}${!showPanel ? " no-panel" : ""}${overview ? " ov-mode" : ""}`}
         style={{ ["--chat-w" as any]: `${clamp(chatWidth, 360, 900)}px` }}
       >
-        {showChat ? <ChatPanel full={!showPanel} split={split} onTab={setTab} voiceCard={!overview} /> : null}
+        {showChat ? <ChatPanel full={!showPanel} split={split} onTab={setTab} voiceCard={!overview} briefCard={!overview} /> : null}
         {showChat && showPanel ? (
           <div
             className="resize-handle"

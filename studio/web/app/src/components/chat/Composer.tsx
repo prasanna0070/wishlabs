@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowUp, Mic, Paperclip, Plus, X } from "lucide-react";
+import { ArrowUp, FileText, Mic, Paperclip, X } from "lucide-react";
 import { useProject } from "../../store/project";
 import { useNow } from "../../lib/hooks";
 import { agoText } from "../../lib/working";
@@ -9,14 +9,17 @@ import { Spinner } from "../ui";
 import { VoiceWishDialog } from "../voice/VoiceWishDialog";
 import { primeVoiceAudio } from "../../lib/voiceCall";
 import { useAuth } from "../../store/auth";
+import { chatBody, clipboardHasText, clipboardImages, dragHasFiles, FILE_ACCEPT, imageRoom, sortFiles, storedImageCount, uploadUrl } from "../../lib/uploads";
+import { DraftImages, useImageQueue, useWindowFileDrop, useWindowPaste } from "./ImageAttachments";
+import type { Upload } from "../../lib/types";
 
 const TEXT_TYPES = /\.(txt|md|markdown|json|csv|ini|yaml|yml|toml)$/i;
 const MAX_ATTACH = 60_000;
 
-/** Attachments become part of the message text (the API has no file upload yet). */
+/** Text files become part of the message text; images are uploaded and sent as attachments (lib/uploads.ts). */
 export async function readAttachment(f: File): Promise<{ text?: string; error?: string }> {
   if (!(f.type.startsWith("text/") || TEXT_TYPES.test(f.name) || f.type === "application/json")) {
-    return { error: `${f.name}: only text files (notes, specs, CSV, JSON) can be attached for now.` };
+    return { error: `${f.name}: attach an image (JPEG, PNG, WebP, HEIC) or a text file (notes, a spec, CSV, JSON).` };
   }
   if (f.size > MAX_ATTACH) return { error: `${f.name} is larger than 60 KB. Paste the part that matters instead.` };
   const body = await f.text();
@@ -46,18 +49,24 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
   // a typed message the studio did not take (a 409, or the connection dropped before it arrived) comes back as typed,
   // attachments included, unless something new is already in the box
   const unsent = useProject((s) => s.unsent);
-  const lastSubmit = useRef<{ body: string; typed: string; files: { name: string; text: string }[] } | null>(null);
+  // images upload as soon as they are added (the project exists), one at a time; Send waits for them
+  const { q, items: images } = useImageQueue(project.id);
+  const lastSubmit = useRef<{ body: string; typed: string; files: { name: string; text: string }[]; images: Upload[] } | null>(null);
   useEffect(() => {
     if (!unsent) return;
     useProject.setState({ unsent: null });
-    if (ta.current?.value) return;
+    if (ta.current?.value || q.count) return;
     const mine = lastSubmit.current;
     if (mine && mine.body === unsent.text) {
       setText(mine.typed);
       setFiles(mine.files);
-    } else setText(unsent.text);
+      if (mine.images.length) q.restore(mine.images);
+    } else {
+      setText(unsent.text);
+      if (unsent.attachments?.length) q.restore(unsent.attachments.map((a) => ({ id: a.id, thumb_url: uploadUrl({ pid: project.id }, a.id, true) })));
+    }
     lastSubmit.current = null;
-  }, [unsent]);
+  }, [unsent, q, project.id]);
   // "Talk" while the project is still empty: the voice chat becomes this project's first message
   const voiceOff = useAuth((s) => s.voiceOff);
   const canTalk = project.chat.length === 0 && !running && !project.voice && !voiceOff;
@@ -83,21 +92,48 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
   }, [text]);
 
   const add = async (list: FileList | File[]) => {
+    if (disabled) return;
     setErr(null);
-    for (const f of Array.from(list)) {
+    const mine = q.items.map((x) => x.upload?.id).filter((x): x is string => !!x);
+    const { room, projectFull } = imageRoom(q.count, storedImageCount(project, mine));
+    const picked = sortFiles(Array.from(list), room, projectFull);
+    if (picked.images.length) q.add(picked.images);
+    const errors = [...picked.errors];
+    for (const f of picked.texts) {
       const r = await readAttachment(f);
-      if (r.error) setErr(r.error);
+      if (r.error) errors.push(r.error);
       else if (r.text) setFiles((fs) => [...fs, { name: f.name, text: r.text! }]);
     }
+    if (errors.length) setErr(errors.join(" "));
   };
 
+  // a file dropped anywhere on the project page lands here (and the composer lights up while one is dragged); so
+  // does an image pasted while the focus is not in a text field. Always on: a drop must never open the file instead.
+  useWindowFileDrop((list) => void add(list), true, setDrag);
+  useWindowPaste((list) => void add(list));
+
+  const uploading = q.busy;
+  const failed = images.find((x) => x.state === "error");
+  const ready = images.filter((x) => x.state === "done").length;
   const submit = () => {
-    const body = [text.trim(), ...files.map((f) => f.text)].filter(Boolean).join("\n\n");
-    if (!body || running || disabled) return;
-    lastSubmit.current = { body, typed: text, files };
-    void send({ text: body });
+    if (running || disabled) return;
+    if (uploading) {
+      setErr("The image is still uploading; send once it is done.");
+      return;
+    }
+    if (failed) {
+      setErr(`${failed.error || `${failed.name} did not upload.`} Remove it or try it again.`);
+      return;
+    }
+    const ups = q.uploads();
+    const body = chatBody(text, files.map((f) => f.text), ups);
+    if (!body) return;
+    setErr(null);
+    lastSubmit.current = { body: body.text, typed: text, files, images: ups };
+    void send(body);
     setText("");
     setFiles([]);
+    q.clear();
   };
 
   return (
@@ -119,21 +155,24 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
           submit();
         }}
         onDragOver={(e) => {
+          if (!dragHasFiles(e.dataTransfer)) return;
           e.preventDefault();
-          setDrag(true);
+          e.dataTransfer.dropEffect = "copy";
         }}
-        onDragLeave={() => setDrag(false)}
         onDrop={(e) => {
-          e.preventDefault();
           setDrag(false);
+          if (!e.dataTransfer.files?.length) return;
+          e.preventDefault();
+          if (disabled) return;
           void add(e.dataTransfer.files);
         }}
       >
+        <DraftImages items={images} onRemove={(k) => q.remove(k)} onRetry={(k) => q.retry(k)} />
         {files.length ? (
           <div className="attach-row">
             {files.map((f, i) => (
               <span key={i} className="file-chip">
-                <Paperclip size={13} /> {f.name}
+                <FileText size={13} /> {f.name}
                 <button type="button" aria-label={`Remove ${f.name}`} onClick={() => setFiles((fs) => fs.filter((_, j) => j !== i))}>
                   <X size={12} />
                 </button>
@@ -145,9 +184,16 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
           ref={ta}
           rows={1}
           value={text}
-          placeholder={placeholder}
+          placeholder={images.length && !text ? "Add a line about it (optional)" : placeholder}
           disabled={disabled}
           onChange={(e) => setText(e.target.value)}
+          onPaste={(e) => {
+            // Cmd+V of a screenshot or a copied image (ChatGPT, a browser): attach it; any words in the paste still paste
+            const pics = clipboardImages(e.clipboardData);
+            if (!pics.length) return;
+            if (!clipboardHasText(e.clipboardData)) e.preventDefault();
+            void add(pics);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
@@ -157,15 +203,22 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
           aria-label="Message"
         />
         <div className="composer-row">
-          <button type="button" className="icon-btn sm" aria-label="Add files" title="Attach a text file (notes, a spec)" onClick={() => fileIn.current?.click()} disabled={disabled}>
-            <Plus size={18} />
+          <button
+            type="button"
+            className="icon-btn sm"
+            aria-label="Add images or files"
+            title="Add an image (a sketch, a photo, a ChatGPT concept: JPEG, PNG, WebP, HEIC) or a text file. You can also paste or drop images."
+            onClick={() => fileIn.current?.click()}
+            disabled={disabled}
+          >
+            <Paperclip size={17} />
           </button>
           <input
             ref={fileIn}
             type="file"
             hidden
             multiple
-            accept=".txt,.md,.json,.csv,.ini,.yaml,.yml,.toml,text/*"
+            accept={FILE_ACCEPT}
             onChange={(e) => {
               if (e.target.files) void add(e.target.files);
               e.target.value = "";
@@ -188,12 +241,25 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
           ) : null}
           <div className="grow" />
           <ModeSelect value={project.mode || "pro"} onChange={(m) => void setMode(m)} up disabled={disabled} />
-          <button className="send-btn" aria-label={running ? "Working" : "Send"} disabled={running || disabled || (!text.trim() && !files.length)}>
-            {running ? <Spinner /> : <ArrowUp size={18} />}
+          <button
+            className="send-btn"
+            aria-label={running ? "Working" : uploading ? "Uploading the image" : "Send"}
+            title={uploading ? "Uploading the image…" : undefined}
+            disabled={running || disabled || uploading || !!failed || (!text.trim() && !files.length && !ready)}
+          >
+            {running || uploading ? <Spinner /> : <ArrowUp size={18} />}
           </button>
         </div>
       </form>
-      {err ? <div className="composer-err">{err}</div> : null}
+      {err ? (
+        <div className="composer-err" role="alert">
+          {err}
+        </div>
+      ) : failed ? (
+        <div className="composer-err" role="alert">
+          {failed.error || `${failed.name} did not upload.`}
+        </div>
+      ) : null}
       {talking ? (
         <VoiceWishDialog
           open={talking}

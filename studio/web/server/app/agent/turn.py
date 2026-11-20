@@ -16,8 +16,10 @@ from ..builds import BuildBusy
 from ..concepts import render_concepts
 from ..progress import TURN_STALE_S, TurnProgress
 from ..projects import find_concept, find_version, last_message, make_message, vkey
+from ..uploads import UploadError, message_attachments
 from ..usage import apply_turn, sum_records
 from ..util import new_id, now_iso, parse_iso
+from . import image_rules
 from .tools import LABELS, TIERS, allowed_tools
 from .voice import lint
 
@@ -88,6 +90,8 @@ class Turn:
         self.concept_message = ""
         self.concept_defaults: list[str] = []
         self.posted = False
+        self.images = False                     # the conversation has user images (image rules + image parts)
+        self.ask_first = False                  # this turn read an image we cannot fully build: questions come first
 
     # ------------------------------------------------------------------ helpers
     async def emit(self, event: str, data: dict) -> None:
@@ -194,8 +198,15 @@ class Turn:
         if action is None and ("answers" in body or body.get("skipped")):
             action = "answers"
         self.action = action
+        attachments: list[dict] = []
+        if body.get("attachments") and action is not None:
+            raise TurnError(422, "invalid", "Images can only be sent with a message.")
         if action is None:
-            text = str(body.get("text") or "").strip()
+            try:                                # the user's images: ids of this project's uploads, at most 4
+                attachments = message_attachments(p, body.get("attachments"))
+            except UploadError as e:
+                raise TurnError(e.status, e.code, e.message) from None
+            text = str(body.get("text") or "").strip() or (image_rules.DEFAULT_TEXT if attachments else "")
             if not text:
                 raise TurnError(422, "invalid", "Say something first.")
             if len(text) > 4000:
@@ -290,6 +301,8 @@ class Turn:
 
         user_msg = make_message("user", "text", msg_text,
                                 ({"action": action, **payload} if action else None))
+        if attachments:
+            user_msg["attachments"] = attachments
         self.user_message = user_msg
         self.started = now_iso()
 
@@ -303,10 +316,12 @@ class Turn:
             for f in side:
                 f(pp)
             pp["chat"].append(user_msg)
-            if len(pp["chat"]) == 1 and pp.get("name_source", "auto") == "auto" and pp["name"] == "Untitled gadget":
+            if len(pp["chat"]) == 1 and pp.get("name_source", "auto") == "auto" and pp["name"] == "Untitled gadget" \
+                    and msg_text != image_rules.DEFAULT_TEXT:
                 pp["name"] = _title_from_prompt(msg_text)
         p = await self.update(mut)
         self.mode = p.get("mode")
+        self.images = image_rules.has_images(p)
         return user_msg
 
     async def _begin_edit_part(self, p: dict, body: dict) -> str:
@@ -420,8 +435,13 @@ class Turn:
         await self.emit("project", {"project": p})
 
     def allowed(self, p: dict) -> list[str]:
-        return allowed_tools(p["stage"], max(0, 3 - int(p.get("questions_asked") or 0)),
-                             bool(p.get("selected_concept")), bool(p.get("versions")), self.forced)
+        names = allowed_tools(p["stage"], max(0, 3 - int(p.get("questions_asked") or 0)),
+                              bool(p.get("selected_concept")), bool(p.get("versions")), self.forced)
+        if image_rules.brief_wanted(p, self.forced):        # the user's images are not read yet
+            names = ["record_image_brief"] + names
+        if self.ask_first and "ask_user" in names:          # say what we cannot build and ask before concepts
+            names = [n for n in names if n != "propose_concepts"]
+        return names
 
     # ------------------------------------------------------------------ direct actions
     async def approve_brief(self) -> None:
@@ -490,6 +510,26 @@ class Turn:
         if text:
             await self.say_text(text)
         return ToolResult({"ok": True, "summary": "said"}, terminal=False)
+
+    async def tool_record_image_brief(self, args: dict) -> ToolResult:
+        """What the agent read from the user's images (contract item 5): checked against the project's uploads and
+        the parts catalog (app/agent/image_rules.py), stored as project.image_brief, sent as the image_brief event.
+        The reading happened inside this turn's model call, so there is no separate usage record."""
+        p = await self.project()
+        known = await asyncio.to_thread(image_rules.catalog_ids, self.svc.bridge)
+        brief, notes = image_rules.check_brief(args, p, known)
+        if brief is None:
+            return ToolResult({"ok": False, "error": "; ".join(notes)}, terminal=False)
+        brief["created"] = now_iso()
+
+        def mut(pp):
+            pp["image_brief"] = brief
+        await self.update(mut)
+        self.ask_first = image_rules.blocked(brief)
+        await self.emit("image_brief", {**brief, "image_brief": brief})
+        n = len(brief["features"])
+        return ToolResult({"ok": True, "summary": f"image brief: {brief['kind']}, {n} feature{'s' * (n != 1)}",
+                           "corrections": notes, "next": image_rules.next_step(brief)}, terminal=False)
 
     async def tool_ask_user(self, args: dict) -> ToolResult:
         p = await self.project()
@@ -598,9 +638,11 @@ class Turn:
         async def progress(d: dict) -> None:
             await self.emit("concepts.progress", d)
 
+        style = await asyncio.to_thread(image_rules.style_reference, self.svc.store, p)   # product photo or sketch
         rendered = await render_concepts(self.svc, self.pid, [
             {"title": e["title"], "blurb": e["blurb"], "tier": e["tier"], "spec": e["spec"],
-             "warnings": e["result"].get("warnings") or []} for e in good], progress, on_usage=self.record_usage)
+             "warnings": e["result"].get("warnings") or []} for e in good], progress, on_usage=self.record_usage,
+            style_ref=style)
         message = self.concept_message or "Choose the shape you prefer from the concepts."
         if bad:
             message += f"\n\n({len(bad)} other idea{'s' if len(bad) != 1 else ''} could not be made buildable, " \

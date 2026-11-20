@@ -33,11 +33,12 @@ def _walk(schema, path="$"):
 
 
 def test_tool_schemas_are_valid():
-    assert set(TOOLS) == {"ask_user", "propose_concepts", "write_brief", "build_design", "update_design", "say"}
+    assert set(TOOLS) == {"ask_user", "propose_concepts", "write_brief", "build_design", "update_design", "say",
+                          "record_image_brief"}
     for name, t in TOOLS.items():
         assert t["description"]
         _walk(t["parameters"], name)
-    assert TERMINAL == set(TOOLS) - {"say"}
+    assert TERMINAL == set(TOOLS) - {"say", "record_image_brief"}
 
 
 def test_tool_declarations_build():

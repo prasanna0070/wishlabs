@@ -88,6 +88,10 @@ async def patch_project(request: Request, pid: str):
             if b["mode"] not in ("pro", "fast"):
                 raise TurnError(422, "invalid", "mode must be pro or fast")
             p["mode"] = b["mode"]
+        if "share_uploads" in b:                # the owner's images on a share link (app/routes/uploads.py)
+            if not isinstance(b["share_uploads"], bool):
+                raise TurnError(422, "invalid", "share_uploads must be true or false")
+            p["share_uploads"] = b["share_uploads"]
     return await _guarded_update(request, pid, mut)
 
 

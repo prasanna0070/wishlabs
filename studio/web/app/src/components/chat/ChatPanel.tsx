@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, PanelLeftClose, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { useProject } from "../../store/project";
 import { useUI } from "../../store/ui";
@@ -7,6 +7,8 @@ import { MessageView, TurnActivity } from "./Messages";
 import { BriefDock, ChoicesDock, ConceptsDock } from "./Docks";
 import { Composer, type ComposerHandle } from "./Composer";
 import { VoiceWishCard } from "../voice/VoiceWishCard";
+import { ImageBriefCard } from "../cards/ImageBriefCard";
+import { hasImageBrief, imageBriefAnchor } from "../../lib/imageBrief";
 import type { TabId } from "../panel/RightPanel";
 
 /** The pending interactive message (questions, concepts or brief) that should be docked above the composer. */
@@ -26,8 +28,21 @@ export function activeInteraction(p: Project, running: boolean): { kind: "choice
   return null;
 }
 
-/** voiceCard=false while a share link's Overview tab is beside the chat: the Overview already shows the Spoken wish. */
-export function ChatPanel({ full, split, onTab: _onTab, voiceCard = true }: { full: boolean; split: boolean; onTab: (t: TabId) => void; voiceCard?: boolean }) {
+/** voiceCard=false while a share link's Overview tab is beside the chat: the Overview already shows the Spoken wish
+ * (and briefCard=false: it shows "What I read from your image" too). */
+export function ChatPanel({
+  full,
+  split,
+  onTab: _onTab,
+  voiceCard = true,
+  briefCard = true,
+}: {
+  full: boolean;
+  split: boolean;
+  onTab: (t: TabId) => void;
+  voiceCard?: boolean;
+  briefCard?: boolean;
+}) {
   const project = useProject((s) => s.project)!;
   const turn = useProject((s) => s.turn);
   const sendError = useProject((s) => s.sendError);
@@ -42,6 +57,9 @@ export function ChatPanel({ full, split, onTab: _onTab, voiceCard = true }: { fu
   const [away, setAway] = useState(false);
   const composer = useRef<ComposerHandle>(null);
   const active = useMemo(() => activeInteraction(project, !!turn?.running), [project, turn?.running]);
+  // "What I read from your image" sits under the message with that image (or at the top when none is in the chat)
+  const brief = briefCard && hasImageBrief(project);
+  const briefAt = useMemo(() => (brief ? imageBriefAnchor(project) : null), [brief, project.chat, project.image_brief]);
 
   // stick to the bottom while new content streams in, unless the reader scrolled up
   useLayoutEffect(() => {
@@ -110,6 +128,7 @@ export function ChatPanel({ full, split, onTab: _onTab, voiceCard = true }: { fu
       >
         <div className="chat-col" ref={col}>
           {voiceCard ? <VoiceWishCard project={project} ctx={ctx} readOnly={readOnly} compact /> : null}
+          {brief && !briefAt ? <ImageBriefCard project={project} ctx={ctx} readOnly={readOnly} compact /> : null}
           {empty && !turn ? (
             <div className="chat-empty">
               <h2>What should we make?</h2>
@@ -117,7 +136,10 @@ export function ChatPanel({ full, split, onTab: _onTab, voiceCard = true }: { fu
             </div>
           ) : null}
           {project.chat.map((m) => (
-            <MessageView key={m.id} m={m} active={active?.msg.id || null} />
+            <Fragment key={m.id}>
+              <MessageView m={m} active={active?.msg.id || null} />
+              {brief && m.id === briefAt ? <ImageBriefCard project={project} ctx={ctx} readOnly={readOnly} compact /> : null}
+            </Fragment>
           ))}
           {pendingTurn ? (
             <div className="msg-user-wrap">

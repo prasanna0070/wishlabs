@@ -84,6 +84,9 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
     from .routes import voice as voice_routes      # voice wish: Gemini Live WebSocket + stored recording
 
     app.include_router(voice_routes.router)
+    from .routes import uploads as upload_routes   # user images: upload, owner and share-link reads (app/uploads.py)
+
+    app.include_router(upload_routes.router)
 
     static: Path | None = settings.static_dir if settings.static_dir and settings.static_dir.is_dir() else None
     index = static / "index.html" if static else None

@@ -1,0 +1,19 @@
+{
+  "upload_ids": [],
+  "kind": "concept_sheet",
+  "title": "Mood Cloud: a desk lamp that shows tomorrow's weather",
+  "purpose": "Glow blue the evening before it rains, and give a soft night light the rest of the time",
+  "users": "Someone who wants a calm weather hint on the desk or the bedside",
+  "form_factor": "Cloud-shaped desk lamp, about 18 cm wide, matte white shell",
+  "features": [
+    { "text": "Glows blue the evening before it rains", "status": "buildable", "catalog_parts": ["LED_RING_12_WS2812_50MM", "DIFFUSER_PRINTED_NATURAL_PETG", "CORE_ESP32S3_DEVKITC1_N8R8"], "note": "Tomorrow's forecast over Wi-Fi from a weather service" },
+    { "text": "Soft white night light that dims on a schedule", "status": "buildable", "catalog_parts": ["LED_RING_12_WS2812_50MM", "RTC_DS3231_ZS042"], "note": "" },
+    { "text": "Tap the top to switch moods", "status": "buildable", "catalog_parts": ["TOUCH_TTP223_SMALL_15X11"], "note": "A touch pad under the shell, no visible button" },
+    { "text": "Small speaker for a soft rain chime", "status": "closest", "catalog_parts": ["BUZZER_PASSIVE_TRANSISTOR_MODULE"], "note": "A gentle buzzer tone; a speaker with an amplifier is also possible if you want real sounds" },
+    { "text": "2-day battery so it can sit anywhere", "status": "not_yet", "catalog_parts": [], "note": "Our gadgets run from USB-C power; there are no batteries in the catalog today" }
+  ],
+  "text_seen": "MOOD CLOUD. concept sheet v0.2 - a desk lamp that shows tomorrow's weather. RGB LED ring inside: blue = rain tomorrow. tap the top to change the mood. USB-C power at the back. Wi-Fi: weather from the internet. FEATURES: Glows blue the evening before it rains; Soft white night light, dims on a schedule; Tap the top to switch moods; Small speaker: a soft chime for rain; 2-day battery so it can sit anywhere; About 18 cm wide, matte white shell. made with an AI image tool - not to scale",
+  "out_of_scope": ["A built-in battery: Wish Labs gadgets are powered over USB-C"],
+  "closest_buildable": { "title": "Mood Cloud (USB-C)", "summary": "The same cloud lamp on a USB-C cable: weather glow, schedule night light, tap to switch moods and a soft buzzer chime." },
+  "created": "2026-11-20T10:40:00Z"
+}

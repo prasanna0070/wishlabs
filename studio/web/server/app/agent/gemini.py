@@ -16,6 +16,7 @@ from ..genai_client import get_client
 from ..projects import make_message
 from ..usage import record_from_response
 from .history import build_contents
+from .image_rules import with_rules
 from .prompt import PromptBuilder, wish_of
 from .tools import TERMINAL, TOOLS, declarations
 from .voice import lint
@@ -71,12 +72,12 @@ class GeminiBrain:
     def thoughts_on(self, model: str) -> bool:
         return bool(getattr(self.svc.settings, "agent_thoughts", True)) and model not in self.no_thoughts
 
-    def _config(self, allowed: list[str], thoughts: bool = False, wish: str | None = None):
+    def _config(self, allowed: list[str], thoughts: bool = False, images: bool = False, wish: str | None = None):
         from google.genai import types
 
         s = self.svc.settings
         kw = dict(
-            system_instruction=self.prompts.system_prompt(wish),
+            system_instruction=with_rules(self.prompts.system_prompt(wish), images),   # image rules only with images
             temperature=1.0,
             max_output_tokens=32768,
             tools=[types.Tool(function_declarations=declarations(allowed))],
@@ -138,7 +139,8 @@ class GeminiBrain:
         for attempt in range(3):
             thoughts = self.thoughts_on(model) and not plain
             try:
-                out = await self._stream(turn, model, contents, self._config(allowed, thoughts, wish))
+                config = self._config(allowed, thoughts, images=getattr(turn, "images", False), wish=wish)
+                out = await self._stream(turn, model, contents, config)
                 if plain:
                     log.warning("model %s rejects include_thoughts; showing step labels only", model)
                     self.no_thoughts.add(model)

@@ -12,3 +12,8 @@ pydantic==2.14.2
 numpy==2.5.4
 lameenc==1.9.0
 miniaudio==1.73
+# user images (app/uploads.py): multipart uploads, re-encoding to JPEG, HEIC from iPhones; prebuilt cp312 manylinux
+# wheels, installed together and imported on the dev VM 2026-11-20
+Pillow==12.3.0
+python-multipart==0.0.34
+pillow-heif==1.8.1

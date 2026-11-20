@@ -21,20 +21,29 @@ PROMPT = (
 )
 
 
+# The user's own product photo or sketch (image brief kind product_photo or sketch) may set the photo's mood. It never
+# changes the object: the render stays the only source of shape.
+STYLE_NOTE = ("[STYLE REFERENCE: the user's own {what}. Borrow only its colour mood, materials and finish where they "
+              "suit a matte 3D-printed PETG product. Do NOT copy its shape, parts, text, logos, people or background: "
+              "the object is exactly the reference render above.]")
+
+
 class ImageGen:
     def __init__(self, settings: Settings):
         self.settings = settings
 
     async def photo_from_render(self, render_png: bytes, spec: dict, title: str, blurb: str,
-                                on_usage=None) -> tuple[bytes | None, str]:
-        """Returns (image bytes or None, note). Never raises."""
+                                on_usage=None, style_ref: tuple[bytes, str] | None = None) -> tuple[bytes | None, str]:
+        """Returns (image bytes or None, note). Never raises. style_ref: (JPEG, kind) of the user's own product photo
+        or sketch, used for colour mood and finish only (app/agent/image_rules.style_reference)."""
         if not self.settings.photos:
             return None, "Photos are switched off; showing the CAD render."
         colors = spec.get("colors") or {}
         prompt = PROMPT.format(body=colors.get("body_name") or "the body colour", body_hex=colors.get("body", ""),
                                detail_hex=colors.get("detail", "dark grey"), title=title, blurb=blurb)
         try:
-            return await asyncio.wait_for(self._call(render_png, prompt, on_usage), self.settings.image_timeout_s)
+            return await asyncio.wait_for(self._call(render_png, prompt, on_usage, style_ref),
+                                          self.settings.image_timeout_s)
         except asyncio.TimeoutError:
             log.warning("image model timed out after %ss", self.settings.image_timeout_s)
             return None, "Photo generation timed out; showing the CAD render."
@@ -42,7 +51,8 @@ class ImageGen:
             log.warning("image model failed: %s", exc)
             return None, "Photo generation failed; showing the CAD render."
 
-    async def _call(self, render_png: bytes, prompt: str, on_usage=None) -> tuple[bytes | None, str]:
+    async def _call(self, render_png: bytes, prompt: str, on_usage=None,
+                    style_ref: tuple[bytes, str] | None = None) -> tuple[bytes | None, str]:
         import time
 
         from google.genai import types
@@ -56,9 +66,12 @@ class ImageGen:
             image_config=types.ImageConfig(aspect_ratio="1:1", image_size="1K"),
             http_options=types.HttpOptions(timeout=int(self.settings.image_timeout_s * 1000)),
         )
+        style = [types.Part.from_text(text=STYLE_NOTE.format(what=style_ref[1].replace("_", " "))),
+                 types.Part.from_bytes(data=style_ref[0], mime_type="image/jpeg")] if style_ref else []
         contents = [types.Content(role="user", parts=[
             types.Part.from_text(text="[REFERENCE RENDER: the exact object to photograph]"),
             types.Part.from_bytes(data=render_png, mime_type="image/png"),
+            *style,
             types.Part.from_text(text=prompt),
         ])]
         t0 = time.time()

@@ -7,6 +7,7 @@ import json
 
 from ..brief import brief_text
 from ..projects import find_concept, find_version
+from .image_rules import INLINE_MAX, attachment_note, image_parts, shown_message_ids, state_lines
 
 
 def render_message(m: dict, p: dict) -> tuple[str, str]:
@@ -15,6 +16,8 @@ def render_message(m: dict, p: dict) -> tuple[str, str]:
     if m["role"] == "user":
         if k == "tweak":
             return "user", f"[I edited the design directly: {m['text']}. That made version {pl.get('version')}.]"
+        if m.get("attachments"):
+            return "user", m["text"] + "\n" + attachment_note(m)
         return "user", m["text"]
     if k == "choices":
         qs = pl.get("questions") or []
@@ -77,6 +80,7 @@ def state_block(svc, p: dict, allowed: list[str], instruction: str | None) -> st
         spec = _current_spec(svc, p)
         if spec:
             lines.append("current spec (edit THIS for update_design): " + json.dumps(spec, separators=(",", ":")))
+    lines += state_lines(p)                     # the image brief, or which user images are still to be read
     lines.append("</state>")
     if instruction:
         lines.append(f"<instruction>{instruction}</instruction>")
@@ -87,17 +91,31 @@ def build_contents(svc, p: dict, allowed: list[str], instruction: str | None):
     from google.genai import types
 
     turns: list[tuple[str, str]] = []
+    images: dict[int, list] = {}                # turn index -> image parts (first and current user images only)
+    shown = shown_message_ids(p)
+    # once the image brief is recorded, the first images ride along as 384 px thumbnails (about 260 tokens each)
+    # unless they belong to the current message; one request carries at most INLINE_MAX bytes of images
+    latest = next((m.get("id") for m in reversed(p["chat"]) if m.get("role") == "user"), None)
+    briefed = bool(p.get("image_brief"))
+    budget = [INLINE_MAX]
     for m in p["chat"]:
         role, text = render_message(m, p)
         if turns and turns[-1][0] == role:
             turns[-1] = (role, turns[-1][1] + "\n\n" + text)
         else:
             turns.append((role, text))
+        if m.get("id") in shown:
+            images.setdefault(len(turns) - 1, []).extend(
+                image_parts(svc.store, p["id"], m, thumb=briefed and m.get("id") != latest, budget=budget))
     if not turns or turns[0][0] != "user":
         turns.insert(0, ("user", "(The user opened a new project.)"))
+        images = {i + 1: v for i, v in images.items()}
     state = state_block(svc, p, allowed, instruction)
     if turns[-1][0] != "user":
         turns.append(("user", state))
+    elif images.get(len(turns) - 1):            # the current images sit between the message and the state block
+        images[len(turns) - 1].append(types.Part.from_text(text=state))
     else:
         turns[-1] = ("user", turns[-1][1] + "\n\n" + state)
-    return [types.Content(role=r, parts=[types.Part.from_text(text=t)]) for r, t in turns]
+    return [types.Content(role=r, parts=[types.Part.from_text(text=t)] + images.get(i, []))
+            for i, (r, t) in enumerate(turns)]

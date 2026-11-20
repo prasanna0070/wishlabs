@@ -1,5 +1,5 @@
 // Feature cards that other streams add to the Overview tab of a share link, found by file name (OverviewTab.tsx globs
-// src/**/VoiceWishCard.tsx and src/**/SoundCard.tsx) so the tab builds with or without them. A card module exports
+// src/**/VoiceWishCard.tsx, src/**/ImageBriefCard.tsx and src/**/SoundCard.tsx) so the tab builds with or without them. A card module exports
 // the component (default or by its name) and may export a predicate hasVoiceWish(project, version) /
 // hasSound(project, version); without one the card returns null when it has no data. Pure: no imports of the cards.
 import type { ComponentType } from "react";

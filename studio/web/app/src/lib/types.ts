@@ -14,6 +14,57 @@ export interface ChatMessage {
   payload: any;
   ts: string;
   draft?: boolean; // client-only: still streaming
+  attachments?: Attachment[]; // images the user sent with this message (_notes/image-contract.md §3)
+  attachments_hidden?: number; // share link without share_uploads: how many images this message had (Change 1)
+}
+
+// ---------------------------------------------------------------- start from an image (_notes/image-contract.md)
+
+/** POST /api/projects/{pid}/uploads → 201. The server stores a normalised JPEG (long edge ≤ 2048 px) and a thumbnail. */
+export interface Upload {
+  id: string; // u_<10 lowercase alnum>
+  name: string; // the original file name, sanitised
+  mime: string; // always image/jpeg after normalising
+  bytes: number;
+  width: number;
+  height: number;
+  url: string; // /api/projects/{pid}/uploads/{id}
+  thumb_url: string; // /api/projects/{pid}/uploads/{id}?thumb=1
+}
+
+/** An image on a stored user message. URLs are built from the id (lib/uploads.ts uploadUrl). */
+export interface Attachment {
+  id: string;
+  name?: string;
+  mime?: string;
+  width?: number;
+  height?: number;
+}
+
+export type ImageKind = "concept_sheet" | "sketch" | "product_photo" | "reference" | "other";
+export type FeatureStatus = "buildable" | "closest" | "not_yet";
+
+export interface ImageBriefFeature {
+  text: string;
+  status: FeatureStatus | string;
+  catalog_parts?: string[];
+  note?: string;
+}
+
+/** What the design agent read from the user's first images (tool record_image_brief), stored as project.image_brief
+ * and sent live as the SSE event "image_brief". */
+export interface ImageBrief {
+  upload_ids?: string[];
+  kind?: ImageKind | string;
+  title?: string;
+  purpose?: string;
+  users?: string;
+  form_factor?: string;
+  features?: ImageBriefFeature[];
+  text_seen?: string;
+  out_of_scope?: string[];
+  closest_buildable?: { title?: string; summary?: string } | null;
+  created?: string;
 }
 
 export interface Question {
@@ -144,6 +195,9 @@ export interface Project {
   order_requests?: OrderRequest[];
   share?: { token: string; created: string } | null;
   read_only?: boolean;
+  image_brief?: ImageBrief | null; // what the agent read from the starting image(s)
+  share_uploads?: boolean; // the owner lets share links show the uploaded images (missing = false)
+  uploads?: (Upload & { source_mime?: string; created?: string })[]; // owner JSON: every upload, oldest first
 }
 
 export interface ProjectSummary {

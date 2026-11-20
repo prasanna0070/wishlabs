@@ -25,7 +25,7 @@ def concept_base(pid: str, cid: str) -> str:
 
 
 async def render_concept(svc, pid: str, index: int, title: str, blurb: str, spec: dict, warnings: list[str],
-                         progress: Progress, tier: str | None = None, on_usage=None) -> dict:
+                         progress: Progress, tier: str | None = None, on_usage=None, style_ref=None) -> dict:
     cid = new_id("c")
     key = f"projects/{pid}/concepts/{cid}"
     base = concept_base(pid, cid)
@@ -54,7 +54,8 @@ async def render_concept(svc, pid: str, index: int, title: str, blurb: str, spec
     await progress({"concept_id": cid, "index": index, "title": title, "state": "photo"})
     photo, note = (None, "Photos are off in this mode; showing the CAD render.")
     if svc.imagegen is not None:
-        photo, note = await svc.imagegen.photo_from_render(png, spec, title, blurb, on_usage=on_usage)
+        kw = {"style_ref": style_ref} if style_ref else {}      # the user's product photo or sketch (image input)
+        photo, note = await svc.imagegen.photo_from_render(png, spec, title, blurb, on_usage=on_usage, **kw)
     if photo:
         ext = _img_ext(photo)
         await asyncio.to_thread(svc.store.write_bytes, f"{key}/photo.{ext}", photo, f"image/{'jpeg' if ext == 'jpg' else ext}")
@@ -66,8 +67,10 @@ async def render_concept(svc, pid: str, index: int, title: str, blurb: str, spec
     return c
 
 
-async def render_concepts(svc, pid: str, items: list[dict], progress: Progress, on_usage=None) -> list[dict]:
+async def render_concepts(svc, pid: str, items: list[dict], progress: Progress, on_usage=None,
+                          style_ref=None) -> list[dict]:
     """items: [{title, blurb, tier, spec, warnings}] -> Concept dicts (in order), all rendered in parallel."""
     tasks = [render_concept(svc, pid, i, it["title"], it.get("blurb", ""), it["spec"], it.get("warnings") or [],
-                            progress, tier=it.get("tier"), on_usage=on_usage) for i, it in enumerate(items)]
+                            progress, tier=it.get("tier"), on_usage=on_usage, style_ref=style_ref)
+             for i, it in enumerate(items)]
     return list(await asyncio.gather(*tasks))

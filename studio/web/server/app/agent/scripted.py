@@ -114,6 +114,18 @@ THOUGHTS = {
               "the same.\n\n"],
 }
 
+# AGENT=scripted reads no images: when the user sends one, it records this honest placeholder so the image brief
+# card and the image_brief event can be checked without model calls.
+SCRIPTED_IMAGE_BRIEF = {
+    "kind": "other", "title": "Your image", "purpose": "Not read: scripted mode does not look at images.",
+    "users": "", "form_factor": "", "text_seen": "", "out_of_scope": [],
+    "features": [{"text": "A light that shows the gadget is on", "status": "buildable",
+                  "catalog_parts": ["LED_RING_12_WS2812_50MM"], "note": "Example row from scripted mode."},
+                 {"text": "Battery power", "status": "not_yet", "catalog_parts": [],
+                  "note": "Example row: the catalog has no batteries; gadgets run from USB-C."}],
+    "closest_buildable": {"title": "Story Time Bot", "summary": "Scripted mode always continues with its bedside "
+                                                                "story robot."}}
+
 
 class ScriptedBrain:
     kind = "scripted"
@@ -145,6 +157,8 @@ class ScriptedBrain:
         concepts_next = turn.forced == "propose_concepts" or (stage == "clarify" and int(p.get("questions_asked") or 0))
         await self.think(turn, "concepts" if concepts_next or stage == "concepts" else
                          "clarify" if stage == "clarify" else "other")
+        if "record_image_brief" in turn.allowed(p):     # user images: a placeholder brief (scripted mode reads none)
+            await turn.call_tool("record_image_brief", SCRIPTED_IMAGE_BRIEF)
         if turn.forced == "write_brief" or (stage == "brief" and "build" not in text and turn.forced is None):
             await turn.call_tool("write_brief", self._brief_args(p))
             return

@@ -1,0 +1,88 @@
+/* Start from an image: composer thumbnails (.img-draft), a sent message's images (.msg-imgs), the lightbox
+   (.img-lightbox) and the home page's "Start from an image" line (.from-image). Tokens from theme.css. */
+
+.img-drafts { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.img-draft { position: relative; width: 68px; height: 68px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-soft); overflow: hidden; flex: none; }
+.img-draft img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.img-draft.uploading img, .img-draft.waiting img { opacity: 0.82; }
+.img-draft.error { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
+.img-draft.error img { opacity: 0.45; }
+.img-draft-ph { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--ink-3); font-family: var(--mono); font-size: 10px; }
+.img-draft-bar { position: absolute; left: 6px; right: 6px; bottom: 6px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.85); overflow: hidden; box-shadow: 0 0 0 1px rgba(27, 31, 36, 0.08); }
+.img-draft-bar > span { display: block; height: 100%; background: var(--primary); border-radius: 2px; transition: width 0.2s ease; }
+.img-draft-x {
+  position: absolute; top: 2px; right: 2px; width: 24px; height: 24px; border-radius: 50%; border: 0; padding: 0;
+  display: grid; place-items: center; cursor: pointer; background: rgba(27, 31, 36, 0.72); color: #fff;
+}
+.img-draft-x:hover { background: rgba(27, 31, 36, 0.9); }
+.img-draft-retry {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 30px; height: 30px; border-radius: 50%;
+  border: 0; display: grid; place-items: center; cursor: pointer; background: var(--panel); color: var(--danger); box-shadow: var(--sh-control);
+}
+.img-draft-x:focus-visible, .img-draft-retry:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+.img-err { font-size: 12px; color: var(--danger); padding: 4px 4px 0; line-height: 17px; }
+
+/* a sent message's images, above its bubble (right-aligned like the bubble) */
+.msg-imgs { display: grid; gap: 6px; justify-content: end; grid-template-columns: repeat(var(--cols, 1), minmax(0, var(--size, 220px))); max-width: min(86%, 460px); }
+.msg-imgs.n1 { --cols: 1; --size: 260px; }
+.msg-imgs.n2 { --cols: 2; --size: 170px; }
+.msg-imgs.n3, .msg-imgs.n4 { --cols: 2; --size: 140px; }
+.msg-img { padding: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface-soft); cursor: zoom-in; display: block; aspect-ratio: 1; }
+.msg-imgs.n1 .msg-img { aspect-ratio: auto; max-height: 300px; }
+.msg-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.msg-imgs.n1 .msg-img img { object-fit: contain; max-height: 300px; background: var(--panel); }
+.msg-img:hover { border-color: var(--line-strong); }
+.msg-img:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.msg-img-off { width: 100%; height: 100%; min-height: 80px; display: grid; place-items: center; color: var(--ink-4); }
+.msg-imgs-private { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-3); }
+
+/* lightbox */
+.img-scrim { z-index: 110; background: rgba(15, 17, 20, 0.62); }
+.img-lightbox {
+  position: fixed; z-index: 111; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(1100px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px); display: flex; flex-direction: column; background: var(--panel); border-radius: var(--r-card);
+  box-shadow: var(--sh-dialog); overflow: hidden; animation: pop-in 0.16s ease;
+}
+.img-lightbox-head { display: flex; align-items: center; gap: 6px; padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--line); min-width: 0; }
+.img-lightbox-head .grow { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.img-lightbox-body { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; background: var(--viewport); padding: 12px; }
+.img-lightbox-body img { max-width: 100%; max-height: calc(100vh - 110px); object-fit: contain; display: block; border-radius: 6px; background: var(--panel); }
+.img-nav {
+  position: absolute; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line);
+  background: var(--panel); display: grid; place-items: center; cursor: pointer; box-shadow: var(--sh-control); color: var(--ink);
+}
+.img-nav.prev { left: 10px; }
+.img-nav.next { right: 10px; }
+.img-nav:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* the home page: the composer as a drop zone, and the "Start from an image" line under it */
+.home-composer.drag { border-color: var(--primary); background: var(--primary-soft); box-shadow: var(--sh-composer), 0 0 0 4px rgba(109, 75, 255, 0.12); }
+.from-image {
+  display: flex; align-items: center; justify-content: center; gap: 10px; max-width: 760px; margin: 12px auto 0; padding: 10px 14px;
+  border: 1.5px dashed var(--line-strong); border-radius: var(--r-composer); background: rgba(255, 255, 255, 0.55); color: var(--ink-2);
+  font: inherit; font-size: 14px; line-height: 20px; cursor: pointer; width: 100%; text-align: left; transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.from-image:hover, .from-image.drag { border-color: var(--primary); background: var(--primary-soft); color: var(--ink); }
+.from-image:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.from-image-icon { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--primary-soft); color: var(--primary); flex: none; }
+.from-image:hover .from-image-icon, .from-image.drag .from-image-icon { background: var(--panel); }
+.from-image-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.from-image strong { color: var(--ink); font-weight: 600; }
+.from-image .fi-touch { display: none; }
+@media (pointer: coarse) { .from-image .fi-desk { display: none; } .from-image .fi-touch { display: inline; } }
+.from-image .fi-cta { color: var(--primary); font-weight: 600; white-space: nowrap; }
+.home-img-note { max-width: 760px; margin: 8px auto 0; text-align: left; }
+
+@media (max-width: 560px) {
+  .img-draft { width: 60px; height: 60px; }
+  .msg-imgs.n1 { --size: 220px; }
+  .msg-imgs.n2, .msg-imgs.n3, .msg-imgs.n4 { --size: 120px; }
+  .from-image { font-size: 13px; padding: 9px 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .img-draft-bar > span { transition: none; } .img-lightbox { animation: none; } }
+
+/* the share dialog's "Show my starting image on the share link" setting (Header.tsx) */
+.share-images { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.share-images-row { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 14px; line-height: 20px; }
+.share-images-row input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--primary); flex: none; }
+.share-images-row > span:not(.spinner) { display: flex; flex-direction: column; gap: 2px; flex: 1; }

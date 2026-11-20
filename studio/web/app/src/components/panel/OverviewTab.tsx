@@ -2,8 +2,8 @@
 // One scrollable story: the wish, the concepts and the chosen product photo, the 3D model, the engineering pack with
 // its check results and files, the engine's live price, and the AI receipts (which Google model did what).
 //
-// Cards that other features add (VoiceWishCard, SoundCard) mount here through ./cards.ts (import.meta.glob), so this
-// tab builds with or without them; a card that throws renders nothing.
+// Cards that other features add (VoiceWishCard, ImageBriefCard, SoundCard) mount here through ./cards.ts
+// (import.meta.glob), so this tab builds with or without them; a card that throws renders nothing.
 import { Component, lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowRight, CircuitBoard, CodeXml, Download, FileArchive, MessagesSquare, Package, Quote as QuoteIcon, Receipt, ShieldCheck, Sparkles, Wrench } from "lucide-react";
 import { useProject } from "../../store/project";
@@ -16,12 +16,15 @@ import type { Build, Concept, Quote, Version } from "../../lib/types";
 import { Logo, Spinner } from "../ui";
 import type { TabId } from "./RightPanel";
 import { cardWanted, pickCard, type CardProps, type MountedCard } from "./cards";
+import { imageStart } from "../../lib/imageBrief";
 import "./OverviewTab.css";
 
 const ShareViewer = lazy(() => import("../share/ShareViewer"));
 // Gemini Live voice wish and Lyria gadget sound cards, when their features are part of this build (see ./cards.ts).
 const VOICE_CARD = pickCard(import.meta.glob<Record<string, unknown>>("/src/**/VoiceWishCard.tsx", { eager: true }), "VoiceWishCard", "hasVoiceWish");
 const SOUND_CARD = pickCard(import.meta.glob<Record<string, unknown>>("/src/**/SoundCard.tsx", { eager: true }), "SoundCard", "hasSound");
+// "What I read from your image" when the design started from an image (start from an image, ImageBriefCard.tsx).
+const IMAGE_CARD = pickCard(import.meta.glob<Record<string, unknown>>("/src/**/ImageBriefCard.tsx", { eager: true }), "ImageBriefCard", "hasImageBrief");
 
 class Quiet extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -63,7 +66,10 @@ export default function OverviewTab({ onTab }: { onTab: (t: TabId) => void }) {
   const v = showcaseVersion(project);
   // a spoken wish (Gemini Live) starts the chat with the wish plus the call's questions and answers: show the wish
   const spoken = typeof project.voice?.wish === "string" && project.voice.wish.trim() ? project.voice.wish.trim() : null;
-  const wish = spoken || originalWish(project);
+  // started from an image: say so; an image sent without words shows what the agent read from it as the wish
+  const start = imageStart(project);
+  const fromImage = !spoken && start === "image-only" && !!project.image_brief?.title;
+  const wish = spoken || (fromImage ? project.image_brief!.title! : originalWish(project));
   const chosen = chosenConcept(project, v);
   const result = resultMessage(project, v?.n);
   const summary = result?.payload?.summary || null;
@@ -118,13 +124,13 @@ export default function OverviewTab({ onTab }: { onTab: (t: TabId) => void }) {
                 <QuoteIcon size={18} aria-hidden="true" />
                 <p>{wish}</p>
                 <footer>
-                  {spoken ? "The wish, as spoken" : "The wish, as typed"}
+                  {spoken ? "The wish, as spoken" : fromImage ? "The wish, as read from the image" : start ? "The wish, with an image" : "The wish, as typed"}
                   {project.created ? `, ${dateOnly(project.created)}` : ""}
                 </footer>
               </blockquote>
             ) : null}
             <p className="ov-lede">
-              From that sentence, the Wish Labs design agent{agentModels.length ? ` (${agentModels.join(" and ")} on Vertex AI)` : ""}
+              From that {start ? "image" : "sentence"}, the Wish Labs design agent{agentModels.length ? ` (${agentModels.join(" and ")} on Vertex AI)` : ""}
               {questions ? ` asked ${questions} question${questions === 1 ? "" : "s"},` : ""} proposed {project.concepts.length || "its"} concept
               {project.concepts.length === 1 ? "" : "s"}, each a complete engineering spec.
               {chosen ? ` “${chosen.title}” was chosen` : ""}
@@ -157,6 +163,7 @@ export default function OverviewTab({ onTab }: { onTab: (t: TabId) => void }) {
         </section>
 
         <Mount m={VOICE_CARD} props={cardProps} id="ov-voice" />
+        <Mount m={IMAGE_CARD} props={cardProps} id="ov-image" />
 
         {building ? (
           <div className="callout row ov-note" role="status">

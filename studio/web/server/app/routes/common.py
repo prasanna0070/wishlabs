@@ -152,7 +152,13 @@ async def serve_concept_file(request: Request, p: dict, cid: str, name: str) -> 
 
 def shared_view(p: dict) -> dict:
     token = (p.get("share") or {}).get("token")
-    q = {k: v for k, v in p.items() if k not in ("order_requests", "share", "turn", "device")}
+    # "uploads" (every image ever uploaded, sent or not, with file names) never goes out: the SPA builds image URLs
+    # from the messages' attachments, and the share route serves only those
+    q = {k: v for k, v in p.items() if k not in ("order_requests", "share", "turn", "device", "uploads")}
+    if q.get("share_uploads") is not True:      # the owner's images stay private unless shared (app/uploads.py)
+        from ..uploads import hide_uploads
+
+        q = hide_uploads(q)
     q["read_only"] = True
     raw = json.dumps(q, ensure_ascii=False).replace(f"/api/projects/{p['id']}/", f"/api/share/{token}/")
     return json.loads(raw)

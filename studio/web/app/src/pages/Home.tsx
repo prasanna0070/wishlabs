@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ArrowUp, Box, CloudRain, LogOut, Mic, Moon, Plus, Sprout, Trash2, Eye } from "lucide-react";
+import { ArrowUp, Box, CloudRain, LogOut, Mic, Moon, Paperclip, Sprout, Trash2, Eye, ImagePlus } from "lucide-react";
 import { api } from "../lib/api";
-import type { Mode, ProjectSummary } from "../lib/types";
+import type { Mode, ProjectSummary, Upload } from "../lib/types";
 import { stageLabel, timeAgo } from "../lib/format";
 import { useAuth } from "../store/auth";
 import { Logo, Spinner, Dropdown } from "../components/ui";
@@ -11,6 +11,8 @@ import { readAttachment } from "../components/chat/Composer";
 import { searchWithoutWish, takeWish } from "../lib/wish";
 import { VoiceWishDialog } from "../components/voice/VoiceWishDialog";
 import { primeVoiceAudio } from "../lib/voiceCall";
+import { chatBody, clipboardHasText, clipboardImages, dragHasFiles, FILE_ACCEPT, IMAGE_ACCEPT, imageRoom, savePending, sortFiles } from "../lib/uploads";
+import { DraftImages, useImageQueue, useWindowFileDrop, useWindowPaste } from "../components/chat/ImageAttachments";
 
 const EXAMPLES = [
   { icon: Moon, label: "Bedtime story robot", name: "Bedtime Story Robot", prompt: "I want a cute robot that tells my daughter bedtime stories and remembers her favourite characters." },
@@ -30,6 +32,11 @@ export function HomePage() {
   const talkBtn = useRef<HTMLButtonElement>(null);
   const ta = useRef<HTMLTextAreaElement>(null);
   const file = useRef<HTMLInputElement>(null);
+  const imgIn = useRef<HTMLInputElement>(null);
+  // start from an image: images wait here until Start creates the project, then upload one by one (with progress)
+  const { q, items: images } = useImageQueue(null);
+  const made = useRef<string | null>(null); // the project an earlier Start created (reused when an upload failed)
+  const [drag, setDrag] = useState(false);
   const nav = useNavigate();
   const loc = useLocation();
   const setAuthed = useAuth((s) => s.setAuthed);
@@ -70,24 +77,64 @@ export function HomePage() {
     }
   }, [text]);
 
+  /** Images (and text files) from the paperclip, a drop or a paste. Text files are read into the box as before. */
+  const addFiles = async (list: FileList | File[]) => {
+    if (busy) return;
+    setErr(null);
+    const { room, projectFull } = imageRoom(q.count, 0);
+    const picked = sortFiles(Array.from(list), room, projectFull);
+    if (picked.images.length) q.add(picked.images);
+    const errors = [...picked.errors];
+    for (const f of picked.texts) {
+      const r = await readAttachment(f);
+      if (r.error) errors.push(r.error);
+      else if (r.text) setText((t) => `${t}${t ? "\n\n" : ""}${r.text}`);
+    }
+    if (errors.length) setErr(errors.join(" "));
+    requestAnimationFrame(() => ta.current?.focus());
+  };
+  // drop anywhere on the page, or paste with the focus outside the box: the image is attached all the same (while
+  // Start runs it is ignored, but a drop still never opens the file in place of the studio)
+  useWindowFileDrop((list) => void addFiles(list), true, setDrag);
+  useWindowPaste((list) => void addFiles(list));
+
   const start = async () => {
     const prompt = text.trim();
-    if (!prompt || busy) return;
+    const withImages = q.count > 0;
+    if ((!prompt && !withImages) || busy) return;
     setBusy(true);
     setErr(null);
     try {
-      const p = await api.createProject({ mode, ...(name ? { name } : {}) });
-      try {
-        sessionStorage.setItem(`gs.pending.${p.id}`, prompt);
-      } catch {
-        /* the project page falls back to an empty composer */
+      let pid = made.current;
+      if (!pid) {
+        const p = await api.createProject({ mode, ...(name ? { name } : {}) });
+        pid = made.current = p.id;
       }
-      nav(`/p/${p.id}`);
+      let ups: Upload[] = [];
+      if (withImages) {
+        for (const f of q.failed) q.retry(f.key); // Start again retries an image that did not go up
+        q.setProject(pid);
+        ups = await q.whenSettled();
+      }
+      const first = chatBody(prompt, [], ups);
+      if (!first) throw new Error("Add a line or an image to start.");
+      // the project page sends it as the first turn; router state backs up storage (private windows)
+      if (!ups.length) {
+        try {
+          sessionStorage.setItem(`gs.pending.${pid}`, prompt);
+        } catch {
+          /* the router state below still carries it */
+        }
+      } else savePending(pid, first.text, ups);
+      nav(`/p/${pid}`, { state: { first } });
     } catch (e: any) {
       setErr(e?.message || "Could not start a project.");
       setBusy(false);
     }
   };
+  const upCount = images.length;
+  const upDone = images.filter((x) => x.state === "done").length;
+  const upNow = images.find((x) => x.state === "uploading");
 
   const remove = async (id: string) => {
     await api.deleteProject(id);
@@ -120,20 +167,39 @@ export function HomePage() {
         <h1>What will you make today?</h1>
         <p className="muted hero-sub">From an idea to a printed shell, a circuit board, firmware and a delivered price in India.</p>
         <form
-          className="home-composer"
+          className={`home-composer${drag ? " drag" : ""}`}
           onSubmit={(e) => {
             e.preventDefault();
             void start();
           }}
+          onDragOver={(e) => {
+            if (!dragHasFiles(e.dataTransfer)) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+          }}
+          onDrop={(e) => {
+            setDrag(false);
+            if (!e.dataTransfer.files?.length) return;
+            e.preventDefault();
+            void addFiles(e.dataTransfer.files);
+          }}
         >
+          <DraftImages items={images} onRemove={(k) => q.remove(k)} onRetry={(k) => q.retry(k)} />
           <textarea
             ref={ta}
             value={text}
             rows={3}
-            placeholder="Describe the gadget you want to make"
+            placeholder={images.length ? "Add a line about it: what it is for, who will use it (optional)" : "Describe the gadget you want to make"}
             onChange={(e) => {
               setText(e.target.value);
               setName(undefined);
+            }}
+            onPaste={(e) => {
+              // Cmd+V of a screenshot or an image copied from ChatGPT: attach it; words in the paste still paste
+              const pics = clipboardImages(e.clipboardData);
+              if (!pics.length) return;
+              if (!clipboardHasText(e.clipboardData)) e.preventDefault();
+              void addFiles(pics);
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
@@ -144,21 +210,26 @@ export function HomePage() {
             aria-label="Describe the gadget you want to make"
           />
           <div className="composer-row">
-            <button type="button" className="icon-btn sm" aria-label="Add a file" title="Add a text file (notes, a spec)" onClick={() => file.current?.click()}>
-              <Plus size={18} />
+            <button
+              type="button"
+              className="icon-btn sm"
+              aria-label="Add images or files"
+              title="Add an image (a sketch, a photo, a ChatGPT concept: JPEG, PNG, WebP, HEIC) or a text file. You can also paste or drop images."
+              onClick={() => file.current?.click()}
+              disabled={busy}
+            >
+              <Paperclip size={17} />
             </button>
             <input
               ref={file}
               type="file"
               hidden
-              accept=".txt,.md,.json,.csv,text/*"
-              onChange={async (e) => {
-                const f = e.target.files?.[0];
+              multiple
+              accept={FILE_ACCEPT}
+              onChange={(e) => {
+                const list = e.target.files ? Array.from(e.target.files) : [];
                 e.target.value = "";
-                if (!f) return;
-                const r = await readAttachment(f);
-                if (r.error) setErr(r.error);
-                else setText((t) => `${t}${t ? "\n\n" : ""}${r.text}`);
+                if (list.length) void addFiles(list);
               }}
             />
             {voiceOff ? null : (
@@ -178,12 +249,53 @@ export function HomePage() {
             )}
             <div className="grow" />
             <ModeSelect value={mode} onChange={setMode} />
-            <button className="send-btn" aria-label="Start" disabled={!text.trim() || busy}>
+            <button className="send-btn" aria-label="Start" disabled={(!text.trim() && !images.length) || busy}>
               {busy ? <Spinner /> : <ArrowUp size={18} />}
             </button>
           </div>
         </form>
-        {err ? <div className="callout danger" style={{ maxWidth: 760, margin: "12px auto 0" }}>{err}</div> : null}
+        {busy && upCount ? (
+          <div className="muted small home-img-note" role="status">
+            {upNow
+              ? `Uploading ${upCount === 1 ? "your image" : `image ${Math.min(upCount, upDone + 1)} of ${upCount}`} (${Math.round(upNow.progress * 100)}%)…`
+              : upDone === upCount
+                ? "Opening your project…"
+                : "Creating your project…"}
+          </div>
+        ) : null}
+        {err ? (
+          <div className="callout danger" role="alert" style={{ maxWidth: 760, margin: "12px auto 0" }}>
+            {err}
+          </div>
+        ) : null}
+        <button type="button" className={`from-image${drag ? " drag" : ""}`} onClick={() => imgIn.current?.click()} disabled={busy}>
+          <span className="from-image-icon" aria-hidden="true">
+            <ImagePlus size={17} />
+          </span>
+          <span className="from-image-text">
+            <strong>Start from an image</strong>
+            <span className="fi-desk">
+              Have a sketch, a product photo or a ChatGPT concept? Drop it here, paste it, or <span className="fi-cta">choose an image</span>
+            </span>
+            <span className="fi-touch">
+              A sketch, a product photo or a ChatGPT concept: <span className="fi-cta">take a photo or choose one</span>
+            </span>
+          </span>
+        </button>
+        <input
+          ref={imgIn}
+          type="file"
+          hidden
+          multiple
+          accept={IMAGE_ACCEPT}
+          aria-hidden="true"
+          tabIndex={-1}
+          onChange={(e) => {
+            const list = e.target.files ? Array.from(e.target.files) : [];
+            e.target.value = "";
+            if (list.length) void addFiles(list);
+          }}
+        />
         {talking ? (
           <VoiceWishDialog
             open={talking}

@@ -161,8 +161,12 @@ export function retryBody(m: ChatMessage | null | undefined): Record<string, any
   const p = m.payload || {};
   switch (p.action) {
     case undefined:
-    case null:
+    case null: {
+      // images go again by id (they are still stored); the words may be the server's stand-in for an image-only message
+      const atts = (Array.isArray(m.attachments) ? m.attachments : Array.isArray(p.attachments) ? p.attachments : []).filter((a: any) => a && typeof a.id === "string");
+      if (atts.length) return { text: m.text || "", attachments: atts.map((a: any) => ({ id: a.id })) };
       return m.text?.trim() ? { text: m.text } : null;
+    }
     case "answers":
       return { answers: Array.isArray(p.answers) ? p.answers : [], ...(p.skipped || !p.answers?.length ? { skipped: true } : {}) };
     case "select_concept":
@@ -206,9 +210,17 @@ export function typedText(body: Record<string, any> | null | undefined): string 
 export function sentArrived(chat: ChatMessage[], before: Set<string>, body: Record<string, any>): boolean {
   const action = body.action || (body.answers || body.skipped ? "answers" : null);
   const words = String(body.text || "").trim();
+  const ids: string[] = !action && Array.isArray(body.attachments) ? body.attachments.map((a: any) => a?.id).filter(Boolean) : [];
   return chat.some((m) => {
     if (m.role !== "user" || before.has(m.id)) return false;
-    return action ? m.payload?.action === action : !m.payload?.action && (m.text || "").trim() === words;
+    if (action) return m.payload?.action === action;
+    if (m.payload?.action) return false;
+    // a message with images: the same images arrived (an image-only message is stored with stand-in words)
+    if (ids.length) {
+      const got = (Array.isArray(m.attachments) ? m.attachments : m.payload?.attachments || []).map((a: any) => a?.id);
+      if (ids.every((id) => got.includes(id))) return true;
+    }
+    return (m.text || "").trim() === words;
   });
 }
 

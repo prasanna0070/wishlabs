@@ -6,6 +6,7 @@ import { api } from "../lib/api";
 import { exportUrl, shareUrl } from "../lib/urls";
 import { dateTime, timeAgo } from "../lib/format";
 import { briefFor, designChangedSinceBrief, originText } from "../lib/versions";
+import { hasImages } from "../lib/uploads";
 import type { Brief, Version } from "../lib/types";
 import { Dialog, Dropdown, Logo, Spinner, Toast } from "./ui";
 import { BriefView } from "./BriefView";
@@ -385,7 +386,50 @@ function ShareDialog({ onClose }: { onClose: () => void }) {
           {busy ? <Spinner /> : <Link2 size={15} />} Create link
         </button>
       )}
+      {hasImages(project) ? <ShareImagesSetting /> : null}
       {err ? <div className="callout danger" style={{ marginTop: 12 }}>{err}</div> : null}
     </Dialog>
+  );
+}
+
+/** Start from an image: the owner decides whether share links show the uploaded image itself (off by default). What
+ * the assistant read from it is part of the design, so the link shows that either way. */
+function ShareImagesSetting() {
+  const project = useProject((s) => s.project)!;
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const on = !!project.share_uploads;
+  const toggle = async (next: boolean) => {
+    setBusy(true);
+    setErr(null);
+    const put = (v: boolean) => {
+      const p = useProject.getState().project;
+      if (p && p.id === project.id) useProject.setState({ project: { ...p, share_uploads: v } });
+    };
+    put(next);
+    try {
+      const p = await api.setShareUploads(project.id, next);
+      put(typeof p?.share_uploads === "boolean" ? p.share_uploads : next);
+    } catch (e: any) {
+      put(!next);
+      setErr(e?.message || "Could not change this setting.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="share-images">
+      <label className="share-images-row">
+        <input type="checkbox" checked={on} disabled={busy} onChange={(e) => void toggle(e.target.checked)} />
+        <span>
+          <strong>Show my starting image on the share link</strong>
+          <span className="muted small">
+            {on ? "Visitors see your image, the words in it and what the assistant read from it." : "Off: visitors see only the assistant's short summary of your image, not the image or the words written in it."}
+          </span>
+        </span>
+        {busy ? <Spinner /> : null}
+      </label>
+      {err ? <div className="callout danger small">{err}</div> : null}
+    </div>
   );
 }

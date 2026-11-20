@@ -4,6 +4,7 @@ import { api, ApiError, clearFileCache } from "../lib/api";
 import { openEventStream, postStream, type SSEEvent } from "../lib/sse";
 import type { ChatMessage, Mode, Project, Status, Version } from "../lib/types";
 import type { Ctx } from "../lib/urls";
+import { briefFromEvent } from "../lib/imageBrief";
 import {
   appendThought,
   conceptStepLabel,
@@ -49,7 +50,8 @@ interface ProjectState {
   // "conflict" (409: another message is still being answered; the note offers Show progress) | "refused" (any other
   // 409) | "network" (the message never reached the studio) | an API error code
   sendErrorCode: string | null;
-  unsent: { text: string } | null; // the words of a typed message the studio did not take: the composer puts them back
+  // the words (and images) of a typed message the studio did not take: the composer puts them back
+  unsent: { text: string; attachments?: { id: string }[] } | null;
   streamOpen: boolean;
 
   load: (pid: string) => Promise<void>;
@@ -82,8 +84,10 @@ let turnWatch: { pid: string; fails: number; seen?: string } | null = null;
 // the last message this tab sent: tells "it never reached the studio" from "the stream dropped after it did"
 let lastSend: { pid: string; before: Set<string>; body: Record<string, any> } | null = null;
 
-const unsentOf = (body: Record<string, any> | null | undefined): { text: string } | null => {
+const unsentOf = (body: Record<string, any> | null | undefined): { text: string; attachments?: { id: string }[] } | null => {
+  const atts = Array.isArray(body?.attachments) && !body!.action ? body!.attachments.filter((a: any) => a && typeof a.id === "string") : [];
   const text = typedText(body);
+  if (atts.length) return { text: text ?? "", attachments: atts.map((a: any) => ({ id: a.id })) };
   return text != null ? { text } : null;
 };
 
@@ -141,6 +145,12 @@ export const useProject = create<ProjectState>((set, get) => {
       case "project.renamed":
         if (d.name) patchProject((p) => ({ ...p, name: d.name, name_source: "agent" }));
         break;
+      case "image_brief": {
+        // what the agent read from the starting image (record_image_brief): the card shows it at once
+        const b = briefFromEvent(d);
+        if (b) patchProject((p) => ({ ...p, image_brief: b }));
+        break;
+      }
       case "build.message": {
         const n = d.version_n;
         if (n == null || !d.text) break;

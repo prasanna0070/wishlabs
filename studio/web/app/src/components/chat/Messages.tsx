@@ -12,6 +12,8 @@ import type { Build, ChatMessage, Concept, Status, StatusStage } from "../../lib
 import { Markdown, ProgressBar, Spinner } from "../ui";
 import { BriefView } from "../BriefView";
 import { agoText, currentStepLabel, latestThought, minutesToUnlock } from "../../lib/working";
+import { hiddenImages, imagesShown, messageAttachments } from "../../lib/uploads";
+import { MessageImages } from "./ImageAttachments";
 import "./working.css";
 
 export function MessageView({ m, active }: { m: ChatMessage; active: string | null }) {
@@ -51,9 +53,12 @@ function UserMessage({ m }: { m: ChatMessage }) {
   const img = rewriteShareUrl(m.payload?.image_url || (concept ? concept.photo_url || concept.render_url : null), ctx?.share);
   const editPart = m.payload?.action === "edit_part";
   const t = turn?.userMsgId === m.id ? turn : turns[m.id];
+  const atts = messageAttachments(m);
+  const hidden = hiddenImages(m);
   return (
     <div className="msg-user-wrap">
       {img ? <img className="choice-img" src={img} alt={concept ? `${concept.title}: ${concept.blurb}` : "Chosen concept"} /> : null}
+      {atts.length || hidden ? <MessageImages atts={atts} ctx={ctx} shown={imagesShown(ctx, project)} hidden={hidden} /> : null}
       <div className={`msg user${m.kind === "tweak" ? " is-tweak" : ""}`}>
         {editPart ? (
           <div className="row small muted" style={{ marginBottom: 4 }}>

@@ -10,7 +10,7 @@ STUDIO="$(cd "$(dirname "$0")/../.." && pwd)"
 PORT=$1
 WORK=$2
 mkdir -p "$WORK" && WORK=$(cd "$WORK" && pwd)
-TAG=wish-web-integ:check
+TAG=wish-web-integ:check-$PORT           # per port: two checks on the shared VM never remove each other's image
 NAME=wish-web-integ-$PORT
 D="sudo -n docker"
 fail() { echo "FAIL $*"; FAILS=$((FAILS + 1)); }
@@ -39,10 +39,12 @@ fi
 $D run --rm "$TAG" python -c '
 import numpy, lameenc, miniaudio, websockets
 import app.sound, app.voice_live, app.routes.sound, app.routes.voice
+import PIL, multipart, pillow_heif, app.uploads, app.routes.uploads, app.agent.image_rules
 from app.main import create_app
 import sys; sys.path.insert(0, "/srv/engine")
 import gstudio.cad, importlib.util
-print("imports ok; numpy", numpy.__version__, "cadquery installed:", importlib.util.find_spec("cadquery") is not None)
+print("imports ok; numpy", numpy.__version__, "cadquery installed:", importlib.util.find_spec("cadquery") is not None,
+      "| Pillow", PIL.__version__, "pillow-heif", pillow_heif.__version__, "python-multipart", multipart.__version__)
 ' > "$WORK/imports.log" 2>&1 && cat "$WORK/imports.log" || { fail "imports"; cat "$WORK/imports.log"; }
 
 # 4. run it and probe (throwaway key; never the studio key; scripted agent; fake builder; scratch store)
@@ -62,6 +64,22 @@ J=$(mktemp); curl -s -c "$J" -o /dev/null -w 'login %{http_code}\n' -H 'Content-
   -d "{\"key\":\"$KEY\"}" "$B/api/login"
 echo "sound route (unknown project): $(curl -s -b "$J" -o /dev/null -w '%{http_code}' "$B/api/projects/p_nope/sound")"
 echo "share sound (bad token): $(curl -s -o /dev/null -w '%{http_code}' "$B/api/share/s_nope/sound/x/theme.mp3")"
+# start from an image: a project takes a PNG upload (normalised to JPEG) and serves it back to a signed-in owner only
+PID=$(curl -s -b "$J" -H 'Content-Type: application/json' -d '{"mode":"fast"}' "$B/api/projects" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+python3 - "$WORK/probe.png" <<'PY'
+import struct, sys, zlib
+w = h = 16                                     # a plain orange 16 x 16 PNG, written without Pillow
+raw = b"".join(b"\x00" + bytes([200, 80, 40]) * w for _ in range(h))
+def chunk(t, d): return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
+open(sys.argv[1], "wb").write(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0))
+                              + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
+PY
+up=$(curl -s -b "$J" -F "file=@$WORK/probe.png;type=image/png" "$B/api/projects/$PID/uploads")
+echo "upload: $up"
+UID_=$(printf '%s' "$up" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["id"] if d.get("mime")=="image/jpeg" else "")' 2>/dev/null)
+[ -n "$UID_" ] || fail "image upload inside the image"
+code=$(curl -s -b "$J" -o /dev/null -w '%{http_code}' "$B/api/projects/$PID/uploads/$UID_?thumb=1"); [ "$code" = 200 ] || fail "upload thumb $code"
+code=$(curl -s -o /dev/null -w '%{http_code}' "$B/api/projects/$PID/uploads/$UID_"); [ "$code" = 401 ] || fail "upload without login $code"
 ws=$(python3 - "$PORT" <<'PY'
 import asyncio, sys
 async def main():

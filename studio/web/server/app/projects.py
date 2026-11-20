@@ -83,6 +83,8 @@ def summary_of(p: dict) -> dict:
         c = find_concept(p, p.get("selected_concept"))
         if c:
             thumb = c.get("photo_url") or c.get("render_url")
+    if not thumb and p.get("uploads"):          # a project started from the user's image shows it until concepts
+        thumb = p["uploads"][0].get("thumb_url")
     return {"id": p["id"], "name": p["name"], "created": p["created"], "updated": p["updated"],
             "stage": p["stage"], "current_version": p.get("current_version"), "thumb_url": thumb,
             **measured_waits(p)}
