@@ -126,8 +126,17 @@ def test_pack_helpers_read_rules_and_examples(merged, monkeypatch):
     assert packs.prompt_rules(merged) == [("testpack", ["Test rule."])]
     ex = merged / "packs" / "examples" / "testpack" / "demo"
     ex.mkdir(parents=True)
-    (ex / "spec.json").write_text("{}", encoding="utf-8")
+    (ex / "spec.json").write_text(json.dumps(_example("desk-buddy")), encoding="utf-8")
+    bad = merged / "packs" / "examples" / "testpack" / "needs-printed"
+    bad.mkdir(parents=True)
+    printed = {"schema": "gadget-spec/1", "name": "Cup", "slug": "cup", "kind": "printed",
+               "body": {"family": "revolve", "profile": [[0, 0], [30, 0], [30, 60], [0, 60]], "split": "none", "feet": 0}}
+    (bad / "spec.json").write_text(json.dumps(printed), encoding="utf-8")
+    # d-to-e 9: an example that needs a pack that is off (printed) is not listed; listed again once that pack is on
     assert packs.example_specs(merged) == [ex / "spec.json"]
+    assert packs.example_specs(merged, loadable=False) == [ex / "spec.json", bad / "spec.json"]
+    monkeypatch.setenv("GS_PACKS_ENABLED", "testpack,printed")
+    assert packs.example_specs(merged) == [ex / "spec.json", bad / "spec.json"]
 
 
 # ------------------------------------------------------------------------------------------------ merge of a temp pack
