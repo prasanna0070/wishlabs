@@ -147,7 +147,7 @@ class BoardBuilder:
         tb.SetTitle(f"BP1 backplane {d.backplane_id} for {d.slug}")  # no project name: reused across versions (MIN-36)
         tb.SetDate(d.date)
         tb.SetRevision(d.revision)
-        tb.SetCompany("Gadget Studio")
+        tb.SetCompany("Wish Labs")
         tb.SetComment(0, f"Engine {d.engine_version}; design id {d.design_id}")
         tb.SetComment(1, "2-layer FR-4 1.6 mm, 1 oz; JLCPCB/PCBPower-class rules (0.15 mm clearance, 0.3 mm vias)")
         tb.SetComment(2, "Digital checks only; no physical test made.")

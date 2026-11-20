@@ -104,10 +104,10 @@ def write_project_libs(pcb_dir: Path, gen_symbols: list[list], footprints: list[
     (pcb_dir / f"{LIB}.kicad_sym").write_text(sexpr.dumps(
         ["kicad_symbol_lib", ["version", 20241209], ["generator", Q("gstudio")], ["generator_version", Q("9.0")],
          *lib_nodes]) + "\n")
-    fp_rows = [f'\t(lib (name "{LIB}")(type "KiCad")(uri "${{KIPRJMOD}}/{LIB}.pretty")(options "")(descr "Gadget Studio generated"))']
+    fp_rows = [f'\t(lib (name "{LIB}")(type "KiCad")(uri "${{KIPRJMOD}}/{LIB}.pretty")(options "")(descr "Wish Labs generated"))']
     fp_rows += [f'\t(lib (name "{n}")(type "KiCad")(uri "${{KICAD9_FOOTPRINT_DIR}}/{n}.pretty")(options "")(descr ""))'
                 for n in sorted(set(fp_libs) - {LIB})]
-    sym_rows = [f'\t(lib (name "{LIB}")(type "KiCad")(uri "${{KIPRJMOD}}/{LIB}.kicad_sym")(options "")(descr "Gadget Studio generated"))']
+    sym_rows = [f'\t(lib (name "{LIB}")(type "KiCad")(uri "${{KIPRJMOD}}/{LIB}.kicad_sym")(options "")(descr "Wish Labs generated"))']
     sym_rows += [f'\t(lib (name "{n}")(type "KiCad")(uri "${{KICAD9_SYMBOL_DIR}}/{n}.kicad_sym")(options "")(descr ""))'
                  for n in sorted(set(sym_libs) - {LIB})]
     (pcb_dir / "fp-lib-table").write_text("(fp_lib_table\n\t(version 7)\n" + "\n".join(fp_rows) + "\n)\n")

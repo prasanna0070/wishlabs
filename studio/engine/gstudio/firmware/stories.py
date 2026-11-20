@@ -134,7 +134,7 @@ This card has the story TEXT but NO AUDIO yet. The gadget cannot read text aloud
 the audio is added a tap plays a short low chime and the parent page says "no audio yet".
 
 To finish the card:
-1. In the Gadget Studio app, open this project's Code tab and choose "Generate story audio".
+1. In the Wish Labs studio, open this project's Code tab and choose "Generate story audio".
    (The build service makes the audio with a text-to-speech voice; it takes about a minute.)
 2. Download the new story card folder and copy everything in it to the root of a FAT32 microSD card.
 3. Put the card in the gadget and restart it.

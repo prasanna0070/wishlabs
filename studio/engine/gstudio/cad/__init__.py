@@ -207,7 +207,7 @@ def preview(spec: Any, lib: Any = None, out: Any = ".", size=(1024, 1024)) -> di
     fc = {"PRINT_Shell": classify_faces(shell, pv["records"], colors)}
     parts = [sp] + vis
     glb_nodes = [(p.name, E.part_primitives(p, fc.get(p.name), tol=0.1, ang=0.28), p.alpha) for p in parts]
-    E.write_glb(out / "preview.glb", glb_nodes, generator="Gadget Studio CAD preview")
+    E.write_glb(out / "preview.glb", glb_nodes, generator="Wish Labs CAD preview")
     from .render_cli import render_subprocess
 
     r = render_subprocess(out / "preview.glb", out, ("hero",), screens, "rear_cover", size[0], timeout=60.0, name="preview.png")

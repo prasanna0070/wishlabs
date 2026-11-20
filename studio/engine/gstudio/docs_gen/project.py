@@ -156,7 +156,7 @@ def render(b: Bundle) -> str:
             L += ["", power_text(b, pw)]
 
     # ---- rebuild
-    L += ["", "## Rebuild commands", "", "Run from the folder that holds this file. The full pipeline needs the Gadget Studio engine "
+    L += ["", "## Rebuild commands", "", "Run from the folder that holds this file. The full pipeline needs the Wish Labs engine "
           "(Python 3.12, CadQuery 2.8, KiCad 9, PlatformIO 6.2, PrusaSlicer 2.7):", "", "```sh",
           "python verify_delivery.py                               # re-check every hash and link (standard library only)",
           "python -m gstudio validate spec.json",

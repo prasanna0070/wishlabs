@@ -1,4 +1,4 @@
-"""Command line for the Gadget Studio engine.
+"""Command line for the Wish Labs engine.
 
   python -m gstudio build    <spec.json> <out> [--only cad,pcb] [--fast] [--version N] [--brief-file brief.json]
                              [--stories-audio | --no-stories-audio] [--price-check live|cache_only|off] [--no-auto-repair]
@@ -142,7 +142,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def make_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="gstudio", description="Gadget Studio engine")
+    p = argparse.ArgumentParser(prog="gstudio", description="Wish Labs engine")
     sub = p.add_subparsers(dest="cmd", required=True)
     b = sub.add_parser("build", help="build every artefact for a spec")
     b.add_argument("spec")

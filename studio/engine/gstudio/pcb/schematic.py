@@ -371,7 +371,7 @@ def write_schematic(design: Design, path: Path, gen_nodes: list[list], project: 
         y += rh + gap
 
     tb = ["title_block", ["title", Q(f"BP1 backplane {design.backplane_id} for {design.slug}")],
-          ["date", Q(design.date)], ["rev", Q(design.revision)], ["company", Q("Gadget Studio")],
+          ["date", Q(design.date)], ["rev", Q(design.revision)], ["company", Q("Wish Labs")],
           ["comment", 1, Q(f"Engine {design.engine_version}; design id {design.design_id}")],
           ["comment", 2, Q("Generated programmatically. Digital checks only; no physical test made.")],
           ["comment", 3, Q(f"{len(design.used_slots)} slots populated; omitted: " + (", ".join(design.omitted_slots) or "none"))]]

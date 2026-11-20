@@ -1,7 +1,7 @@
 {
   "name": "gs_core",
   "version": "1.0.0",
-  "description": "Gadget Studio hardware-free logic: button timing, crash-safe memory record, story sequencing, interaction controllers. Builds for the ESP32-S3 and for the native unit tests.",
+  "description": "Wish Labs hardware-free logic: button timing, crash-safe memory record, story sequencing, interaction controllers. Builds for the ESP32-S3 and for the native unit tests.",
   "frameworks": "*",
   "platforms": "*",
   "build": {

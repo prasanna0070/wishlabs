@@ -7,7 +7,12 @@ string-pulled, smoothed, and swept as a circle along a spline. Lengths are recor
 
 from __future__ import annotations
 
+import contextlib
 import math
+import os
+import pickle
+import subprocess
+import sys
 
 import cadquery as cq
 import numpy as np
@@ -19,9 +24,8 @@ CABLE_D = {2: 2.6, 3: 3.0, 4: 3.4, 5: 3.7, 6: 4.0, 7: 4.3, 8: 4.6}
 CABLE_COLOR = {2: (0.62, 0.14, 0.12), 3: (0.20, 0.20, 0.22), 4: (0.16, 0.30, 0.62), 6: (0.30, 0.42, 0.20), 8: (0.42, 0.30, 0.52)}
 
 
-def _polydata(shapes, tol=0.4, ang=0.6):
-    import pyvista as pv
-
+def _mesh_arrays(shapes, tol=0.4, ang=0.6):
+    """(verts[N, 3], legacy VTK faces [3, i, j, k, ...]) of the shapes' triangulation, or None."""
     vs, fs, off = [], [], 0
     for s in shapes:
         v, _, t, _ = tessellate(s, tol, ang, fresh=True)
@@ -32,33 +36,146 @@ def _polydata(shapes, tol=0.4, ang=0.6):
         off += len(v)
     if not vs:
         return None
-    return pv.PolyData(np.vstack(vs), np.vstack(fs).ravel())
+    return np.ascontiguousarray(np.vstack(vs), dtype=float), np.ascontiguousarray(np.vstack(fs).ravel(), dtype=np.int64)
 
 
-def _signed(poly, pts):
+def _vtk_signed(mesh, pts):
+    """VTK implicit distance from points to a triangle mesh (negative inside)."""
     import pyvista as pv
 
-    cloud = pv.PolyData(pts)
-    return np.asarray(cloud.compute_implicit_distance(poly)["implicit_distance"])
+    cloud = pv.PolyData(np.ascontiguousarray(pts, dtype=float))
+    return np.array(cloud.compute_implicit_distance(mesh)["implicit_distance"], dtype=float)
+
+
+def _vtk_mesh(verts, faces):
+    import pyvista as pv
+
+    return pv.PolyData(verts, faces, deep=True)
+
+
+# The worker imports only numpy and pyvista (no cadquery/OCP): the same arrays never crashed in such a process.
+_SD_WORKER = """
+import pickle, sys
+import numpy as np
+import pyvista as pv
+
+
+def _vtk_mesh(verts, faces):
+    return pv.PolyData(verts, faces, deep=True)
+
+
+def _vtk_signed(mesh, pts):
+    cloud = pv.PolyData(np.ascontiguousarray(pts, dtype=float))
+    return np.array(cloud.compute_implicit_distance(mesh)["implicit_distance"], dtype=float)
+
+
+import os
+out = os.fdopen(os.dup(1), "wb")  # the pipe to the parent; anything VTK prints to stdout goes to stderr instead
+os.dup2(2, 1)
+inp, meshes = sys.stdin.buffer, {}
+while True:
+    try:
+        req = pickle.load(inp)
+    except EOFError:
+        break
+    try:
+        if req[0] == "mesh":
+            meshes[req[1]] = _vtk_mesh(req[2], req[3])
+            res = ("ok", True)
+        else:
+            res = ("ok", _vtk_signed(meshes[req[1]], req[2]))
+    except Exception as e:
+        res = ("err", repr(e))
+    pickle.dump(res, out, protocol=pickle.HIGHEST_PROTOCOL)
+    out.flush()
+"""
+
+
+class Distances:
+    """Signed distances (VTK implicit distance) computed in a fresh Python process that holds the meshes.
+
+    In the CAD stage process, after the OCC build, vtkImplicitPolyDataDistance segfaulted on some bodies, at random:
+    on the VM p_wbgxdewi897y v1 died in 7 of 9 runs (p_fzumtfr9a5dn v1 in 1 of 4), also with deep, contiguous copies,
+    while the very same mesh and query arrays, saved from a crashing run, never crashed when replayed in a fresh process. A segfault there kills the whole CAD
+    stage ("stage process died (signal 11)"). In the worker it only loses the cable routes: the call raises, and
+    build() records "cable routing failed" and finishes the CAD. GS_CABLE_SD_INPROCESS=1 restores in-process calls."""
+
+    def __init__(self):
+        self.p = None
+        self.n = 0
+        self.local: dict = {}
+        if os.environ.get("GS_CABLE_SD_INPROCESS") == "1":
+            return
+        try:
+            self.p = subprocess.Popen([sys.executable, "-c", _SD_WORKER], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                      stderr=subprocess.DEVNULL)
+        except OSError:  # no worker: in-process, as before
+            self.p = None
+
+    def _call(self, req):
+        try:
+            pickle.dump(req, self.p.stdin, protocol=pickle.HIGHEST_PROTOCOL)
+            self.p.stdin.flush()
+            kind, res = pickle.load(self.p.stdout)
+        except (EOFError, OSError, pickle.UnpicklingError) as e:
+            try:
+                code = self.p.wait(5)
+            except Exception:  # noqa: BLE001
+                code = None
+            how = f"signal {-code}" if code is not None and code < 0 else f"exit code {code}"
+            raise RuntimeError(f"the signed-distance worker died ({how})") from e
+        if kind != "ok":
+            raise RuntimeError(f"signed-distance worker: {res}")
+        return res
+
+    def mesh(self, arrays) -> int:
+        self.n += 1
+        if self.p is None:
+            self.local[self.n] = _vtk_mesh(*arrays)
+        else:
+            self._call(("mesh", self.n, arrays[0], arrays[1]))
+        return self.n
+
+    def signed(self, key: int, pts) -> np.ndarray:
+        pts = np.ascontiguousarray(np.atleast_2d(np.asarray(pts, dtype=float)))
+        if self.p is None:
+            return _vtk_signed(self.local[key], pts)
+        return self._call(("sd", key, pts))
+
+    def close(self) -> None:
+        if self.p is None:
+            return
+        with contextlib.suppress(Exception):
+            self.p.stdin.close()
+        try:
+            self.p.wait(10)
+        except Exception:  # noqa: BLE001
+            self.p.kill()
+        with contextlib.suppress(Exception):
+            self.p.stdout.close()
+        self.p = None
 
 
 class FreeSpace:
-    def __init__(self, cavity: cq.Shape, obstacles: list, h: float = 2.5, margin: float = 2.6):
+    def __init__(self, cavity: cq.Shape, obstacles: list, h: float = 2.5, margin: float = 2.6, sd: Distances | None = None):
         b = cavity.BoundingBox()
         self.h = h
         self.o = np.array([b.xmin, b.ymin, b.zmin])
         self.n = np.maximum(np.ceil(np.array([b.xlen, b.ylen, b.zlen]) / h).astype(int) + 1, 2)
         ii = np.indices(self.n).reshape(3, -1).T
         self.pts = self.o + ii * h
-        cav = _polydata([cavity], 0.3, 0.5)
-        self.cav_poly = cav
-        dc = _signed(cav, self.pts)
+        self.sd = sd if sd is not None else Distances()
+        cav = _mesh_arrays([cavity], 0.3, 0.5)
+        if cav is None:
+            raise ValueError("the cavity has no triangulation")
+        self.cav_key = self.sd.mesh(cav)
+        dc = self.sd.signed(self.cav_key, self.pts)
         inside = dc < -margin
         do = np.full(len(self.pts), 1e3)
-        obs = _polydata(obstacles)
-        self.obs_poly = obs
-        if obs is not None and inside.any():
-            do[inside] = _signed(obs, self.pts[inside])  # only points already inside the cavity
+        obs = _mesh_arrays(obstacles)
+        self.obs_key = self.sd.mesh(obs) if obs is not None else None
+        if self.obs_key is not None and inside.any():
+            do[inside] = self.sd.signed(self.obs_key, self.pts[inside])  # only points already inside the cavity
         self.clear = np.minimum(-dc, do)  # distance to the nearest wall/obstacle (positive = free)
         self.free = self.clear > margin
         self.margin = margin
@@ -86,9 +203,9 @@ class FreeSpace:
     def exact_clear(self, pts) -> np.ndarray:
         """Exact distance from points to the nearest obstacle or cavity wall (VTK implicit distance, not the voxel grid)."""
         pts = np.atleast_2d(np.asarray(pts, float))
-        c = -_signed(self.cav_poly, pts)
-        if self.obs_poly is not None:
-            c = np.minimum(c, _signed(self.obs_poly, pts))
+        c = -self.sd.signed(self.cav_key, pts)
+        if self.obs_key is not None:
+            c = np.minimum(c, self.sd.signed(self.obs_key, pts))
         return c
 
     def segment_free(self, a, b) -> bool:
@@ -267,10 +384,21 @@ def place_slack_loop(fs: FreeSpace, near: list, slack: float, d: float, taken: l
 
 
 def route_all(M, kits, cart, params, cavity, ties: list | None = None) -> tuple[list, list]:
-    warns = []
     obstacles = [M.shapes["shell"], M.shapes["other"]] + [s for p in M.parts if p.name not in ("PRINT_Shell", "PRINT_RearCover", "PRINT_BasePlate")
                                                            for _, s, _ in p.subparts]
-    fs = FreeSpace(cavity, obstacles, h=3.0, margin=2.6)
+    sd = Distances()
+    n_parts = len(M.parts)
+    try:
+        return _route_all(M, kits, cart, params, FreeSpace(cavity, obstacles, h=3.0, margin=2.6, sd=sd), ties)
+    except Exception:
+        del M.parts[n_parts:]  # no half-routed cable parts without their route records
+        raise
+    finally:
+        sd.close()
+
+
+def _route_all(M, kits, cart, params, fs: FreeSpace, ties: list | None) -> tuple[list, list]:
+    warns = []
     G = _graph(fs)
     routes = []
     taken_loops: list = []
