@@ -285,8 +285,10 @@ class PromptBuilder:
                    "does not read and never promise what it would do (for example a distance sensor that checks a bowl).\n"
                    "- Every gadget runs one of our firmware apps (story_player, desk_companion, notifier_clock, "
                    "ambient_light, sensor_display). When part of a wish needs something no app does (for example "
-                   "looking words up online, or speech recognition), the hardware can still be designed: say plainly "
-                   "which part it cannot do yet.")
+                   "looking words up online, a talking dictionary, or understanding speech), the hardware can still be "
+                   "designed: say plainly in your first reply and again in the concepts message which part it cannot do "
+                   "yet (e.g. \"It will not look words up or understand speech yet.\"), and never describe the "
+                   "concepts as doing it.")
         moving = "- Nothing mobile, no heaters, nothing safety-critical. Indoor desk or bedside use.\n" + (
             SERVO_SENTENCE if servo else "- No motors or other actuators.")
         # the timetable ships with hack/cat-b-sched: switch `schedule` (or the motion pack, whose examples need it)
