@@ -27,7 +27,7 @@ from __future__ import annotations
 import math
 from typing import Any, Optional
 
-from .envelope import fit_orientations, full_envelope
+from .envelope import fit_orientations, full_envelope, rounded_extrusion_sdf, silhouette_rounds
 from .errors import SpecError
 from .spec import (
     PRINTED_MIN_SIZE, SCULPT_KINDS, _rot_matrix, BlobBody, DCartridge, DHardware, DHarness, DInstance, Derived, Feature, RevolveBody, SilhouetteBody,
@@ -177,10 +177,12 @@ class ShellGeometry:
         self.body = b
         self.wall = b.wall
         self.family = b.family
+        self.rounds = None  # silhouette (front, rear) perimeter rounds, for fit_sdf
         if isinstance(b, SilhouetteBody):
             self.poly = Poly2D(outline_points(b, 6))
             x0, x1, _, z1 = self.poly.bb
             self.bbox = (x0, x1, -b.depth / 2, b.depth / 2, 0.0, z1)
+            self.rounds = silhouette_rounds(b)
         elif isinstance(b, RevolveBody):
             pts = list(b.profile)
             n = len(pts)
@@ -206,6 +208,13 @@ class ShellGeometry:
             return d * min(1.0, b.squash_y) if d < 0 else d
         d = min(_prim_sdf(p, x, y, z) for p in b.primitives)
         return max(d, -z)
+
+    def fit_sdf(self, x: float, y: float, z: float) -> float:
+        """outer_sdf with a silhouette's front and rear perimeter rounds (envelope.rounded_extrusion_sdf), for fit checks
+        next to those rounds: the core cartridge sits on the floor right behind the front-bottom round."""
+        if self.rounds is not None:
+            return rounded_extrusion_sdf(self.poly.sdf(x, z), y, self.body.depth, self.rounds[0], self.rounds[1])
+        return self.outer_sdf(x, y, z)
 
     def inside(self, x: float, y: float, z: float, margin: float = 0.0) -> bool:
         """True when the point lies in the inner cavity with `margin` mm to the inner wall surface."""
@@ -688,6 +697,11 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
             need_w = (kx1 - kx0) + 2 * CLEAR + 2 * geom.wall
             need_d = (ky1 - ky0) + CLEAR + rear_gap + 2 * geom.wall
             fix = f"make the lower body at least {need_w:.0f} mm wide and {need_d:.0f} mm deep for the first {kz + floor:.0f} mm of height"
+            if isinstance(sp.body, SilhouetteBody) and "base-plate opening" not in why:
+                alt = _silhouette_cartridge_fix(sp, W, (kx0, kx1, ky0, ky1), floor, kz, rear_gap, kb, bosses,
+                                                cart["board_bottom_above_floor"], cart["holes"], usb_bx)
+                if alt:
+                    fix = f"{alt} (the front edge round takes room at the floor); or {fix}"
             if "base-plate opening" in why:
                 fix = (f"the board goes in through the base-plate opening: make the flat bottom at least {kx1 - kx0 + 2 * geom.wall:.0f} x "
                        f"{ky1 - ky0 + 2 * geom.wall:.0f} mm (smaller bottom fillets), or use split rear_cover")
@@ -775,6 +789,9 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
     nudges = kit_conflicts(sp, lib, placed, fboxes)
     for c in kit_shell_conflicts(sp, lib, geom, placed):
         _err(errors, f"features[{sp.features.index(sp.feature(c['feature']))}].at", c["msg"], c["fix"], "kit_shell")
+    if sp.body.split == "rear_cover":
+        for c in kit_seam_conflicts(sp, lib, geom, placed, seam_y(geom, W, floor)):
+            _err(errors, f"features[{sp.features.index(sp.feature(c['feature']))}].at", c["msg"], c["fix"], "kit_seam")
     for c in nudges:
         if frozenset((c["a"], c["b"])) in clashed:
             continue
@@ -1153,18 +1170,19 @@ def _place_cartridge(geom: ShellGeometry, W, plan, floor, kz, rear_gap, kb=0.0, 
     if y_cap is not None and y0 > y_cap:
         y0 = y_cap
 
-    def fits(yo):
+    def fits(yo, z_bottom=1.0):
         xs = _lin(wx0 - CLEAR, wx1 + CLEAR, (wx1 - wx0 + 2 * CLEAR) / 8)
         ys = _lin(yo + ky0 - CLEAR, yo + ky1 + CLEAR - 0.3, (ky1 - ky0 + 2 * CLEAR - 0.3) / 8)
-        zs = (floor + 1.0, floor + kz * 0.5, floor + kz)
+        # checked against the cavity with the silhouette's edge rounds (fit_sdf), like gstudio.cad.enclosure
+        zs = (floor + z_bottom, floor + kz * 0.5, floor + kz)
         for z in zs:
             for x in xs:
                 for yy in (ys[0], ys[-1]):
-                    if geom.outer_sdf(x, yy, z) > -geom.wall:
+                    if geom.fit_sdf(x, yy, z) > -geom.wall:
                         return False, f"wall reached at x={x:.0f}, y={yy:.0f}, z={z:.0f}"
             for yy in ys:
                 for x in (xs[0], xs[-1]):
-                    if geom.outer_sdf(x, yy, z) > -geom.wall:
+                    if geom.fit_sdf(x, yy, z) > -geom.wall:
                         return False, f"wall reached at x={x:.0f}, y={yy:.0f}, z={z:.0f}"
         if base_plate:
             pxs = _lin(wx0, wx1, (wx1 - wx0) / 8)
@@ -1181,15 +1199,46 @@ def _place_cartridge(geom: ShellGeometry, W, plan, floor, kz, rear_gap, kb=0.0, 
         return True, ""
 
     first, opening = "", False
-    for _ in range(80):
-        ok, why = fits(y0)
-        if ok:
-            box = (wx0, wx1, y0 + ky0, y0 + ky1, floor, floor + kz)
-            return y0, box, ""
-        first = first or why  # the reason at the rear-most position is the meaningful one
-        opening = opening or "base-plate opening" in why
-        y0 -= step
+    y_start = y0
+    # pass 1 from 1 mm above the floor (every design that fitted before keeps its place); when no position fits, pass 2
+    # from the keep-out's own bottom (backplane-v1 keepout_bottom_above_floor: below it only the 4 printed bosses reach
+    # the floor, and they blend into the wall). Same two passes as gstudio.cad.enclosure.place_cartridge.
+    for z_bottom in ((1.0, float(kb)) if kb and kb > 1.0 else (1.0,)):
+        y0 = y_start
+        for _ in range(80):
+            ok, why = fits(y0, z_bottom)
+            if ok:
+                box = (wx0, wx1, y0 + ky0, y0 + ky1, floor, floor + kz)
+                return y0, box, ""
+            first = first or why  # the reason at the rear-most position is the meaningful one
+            opening = opening or "base-plate opening" in why
+            y0 -= step
     return None, None, first + ("; the plan also never fits the base-plate opening" if opening and "base-plate opening" not in first else "")
+
+
+def _silhouette_cartridge_fix(sp: Spec, W, plan, floor, kz, rear_gap, kb, bosses, boss_top, holes, usb_bx) -> str:
+    """The smallest listed change that lets the core cartridge fit a silhouette: a smaller edge_round or a deeper body
+    (a few candidates only; normalize stays fast). '' when none of them helps."""
+    b = sp.body
+    holes_y = max(h["at"][1] for h in holes)
+
+    def fits_with(**upd) -> bool:
+        g2 = ShellGeometry(sp.model_copy(update={"body": b.model_copy(update=upd)}))
+        cap = seam_y(g2, W, floor) - SEAM_BOSS_MARGIN - holes_y if b.split == "rear_cover" else None
+        y2, _, _ = _place_cartridge(g2, W, plan, floor, kz, rear_gap, kb, bosses, boss_top, cap, usb_bx=usb_bx)
+        return y2 is not None
+
+    out = []
+    er = float(b.edge_round)
+    for r in sorted({round(er * k) for k in (0.75, 0.6, 0.45)} | {6, 4}, reverse=True):
+        if 2 <= r < er and fits_with(edge_round=float(r)):
+            out.append(f"set body.edge_round to {r} or less")
+            break
+    for dd in (6, 10, 16, 24):
+        if fits_with(depth=float(b.depth) + dd):
+            out.append(f"make body.depth at least {b.depth + dd:g} mm")
+            break
+    return " or ".join(out)
 
 
 def boss_warnings(geom: ShellGeometry, bosses, y_off, floor, boss_top) -> list[str]:
@@ -1368,6 +1417,45 @@ def kit_shell_conflicts(sp: Spec, lib, geom: "ShellGeometry", features: list, to
                                f"x {px:.0f}, y {py:.0f}, z {pz:.0f}",
                         "fix": f"move {f.id} toward the middle of the {f.face} face, away from the rounded edge "
                                f"(by {math.ceil(bad + 2):.0f} mm or more)"})
+    return out
+
+
+SEAM_LIP_REACH = 3.0 + 0.5  # the rear cover's locating lip (and its screw tubes) reach 3 mm in front of the seam, + 0.5 gap
+
+
+def kit_seam_conflicts(sp: Spec, lib, geom: "ShellGeometry", features: list, y_seam: float) -> list[dict]:
+    """Top, left and right kits on a rear_cover design whose parts or shell pads reach the rear cover: the cover's lip
+    sits SEAM_LIP_REACH mm in front of the seam all round the inner wall, so anything of a kit further back collides
+    with the cover or is cut by the seam. Live 2026-11-20 (focus-lamp p_r4yikwxy497q): a top speaker at y 20 whose clamp
+    ring reached y 48.8 with the seam at 42.6 (PRINT_RearCover / PRINT_SpeakerRing and shell / cover collisions).
+    Rear-face kits are refused separately (rear_cover_face). Needs gstudio.cad.footprint; [] without it."""
+    FP = _footprint_module()
+    if FP is None:
+        return []
+    limit = y_seam - SEAM_LIP_REACH
+    out = []
+    for f in features:
+        if f.face not in ("top", "left", "right"):
+            continue
+        try:
+            boxes = FP.kit_footprint(f, None, others=features, skin=sp.body.wall, lib_get=lib.get)
+        except Exception:
+            continue
+        t = geom.surface_depth(f.face, f.at[0], f.at[1])
+        if t is None:
+            continue
+        o, d = geom._ray(f.face, f.at[0], f.at[1], 400.0)
+        s_surf = (o[0] + d[0] * t, o[1] + d[1] * t, o[2] + d[2] * t)[{"left": 0, "right": 0, "top": 2}[f.face]]
+        ys = [FP.to_world(b, s_surf)[3] for b in boxes if b.get("kind") != "clearance"]
+        if not ys or max(ys) <= limit:
+            continue
+        over = max(ys) - limit
+        axis = 1 if f.face == "top" else 0  # the face coordinate that runs along y (top: at = [x, y]; sides: at = [y, z])
+        out.append({"feature": f.id, "mm": round(over, 1),
+                    "msg": f"{f.id}: its kit reaches y {max(ys):.0f}, into the removable rear cover (seam at y {y_seam:.0f}; the "
+                           f"cover's lip reaches 3 mm in front of the seam)",
+                    "fix": f"move {f.id} toward the front: at[{axis}] <= {f.at[axis] - math.ceil(over + 1):.0f} on the {f.face} face, "
+                           "or use body.split base_plate"})
     return out
 
 
