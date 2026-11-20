@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useEffect, useId, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Check, ChevronRight, Circle, CircleCheck, CircleDashed, CircleX, Hammer, RefreshCw, RotateCw, SlidersHorizontal } from "lucide-react";
 import { useProject, type TurnState } from "../../store/project";
 import { useNow, useVersionFile } from "../../lib/hooks";
@@ -11,6 +11,8 @@ import { rewriteShareUrl } from "../../lib/urls";
 import type { Build, ChatMessage, Concept, Status, StatusStage } from "../../lib/types";
 import { Markdown, ProgressBar, Spinner } from "../ui";
 import { BriefView } from "../BriefView";
+import { agoText, currentStepLabel, latestThought, minutesToUnlock } from "../../lib/working";
+import "./working.css";
 
 export function MessageView({ m, active }: { m: ChatMessage; active: string | null }) {
   if (m.role === "user") return <UserMessage m={m} />;
@@ -78,50 +80,183 @@ function UserMessage({ m }: { m: ChatMessage }) {
   );
 }
 
+/** Under the user message of a turn: the working card while it runs, a stale card if it stopped unexpectedly, then
+ * the "Worked for" pill with its steps and thinking. */
 export function TurnActivity({ t }: { t: TurnState }) {
-  const [open, setOpen] = useState(false);
-  const usage = useProject((s) => s.project?.usage?.turns?.find((u: any) => u.turn_id && u.turn_id === t.turnId));
-  const now = useNow(1000, t.running);
-  const secs = ((t.endedAt || now) - t.startedAt) / 1000;
-  const cur = [...t.steps].reverse().find((s) => s.state === "running");
+  if (t.running) return <WorkingCard t={t} />;
+  if (t.stale) return <StaleCard t={t} />;
+  return <FinishedActivity t={t} />;
+}
+
+/** A turn in progress, streamed here or followed from the server after a reload: spinner, elapsed time, the current
+ * step (announced politely), the newest thought in one line, and the model's thinking behind a toggle. */
+export function WorkingCard({ t, now: fixedNow, open: initiallyOpen = false }: { t: TurnState; now?: number; open?: boolean }) {
+  const [open, setOpen] = useState(initiallyOpen);
+  const step = currentStepLabel(t);
+  const latest = latestThought(t.thoughts);
+  const panelId = useId();
   const turns = useProject((s) => s.project?.usage?.turns);
   const pid = useProject((s) => s.project?.id);
-  const conceptTurn = t.running && isConceptTurn(t);
+  const conceptTurn = isConceptTurn(t);
   const eta = useMemo(() => (conceptTurn ? conceptEstimate(turns, pid) : null), [conceptTurn, turns, pid]);
+  return (
+    <div className="working-card" role="group" aria-label="The assistant is working on your message">
+      <div className="wc-head">
+        <Spinner />
+        <strong>Working on it</strong>
+        <Elapsed since={t.startedAt} now={fixedNow} on={t.running} />
+      </div>
+      <div className="wc-step" aria-live="polite" aria-atomic="true">
+        {`${step}…`}
+      </div>
+      {latest && !open ? (
+        <p className="wc-latest" title={latest}>
+          {latest}
+        </p>
+      ) : null}
+      <button type="button" className="wc-toggle" aria-expanded={open} aria-controls={panelId} onClick={() => setOpen(!open)}>
+        <ChevronRight size={14} className={open ? "rot" : ""} aria-hidden="true" />
+        {open ? "Hide thinking" : "Show thinking"}
+      </button>
+      <div id={panelId} className="wc-panel" hidden={!open}>
+        {open ? <ThinkingPanel t={t} /> : null}
+      </div>
+      {t.quiet ? (
+        // the server has had no progress write for over a minute (an instance restart, say); its lock still holds
+        <div className="wc-note wc-quiet">
+          No progress for over a minute, so it may have stopped. If nothing changes, you can try again in about {minutesToUnlock(t.startedAt, fixedNow)} min.
+        </div>
+      ) : null}
+      {conceptTurn ? (
+        <div className="wc-note">
+          Concepts with photos usually take {waitText(eta)}
+          {eta ? ` here (last ${eta.n === 1 ? "concept turn" : `${eta.n} concept turns`})` : ""}.
+        </div>
+      ) : null}
+      <div className="wc-note">It keeps working if you leave or reload this page.</div>
+    </div>
+  );
+}
+
+/** The card's ticking clock, in its own component: the 1 s tick re-renders only this, never the thinking's Markdown. */
+function Elapsed({ since, now: fixedNow, on }: { since: number; now?: number; on: boolean }) {
+  const ticking = useNow(1000, on && fixedNow == null);
+  const secs = Math.max(0, ((fixedNow ?? ticking) - since) / 1000);
+  return (
+    <span className="wc-time" aria-label={`for ${duration(secs)}`}>
+      {duration(secs)}
+    </span>
+  );
+}
+
+/** Thought summaries as Markdown, parsed again only when the text changes (up to 30 KB while a turn runs). */
+const Thoughts = memo(function Thoughts({ text }: { text: string }) {
+  return <Markdown text={text} className="compact" />;
+});
+
+/** The steps so far (with a repair round's reason) and the model's thought summaries, newest at the bottom. */
+export function ThinkingPanel({ t }: { t: TurnState }) {
+  const box = useRef<HTMLDivElement>(null);
+  const stick = useRef(true);
+  useEffect(() => {
+    const el = box.current;
+    if (el && stick.current) el.scrollTop = el.scrollHeight; // follow new thoughts unless the reader scrolled up
+  }, [t.thoughts]);
+  return (
+    <>
+      {t.steps.length ? (
+        <ol className="wc-steps" aria-label="Steps so far">
+          {t.steps.map((s) => (
+            <li key={s.id} className={s.state}>
+              {s.state === "running" ? <Spinner /> : s.state === "error" ? <CircleX size={14} aria-hidden="true" /> : <Check size={14} aria-hidden="true" />}
+              <span>
+                {s.label || "Done"}
+                {s.detail ? <span className="detail">{s.detail}</span> : null}
+              </span>
+            </li>
+          ))}
+        </ol>
+      ) : null}
+      {t.thoughts ? (
+        <div
+          className="wc-thoughts"
+          ref={box}
+          tabIndex={0}
+          role="region"
+          aria-label="The assistant's thinking"
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+          }}
+        >
+          <Thoughts text={t.thoughts} />
+        </div>
+      ) : (
+        <p className="wc-empty">No thoughts shared yet. The steps update as it works.</p>
+      )}
+    </>
+  );
+}
+
+/** The server holds a turn lock older than 15 minutes: the turn stopped (an instance restart, a crash). A polite status,
+ * not an alert: it shows on every open of a project with an old lock. */
+export function StaleCard({ t, now }: { t: TurnState; now?: number }) {
+  const retry = useProject((s) => s.retryLast);
+  const readOnly = useProject((s) => s.readOnly);
+  const secs = ((now ?? Date.now()) - t.startedAt) / 1000;
+  return (
+    <div className="working-card stale" role="status">
+      <div className="wc-head">
+        <AlertTriangle size={16} aria-hidden="true" />
+        <strong>The last step stopped unexpectedly</strong>
+      </div>
+      <p className="wc-step">
+        It started {agoText(secs)} and did not finish{t.status && t.status !== "Working" ? ` (last step: ${t.status})` : ""}. Your message is saved, so you can send it again.
+      </p>
+      {!readOnly ? (
+        <button type="button" className="btn sm wc-retry" onClick={() => void retry()}>
+          <RotateCw size={14} aria-hidden="true" /> Retry
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function FinishedActivity({ t }: { t: TurnState }) {
+  const [open, setOpen] = useState(false);
+  const usage = useProject((s) => s.project?.usage?.turns?.find((u: any) => u.turn_id && u.turn_id === t.turnId));
+  const secs = ((t.endedAt || Date.now()) - t.startedAt) / 1000;
   return (
     <div className="activity">
       <button className="activity-pill" onClick={() => setOpen(!open)} aria-expanded={open}>
         <ChevronRight size={14} className={open ? "rot" : ""} />
-        {t.running ? `Working for ${duration(secs)}` : `Worked for ${duration(secs)}`}
+        Worked for {duration(secs)}
       </button>
-      {t.running && cur ? (
-        <div className="activity-now">
-          <Spinner /> {cur.label}…
-        </div>
-      ) : null}
-      {conceptTurn ? (
-        <div className="activity-eta muted small">
-          Concepts with photos usually take {waitText(eta)}{eta ? ` here (last ${eta.n === 1 ? "concept turn" : `${eta.n} concept turns`})` : ""}. It keeps working if you leave this page.
-        </div>
-      ) : null}
       {open ? (
-        <ul className="activity-steps">
-          {t.steps.map((s) => (
-            <li key={s.id} className={s.state}>
-              {s.state === "running" ? <Spinner /> : s.state === "error" ? <CircleX size={14} /> : <Check size={14} />}
-              <span>{s.label || "Done"}</span>
-            </li>
-          ))}
-          {usage ? (
-            <li className="usage">
-              <span className="muted">
-                {fmtTok((usage.input_tokens || 0) + (usage.output_tokens || 0) + (usage.thinking_tokens || 0))} tokens
-                {usage.images ? ` · ${usage.images} images` : ""}
-                {usage.cost_usd_est != null ? ` · about $${Number(usage.cost_usd_est).toFixed(2)} (estimate)` : ""}
-              </span>
-            </li>
+        <>
+          <ul className="activity-steps">
+            {t.steps.map((s) => (
+              <li key={s.id} className={s.state}>
+                {s.state === "error" ? <CircleX size={14} /> : <Check size={14} />}
+                <span>{s.label || "Done"}</span>
+              </li>
+            ))}
+            {usage ? (
+              <li className="usage">
+                <span className="muted">
+                  {fmtTok((usage.input_tokens || 0) + (usage.output_tokens || 0) + (usage.thinking_tokens || 0))} tokens
+                  {usage.images ? ` · ${usage.images} images` : ""}
+                  {usage.cost_usd_est != null ? ` · about $${Number(usage.cost_usd_est).toFixed(2)} (estimate)` : ""}
+                </span>
+              </li>
+            ) : null}
+          </ul>
+          {t.thoughts ? (
+            <div className="wc-thoughts wc-thoughts-done" tabIndex={0} role="region" aria-label="The assistant's thinking">
+              <Thoughts text={t.thoughts} />
+            </div>
           ) : null}
-        </ul>
+        </>
       ) : null}
     </div>
   );

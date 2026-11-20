@@ -43,11 +43,14 @@ def test_every_library_feature_module_resolves():
     from gstudio.cad.modules import describe
     from gstudio.library import Library
 
+    from gstudio.cad import kits_ext
+
     lib = Library()
     for m in lib.aperture_modules():
         d = describe(m)
-        assert d["kind"] in {"display", "speaker", "snap_button", "tactile", "led", "led_ring", "mic", "touch", "sensor_window", "sensor", "generic"}, (m["id"], d["kind"])
-        if d["kind"] not in ("speaker", "snap_button"):
+        # a row of a pack that is on (library/packs/enabled.json) may resolve to a kit kind its pack registers (kits_ext)
+        assert d["kind"] in {"display", "speaker", "snap_button", "tactile", "led", "led_ring", "mic", "touch", "sensor_window", "sensor", "generic"} or kits_ext.is_pack_kind(d["kind"]), (m["id"], d["kind"])
+        if d["kind"] not in ("speaker", "snap_button") and not kits_ext.is_pack_kind(d["kind"]):  # pack kits: own table
             assert d["pcb"]["w"] > 0 and d["pcb"]["h"] > 0
 
 

@@ -2,7 +2,7 @@
 
 `modules.json` is the merged library (foundation). Only these modules may appear in a design spec. Sources: `modules-a.json` (rows 01-07, 14-18, 20-24, 37) and `modules-b.json` (rows 08-13, 19, 25-33, 36, 38, 41-50); their `*-notes.md` explain every choice. Regenerate with `python3 -I tools/merge_modules.py` after either source changes, and the backplane with `python3 -I tools/gen_backplane_v1.py` (run that first).
 
-Optional packs (`packs/<name>.json`, CATALOG-PLAN 0.5) add rows marked `pack`; a row whose pack is off (`packs/enabled.json`, env `GS_PACKS_ENABLED` / `GS_PACKS_OFF`) is invisible to `gstudio.library.Library`. No pack rows in this file.
+Optional packs (`packs/<name>.json`, CATALOG-PLAN 0.5) add rows marked `pack`; a row whose pack is off (`packs/enabled.json`, env `GS_PACKS_ENABLED` / `GS_PACKS_OFF`) is invisible to `gstudio.library.Library`. Pack rows in this file: FLOAT_SWITCH_VERTICAL_PP (sensing), SERVO_MG90S_ARM (motion), SERVO_SG90_ARM (motion), SOIL_CAP_V12_ANALOG (sensing).
 
 Prices are blueprint §3.3 planning ranges (INR, often excluding GST and labour), not quotes. Every unverified number is listed in that module's `uncertain`. `v1` = how the module connects on `backplane-v1.json`.
 
@@ -131,6 +131,10 @@ Prices are blueprint §3.3 planning ranges (INR, often excluding GST and labour)
 | `SHELL_PANEL_FASTENED_V0` | 48 | panel | Standard fastened removable shell panel (our printed part; constraints only) | ? × ? × ? | none | none | 30-150 |
 | `TEST_JIG_TAGCONNECT_TC2030_NL` | 49 | test_interface | Factory test/programming interface: Tag-Connect TC2030-NL footprint (+ 2.54 mm pogo alternative) | 5.08 × 2.03 × 0 | none | none | 20-110 |
 | `LABEL_QR_POLYESTER_50X25_PACK` | 50 | label | Device ID label (QR + serial, silver/white polyester, thermal transfer) + packing kit | 50 × 25 × 0.1 | none | none | 30-150 |
+| `SERVO_SG90_ARM` | P-motion-1 | servo | Micro servo TowerPro SG90 with a printed arm or flap | 32.2 × 12.2 × 31 | shaft_hole | J_LED | 100-250 |
+| `SERVO_MG90S_ARM` | P-motion-2 | servo | Micro servo MG90S (metal gear) with a printed arm or flap | 32.2 × 12.5 × 31 | shaft_hole | J_LED | 120-300 |
+| `SOIL_CAP_V12_ANALOG` | P-sensing-1 | soil_moisture | Capacitive soil moisture probe v1.2 (analog out) | 98 × 23 × 4 | cable_exit | J_IO1/J_IO2/J_IO3 | 55-130 |
+| `FLOAT_SWITCH_VERTICAL_PP` | P-sensing-2 | level_switch | Vertical float level switch (PP, dry reed contact) | ? × ? × ? | cable_exit | J_IO1/J_IO2/J_IO3 | 100-200 |
 
 ## Schema (merged)
 
@@ -179,3 +183,5 @@ len = 100/150/200/300 mm. `CABLE_JSTPH_{3,4}P_300MM` are single-ended Evelta pig
 - PIR_AM312_MINI: module connector 'wire_leads' has no harness family; electrical falls back to the base harness made to drawing
 - SERVO_SG90_TOWERPRO: module connector 'wire_leads' has no harness family; electrical falls back to the base harness made to drawing
 - ENDSTOP_OMRON_SS01GL: module connector 'solder_pads' has no harness family; electrical falls back to the base harness made to drawing
+- SERVO_SG90_ARM: module connector 'wire_leads' has no harness family; electrical falls back to the base harness made to drawing
+- SERVO_MG90S_ARM: module connector 'wire_leads' has no harness family; electrical falls back to the base harness made to drawing

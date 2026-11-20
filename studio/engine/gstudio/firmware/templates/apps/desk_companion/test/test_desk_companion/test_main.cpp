@@ -2,6 +2,7 @@
 
 #include <string.h>
 
+#include "gs_motion_plan.h"
 #include "gs_templates.h"
 
 using namespace gs;
@@ -52,6 +53,47 @@ static void test_clap_detector_ignores_sustained_sound() {
   TEST_ASSERT_EQUAL(0, events);
 }
 
+// Motion pack: the servo planner behind a wave on tap (gs_core gs_motion_plan, driven by src/gs_motion.cpp).
+static void test_servo_wave_timing_and_settle() {
+  ServoPlanner p;
+  p.begin(90, 0);
+  TEST_ASSERT_TRUE(p.tick(0));  // the first output goes to rest (the angle at power-up is unknown)
+  TEST_ASSERT_EQUAL(90, p.angle());
+  TEST_ASSERT_FALSE(p.tick(10));
+  p.wave(2, 35, 90, 120, 100);
+  TEST_ASSERT_TRUE(p.busy());
+  uint8_t mx = 0, mn = 180;
+  uint32_t t = 100;
+  for (; t < 6000 && p.busy(); t += 10) {
+    p.tick(t);
+    if (p.angle() > mx) mx = p.angle();
+    if (p.angle() < mn) mn = p.angle();
+  }
+  // 35 + 70 + 70 + 70 + 35 = 280 degrees at 120 deg/s = 2.33 s (+ one 10 ms tick per step)
+  TEST_ASSERT_EQUAL(125, mx);
+  TEST_ASSERT_EQUAL(55, mn);
+  TEST_ASSERT_TRUE(t > 100 + 2300 && t < 100 + 2500);
+  TEST_ASSERT_EQUAL(90, p.angle());
+  TEST_ASSERT_FALSE(p.settled(t));
+  TEST_ASSERT_TRUE(p.settled(t + ServoPlanner::kSettleMs));
+}
+
+static void test_servo_wave_clamps_and_jumps() {
+  ServoPlanner p;
+  p.begin(150, 0);
+  p.tick(0);
+  p.wave(1, 60, 150, 0, 10);  // speed 0 = jump; 150 + 60 clamps to 180
+  TEST_ASSERT_TRUE(p.tick(20));
+  TEST_ASSERT_EQUAL(180, p.angle());
+  p.tick(30);
+  TEST_ASSERT_EQUAL(90, p.angle());
+  p.tick(40);
+  TEST_ASSERT_EQUAL(150, p.angle());
+  TEST_ASSERT_FALSE(p.busy());
+  p.wave(9, 10, 90, 0, 50);  // n is capped at 5 waves (11 steps)
+  TEST_ASSERT_EQUAL(11, p.queued());
+}
+
 void setUp(void) {}
 void tearDown(void) {}
 
@@ -61,5 +103,7 @@ int main(int, char**) {
   RUN_TEST(test_face_blinks_reacts_and_sleeps);
   RUN_TEST(test_clap_detector_single_and_double);
   RUN_TEST(test_clap_detector_ignores_sustained_sound);
+  RUN_TEST(test_servo_wave_timing_and_settle);
+  RUN_TEST(test_servo_wave_clamps_and_jumps);
   return UNITY_END();
 }

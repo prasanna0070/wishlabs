@@ -41,7 +41,9 @@ SOIL = {
     "aperture": {"needs": "cable_exit", "size_mm": {"w": 6, "h": 6}},
     "electrical": {"supply_v": "3.3-5.5", "logic_v": "3.3", "current_ma_typ": 5, "current_ma_max": 5, "bus": "analog"},
     "firmware": {"arduino_libraries": [], "driver_notes": "analogRead"}, "kicad": {"backplane_footprint": "NONE", "notes": ""},
-    "sourcing_in": [], "price_inr_planning": [55, 130], "evidence": ["unit test row"], "uncertain": ["unit test row"],
+    "sourcing_in": [{"vendor": "Probots", "url": "https://probots.co.in/test-soil.html", "price_inr_seen": 89,
+                     "seen_on": "2026-11-20", "status": "page_read", "stock": "ships in 5 days", "notes": "test row"}],
+    "price_inr_planning": [55, 130], "evidence": ["unit test row"], "uncertain": ["unit test row"],
     "manual": {"word": "soil probe", "noun": "soil probe", "part_kind": "sensor", "mount_type": "cable exit"},
     "merge": {"role": "soil_moisture", "prefix": "SOIL", "placement": "feature", "designable": True,
               "port": {"port": "io", "slots": ["J_IO1", "J_IO2", "J_IO3"], "cable": {"family": "JST-PH 2.0", "pins": 3},
@@ -124,8 +126,17 @@ def test_pack_helpers_read_rules_and_examples(merged, monkeypatch):
     assert packs.prompt_rules(merged) == [("testpack", ["Test rule."])]
     ex = merged / "packs" / "examples" / "testpack" / "demo"
     ex.mkdir(parents=True)
-    (ex / "spec.json").write_text("{}", encoding="utf-8")
+    (ex / "spec.json").write_text(json.dumps(_example("desk-buddy")), encoding="utf-8")
+    bad = merged / "packs" / "examples" / "testpack" / "needs-printed"
+    bad.mkdir(parents=True)
+    printed = {"schema": "gadget-spec/1", "name": "Cup", "slug": "cup", "kind": "printed",
+               "body": {"family": "revolve", "profile": [[0, 0], [30, 0], [30, 60], [0, 60]], "split": "none", "feet": 0}}
+    (bad / "spec.json").write_text(json.dumps(printed), encoding="utf-8")
+    # d-to-e 9: an example that needs a pack that is off (printed) is not listed; listed again once that pack is on
     assert packs.example_specs(merged) == [ex / "spec.json"]
+    assert packs.example_specs(merged, loadable=False) == [ex / "spec.json", bad / "spec.json"]
+    monkeypatch.setenv("GS_PACKS_ENABLED", "testpack,printed")
+    assert packs.example_specs(merged) == [ex / "spec.json", bad / "spec.json"]
 
 
 # ------------------------------------------------------------------------------------------------ merge of a temp pack
@@ -139,6 +150,8 @@ def test_temp_pack_row_merges_to_a_wired_io_row(merged, monkeypatch):
     assert m["aperture"]["feature_allowed"] and m["aperture"]["required"] and m["merge"]["designable"]
     assert m["electrical"]["supply_rail"] == "+3V3" and m["manual"]["word"] == "soil probe"
     assert m["face_mm"] == [20, 12] and m["depth_mm"] == 15  # the in-shell envelope of a part that sits outside (c-to-e 1)
+    src = m["sourcing_in"][0]  # a pack's own stock words are kept as the basis; the field uses the vocabulary
+    assert src["stock"] == "unknown" and "ships in 5 days" in src["stock_basis"] and src["checked_at"] == "2026-11-20"
     monkeypatch.setenv("GS_PACKS_ENABLED", "testpack")
     lib = Library(merged)
     slot = lib.slot("J_IO1")
@@ -300,14 +313,21 @@ def test_notifier_clock_light_rule_names_only_visible_roles(monkeypatch):
     from gstudio.normalize import normalize
 
     _clean_env(monkeypatch)
+    # every pack off explicitly: the checkout's library/packs/enabled.json (integrator, hack/catalog) may switch motion on
+    monkeypatch.setenv("GS_PACKS_ENABLED", "")
     d = _example("desk-buddy")
     d["behaviour"] = {"template": "notifier_clock", "summary": "", "settings": {}}
     d["features"] = [f for f in d["features"] if Library().get(f["module"])["role"] != "led"]
     _, rep = normalize(d, Library())
     e = next(e for e in rep["errors"] if e.get("code") == "template_requirement" and "notifications" in e["msg"])
-    # no motion pack in this checkout: the agent is told about LEDs only, never about a servo it cannot see
+    # no motion pack: the agent is told about LEDs only, never about a servo it cannot see
     assert e["msg"] == "notifier_clock needs an LED feature for notifications"
     assert "servo" not in e["fix"] and "LED_RING_12_WS2812_50MM" in e["fix"]
+    if any(n == "motion" for n, _ in packs.pack_files()):  # with the motion pack on, the servo flag is named too
+        monkeypatch.setenv("GS_PACKS_ENABLED", "motion")
+        _, rep = normalize(d, Library())
+        e = next(e for e in rep["errors"] if e.get("code") == "template_requirement" and "notifications" in e["msg"])
+        assert e["msg"] == "notifier_clock needs an LED or a servo flag for notifications"
 
 
 def test_cable_exit_part_gets_the_longest_lead(merged, monkeypatch):

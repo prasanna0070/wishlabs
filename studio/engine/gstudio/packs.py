@@ -141,8 +141,10 @@ def prompt_rules(lib_dir: Optional[str | os.PathLike] = None) -> list[tuple[str,
     return out
 
 
-def example_specs(lib_dir: Optional[str | os.PathLike] = None) -> list[Path]:
-    """library/packs/examples/<pack>/<slug>/spec.json of the packs that are on (sorted)."""
+def example_specs(lib_dir: Optional[str | os.PathLike] = None, loadable: bool = True) -> list[Path]:
+    """library/packs/examples/<pack>/<slug>/spec.json of the packs that are on (sorted). With `loadable` (default) an
+    example whose spec does not load with the packs that are on (for example a printed + sculpt example while pack
+    printed is off: "not available yet") is left out, so nobody is shown or builds a spec it cannot use (d-to-e 9)."""
     d = packs_dir(lib_dir)
     if d is None:
         return []
@@ -152,7 +154,21 @@ def example_specs(lib_dir: Optional[str | os.PathLike] = None) -> list[Path]:
         ex = d / "examples" / name
         if ex.is_dir():
             out += sorted(p for p in ex.glob("*/spec.json") if p.is_file())
+    if loadable:
+        out = [p for p in out if _loads(p)]
     return out
+
+
+def _loads(p: Path) -> bool:
+    try:
+        from .spec import load_spec  # imported here: packs.py stays importable on its own
+    except Exception:  # noqa: BLE001 - without the spec module the file is kept
+        return True
+    try:
+        load_spec(p)
+    except Exception:  # noqa: BLE001 - SpecError: a field of a pack that is off, or a broken file
+        return False
+    return True
 
 
 __all__ = ["enabled", "enabled_set", "visible", "row_packs", "pack_files", "load_pack", "prompt_rules", "example_specs",

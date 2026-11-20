@@ -1,5 +1,6 @@
 // desk_companion: a face that blinks, smiles when touched and gets sleepy when left alone.
-// Tap: a smile and a chime. Hold: glow light on/off. Clap (with a microphone): a surprised face;
+// Tap: a smile and a chime, and with a servo arm (motion pack) a wave. Hold: glow light on/off (a design
+// with a servo arm has no LED: both use the only 5 V port). Clap (with a microphone): a surprised face;
 // a double clap toggles the light. Clap detection reads sound levels only: nothing is recorded,
 // stored or sent, and a small dot in the corner of the face shows while the microphone is on.
 #include <ArduinoJson.h>
@@ -12,6 +13,7 @@
 #include "gs_display.h"
 #include "gs_led.h"
 #include "gs_light.h"
+#include "gs_motion.h"
 #include "gs_templates.h"
 #include "hardware.h"
 
@@ -38,10 +40,12 @@ class DeskCompanionApp : public GsApp {
     clap_.set_threshold(GS_CFG_CLAP_THRESHOLD);
     face_.tick(now);
     face_.poke(now);
+    gsmotion::begin(GS_CFG_SERVO_REST_DEG);
     gsaudio::play_chime(gs::Chime::Ready);
   }
 
   void loop(uint32_t now) override {
+    gsmotion::tick(now);
     face_.tick(now);
     int16_t peak = 0;
     while (clap_on_ && gsaudio::mic_take_block_peak(&peak)) {
@@ -64,6 +68,7 @@ class DeskCompanionApp : public GsApp {
     (void)index;
     if (ev == gs::ButtonEvent::Tap) {
       face_.poke(now);
+      if (GS_CFG_SERVO_WAVE_ON_TAP) wave();
       if (GS_CFG_CHIME_ON_TAP) gsaudio::play_chime(gs::Chime::Saved);
     } else if (ev == gs::ButtonEvent::LongStart) {
       set_light(!light_on_);
@@ -79,12 +84,24 @@ class DeskCompanionApp : public GsApp {
     out["volume"] = gs_store().mem().volume;
     out["volume_max"] = GS_CFG_VOLUME_MAX;
     out["volume_note"] = "software setting, not a measured sound level";
+    if (gsmotion::present()) {
+      out["arm_angle"] = gsmotion::angle();
+      out["arm_moving"] = gsmotion::busy();
+      out["arm_note"] = GS_CFG_SERVO_WAVE_ON_TAP ? "The arm waves when you tap; it rests between waves."
+                                                  : "Wave on tap is off.";
+    }
   }
 
   int action(const char* name, JsonObjectConst a, JsonObject out, uint32_t now) override {
     if (!strcmp(name, "poke")) {
       face_.poke(now);
       return gs_reply(out, 200, "Said hello.");
+    }
+    if (!strcmp(name, "wave")) {
+      if (!gsmotion::present()) return gs_reply(out, 400, "This design has no servo arm.");
+      face_.poke(now);
+      wave();
+      return gs_reply(out, 200, "Waved.");
     }
     if (!strcmp(name, "chime")) {
       gsaudio::play_chime(gs::Chime::Saved);
@@ -110,6 +127,10 @@ class DeskCompanionApp : public GsApp {
   }
 
  private:
+  static void wave() {
+    gsmotion::wave(GS_CFG_SERVO_WAVES, GS_CFG_SERVO_WAVE_DEG, GS_CFG_SERVO_REST_DEG, GS_CFG_SERVO_SPEED_DEG_S);
+  }
+
   void set_light(bool on) {
     light_on_ = on;
     gs_store().set_app_byte(0, on ? 1 : 0);

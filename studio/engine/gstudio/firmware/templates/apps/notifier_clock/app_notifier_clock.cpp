@@ -1,7 +1,9 @@
 // notifier_clock: the time (from the internet time service, kept by the RTC when fitted) on the
 // display, and notifications from the local JSON API shown on the screen and the LED ring.
-// Tap the button to clear the top notification; hold to clear all. Quiet hours dim the ring and mute
-// the chime.
+// Daily reminders (settings `schedule`, 24-hour HH:MM) post a local notice with a chime at their time;
+// each stays until acknowledged. With a servo arm or flap (motion pack) and servo_on_notice, a due reminder
+// also opens it for servo_hold_s seconds, then closes it. Tap any button-kind input (a button, or a hall or end-stop lid sensor)
+// to clear the top notification; hold to clear all. Quiet hours dim the ring and mute the chime.
 #include <ArduinoJson.h>
 #include <WiFi.h>
 #include <sys/time.h>
@@ -13,6 +15,8 @@
 #include "gs_display.h"
 #include "gs_led.h"
 #include "gs_light.h"
+#include "gs_motion.h"
+#include "gs_schedule.h"
 #include "gs_sensors.h"
 #include "gs_templates.h"
 #include "hardware.h"
@@ -20,6 +24,10 @@
 #if GS_DISPLAY_KIND == GS_DISP_NONE
 #error "notifier_clock needs a display"
 #endif
+
+// Daily reminders from behaviour.settings.schedule (minutes after local midnight, sorted; config.h).
+static const uint16_t kSchedMin[] = GS_CFG_SCHEDULE_MIN;
+static const char* const kSchedText[] = GS_CFG_SCHEDULE_TEXT;
 
 class NotifierClockApp : public GsApp {
  public:
@@ -36,9 +44,12 @@ class NotifierClockApp : public GsApp {
       source_ = "rtc";
     }
     configTzTime(GS_CFG_TZ, GS_CFG_NTP_SERVER, "pool.ntp.org");
+    sched_.set(kSchedMin, uint8_t(GS_CFG_SCHEDULE_N));
+    gsmotion::begin(GS_CFG_SERVO_REST_DEG);
   }
 
   void loop(uint32_t now) override {
+    gsmotion::tick(now);
     queue_.expire(now);
     tm lt;
     const bool have = time_valid(&lt);
@@ -52,6 +63,10 @@ class NotifierClockApp : public GsApp {
     }
     const bool quiet = have && gs::in_quiet_hours(uint16_t(lt.tm_hour * 60 + lt.tm_min), GS_CFG_QUIET_START, GS_CFG_QUIET_END);
     quiet_ = quiet;
+    if (have) {
+      const int due = sched_.due(uint32_t(lt.tm_year) * 1000u + uint32_t(lt.tm_yday), uint16_t(lt.tm_hour * 60 + lt.tm_min));
+      if (due >= 0) on_schedule(uint8_t(due), now);
+    }
     if (now - last_draw_ >= 500) {
       last_draw_ = now;
       draw(have ? &lt : nullptr, now);
@@ -91,6 +106,36 @@ class NotifierClockApp : public GsApp {
     }
     out["time_note"] = String("Time source: ") + source_ + (quiet_ ? ". Quiet hours: ring dimmed, chime off." : ".");
     out["quiet_hours"] = quiet_;
+    JsonArray sch = out["schedule"].to<JsonArray>();
+    char hm[8];
+    for (uint8_t i = 0; i < sched_.count(); ++i) {
+      JsonObject o = sch.add<JsonObject>();
+      gs::format_hhmm(sched_.minute(i), hm, sizeof(hm));
+      o["time"] = hm;
+      o["text"] = kSchedText[i];
+    }
+    if (last_sched_ >= 0) {
+      char last[40];
+      gs::format_hhmm(sched_.minute(uint8_t(last_sched_)), hm, sizeof(hm));
+      snprintf(last, sizeof(last), "%s %s", hm, kSchedText[last_sched_]);
+      out["last_reminder"] = last;
+    }
+    if (time_valid(&lt) && sched_.count()) {
+      uint16_t wait = 0;
+      const int ni = sched_.next(uint16_t(lt.tm_hour * 60 + lt.tm_min), &wait);
+      char nxt[40];
+      gs::format_hhmm(sched_.minute(uint8_t(ni)), hm, sizeof(hm));
+      snprintf(nxt, sizeof(nxt), "%s %s", hm, kSchedText[ni]);
+      out["next_reminder"] = nxt;
+      out["next_reminder_in_min"] = wait;
+    }
+    out["reminder_note"] = "Reminders only: they show and chime at their time; nothing checks what was taken or eaten.";
+    if (gsmotion::present()) {
+      out["arm_angle"] = gsmotion::angle();
+      out["arm_moving"] = gsmotion::busy();
+      out["arm_note"] = GS_CFG_SERVO_ON_NOTICE ? "The arm or flap opens when a reminder is due, then closes."
+                                               : "The arm or flap does not move for reminders (servo_on_notice is off).";
+    }
     JsonArray arr = out["notices"].to<JsonArray>();
     for (size_t i = 0; i < queue_.count(); ++i) {
       const gs::Notice* n = queue_.at(i);
@@ -121,6 +166,15 @@ class NotifierClockApp : public GsApp {
       last_draw_ = 0;
       return gs_reply(out, 200, "Notification shown.");
     }
+    if (!strcmp(name, "arm_test") || !strcmp(name, "arm_rest")) {
+      if (!gsmotion::present()) return gs_reply(out, 400, "This design has no servo arm.");
+      if (!strcmp(name, "arm_test")) {
+        open_arm();
+        return gs_reply(out, 200, "The arm opens and closes once.");
+      }
+      gsmotion::move_to(GS_CFG_SERVO_REST_DEG, GS_CFG_SERVO_SPEED_DEG_S);
+      return gs_reply(out, 200, "The arm is at its rest angle: fit the horn and the printed part pointing up.");
+    }
     if (!strcmp(name, "notify_clear")) {
       const int id = a["id"] | 0;
       if (!queue_.ack(uint16_t(id))) return gs_reply(out, 404, "No notification with that id.");
@@ -137,6 +191,20 @@ class NotifierClockApp : public GsApp {
 
  private:
   static bool sntp_synced() { return time(nullptr) > 1700000000; }
+
+  // A schedule entry is due: a local notice (until acknowledged) and the chime outside quiet hours.
+  void on_schedule(uint8_t i, uint32_t now) {
+    const char* text = kSchedText[i][0] ? kSchedText[i] : "Reminder";
+    queue_.push(text, gs::Rgb{255, 179, 107}, 5, 0, now);
+    last_sched_ = int(i);
+    if (GS_CFG_NOTICE_CHIME && !quiet_) gsaudio::play_chime(gs::Chime::Ready);
+    if (GS_CFG_SERVO_ON_NOTICE) open_arm();
+    last_draw_ = 0;
+  }
+
+  static void open_arm() {
+    gsmotion::pulse(GS_CFG_SERVO_OPEN_DEG, GS_CFG_SERVO_REST_DEG, uint32_t(GS_CFG_SERVO_HOLD_S) * 1000u, GS_CFG_SERVO_SPEED_DEG_S);
+  }
 
   bool time_valid(tm* out) const {
     const time_t t = time(nullptr);
@@ -172,11 +240,27 @@ class NotifierClockApp : public GsApp {
         snprintf(buf, sizeof(buf), "+%u", unsigned(queue_.count() - 1));
         gsdisp::text(w - gsdisp::text_width(buf, 1) - 2, h * 3 / 4 + 1, buf, 1, accent);
       }
+    } else if (lt && sched_.count()) {
+      // alternate every 4 s between the next reminder and the last one that fired
+      char hm[8];
+      char line[48];
+      if (last_sched_ >= 0 && (now / 4000u) % 2u) {
+        gs::format_hhmm(sched_.minute(uint8_t(last_sched_)), hm, sizeof(hm));
+        snprintf(line, sizeof(line), "last %s %s", hm, kSchedText[last_sched_]);
+      } else {
+        uint16_t wait = 0;
+        const int ni = sched_.next(uint16_t(lt->tm_hour * 60 + lt->tm_min), &wait);
+        gs::format_hhmm(sched_.minute(uint8_t(ni)), hm, sizeof(hm));
+        snprintf(line, sizeof(line), "next %s %s", hm, kSchedText[ni]);
+      }
+      gsdisp::text(2, h * 3 / 4 + 1, line, 1, accent);
     }
     gsdisp::flush();
   }
 
   gs::NoticeQueue queue_;
+  gs::DailySchedule sched_;
+  int last_sched_ = -1;  // index of the last reminder that fired since boot
   const char* source_ = "not set";
   bool synced_ = false;
   bool quiet_ = false;

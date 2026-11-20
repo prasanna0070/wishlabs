@@ -276,6 +276,16 @@ static void test_i2c_and_sensors(Tally& t) {
     if (strcmp(r[i].quantity, "temperature") == 0) plausible = plausible && r[i].value > -20 && r[i].value < 70;
     if (strcmp(r[i].quantity, "humidity") == 0) plausible = plausible && r[i].value >= 0 && r[i].value <= 100;
     if (strcmp(r[i].quantity, "pressure") == 0) plausible = plausible && r[i].value > 500 && r[i].value < 1100;
+    if (strcmp(r[i].quantity, "soil") == 0) {
+      // A probe in air or soil sits between the rails; 0 or full scale means a short or an open lead.
+      d["raw"] = r[i].raw;
+      plausible = plausible && r[i].raw > 50 && r[i].raw < 4050;
+      if (!plausible) d["hint"] = "check the soil probe lead (J_IO) and that the probe works at 3.3 V";
+    }
+    if (strcmp(r[i].quantity, "water") == 0) {
+      d["state"] = r[i].value > 0.5f ? "water up (contact closed)" : "low or not connected (contact open)";
+      d["hint"] = "lift the float and let it drop: the state must follow";
+    }
     d["note"] = "a reading, not a calibration";
     char id[40];
     snprintf(id, sizeof(id), "%s_%s", r[i].sensor, r[i].quantity);

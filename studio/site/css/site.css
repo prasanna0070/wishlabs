@@ -138,6 +138,8 @@ html.lenis, html.lenis body { height: auto; }
 .brand-mark svg { width: 18px; height: 18px; }
 .brand:hover .brand-mark { transform: rotate(-12deg) scale(1.08); }
 .brand-name { min-width: 4ch; }
+.brand .wordmark { display: block; height: 26px; width: 133px; color: inherit; transition: transform .6s var(--ease-back); }
+.brand:hover .wordmark { transform: scale(1.04); }
 .nav { display: flex; gap: 4px; margin-left: auto; }
 .nav a {
   text-decoration: none; font-size: 15px; font-weight: 500; color: var(--ink-soft);

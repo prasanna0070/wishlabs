@@ -47,6 +47,12 @@ DRIVERS: dict[str, dict[str, Any]] = {
     "PIR_AM312_MINI": {"kind": "motion"},
     "PIR_HCSR501_STD": {"kind": "motion"},
     "SERVO_SG90_TOWERPRO": {"kind": "servo"},
+    # Packs (library/packs/*.json). A pack that is off has no rows in the library, so these ids never reach bind().
+    "SERVO_SG90_ARM": {"kind": "servo"},                      # motion pack: servo arm or flap on J_LED
+    "SERVO_MG90S_ARM": {"kind": "servo"},                     # motion pack
+    "SOIL_CAP_V12_ANALOG": {"kind": "soil"},                  # sensing pack: analog AO on a J_IO SIG (ADC1)
+    "FLOAT_SWITCH_VERTICAL_PP": {"kind": "level", "active_low": True},  # sensing pack: dry contact to GND, pull-up
+    "NFC_PN532_V3_I2C": {"kind": "nfc", "addr": 0x24},       # sensing2 pack: PN532 in I2C mode (address UNVERIFIED)
     "IMU_MPU6050_GY521": {"kind": "unsupported", "why": "no behaviour template uses the IMU yet"},
     "ENCODER_KY040_PUSH": {"kind": "unsupported", "why": "the rotary encoder needs two signal pins; no template uses it yet"},
     "GEARMOTOR_N20_6V_LOWRPM": {"kind": "unsupported", "why": "no behaviour template drives motors yet"},
@@ -102,6 +108,9 @@ BUS_PINS = {  # bus type -> [(bus key, canonical pin)]
     "i2s_rx": [("bclk", "SCK"), ("sck", "SCK"), ("ws", "WS"), ("din", "SD"), ("sd", "SD")],
     "rmt_led": [("gpio", "DIN")],
     "ws2812": [("gpio", "DIN")],
+    # A servo on J_LED: gstudio.electrical writes {"type": "servo_pwm", "gpio": <LED_DIN>, "devices": [{"ref": "SRV1"}]}
+    # and its lead's net is LED_DIN_5V (after the level shifter), which is not in the gpio map; the bus gives the pin.
+    "servo_pwm": [("gpio", "SIG")],
 }
 
 
@@ -178,7 +187,7 @@ def _apply_library_facts(facts: dict, module: Optional[dict]) -> dict:
         return facts
     bus = str((module.get("electrical") or {}).get("bus") or "")
     addr = _hex_addr(bus) if "i2c" in bus.lower() else None
-    if addr and facts.get("kind") in ("display", "sensor"):
+    if addr and facts.get("kind") in ("display", "sensor", "nfc"):
         facts["addr"] = addr
     notes = str((module.get("firmware") or {}).get("driver_notes") or "")
     m = re.search(r"\b(\d{1,3}) pixels\b", notes)
@@ -450,6 +459,13 @@ def hardware_h(b: Binding) -> str:
         flag(n, s is not None)
         if s:
             L.append(f"#define GS_{n}_ADDR 0x{int(s.facts.get('addr', 0)):02X}")
+    nfc = b.first("nfc")  # sensing2 pack (PN532 over I2C)
+    if nfc:
+        _need(nfc, "SDA", "SCL")
+        addrs.append(int(nfc.facts.get("addr", 0x24)))
+    flag("NFC", nfc is not None)
+    if nfc:
+        L.append(f"#define GS_NFC_ADDR 0x{int(nfc.facts.get('addr', 0x24)):02X}")
     if disp and dkind != "ST7789":
         addrs.insert(0, int(disp.facts.get("addr", 0x3C)))
     L.append("#define GS_I2C_EXPECTED { " + (", ".join(f"0x{a:02X}" for a in addrs) if addrs else "0") + " }")
@@ -477,6 +493,19 @@ def hardware_h(b: Binding) -> str:
     flag("MOTION", mo is not None)
     L.append(f"#define GS_PIN_MOTION {_pin_sym(mo, 'SIG')}")
     L.append("")
+    # Sensing pack. Soil: capacitive probe, analog out on a J_IO SIG (ADC1, readable with Wi-Fi on).
+    # Level: float switch, a dry contact between SIG and GND read with INPUT_PULLUP (closed = water up).
+    soil = b.first("soil")
+    if soil:
+        _need(soil, "SIG")
+    flag("SOIL", soil is not None)
+    L.append(f"#define GS_PIN_SOIL {_pin_sym(soil, 'SIG')}")
+    lvl = b.first("level")
+    if lvl:
+        _need(lvl, "SIG")
+    flag("LEVEL", lvl is not None)
+    L.append(f"#define GS_PIN_LEVEL {_pin_sym(lvl, 'SIG')}")
+    L.append("")
     return "\n".join(L)
 
 
@@ -484,7 +513,8 @@ def check_template(template: str, b: Binding, settings: dict) -> list[str]:
     """Hard requirements of a template on the hardware. Raises StageError; returns soft warnings."""
     errs: list[dict] = []
     warn: list[str] = []
-    has = {k: bool(b.by_kind(k)) for k in ("button", "neopixel", "amp", "speaker", "mic", "display", "sd", "sensor", "buzzer", "ldr", "motion")}
+    has = {k: bool(b.by_kind(k)) for k in ("button", "neopixel", "amp", "speaker", "mic", "display", "sd", "sensor", "buzzer", "ldr",
+                                           "motion", "servo", "soil", "level", "nfc")}
 
     def need(ok: bool, msg: str, fix: str) -> None:
         if not ok:
@@ -509,15 +539,26 @@ def check_template(template: str, b: Binding, settings: dict) -> list[str]:
         if not (has["amp"] or has["buzzer"]):
             warn.append("no speaker or buzzer: the companion is silent")
     elif template == "notifier_clock":
+        # A servo flag may replace the LED (motion pack): no LED is required here; the display is.
         need(has["display"], "notifier_clock needs a display for the time", "add an OLED or ST7789 feature")
     elif template == "ambient_light":
         need(has["neopixel"], "ambient_light needs a WS2812B LED or ring", "add an LED feature")
         if settings.get("auto_dim") and not (b.has_sensor("BH1750") or has["ldr"]):
             warn.append("auto_dim is on but there is no light sensor; brightness stays fixed")
+    elif template == "latch":
+        need(has["servo"], "latch needs a servo arm to move the latch", "add a servo feature (SERVO_SG90_ARM or SERVO_MG90S_ARM)")
+        need(has["nfc"] or has["button"], "latch needs an NFC tag reader or a button to open it",
+             "add an NFC reader or a button feature")
+        if settings.get("known_tags") and not has["nfc"]:
+            warn.append("known_tags are set but there is no NFC reader; only the button opens the latch")
     elif template == "sensor_display":
         need(has["display"], "sensor_display needs a display", "add an OLED or ST7789 feature")
-        need(bool(b.sensors()) or has["ldr"], "sensor_display needs at least one sensor",
+        need(bool(b.sensors()) or has["ldr"] or has["soil"] or has["level"], "sensor_display needs at least one sensor",
              "add an AHT20, BMP280, BH1750 or VL53L0X feature")
+    if template != "sensor_display":
+        for k, what in (("soil", "soil probe"), ("level", "float switch")):
+            if has[k]:
+                warn.append(f"a {what} is wired but only the sensor_display behaviour reads it; this firmware ignores it")
     if errs:
         raise StageError(f"{template}: the design is missing hardware the behaviour needs",
                          {"errors": errs})

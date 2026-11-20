@@ -25,7 +25,7 @@ NAME = re.compile(r"^[A-Za-z][A-Za-z '.\-]{0,31}$")
 HHMM = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 POSIX_TZ = re.compile(r"^[A-Za-z<>+\-0-9:,./]{3,48}$")
 
-TEMPLATES = ("story_player", "desk_companion", "notifier_clock", "ambient_light", "sensor_display")
+TEMPLATES = ("story_player", "desk_companion", "notifier_clock", "ambient_light", "sensor_display", "latch")
 
 
 def _clean_name(v: str) -> str:
@@ -118,20 +118,57 @@ class StoryPlayer(Common):
         return out
 
 
-class DeskCompanion(Common):
+SERVO_ONLY = "only with a servo arm: "
+
+
+class ServoSettings(_S):
+    """Servo fields shared by the apps that can drive the servo arm (motion pack). They are accepted and
+    emitted into config.h for every design of those templates and are ignored when no servo is fitted."""
+    servo_rest_deg: int = Field(90, ge=0, le=180, description=SERVO_ONLY + "angle the arm rests at, in degrees")
+    servo_speed_deg_s: int = Field(120, ge=30, le=360, description=SERVO_ONLY + "top arm speed in degrees per second")
+
+
+class DeskCompanion(Common, ServoSettings):
     sleep_after_minutes: int = Field(5, ge=1, le=60, description="idle time before the face looks sleepy")
     clap_detect: bool = Field(True, description="react to a clap (needs the microphone)")
     clap_threshold: int = Field(6000, ge=1000, le=30000)
     chime_on_tap: bool = True
     light_color: str = "#7FD3FF"
     light_brightness: int = Field(25, ge=0, le=100)
+    servo_wave_on_tap: bool = Field(True, description=SERVO_ONLY + "wave the arm when tapped")
+    servo_wave_deg: int = Field(35, ge=10, le=60, description=SERVO_ONLY + "how far the arm swings each way from rest, degrees")
+    servo_waves: int = Field(2, ge=1, le=5, description=SERVO_ONLY + "number of waves per tap")
+
     @field_validator("light_color")
     @classmethod
     def check_light_color(cls, v):
         return _hex(v)
 
 
-class NotifierClock(Common):
+SCHEDULE_TEXT = re.compile(r"^[ -~]{1,24}$")  # printable ASCII: the display fonts have no other glyphs
+
+
+class ScheduleItem(_S):
+    time: str = Field(..., description="24-hour HH:MM, e.g. 09:00")
+    text: str = Field(..., description="what the notice says, 1 to 24 characters, e.g. Morning pills")
+
+    @field_validator("time")
+    @classmethod
+    def check_time(cls, v: str) -> str:
+        if not isinstance(v, str) or not HHMM.match(v):
+            raise ValueError("use 24-hour HH:MM, e.g. 09:00")
+        return v
+
+    @field_validator("text")
+    @classmethod
+    def check_text(cls, v: str) -> str:
+        v = " ".join(str(v).split())
+        if not SCHEDULE_TEXT.match(v) or not any(c.isalnum() for c in v):
+            raise ValueError("use 1 to 24 plain English letters, digits, spaces or punctuation")
+        return v
+
+
+class NotifierClock(Common, ServoSettings):
     timezone: str = Field("IST-5:30", description="POSIX TZ string; India is IST-5:30")
     ntp_server: str = Field("in.pool.ntp.org", pattern=r"^[a-z0-9.\-]{3,64}$")
     clock_24h: bool = True
@@ -140,6 +177,23 @@ class NotifierClock(Common):
     notification_chime: bool = True
     ring_brightness: int = Field(30, ge=1, le=100)
     default_notice_minutes: int = Field(60, ge=1, le=1440)
+    schedule: list[ScheduleItem] = Field(
+        default_factory=list, max_length=8,
+        description='daily notices the clock posts by itself at local time, up to 8, e.g. [{"time": "09:00", "text": '
+                    '"Morning pills"}]; a reminder, never dosing or medical advice')
+    servo_on_notice: bool = Field(True, description=SERVO_ONLY + "open the arm or flap when a scheduled notice is due")
+    servo_rest_deg: int = Field(0, ge=0, le=180, description=SERVO_ONLY + "closed or resting angle, in degrees")
+    servo_open_deg: int = Field(90, ge=0, le=180, description=SERVO_ONLY + "open angle, in degrees")
+    servo_hold_s: int = Field(3, ge=1, le=30, description=SERVO_ONLY + "seconds the arm or flap stays open")
+
+    @field_validator("schedule")
+    @classmethod
+    def check_schedule(cls, v: list) -> list:
+        times = [it.time for it in v]
+        dup = sorted({t for t in times if times.count(t) > 1})
+        if dup:
+            raise ValueError(f"two schedule entries at {', '.join(dup)}; use one entry per time")
+        return sorted(v, key=lambda it: it.time)
 
     @field_validator("timezone")
     @classmethod
@@ -204,6 +258,14 @@ class SensorDisplay(Common):
     humidity_low: float = Field(25.0, ge=10.0, le=50.0)
     led_warning: bool = True
     warn_color: str = "#FF5A36"
+    soil_dry_percent: int = Field(30, ge=5, le=80, description="only with a soil probe: warn when the soil reads below "
+                                                                "this percent (0 = the dry calibration, 100 = the wet one)")
+    soil_raw_dry: int = Field(3000, ge=0, le=4095, description="only with a soil probe: 12-bit reading with the probe in "
+                                                                "dry air (calibrate per probe)")
+    soil_raw_wet: int = Field(1300, ge=0, le=4095, description="only with a soil probe: 12-bit reading with the probe in "
+                                                                "water up to its line; must be below soil_raw_dry")
+    water_low_warning: bool = Field(True, description="only with a float switch: warn when the tank is low")
+
     @field_validator("warn_color")
     @classmethod
     def check_warn_color(cls, v):
@@ -215,6 +277,44 @@ class SensorDisplay(Common):
             raise ValueError("temp_low must be below temp_high")
         if self.humidity_low >= self.humidity_high:
             raise ValueError("humidity_low must be below humidity_high")
+        if self.soil_raw_wet >= self.soil_raw_dry:
+            raise ValueError(f"soil_raw_wet ({self.soil_raw_wet}) must be below soil_raw_dry ({self.soil_raw_dry}): "
+                             "a capacitive probe reads lower when wet")
+        return self
+
+
+UID_HEX = re.compile(r"^(?:[0-9A-F]{8}|[0-9A-F]{14}|[0-9A-F]{20})$")  # 4, 7 or 10 byte ISO 14443A UIDs
+
+
+class Latch(Common):
+    """latch (motion2 + sensing2 packs): a known NFC tag (collar tag, card, figure) or the button opens a servo latch
+    for open_seconds. It reads 13.56 MHz tags only: never a pet's implanted microchip (134.2 kHz)."""
+    open_deg: int = Field(90, ge=0, le=180, description="servo angle with the latch open, in degrees")
+    closed_deg: int = Field(0, ge=0, le=180, description="servo angle with the latch closed, in degrees")
+    open_seconds: int = Field(5, ge=1, le=30, description="how long the latch stays open after a known tag or a press")
+    known_tags: list[str] = Field(default_factory=list, max_length=16,
+                                  description="UIDs of the tags that open it, hex, e.g. 04A2B3C4D5E6F7 (colons allowed); "
+                                              "more can be learned with a button hold")
+    learn_with_button_hold: bool = Field(True, description="hold the button, then show a tag, to add that tag")
+    log_size: int = Field(20, ge=1, le=50, description="last events kept for the parent page")
+    servo_speed_deg_s: int = Field(120, ge=30, le=360, description="top latch speed in degrees per second")
+
+    @field_validator("known_tags")
+    @classmethod
+    def check_tags(cls, v: list) -> list:
+        out = []
+        for t in v:
+            u = re.sub(r"[\s:\-]", "", str(t)).upper()
+            if not UID_HEX.match(u):
+                raise ValueError(f"{t!r} is not a tag UID: use 8, 14 or 20 hex digits (4, 7 or 10 bytes), e.g. 04A2B3C4D5E6F7")
+            if u not in out:
+                out.append(u)
+        return out
+
+    @model_validator(mode="after")
+    def check_travel(self):
+        if abs(self.open_deg - self.closed_deg) < 10:
+            raise ValueError(f"open_deg ({self.open_deg}) and closed_deg ({self.closed_deg}) must differ by at least 10 degrees")
         return self
 
 
@@ -224,6 +324,7 @@ MODELS: dict[str, type[Common]] = {
     "notifier_clock": NotifierClock,
     "ambient_light": AmbientLight,
     "sensor_display": SensorDisplay,
+    "latch": Latch,
 }
 
 

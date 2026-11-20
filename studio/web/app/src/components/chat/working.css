@@ -1,0 +1,85 @@
+/* The working card: a chat turn in progress, streamed in this tab or followed from the server after a reload
+   (components/chat/Messages.tsx WorkingCard, StaleCard). Text uses --ink and --ink-2 for at least 4.5:1 contrast. */
+.working-card {
+  align-self: stretch;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--panel);
+  box-shadow: var(--sh-card);
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.45;
+  min-width: 0;
+}
+.wc-head { display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: 14px; }
+.wc-head strong { font-weight: 600; }
+.wc-time { margin-left: auto; color: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.wc-step { color: var(--ink); font-size: 13.5px; overflow-wrap: anywhere; }
+.wc-latest {
+  margin: 0;
+  color: var(--ink-2);
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wc-toggle {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: -6px;
+  padding: 4px 10px 4px 4px;
+  border: 0;
+  border-radius: var(--r-control);
+  background: none;
+  color: var(--primary-press);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.wc-toggle:hover { background: var(--primary-soft); }
+.wc-toggle:focus-visible,
+.wc-thoughts:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.wc-panel { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.wc-panel[hidden] { display: none; }
+.wc-steps { list-style: none; margin: 0; padding: 0 0 0 4px; border-left: 2px solid var(--line); }
+.wc-steps li { display: flex; align-items: flex-start; gap: 8px; padding: 2px 8px; color: var(--ink-2); overflow-wrap: anywhere; }
+.wc-steps li > svg,
+.wc-steps li > .spinner { flex: none; margin-top: 2px; }
+.wc-steps li.done > svg { color: var(--success); }
+.wc-steps li.error { color: var(--danger); }
+.wc-steps li.running { color: var(--ink); }
+.wc-steps .detail { display: block; color: var(--ink-2); font-size: 12px; }
+.wc-thoughts {
+  max-height: 260px;
+  overflow: auto;
+  padding: 8px 12px;
+  border-radius: var(--r-control);
+  background: var(--surface-soft);
+}
+.wc-thoughts .md { font-size: 13px; line-height: 1.5; color: var(--ink-2); }
+.wc-thoughts .md p { margin: 0 0 6px; }
+.wc-thoughts .md strong { color: var(--ink); font-weight: 600; }
+.wc-thoughts-done { margin-top: 8px; }
+.wc-empty { margin: 0; color: var(--ink-2); }
+.wc-note { color: var(--ink-2); font-size: 12px; }
+/* no progress for a minute (the server's `quiet`): the stale card's amber, as a small inset */
+.wc-note.wc-quiet { padding: 6px 10px; border-radius: var(--r-control); background: var(--warning-soft); color: #6E4A10; font-size: 12.5px; }
+.working-card.stale { border-color: #EED9B2; background: var(--warning-soft); color: #6E4A10; box-shadow: none; }
+.working-card.stale .wc-head,
+.working-card.stale .wc-step { color: #6E4A10; }
+.wc-retry { align-self: flex-start; }
+.composer-busy { display: flex; align-items: center; gap: 8px; margin: 0 4px 8px; color: var(--ink-2); font-size: 12.5px; }
+.send-error-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.send-error-row .grow { min-width: 200px; }
+@media (prefers-reduced-motion: reduce) {
+  .working-card .spinner,
+  .composer-busy .spinner { animation-duration: 2.4s; }
+}

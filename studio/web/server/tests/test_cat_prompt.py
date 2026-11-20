@@ -115,6 +115,7 @@ def test_packs_off_prompt_has_no_pack_text(studio, monkeypatch):
     assert "We cannot build: motors or other moving parts, batteries, cameras, mains power, heaters" in text
     assert "a servo arm" not in text and "soil probe" not in text.lower() and "push messages" not in text
     assert "it does not keep a timetable of its own yet" in text and '"schedule"' not in text
+    assert "- Sensors do only what the chosen app reads: " in text and "soil moisture and a water-level" not in text
     ports = next(l for l in text.splitlines() if l.startswith("- Ports (the validator rejects more): "))
     assert "3 simple ports shared by " in ports and "buttons" in ports and ports.endswith("one 5 V port for an LED ring or pixel.")
     assert "SERVO_SG90_TOWERPRO" not in text  # the bare SG90 row is no longer offered (E1.6)
@@ -130,6 +131,7 @@ def test_packs_on_prompt_shows_rules_parts_and_matching_examples(studio, monkeyp
     assert "We cannot build: batteries, cameras, mains power, heaters" in text and "motors or other moving parts" not in text
     assert "one 5 V port for an LED ring or pixel or a servo arm, so a design has only one of them" in text
     assert "a soil probe" in text and "there are no push messages" in text
+    assert "light and distance readings, soil moisture and a water-level warning;" in text
     assert '"time": "HH:MM" (24-hour)' in text
     paths = pb.example_paths("A tomato pot that watches its soil")
     assert paths[0].parent.name == "bedtime-robot" and paths[1].parent.name == "tomato-pot-watcher"
@@ -188,3 +190,13 @@ def test_held_price_names_the_colliding_parts_in_words():
     assert label == ("Price held until the design passes its collision check (Shell / Rear cover (95 mm3); "
                      "Shell / Core board (871 mm3); the shell is not one solid)")
     assert "{" not in label and part_label("PRINT_BasePlate") == "Base plate" and part_label("U1") == "U1"
+
+
+def test_printed_brief_lists_no_core_board():
+    """a-to-e 3: the agent wrote electronics.core into a printed object's spec; the brief listed the board."""
+    from app.brief import parts_from_spec
+
+    spec = {"kind": "printed", "electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8"}}
+    assert parts_from_spec(spec, {}) == []
+    gadget = {"electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8"}}
+    assert [r["module_id"] for r in parts_from_spec(gadget, {})] == ["CORE_ESP32S3_DEVKITC1_N8R8"]
