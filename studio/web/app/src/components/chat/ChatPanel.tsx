@@ -26,7 +26,8 @@ export function activeInteraction(p: Project, running: boolean): { kind: "choice
   return null;
 }
 
-export function ChatPanel({ full, split, onTab: _onTab }: { full: boolean; split: boolean; onTab: (t: TabId) => void }) {
+/** voiceCard=false while a share link's Overview tab is beside the chat: the Overview already shows the Spoken wish. */
+export function ChatPanel({ full, split, onTab: _onTab, voiceCard = true }: { full: boolean; split: boolean; onTab: (t: TabId) => void; voiceCard?: boolean }) {
   const project = useProject((s) => s.project)!;
   const turn = useProject((s) => s.turn);
   const sendError = useProject((s) => s.sendError);
@@ -104,7 +105,7 @@ export function ChatPanel({ full, split, onTab: _onTab }: { full: boolean; split
         }}
       >
         <div className="chat-col" ref={col}>
-          <VoiceWishCard project={project} ctx={ctx} readOnly={readOnly} compact />
+          {voiceCard ? <VoiceWishCard project={project} ctx={ctx} readOnly={readOnly} compact /> : null}
           {empty && !turn ? (
             <div className="chat-empty">
               <h2>What should we make?</h2>

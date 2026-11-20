@@ -1,5 +1,6 @@
 // "Spoken wish": the voice chat a project started from (Gemini Live), shown in the project view and on read-only
 // share links. Renders nothing for a typed wish. The share page mounts it through import.meta.glob by file name.
+import { useId } from "react";
 import { Mic } from "lucide-react";
 import type { Project, Version } from "../../lib/types";
 import type { Ctx } from "../../lib/urls";
@@ -17,6 +18,7 @@ export interface VoiceWishCardProps {
 }
 
 export function VoiceWishCard({ project, ctx, readOnly = false, compact = false }: VoiceWishCardProps) {
+  const headId = useId(); // unique per mount: the card can be on the page more than once (chat and share Overview)
   const v = voiceOf(project);
   if (!v) return null;
   const share = ctx?.share || (readOnly ? (project.share?.token ?? null) : null);
@@ -31,13 +33,13 @@ export function VoiceWishCard({ project, ctx, readOnly = false, compact = false 
   ].filter(Boolean);
 
   return (
-    <section className={`vw-card${compact ? " compact" : ""}`} aria-labelledby={`vw-h-${project.id}`}>
+    <section className={`vw-card${compact ? " compact" : ""}`} aria-labelledby={headId}>
       <header className="vw-card-head">
         <span className="vw-card-icon" aria-hidden="true">
           <Mic size={16} />
         </span>
         <div className="grow">
-          <h3 id={`vw-h-${project.id}`}>Spoken wish</h3>
+          <h3 id={headId}>Spoken wish</h3>
           <div className="muted small">This design started as a voice chat {facts.join(" · ")}.</div>
         </div>
       </header>

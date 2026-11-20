@@ -75,6 +75,7 @@ export function ProjectPage({ shared = false }: { shared?: boolean }) {
   const split = project.versions.length > 0;
   const showChat = !chatHidden || !split;
   const showPanel = split && !panelHidden;
+  const overview = shared && showPanel && active === "overview"; // the share Overview shows the Spoken wish itself
 
   const startDrag = (e: React.PointerEvent) => {
     e.preventDefault();
@@ -96,10 +97,10 @@ export function ProjectPage({ shared = false }: { shared?: boolean }) {
       <Header onTab={setTab} />
       <BehindBanner />
       <div
-        className={`ws-body${split ? " split" : ""}${!showChat ? " no-chat" : ""}${!showPanel ? " no-panel" : ""}${shared && showPanel && active === "overview" ? " ov-mode" : ""}`}
+        className={`ws-body${split ? " split" : ""}${!showChat ? " no-chat" : ""}${!showPanel ? " no-panel" : ""}${overview ? " ov-mode" : ""}`}
         style={{ ["--chat-w" as any]: `${clamp(chatWidth, 360, 900)}px` }}
       >
-        {showChat ? <ChatPanel full={!showPanel} split={split} onTab={setTab} /> : null}
+        {showChat ? <ChatPanel full={!showPanel} split={split} onTab={setTab} voiceCard={!overview} /> : null}
         {showChat && showPanel ? (
           <div
             className="resize-handle"
