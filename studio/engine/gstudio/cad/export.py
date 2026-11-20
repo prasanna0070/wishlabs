@@ -422,7 +422,48 @@ def weld_slivers(m):
     return None
 
 
-def _stl(shape, f: Path, tol: float = 0.02, ang: float = 0.1) -> None:
+PINHOLE_MM = 1.0  # a hole whose every open edge lies inside a box this small is a tessellation pinhole, not an opening
+
+
+def fill_pinholes(m, max_box: float = PINHOLE_MM):
+    """(watertight copy, holes filled) when every open edge of the mesh belongs to a simple loop that fits inside a
+    max_box-mm box (a tessellation pinhole where a blend meets a body: a sculpted shark's tail had one 0.2 x 0.3 x 0.2 mm
+    loop of 32 edges that welding cannot close), else (None, 0). Each loop is closed by a fan from its centre, kept only
+    when the result is watertight, consistently wound and one body as before, with the volume within 0.01 % (+1 mm3)."""
+    import trimesh
+
+    g = trimesh.grouping.group_rows(m.edges_sorted, require_count=1)
+    if not len(g):
+        return None, 0
+    be = np.asarray(m.edges)[g]  # open edges in their face's winding order
+    deg = np.bincount(be.ravel(), minlength=len(m.vertices))
+    if (deg[np.unique(be)] != 2).any():
+        return None, 0  # two loops share a vertex, or an edge is used three times: not a simple pinhole
+    new_v, new_f = [], []
+    for comp in trimesh.graph.connected_components(be, min_len=3):
+        idx = np.asarray(sorted(int(x) for x in comp))
+        pts = np.asarray(m.vertices)[idx]
+        if float((pts.max(0) - pts.min(0)).max()) > max_box:
+            return None, 0  # a real opening
+        ci = len(m.vertices) + len(new_v)
+        new_v.append(pts.mean(0))
+        inloop = np.isin(be[:, 0], idx)
+        new_f.extend([b, a, ci] for a, b in be[inloop])
+    if not new_v or len(new_f) != len(be):
+        return None, 0
+    w = trimesh.Trimesh(vertices=np.vstack([np.asarray(m.vertices), np.asarray(new_v)]),
+                        faces=np.vstack([np.asarray(m.faces), np.asarray(new_f)]), process=False)
+    if not (w.is_watertight and w.is_winding_consistent):
+        return None, 0
+    if len(w.split(only_watertight=False)) != len(m.split(only_watertight=False)):
+        return None, 0
+    if abs(abs(w.volume) - abs(m.volume)) > 1e-4 * max(abs(m.volume), 1.0) + 1.0:
+        return None, 0
+    return w, len(new_v)
+
+
+def _stl(shape, f: Path, tol: float = 0.02, ang: float = 0.1) -> list:
+    """Write the STL; returns the repairs made to OCC's mesh beyond dropping zero-area slivers (empty: none)."""
     import trimesh
     from OCP.BRepTools import BRepTools
 
@@ -431,6 +472,7 @@ def _stl(shape, f: Path, tol: float = 0.02, ang: float = 0.1) -> None:
     shape.exportStl(str(f), tolerance=tol, angularTolerance=ang, ascii=False, relative=False, parallel=True)
     m = trimesh.load_mesh(f)
     changed = False
+    repairs = []
     nd = m.nondegenerate_faces(height=1e-9)
     if not nd.all():  # OCC's writer can leave zero-area slivers at seams and poles
         m.update_faces(nd)
@@ -440,6 +482,12 @@ def _stl(shape, f: Path, tol: float = 0.02, ang: float = 0.1) -> None:
         w = weld_slivers(m)
         if w is not None:
             m, changed = w, True
+            repairs.append("welded sub-micron slivers")
+    if not m.is_watertight:
+        w, n = fill_pinholes(m)
+        if w is not None:
+            m, changed = w, True
+            repairs.append(f"closed {n} pinhole{'s' if n > 1 else ''} under {PINHOLE_MM:g} mm across")
     if not m.is_watertight:
         parts = m.split(only_watertight=False)
         keep = [p for p in parts if p.is_watertight and abs(p.volume) > 1e-3]
@@ -452,6 +500,7 @@ def _stl(shape, f: Path, tol: float = 0.02, ang: float = 0.1) -> None:
         changed = True
     if changed:
         m.export(f)
+    return repairs
 
 
 def write_stls(dirp: Path, model) -> dict:
@@ -462,11 +511,13 @@ def write_stls(dirp: Path, model) -> dict:
             continue
         s, reason = print_orient(p)
         f = dirp / f"{p.name}.stl"
-        _stl(s, f)
+        repairs = _stl(s, f)
         vol = accurate_volume(s)
         p.extra["_volume"] = vol
         out[p.name] = {"file": f"print/{f.name}", "orientation_note": reason, "brep_volume_mm3": vol,
                        "material": (p.print_info or {}).get("material") or ((model.params or {}).get("print_material") or {}).get("name", "PLA")}
+        if repairs:
+            out[p.name]["stl_repairs"] = repairs
     for name, c in model.coupons.items():
         s = c["shape"]
         b = s.BoundingBox()
