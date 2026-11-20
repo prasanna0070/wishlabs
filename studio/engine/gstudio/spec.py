@@ -290,7 +290,8 @@ class CsgBody(_BodyCommon):
 
     family: Literal["csg"]
     csg: dict[str, Any] = Field(..., description="CSG node tree (see the freeform rules): the outer form, mm, z = 0 is the table")
-    edge_round: float = Field(0.0, ge=0, le=25, description="round of the bottom edge where the shape meets the table, mm")
+    edge_round: float = Field(3.0, ge=0, le=25, description="round of the bottom edge where the shape meets the table, mm "
+                              "(rounded pieces standing on z = 0 keep a flat, square-edged bottom; this rounds it)")
     split: Literal["base_plate", "rear_cover", "none"] = "base_plate"
 
 

@@ -26,20 +26,20 @@
       ]
     },
     "wall": 2.4,
-    "edge_round": 0,
+    "edge_round": 3,
     "split": "base_plate",
     "feet": 4
   },
   "decor": [],
   "features": [
     {"id": "clock", "module": "OLED_130_SH1106_I2C", "face": "front", "at": [0, 80], "label": "Time and the next reminder"},
-    {"id": "notice_light", "module": "LED_WS2812B_1PX_MODULE", "face": "front", "at": [0, 128], "label": "Lights up for a reminder"},
-    {"id": "clear_button", "module": "BUTTON_TACTILE_KY004", "face": "top", "at": [-62, 48], "label": "Clear the reminder"}
+    {"id": "notice_light", "module": "LED_WS2812B_1PX_MODULE", "face": "front", "at": [0, 118], "label": "Lights up for a reminder"},
+    {"id": "clear_button", "module": "BUTTON_TACTILE_KY004", "face": "front", "at": [-55, 26], "label": "Clear the reminder"}
   ],
   "electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8", "extra_modules": [], "power": {"input": "usb_c_5v", "adapter_in_box": false}},
   "behaviour": {
     "template": "notifier_clock",
-    "summary": "Shows the time (from the internet over the home Wi-Fi) and the next reminder. At 11:00 and 16:30 it shows a stretch reminder and the light comes on until you press the button on top.",
+    "summary": "Shows the time (from the internet over the home Wi-Fi) and the next reminder. At 11:00 and 16:30 it shows a stretch reminder and the light comes on until you press the button on the front.",
     "settings": {"schedule": [{"time": "11:00", "text": "Stand up and stretch"}, {"time": "16:30", "text": "Water and a walk"}]}
   },
   "safety": {"flags": [], "notes": "Trays, pen cups and the phone slot are closed pockets in the printed shell, walled off from the electronics. External certified USB-C 5 V supply."}

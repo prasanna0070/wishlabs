@@ -314,6 +314,7 @@ def _fuse(a, b, r: float, node, info: dict):
         except Exception:  # noqa: BLE001
             pass
         info.setdefault("blend_radii", []).append(0.0)
+        info.setdefault("blend_failed", []).append(node.path)
     return _bool(lambda: a.fuse(b).clean(), lambda: a.fuse(b, glue=False), node, "join (union)")
 
 
@@ -344,10 +345,15 @@ def csg_body(body: dict) -> BodyGeom:
         raise CsgBuildError(x["path"], x["msg"], x.get("fix") or "") from None
     info: dict = {"csg_nodes": count_nodes(tree), "csg_primitives": len(shape.leaves())}
     outer = _solid(shape.root, 0.0, info)
+    for p in sorted(set(info.get("blend_failed") or [])):
+        warns.append(f"{p}: the blend fillet could not be built where these pieces meet, so that seam stays sharp (pieces that "
+                     "overlap by a few mm blend more reliably than pieces that only touch)")
     if outer is None:
         raise CsgBuildError("body.csg", "the CAD shape is empty (the cuts or intersects remove everything)", "check the cuts and intersects")
     try:
-        cut = outer.intersect(halfspace_z(0.0, "above"))
+        # a shape that already starts at z = 0 is not cut: intersecting with a half space whose plane holds its bottom face
+        # (bounded by tangent rounds) leaves a valid-looking shell that later booleans misread (base plate "collision")
+        cut = outer if outer.BoundingBox().zmin >= -1e-6 else outer.intersect(halfspace_z(0.0, "above"))
     except Exception as e:  # noqa: BLE001
         raise CsgBuildError("body.csg", f"the CAD could not cut the shape flat at the table z = 0 ({_short(e)})", "give it a simple flat underside at z = 0") from None
     sols = sorted(solids_of(cut), key=lambda s: -s.Volume())
@@ -372,7 +378,7 @@ def csg_body(body: dict) -> BodyGeom:
         raise CsgBuildError("body.csg", f"nothing is left to hollow at a {wall:g} mm wall: the form is thinner than 2 x wall "
                             "everywhere", "make the main volume bigger")
     try:
-        cav = largest_solid(cav.intersect(halfspace_z(wall, "above")))
+        cav = largest_solid(cav if cav.BoundingBox().zmin >= wall - 1e-6 else cav.intersect(halfspace_z(wall, "above")))
     except Exception as e:  # noqa: BLE001
         raise CsgBuildError("body.csg", f"the hollow could not be made ({_short(e)})", "make the main volume bigger or simpler") from None
     if r_bottom - wall > 0.6:

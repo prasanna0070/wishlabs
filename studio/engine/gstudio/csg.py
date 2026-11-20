@@ -704,14 +704,17 @@ def _cone_profile(r1, r2, h) -> list:
 class Extrude(Prim):
     op = "extrude"
 
-    def __init__(self, pts, h, axis, rnd, R, t, path, name):
+    def __init__(self, pts, h, axis, rnd, R, t, path, name, table: Optional[float] = None):
+        """table: None, or the profile coordinate that lies on the table (axis z: 0 = the bottom cap, axis y/x: b)."""
         super().__init__(R, t, path, name)
         P = [(float(a), float(b)) for a, b in pts]
         if polygon_area(P) < 0:
             P = P[::-1]
-        self.points = P
         self.hgt, self.axis = float(h), axis or "z"
         rc = max(0.0, min(float(rnd or 0.0), self.hgt / 2 - 0.5))
+        if table is not None and self.axis != "z" and rc > 0.05:  # profile points on the table go below it by the round
+            P = [(a, b - rc) if abs(b - table) < 1e-6 else (a, b) for a, b in P]
+        self.points = P
         self.round_corner = rc
         if rc > 0.05:
             self.start, self.cmds, mc = fillet_path(P, rc)
@@ -721,7 +724,7 @@ class Extrude(Prim):
             self.start, self.cmds, self.outline, self.round_cap = None, None, list(P), 0.0
         self.poly = Poly(self.outline)
         if self.axis == "z":
-            self.w0, self.w1 = 0.0, self.hgt
+            self.w0, self.w1 = (-rc if table is not None and rc > 0.05 else 0.0), self.hgt
         else:
             self.w0, self.w1 = -self.hgt / 2, self.hgt / 2
         self.bbox = self.world_box([self.lift(a, b, w) for a, b in P for w in (self.w0, self.w1)])
@@ -744,7 +747,7 @@ class Extrude(Prim):
     def lsdf(self, x, y, z):
         u, v, w = self._uvw(x, y, z)
         d2 = self.poly.sdf(u, v)
-        dw = abs(w - (self.w0 + self.w1) / 2) - self.hgt / 2
+        dw = abs(w - (self.w0 + self.w1) / 2) - (self.w1 - self.w0) / 2
         rc = self.round_cap
         if rc > 0.0:
             q0, q1 = d2 + rc, dw + rc
@@ -754,7 +757,7 @@ class Extrude(Prim):
     def lsdf_np(self, x, y, z, np):
         u, v, w = self._uvw(x, y, z)
         d2 = self.poly.sdf_np(u, v)
-        dw = np.abs(w - (self.w0 + self.w1) / 2) - self.hgt / 2
+        dw = np.abs(w - (self.w0 + self.w1) / 2) - (self.w1 - self.w0) / 2
         rc = self.round_cap
         q0, q1 = d2 + rc, dw + rc
         return np.minimum(np.maximum(q0, q1), 0.0) + np.hypot(np.maximum(q0, 0.0), np.maximum(q1, 0.0)) - rc
@@ -872,16 +875,16 @@ class _Empty(Node):
         return np.full(len(P), np.inf)
 
 
-def _build(node: dict, path: str, R, t) -> Node:
+def _build(node: dict, path: str, R, t, name_hint: Optional[str] = None) -> Node:
     op = node["op"]
-    nm = node.get("name")
+    nm = node.get("name") or name_hint  # a move's name labels what it places
     if op == "move":
         to = tuple(float(v) for v in (node.get("to") or (0.0, 0.0, 0.0)))
         rot = node.get("rot") or (0.0, 0.0, 0.0)
         Rm = rot_matrix(rot) if any(float(v) for v in rot) else _I3
         R2 = _mm(R, Rm)
         t2 = tuple(a + b for a, b in zip(_mv(R, to), t))
-        return _build(node["node"], f"{path}.node", R2, t2)
+        return _build(node["node"], f"{path}.node", R2, t2, nm)
     if op == "union":
         return Union([_build(k, f"{path}.nodes[{i}]", R, t) for i, k in enumerate(node["nodes"])], node.get("blend"), path, nm)
     if op == "intersect":
@@ -889,10 +892,20 @@ def _build(node: dict, path: str, R, t) -> Node:
     if op == "cut":
         return Cut(_build(node["node"], f"{path}.node", R, t),
                    [_build(k, f"{path}.minus[{i}]", R, t) for i, k in enumerate(node["minus"])], path, nm)
+    upright = abs(R[2][0]) < 1e-9 and abs(R[2][1]) < 1e-9 and abs(R[2][2] - 1.0) < 1e-9  # local z is world z
     if op == "box":
-        return Box(node["size"], node.get("round"), R, t, path, nm)
+        b = Box(node["size"], node.get("round"), R, t, path, nm)
+        if upright and b.round > 0.0 and abs(t[2]) < 1e-6:  # TABLE RULE: a rounded piece standing on z = 0 keeps a flat,
+            sx, sy, sz = b.size  # square-edged bottom: it reaches below the table by its round (cut off there)
+            r = b.round
+            b = Box((sx, sy, sz + r), r, R, (t[0], t[1], t[2] - r), path, nm)
+        return b
     if op == "cylinder":
-        return Cylinder(node["r"], node["h"], node.get("round"), R, t, path, nm)
+        c = Cylinder(node["r"], node["h"], node.get("round"), R, t, path, nm)
+        if upright and c.round > 0.0 and abs(t[2]) < 1e-6:
+            r = c.round
+            c = Cylinder(c.r, c.hgt + r, r, R, (t[0], t[1], t[2] - r), path, nm)
+        return c
     if op == "sphere":
         return Sphere(node["r"], R, t, path, nm)
     if op == "torus":
@@ -901,7 +914,14 @@ def _build(node: dict, path: str, R, t) -> Node:
         r1, r2, h = float(node["r1"]), float(node["r2"]), float(node["h"])
         return Revolve(_cone_profile(r1, r2, h), R, t, path, nm, op="cone", cone=(r1, r2, h))
     if op == "extrude":
-        return Extrude(node["points"], node["h"], node.get("axis", "z"), node.get("round"), R, t, path, nm)
+        ax = node.get("axis", "z")
+        table = None
+        if upright and float(node.get("round") or 0.0) > 0.0:
+            if ax == "z" and abs(t[2]) < 1e-6:
+                table = 0.0
+            elif ax != "z" and any(abs(t[2] + float(p[1])) < 1e-6 for p in node["points"]):
+                table = -t[2]  # profile points with b = -t_z sit on the table
+        return Extrude(node["points"], node["h"], ax, node.get("round"), R, t, path, nm, table=table)
     if op == "revolve":
         return Revolve(node["points"], R, t, path, nm)
     raise CsgError([{"path": path, "msg": f"unknown op {op!r}", "code": "csg_schema"}])
@@ -912,6 +932,7 @@ class Shape:
 
     def __init__(self, tree: dict, root: Node, path: str):
         self.tree, self.root, self.path = tree, root, path
+        self.notes: list[str] = []
         b = root.bbox
         self.bounds = None if b is None else (b[0], b[1], b[2], b[3], max(b[4], 0.0), b[5])
 
@@ -932,13 +953,117 @@ class Shape:
         return self.root.leaves()
 
 
+NUDGE = 1.0  # mm a box face moves in when it would coincide with a rounded face of another box in the same union
+
+
+def _union_boxes(node: Node, out: list) -> None:
+    """Boxes and cylinders that add material (union members and cut bases, never cut tools), in tree order."""
+    if isinstance(node, (Box, Cylinder)):
+        out.append(node)
+    elif isinstance(node, Union):
+        for k in node.kids:
+            _union_boxes(k, out)
+    elif isinstance(node, Cut):
+        _union_boxes(node.base, out)
+
+
+def _nudge_coincident(root: Node) -> list[str]:
+    """OpenCascade cannot reliably join boxes whose ROUNDED faces coincide exactly (same plane, overlapping): the shell
+    comes out valid but later booleans misread it (stepped tower, 2026-11-20: a 55 cm3 'collision' with the base plate).
+    Such a face of the later box moves in by NUDGE mm, in the light engine and the CAD alike. Returns notes."""
+    boxes: list = []
+    _union_boxes(root, boxes)
+    notes = []
+    for j in range(1, len(boxes)):
+        B = boxes[j]
+        for _pass in range(4):  # after a nudge, check the earlier boxes again (a face may now meet another one)
+            if not _nudge_one(B, boxes[:j], notes):
+                break
+    return notes
+
+
+def _nudge_cyl(B, earlier: list, notes: list) -> bool:
+    """Two coaxial cylinders of (almost) the same radius, one of them rounded, that touch or overlap along the axis: the
+    later one's radius shrinks by NUDGE (coincident rounded lateral faces, same failure as boxes)."""
+    for A in earlier:
+        if not isinstance(A, Cylinder) or (A.round <= 0.0 and B.round <= 0.0) or abs(A.r - B.r) >= 0.5:
+            continue
+        if any(abs(A.R[r][2] - B.R[r][2]) > 1e-9 for r in range(3)):
+            continue
+        ax = tuple(A.R[r][2] for r in range(3))
+        d = tuple(b - a for a, b in zip(A.t, B.t))
+        along = sum(x * y for x, y in zip(d, ax))
+        if math.sqrt(max(sum(x * x for x in d) - along * along, 0.0)) > 1e-6:
+            continue
+        if along > A.hgt + 0.5 or along + B.hgt < -0.5:
+            continue
+        if B.r - NUDGE < MIN_FEATURE / 2:
+            return False
+        nb = Cylinder(B.r - NUDGE, B.hgt, B.round, B.R, B.t, B.path, B.name)
+        B.__dict__.update(nb.__dict__)
+        notes.append(f"{B.label()}: its radius shrank {NUDGE:g} mm so its side does not coincide with the rounded side of "
+                     f"{A.label()} (the CAD kernel cannot join exactly coincident rounded faces)")
+        return True
+    return False
+
+
+def _nudge_one(B, earlier: list, notes: list) -> bool:
+    if isinstance(B, Cylinder):
+        return _nudge_cyl(B, earlier, notes)
+    if True:
+        for A in earlier:
+            if not isinstance(A, Box):
+                continue
+            if A.round <= 0.0 and B.round <= 0.0:
+                continue
+            if any(abs(A.R[r][c] - B.R[r][c]) > 1e-9 for r in range(3) for c in range(3)):
+                continue
+            ext = []
+            for X in (A, B):  # extents in the shared box frame
+                c = tuple(a + b for a, b in zip(_mv(X.R, (0.0, 0.0, X.h[2])), X.t))
+                cl = tuple(sum(X.R[k][i] * c[k] for k in range(3)) for i in range(3))
+                ext.append([(cl[i] - X.h[i], cl[i] + X.h[i]) for i in range(3)])
+            ea, eb = ext
+            moves = []
+            for i in range(3):
+                others = [k for k in range(3) if k != i]
+                if not all(eb[k][0] < ea[k][1] + 0.5 and ea[k][0] < eb[k][1] + 0.5 for k in others):
+                    continue
+                for side in (0, 1):
+                    if abs(ea[i][side] - eb[i][side]) < 0.5 and not (i == 2 and side == 0 and B.t[2] < 1e-6 and A.t[2] < 1e-6):
+                        moves.append((i, side))
+            if not moves:
+                continue
+            size = list(B.size)
+            shift = [0.0, 0.0, 0.0]
+            for i, side in moves:
+                size[i] -= NUDGE
+                if i < 2:
+                    shift[i] += -NUDGE / 2 if side == 1 else NUDGE / 2
+                elif side == 0:
+                    shift[2] += NUDGE
+            if min(size) < MIN_FEATURE:
+                continue
+            t2 = tuple(a + b for a, b in zip(_mv(B.R, tuple(shift)), B.t))
+            nb = Box(size, B.round, B.R, t2, B.path, B.name)
+            B.__dict__.update(nb.__dict__)
+            what = ", ".join(f"{'-+'[sd]}{'xyz'[i]}" for i, sd in moves)
+            notes.append(f"{B.label()}: its {what} face(s) moved in {NUDGE:g} mm so they do not coincide with the rounded faces of "
+                         f"{A.label()} (the CAD kernel cannot join exactly coincident rounded faces)")
+            return True
+    return False
+
+
 def compile_tree(tree: Any, path: str = "body.csg", validate: bool = True) -> Shape:
     if validate:
         errs = validate_tree(tree, path)
         if errs:
             raise CsgError(errs)
     root = _build(tree, path, _I3, (0.0, 0.0, 0.0))
-    return Shape(tree, root, path)
+    notes = _nudge_coincident(root)
+    sh = Shape(tree, root, path)
+    sh.notes = notes
+    return sh
 
 
 # =============================================================================================== scaling

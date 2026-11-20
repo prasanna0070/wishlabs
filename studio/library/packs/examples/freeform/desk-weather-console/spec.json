@@ -17,7 +17,7 @@
       ]
     },
     "wall": 2.4,
-    "edge_round": 0,
+    "edge_round": 3,
     "split": "base_plate",
     "feet": 4
   },

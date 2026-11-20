@@ -651,7 +651,8 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
     # the full envelope the CAD builds: its own outline spline plus every ear and antenna where decor.apply_ears puts them
     # (live failure 2026-11-02: the old estimate said 148 x 105 x 195 mm for a shell the CAD made 167.6 x 97.6 x 212.7 mm)
     env = full_envelope(sp, geom)
-    if sp.body.family == "csg":  # pack `freeform`: pieces that print solid (their hollow does not join the main one)
+    if sp.body.family == "csg":  # pack `freeform`: engine adjustments, and pieces that print solid
+        warnings += list(getattr(getattr(geom, "csg", None), "notes", None) or [])
         for pc in (getattr(geom, "csg_info", None) or {}).get("solid_pieces") or []:
             warnings.append(f"body.csg: {pc['label']} prints solid ({pc['cm3']:.0f} cm3 of plastic): its hollow does not join the "
                             f"main hollow, so nothing can mount behind its faces; overlap it with the main body by at least "
@@ -1332,7 +1333,16 @@ def _place_feature(geom: ShellGeometry, f: Feature, m: dict, k: int, errors, war
                 return None
     plane = max(ts) + geom.wall
     tunnel = max(ts) - min(ts)
-    if tunnel > 8.0:
+    tilted = None
+    if tunnel > 8.0 and geom.family == "csg":  # pack `freeform`: a flat face at a slope (wedge consoles) is no curve
+        tmm, tmp_, tpm, tpp = ts[1], ts[2], ts[3], ts[4]  # (-u,-v), (-u,+v), (+u,-v), (+u,+v)
+        if abs(t0 - (tmm + tmp_ + tpm + tpp) / 4) < 0.6 and abs((tpp - tpm) - (tmp_ - tmm)) < 0.6:
+            du_, dv_ = ((tpm + tpp) - (tmm + tmp_)) / 2 / max(fw, 1e-6), ((tmp_ + tpp) - (tmm + tpm)) / 2 / max(fh, 1e-6)
+            tilted = math.degrees(math.atan(math.hypot(du_, dv_)))
+    if tilted is not None:
+        warnings.append(f"features[{k}] {f.id}: the {face} face is a flat slope here (about {tilted:.0f} deg); the CAD mounts the "
+                        "module square to the slope")
+    elif tunnel > 8.0:
         warnings.append(f"features[{k}] {f.id}: the face curves {tunnel:.0f} mm across the module; CAD adds a mounting boss and a deep window")
     # available depth along the centre ray
     avail = 0.0
