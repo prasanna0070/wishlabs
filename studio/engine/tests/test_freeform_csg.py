@@ -263,6 +263,22 @@ def test_pack_off_is_byte_for_byte_main(monkeypatch):
     assert [k for k in want if got[k] != want[k]] == []
 
 
+def test_printed_object_with_a_csg_body(monkeypatch):
+    """kind printed + csg (needs pack printed, i.e. gstudio.printed from hack/cat-a / hack/printed-0730): a sculpted
+    teapot pen pot (revolve pot, torus handle, cone spout, open top) validates; built end to end on the VM it gave
+    buildable, pcb + firmware skipped, 1 STL, 44 checks passed (main + printed-0730 + this branch, 2026-11-20)."""
+    pytest.importorskip("gstudio.printed")
+    _packs(monkeypatch, "sensing,schedule,printed,printed_cuts,freeform")
+    from gstudio import pipeline
+
+    r = pipeline.validate(str(FIX / "teapot-pen-pot.json"))
+    assert r["ok"], r["errors"]
+    d = json.loads((FIX / "teapot-pen-pot.json").read_text())
+    d["body"]["csg"]["nodes"][0]["points"] = [[0, 0], [38, 0], [46, 20], [48, 45], [40, 70], [0, 70]]  # rim curves in
+    r = pipeline.validate(d)
+    assert not r["ok"] and any("printed.opening" in e for e in r["errors"]), r["errors"]  # printed's own rim rule
+
+
 def test_light_engine_needs_no_cadquery():
     """As in the web image (engine_bridge._validate_engine): spec + normalize with no CadQuery, firmware, manual, order or
     pcb package importable."""
