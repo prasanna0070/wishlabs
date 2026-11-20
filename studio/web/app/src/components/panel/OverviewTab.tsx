@@ -512,7 +512,7 @@ function AiReceipts({ receipts }: { receipts: Receipts | null }) {
       <SecHead
         icon={<Sparkles size={18} />}
         title="AI receipts"
-        sub="Which Google model did what in this project. Every call ran on Vertex AI; the counts come from the usage metadata Vertex AI returned with each call."
+        sub="Which Google model did what in this project. Every call ran on Vertex AI. Token counts come from the usage metadata Vertex AI returned with each call; Lyria is priced per clip and has no token counts."
       />
       {receipts ? (
         <div className="ov-receipts card" role="table" aria-label="Google AI calls in this project">
@@ -546,11 +546,11 @@ function AiReceipts({ receipts }: { receipts: Receipts | null }) {
                 {r.calls}
                 {r.images ? <em> · {r.images} image{r.images === 1 ? "" : "s"}</em> : null}
               </span>
-              <span className="num" role="cell" data-l="Tokens in">
-                {compact(r.inputTokens)}
+              <span className="num" role="cell" data-l="Tokens in" title={r.noTokens ? "Priced per clip: no token counts" : undefined}>
+                {r.noTokens ? "–" : compact(r.inputTokens)}
               </span>
-              <span className="num" role="cell" data-l="Tokens out" title={r.thinkingTokens ? `${r.thinkingTokens.toLocaleString("en-IN")} of them thinking tokens` : undefined}>
-                {compact(r.outputTokens + r.thinkingTokens)}
+              <span className="num" role="cell" data-l="Tokens out" title={r.noTokens ? "Priced per clip: no token counts" : r.thinkingTokens ? `${r.thinkingTokens.toLocaleString("en-IN")} of them thinking tokens` : undefined}>
+                {r.noTokens ? "–" : compact(r.outputTokens + r.thinkingTokens)}
               </span>
               <span className="num" role="cell" data-l="Est. cost" title={r.costUsd ? undefined : "No rate is configured for this model"}>
                 {r.costUsd ? usd(r.costUsd) : "–"}
@@ -579,7 +579,7 @@ function AiReceipts({ receipts }: { receipts: Receipts | null }) {
               {usd(receipts.costUsd)}
             </span>
           </div>
-          <p className="muted small rc-note">Costs are estimates from per-token rates set in our server, not a bill. Tokens out include the model's thinking tokens.</p>
+          <p className="muted small rc-note">Costs are estimates from rates set in our server, not a bill: per token for Gemini, and a flat per-clip estimate for Lyria. Tokens out include the model's thinking tokens.</p>
         </div>
       ) : (
         <div className="callout">No model usage was recorded for this project.</div>

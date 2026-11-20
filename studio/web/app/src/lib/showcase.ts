@@ -102,4 +102,4 @@ export function buildTime(started?: string | null, ended?: string | null): strin
 }
 
 /** The fixed price line for every surface (decided 20 Nov 2026). */
-export const PRICE_LINE = "First units ₹19k to 28k; under ₹10k at volume (modelled).";
+export const PRICE_LINE = "₹19k to 28k for first units; under ₹10k at volume (modelled).";

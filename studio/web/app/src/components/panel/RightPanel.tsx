@@ -8,6 +8,7 @@ import { BuildProgressCard } from "../chat/Messages";
 import { ChecksCard } from "./Checks";
 import { PreviewTab } from "./PreviewTab";
 import { ErrorText } from "../ErrorText";
+import { ChunkBoundary } from "../ChunkBoundary";
 import { bestStageErrorText } from "../../lib/errors";
 
 const PartsTab = lazy(() => import("./PartsTab"));
@@ -56,15 +57,17 @@ export function RightPanel({ tab, onTab }: { tab: TabId; onTab: (t: TabId) => vo
   let body: React.ReactNode;
   if (tab === "overview" && readOnly)
     body = (
-      <Suspense
-        fallback={
-          <div className="empty">
-            <Spinner lg />
-          </div>
-        }
-      >
-        <OverviewTab onTab={onTab} />
-      </Suspense>
+      <ChunkBoundary key={tab}>
+        <Suspense
+          fallback={
+            <div className="empty">
+              <Spinner lg />
+            </div>
+          }
+        >
+          <OverviewTab onTab={onTab} />
+        </Suspense>
+      </ChunkBoundary>
     );
   else if (!cur) body = <div className="empty">No version selected.</div>;
   else if (tab === "preview") body = <PreviewTab version={cur} onTab={onTab} />;
@@ -72,15 +75,17 @@ export function RightPanel({ tab, onTab }: { tab: TabId; onTab: (t: TabId) => vo
   else {
     const props = { version: cur, onTab };
     body = (
-      <Suspense
-        fallback={
-          <div className="empty">
-            <Spinner lg />
-          </div>
-        }
-      >
-        {tab === "parts" ? <PartsTab {...props} /> : tab === "order" ? <OrderTab {...props} /> : tab === "build" ? <BuildTab {...props} /> : tab === "pcb" ? <PcbTab {...props} /> : <CodeTab {...props} />}
-      </Suspense>
+      <ChunkBoundary key={tab}>
+        <Suspense
+          fallback={
+            <div className="empty">
+              <Spinner lg />
+            </div>
+          }
+        >
+          {tab === "parts" ? <PartsTab {...props} /> : tab === "order" ? <OrderTab {...props} /> : tab === "build" ? <BuildTab {...props} /> : tab === "pcb" ? <PcbTab {...props} /> : <CodeTab {...props} />}
+        </Suspense>
+      </ChunkBoundary>
     );
   }
 
