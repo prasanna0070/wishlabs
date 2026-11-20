@@ -291,6 +291,75 @@ def test_cartridge_in_a_piece_that_prints_solid_is_refused(monkeypatch):
     assert r["ok"], r["errors"]
 
 
+def test_blended_overlap_is_not_counted_as_hollow(monkeypatch):
+    """Review 2026-11-21 (H1): a union blend (hg_sdf round union) claims far more depth where pieces overlap: 2 mm in
+    from a stepped organiser's shared rear face read about -6 mm, so inside() (wall 2.4) said hollow while the CAD's
+    hollow (the tree inset by the wall, sharp unions) ends 2.4 mm in. The cavity tests now follow that inset tree."""
+    _packs(monkeypatch, "sensing,schedule,freeform")
+    from gstudio.normalize import ShellGeometry, load_spec
+
+    d = json.loads((STUDIO / "library/packs/examples/freeform/stepped-desk-tower/spec.json").read_text())
+    d["body"]["csg"]["node"]["blend"] = 6                    # the prompt's stepped organiser pattern blends its steps
+    g = ShellGeometry(load_spec(d))
+    rear = g.bbox[3]                                          # the shared rear face (y = 60)
+    for depth in (0.1, 2.0):
+        p = (0.0, rear - depth, 30.0)
+        assert g.csg.sdf(*p) < -(g.wall + 0.5)              # the blended field overstates the depth here
+        assert not g.inside(*p), depth                      # the hollow test does not
+        assert g.csg.cavity_sdf(*p, g.wall) > 0.0 and g.outer_sdf(*p) > -g.wall
+    assert g.inside(0.0, rear - g.wall - 1.0, 30.0)          # 1 mm past the inner wall: hollow
+    # the blend also stands proud of the shared face (it reads near-parallel faces as a corner); the CAD face is flat,
+    # so normalize places features and measures walls on the plain union of the pieces
+    assert g.csg.sdf(0.0, rear + 1.0, 30.0) < 0.0
+    assert g.outer_sdf(0.0, rear + 0.3, 30.0) > 0.0 and abs(g.outer_sdf(0.0, rear, 30.0)) < 0.01
+    off = load_spec(json.loads((STUDIO / "examples/bedtime-robot/spec.json").read_text()))
+    go = ShellGeometry(off)                                   # every other family: the outer field, unchanged
+    for p in ((0.0, 0.0, 40.0), (10.0, 20.0, 30.0), (0.0, 999.0, 0.0)):
+        assert go.hollow_sdf(*p) == go.outer_sdf(*p) and go.hollow_sdf(*p, fit=True) == go.fit_sdf(*p)
+
+
+def test_huge_numbers_and_huge_trees_are_refused_quickly():
+    """Review 2026-11-21 (M1, M2): an integer too big for a float is an error, not a crash; the walk stops validating
+    past the node limit, so a request with thousands of outlines is refused at once with the real count."""
+    import math
+    import time
+
+    e = C.validate_tree({"op": "sphere", "r": 10 ** 400})
+    assert e and e[0]["path"] == "body.csg.r" and e[0]["code"] == "csg_schema"
+    e = C.validate_tree({"op": "move", "to": [10 ** 400, 0, 0], "node": BOX})
+    assert e and e[0]["path"] == "body.csg.to"
+    ring = [[i % 7 * 3.0 + 40 * math.cos(k / 64 * 6.283), 40 * math.sin(k / 64 * 6.283)] for i in range(1) for k in range(64)]
+    big = {"op": "union", "nodes": [{"op": "extrude", "h": 10, "points": ring} for _ in range(3000)]}
+    t0 = time.time()
+    e = C.validate_tree(big)
+    assert time.time() - t0 < 1.0
+    assert e[0]["code"] == "csg_limit" and "3001 nodes" in e[0]["msg"]
+
+
+def test_numpy_labelling_gives_up_on_a_too_intricate_shape(monkeypatch):
+    """Review 2026-11-21 (M3): the web image has no scipy; its numpy labelling stops after LABEL_MAX_ROUNDS rounds and
+    the shape is refused as too intricate, instead of running for tens of seconds."""
+    import numpy as np
+
+    monkeypatch.setitem(sys.modules, "scipy", None)          # as in the web image
+    S = np.zeros((40, 40, 6), bool)
+    for i in range(0, 40, 4):                                 # a serpentine: rows joined alternately at the ends
+        S[i:i + 2, :, 1:5] = True
+        j = 38 if (i // 4) % 2 == 0 else 0
+        S[i:i + 4, j:j + 2, 1:5] = True
+    lab, n = C._label(S, np)
+    assert n == 1
+    with pytest.raises(C._TooIntricate):
+        C._label(S, np, max_rounds=3)
+    monkeypatch.setattr(C, "LABEL_MAX_ROUNDS", 1)
+    C._CHECK_CACHE.clear()
+    try:
+        errs = C.solid_checks(BOX)
+    finally:
+        C._CHECK_CACHE.clear()
+    assert errs and errs[0]["code"] == "csg_limit" and "too intricate" in errs[0]["msg"]
+
+
 def _pack_off_entries(packs_sets) -> dict:
     """{key: sha256} as _ff/po.py made them on main e8eb54d: schema text + pipeline.validate of every live example."""
     from gstudio import pipeline

@@ -222,8 +222,8 @@ class ShellGeometry:
             rho = math.sqrt(x * x + (y / b.squash_y) ** 2)
             d = self.poly.sdf(rho, z)
             return d * min(1.0, b.squash_y) if d < 0 else d
-        if b.family == "csg":
-            return self.csg.sdf(x, y, z) if self.csg is not None else 1.0
+        if b.family == "csg":  # the plain union of the pieces: blends never stand proud of a shared face (Shape.sharp_sdf)
+            return self.csg.sharp_sdf(x, y, z) if self.csg is not None else 1.0
         d = min(_prim_sdf(p, x, y, z) for p in b.primitives)
         return max(d, -z)
 
@@ -234,9 +234,19 @@ class ShellGeometry:
             return rounded_extrusion_sdf(self.poly.sdf(x, z), y, self.body.depth, self.rounds[0], self.rounds[1])
         return self.outer_sdf(x, y, z)
 
+    def hollow_sdf(self, x: float, y: float, z: float, fit: bool = False) -> float:
+        """The field the cavity tests compare with -wall (<= -wall: in the hollow). Every family but csg: the outer field
+        (fit_sdf with `fit`), unchanged. Pack `freeform`: the CAD hollows a csg body as the tree inset by the wall with
+        SHARP unions (cad.csg_body), while the outer field's blended unions claim far more depth where pieces overlap
+        (review 2026-11-21: 2 mm in from a stepped organiser's shared rear face read -6.2 mm), so csg is tested against
+        that inset tree: Shape.cavity_sdf - wall."""
+        if self.family == "csg":
+            return (self.csg.cavity_sdf(x, y, z, self.wall) - self.wall) if self.csg is not None else 1.0
+        return self.fit_sdf(x, y, z) if fit else self.outer_sdf(x, y, z)
+
     def inside(self, x: float, y: float, z: float, margin: float = 0.0) -> bool:
         """True when the point lies in the inner cavity with `margin` mm to the inner wall surface."""
-        ok = self.outer_sdf(x, y, z) <= -(self.wall + margin) and z >= self.floor_z + margin - 1e-9
+        ok = self.hollow_sdf(x, y, z) <= -(self.wall + margin) and z >= self.floor_z + margin - 1e-9
         if ok and self.family == "csg":  # a csg piece whose hollow does not join the main one prints solid (cad.csg_body)
             from .csg import in_main_hollow
 
@@ -1205,8 +1215,8 @@ def seam_y(geom: ShellGeometry, W: float, floor: float) -> float:
     xs = _lin(-W / 2 - 3.0, W / 2 + 3.0, 6.0)
     zs = _lin(floor + 0.5, floor + 26.0, 6.0)
     while y > y0 + 10.0:
-        ok = all(geom.outer_sdf(x, y, z) <= -geom.wall for x in xs for z in (zs[0], zs[-1])) and \
-            all(geom.outer_sdf(x, y, z) <= -geom.wall for z in zs for x in (xs[0], xs[-1]))
+        ok = all(geom.hollow_sdf(x, y, z) <= -geom.wall for x in xs for z in (zs[0], zs[-1])) and \
+            all(geom.hollow_sdf(x, y, z) <= -geom.wall for z in zs for x in (xs[0], xs[-1]))
         if ok:
             return y
         y -= 2.0
@@ -1228,7 +1238,7 @@ def _place_cartridge(geom: ShellGeometry, W, plan, floor, kz, rear_gap, kb=0.0, 
     y = 0.0
     y_rear = None
     for _ in range(600):
-        if geom.outer_sdf(ux, y, zt + 1.6) > -geom.wall:
+        if geom.hollow_sdf(ux, y, zt + 1.6) > -geom.wall:
             y_rear = y
             break
         y += 0.5
@@ -1238,7 +1248,7 @@ def _place_cartridge(geom: ShellGeometry, W, plan, floor, kz, rear_gap, kb=0.0, 
     lo_y, hi_y = y_rear - 0.5, y_rear
     for _ in range(4):
         mid = (lo_y + hi_y) / 2
-        if geom.outer_sdf(ux, mid, zt + 1.6) > -geom.wall:
+        if geom.hollow_sdf(ux, mid, zt + 1.6) > -geom.wall:
             hi_y = mid
         else:
             lo_y = mid
@@ -1252,7 +1262,7 @@ def _place_cartridge(geom: ShellGeometry, W, plan, floor, kz, rear_gap, kb=0.0, 
     cinfo = (getattr(geom, "csg_info", None) or None) if geom.family == "csg" else None
 
     def hit(x, yy, z):
-        if geom.fit_sdf(x, yy, z) > -geom.wall:
+        if geom.hollow_sdf(x, yy, z, fit=True) > -geom.wall:
             return "wall"
         if cinfo:
             from .csg import in_main_hollow
@@ -1295,7 +1305,7 @@ def _place_cartridge(geom: ShellGeometry, W, plan, floor, kz, rear_gap, kb=0.0, 
             w = geom.wall
             ring = [(w * math.cos(k * math.pi / 4), w * math.sin(k * math.pi / 4)) for k in range(8)]
             for x, yy in pts:
-                if geom.outer_sdf(x, yy, floor + 0.8) > -geom.wall:
+                if geom.hollow_sdf(x, yy, floor + 0.8) > -geom.wall:
                     return False, f"plan leaves the cavity above the base plate at x={x:.0f}, y={yy:.0f}"
                 # outer bottom section at z=0.05 shrunk by the wall (2D buffer, as the CAD's base_plate_opening)
                 if any(geom.outer_sdf(x + dx, yy + dy, 0.05) > 0.0 for dx, dy in [(0.0, 0.0)] + ring):
@@ -1567,7 +1577,7 @@ def kit_shell_conflicts(sp: Spec, lib, geom: "ShellGeometry", features: list, to
             for px, py, pz in probes:
                 # the wall probe is exact only where the kit's depth is measured from a flat face (silhouette front/rear);
                 # on curved faces CAD seats the kit on a flattened mounting plane this probe does not model
-                depth_in = (geom.outer_sdf(px, py, pz) + geom.wall) if flat else -1.0  # > 0: in the wall or outside
+                depth_in = (geom.hollow_sdf(px, py, pz) + geom.wall) if flat else -1.0  # > 0: in the wall or outside
                 below = geom.floor_z - pz  # > 0: under the inner floor
                 bad = max(depth_in - tol, below - tol)
                 if bad > 0 and (worst is None or bad > worst[0]):

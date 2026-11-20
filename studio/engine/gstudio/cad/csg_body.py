@@ -34,6 +34,9 @@ from .geom import V, halfspace_z, largest_solid, solids_of, try_fillet
 TINY = 0.05
 
 
+LOST_MAX_MM3 = 100.0  # a separate piece this big (0.1 cm3) is an error, not a quiet warning
+
+
 class CsgBuildError(ValueError):
     """A CAD failure the agent can repair: str() = "<path>: <msg> (fix: <fix>)" (contract section 8)."""
 
@@ -364,6 +367,14 @@ def csg_body(body: dict) -> BodyGeom:
         raise CsgBuildError("body.csg", "nothing of the shape is above the table (z >= 0)", "keep the shape at z >= 0")
     acc = sols[0]
     lost = sum(s.Volume() for s in sols[1:])
+    if lost >= LOST_MAX_MM3:
+        # the light check's grid (up to ~3.4 mm cells) can read a gap thinner than one cell as joined (review 2026-11-21):
+        # the CAD must not quietly drop a real piece, so this goes back to the design agent like every CAD error
+        big = max(sols[1:], key=lambda s: s.Volume())
+        c = big.Center()
+        raise CsgBuildError("body.csg", f"{len(sols) - 1} separate piece(s) ({lost / 1000:.1f} cm3, the biggest around "
+                            f"({c.x:.0f}, {c.y:.0f}, {c.z:.0f}) mm) do not touch the main body; a gap too thin for the quick "
+                            "check still splits the print", "overlap every piece with the main body by at least 2 mm, or remove it")
     if lost > 1.0:
         warns.append(f"body.csg: {len(sols) - 1} separate piece(s) ({lost / 1000:.1f} cm3) do not touch the main body and were "
                      "left out")

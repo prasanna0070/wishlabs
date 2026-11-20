@@ -120,3 +120,13 @@ def test_cad_errors_name_the_node():
     with pytest.raises(CsgBuildError) as ei:
         csg_body({"family": "csg", "csg": {"op": "box", "size": [3, 3, 3]}, "wall": 2.4})
     assert "nothing is left to hollow" in str(ei.value)
+
+
+def test_a_separate_piece_is_an_error_not_quietly_dropped():
+    """Review 2026-11-21 (M4): the light check's grid can read a gap thinner than one cell as joined; the CAD then kept
+    the biggest solid and only warned. A real separate piece now goes back to the agent as a CAD error."""
+    tree = {"op": "union", "nodes": [{"op": "box", "size": [100, 90, 60], "round": 3},
+                                     {"op": "move", "to": [71, 0, 0], "node": {"op": "box", "size": [40, 40, 40], "round": 2}}]}
+    with pytest.raises(CsgBuildError) as ei:
+        csg_body({"family": "csg", "csg": tree, "wall": 2.4})           # a 1 mm gap at x = 50..51
+    assert "do not touch the main body" in str(ei.value) and "overlap every piece" in str(ei.value)

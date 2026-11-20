@@ -75,14 +75,22 @@ def _e(errs: list, path: str, msg: str, fix: Optional[str] = None, code: str = "
 
 
 def _isnum(v: Any) -> bool:
-    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(float(v))
+    if not isinstance(v, (int, float)) or isinstance(v, bool):
+        return False
+    try:
+        return math.isfinite(float(v))
+    except (OverflowError, ValueError):  # an integer too big for a float (10**400) is not a number we take
+        return False
 
 
 def _show(v: Any) -> str:
     try:
         s = json.dumps(v)
     except (TypeError, ValueError):
-        s = repr(v)
+        try:
+            s = repr(v)
+        except ValueError:  # an integer past Python's digit limit
+            s = "a number too large to show"
     return s if len(s) <= 40 else s[:37] + "..."
 
 
@@ -158,7 +166,8 @@ def validate_tree(tree: Any, path: str = "body.csg") -> list[dict]:
     v = _V()
     _walk(tree, path, 1, v)
     if v.count > MAX_NODES:
-        _e(v.errs, path, f"the tree has {v.count} nodes; the limit is {MAX_NODES} (every object with an op counts, move and "
+        n = _count_nodes(tree)  # the walk stops validating past the limit (review M2): count the rest cheaply
+        _e(v.errs, path, f"the tree has {n} nodes; the limit is {MAX_NODES} (every object with an op counts, move and "
            "union included)", "use fewer pieces: one extrude outline replaces several boxes, a union takes many nodes at once, "
            "drop small details", "csg_limit")
     if v.max_depth > MAX_DEPTH:
@@ -168,13 +177,33 @@ def validate_tree(tree: Any, path: str = "body.csg") -> list[dict]:
     return errs[:12]
 
 
+def _count_nodes(tree: Any, cap: int = 1_000_000) -> int:
+    """Objects at node places (root, node, nodes[i], minus[i]), without validating them."""
+    n, stack = 0, [tree]
+    while stack and n < cap:
+        x = stack.pop()
+        if not isinstance(x, dict):
+            continue
+        n += 1
+        if isinstance(x.get("node"), dict):
+            stack.append(x["node"])
+        for k in ("nodes", "minus"):
+            if isinstance(x.get(k), list):
+                stack.extend(x[k])
+    return n
+
+
 def _walk(node: Any, path: str, depth: int, v: _V) -> None:
     if depth > v.max_depth:
         v.max_depth, v.deep_path = depth, path
+    if v.count > MAX_NODES:  # over the limit: validate_tree reports the count; validating more only costs time
+        return
     if not isinstance(node, dict):
         _e(v.errs, path, f"a node must be an object with an \"op\", not {_show(node)}", f"use one of: {_OPS_TEXT}")
         return
     v.count += 1
+    if v.count > MAX_NODES:
+        return
     op = node.get("op")
     if op not in _KEYS:
         if op is None:
@@ -940,6 +969,13 @@ class Shape:
     def sdf(self, x: float, y: float, z: float) -> float:
         return max(self.root.sdf(x, y, z, 0.0), -z)
 
+    def sharp_sdf(self, x: float, y: float, z: float) -> float:
+        """The outer form with every union blend off: the pieces' plain union, cut flat at the table. Where two blended
+        pieces share a face (a stepped organiser's back, its sides), the round union stands proud of that face by up to
+        0.29 x blend (it reads near-parallel faces as a corner), but the CAD fillets only where surfaces cross and that
+        face stays flat (review 2026-11-21). The light validator places features and measures walls on this form."""
+        return max(self.root.sdf(x, y, z, SHARP), -z)
+
     def cavity_sdf(self, x: float, y: float, z: float, wall: float) -> float:
         """The hollow as the CAD builds it (every node inset by `wall`, cut tools grown by it, no blends), floor at wall."""
         return max(self.root.sdf(x, y, z, -wall), wall - z)
@@ -954,6 +990,7 @@ class Shape:
         return self.root.leaves()
 
 
+SHARP = -1e-9  # an offset too small to move any surface that turns every union blend off (Union blends only at off 0)
 NUDGE = 1.0  # mm a box face moves in when it would coincide with a rounded face of another box in the same union
 
 
@@ -1174,7 +1211,12 @@ def _solid_checks(tree: Any, kind: str, path: str, wall: float = 2.4) -> tuple[l
            "to stand steadily", "give it a wider flat base at z = 0 (for example a box or cylinder rising from z = 0)",
            "csg_footprint")
     # ---- one connected solid
-    lab, n = _label(S, np)
+    try:
+        lab, n = _label(S, np)
+    except _TooIntricate:
+        _e(errs, path, "the shape is too intricate to check quickly (long winding or interleaved pieces)",
+           "use fewer, simpler pieces: straight blocks and outlines instead of long thin chains", "csg_limit")
+        return errs, info
     info["components"] = int(n)
     if n > 1:
         sizes = np.bincount(lab.ravel())[1:]
@@ -1259,7 +1301,9 @@ def _thin(shape: Shape, Q, DQ, np) -> Optional[tuple]:
         out = (d > 0.02) & (t[alive] > 0.3)
         thick[idx[out]] = t[alive][out]
         alive[idx[out]] = False
-        step = np.maximum(-d, 0.15)
+        # at most 0.5 mm a step: where blended pieces overlap the field claims more depth than there is (review
+        # 2026-11-21), and a longer step could jump over the far side of a thin part
+        step = np.clip(-d, 0.15, 0.5)
         t[idx] = t[idx] + np.where(out, 0.0, step)
         far = t > MIN_FEATURE + 0.6
         alive &= ~far
@@ -1305,7 +1349,15 @@ def in_main_hollow(info: dict, x: float, y: float, z: float) -> bool:
     return bool(M[i, j, k])
 
 
-def _label(S, np):
+LABEL_MAX_ROUNDS = 300  # numpy labelling (no scipy in the web image): rounds before a shape counts as too intricate
+
+
+class _TooIntricate(Exception):
+    pass
+
+
+def _label(S, np, max_rounds: Optional[int] = None):
+    max_rounds = LABEL_MAX_ROUNDS if max_rounds is None else max_rounds
     try:
         from scipy import ndimage  # type: ignore
 
@@ -1315,7 +1367,9 @@ def _label(S, np):
         pass
     L = np.where(S, np.arange(1, S.size + 1).reshape(S.shape), 0).astype(np.int64)
     big = S.size + 5
-    for _ in range(10000):
+    for _ in range(max_rounds + 1):
+        if _ == max_rounds:  # not settled: a long winding solid (bounded time on the web's single CPU, review M3)
+            raise _TooIntricate()
         C = np.where(S, L, big)
         N = C.copy()
         for ax in range(3):
