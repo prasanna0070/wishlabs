@@ -292,7 +292,9 @@ class CsgBody(_BodyCommon):
     csg: dict[str, Any] = Field(..., description="CSG node tree (see the freeform rules): the outer form, mm, z = 0 is the table")
     edge_round: float = Field(3.0, ge=0, le=25, description="round of the bottom edge where the shape meets the table, mm "
                               "(rounded pieces standing on z = 0 keep a flat, square-edged bottom; this rounds it)")
-    split: Literal["base_plate", "rear_cover", "none"] = "base_plate"
+    # no rear_cover: on csg forms the rear-cover seam gave collisions, thin walls and no cord tie in VM tests (2026-11-21)
+    split: Literal["base_plate", "none"] = Field("base_plate", description="base_plate (the electronics go in from the "
+                                                 "bottom) or none (one-piece printed object)")
 
 
 FREEFORM_PACK = "freeform"

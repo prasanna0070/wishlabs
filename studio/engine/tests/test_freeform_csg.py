@@ -219,6 +219,12 @@ def test_pack_off_rejects_csg_and_hides_it(monkeypatch):
     alias = json.loads(json.dumps(d))
     alias["body"]["kind"] = alias["body"].pop("family")
     assert load_spec(alias).body.family == "csg"
+    assert sch["$defs"]["CsgBody"]["properties"]["split"]["enum"] == ["base_plate"]  # no rear_cover for csg forms
+    rc = json.loads(json.dumps(d))
+    rc["body"]["split"] = "rear_cover"
+    with pytest.raises(SpecError) as ei:
+        load_spec(rc)
+    assert ei.value.errors[0]["path"] == "body.split"
 
 
 def test_bad_tree_errors_reach_the_validator(monkeypatch):
