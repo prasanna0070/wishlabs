@@ -45,7 +45,8 @@ Rules
              means the server took it (never sent twice), otherwise back off and resend. GETs retry 429, 5xx and
              network errors with backoff (2, 4, 8, 16, 30 s; Retry-After honoured).
   resume     --resume reads <out>/results.json: finished cases are skipped; an interrupted case that has a
-             project carries on from that project's server-side state (nothing is re-sent), else starts over.
+             project carries on from that project's server-side state (nothing is re-sent) with a fresh time
+             budget, else starts over. Cases of earlier runs stay in the table and the score (also with --only).
   minutes    the runner's wall time for the case, project creation to the share link (for a resumed case: the
              project's creation to the end of the build on the server).
 
@@ -580,10 +581,11 @@ class Http:
         return r.json() or {}
 
     def sse(self, path: str, body: dict, on_event, deadline: float | None = None,
-            timeout: float = SOCK_TIMEOUT) -> dict:
-        """POST a chat turn and read its event stream to the end (or the deadline). on_event(name, data, t)."""
+            timeout: float = SOCK_TIMEOUT, stop=None) -> dict:
+        """POST a chat turn and read its event stream to the end (or the deadline, or until stop() is true; the
+        server's 15 s pings bound the wait). on_event(name, data, t)."""
         res = {"status": None, "error": None, "ttfb_s": None, "wall_s": None, "events": 0, "complete": False,
-               "deadline_hit": False, "body": b"", "retry_after": None}
+               "deadline_hit": False, "stopped": False, "body": b"", "retry_after": None}
         t = time.time()
         raw = None
         try:
@@ -603,6 +605,9 @@ class Http:
                 while True:
                     if deadline is not None and time.time() > deadline:
                         res["deadline_hit"] = True
+                        break
+                    if stop is not None and stop():
+                        res["stopped"] = True
                         break
                     chunk = raw.read1(65536)
                     if not chunk:
@@ -756,8 +761,14 @@ def _cell(s, limit: int = 400) -> str:
     return s.replace("|", "\\|") or "-"
 
 
+def case_rows(data: dict) -> list[dict]:
+    """One row per case in the run's order; a case that never started is a stub (it counts as unfinished)."""
+    return [data["cases"].get(i) or {"id": i, "outcome": "not started", "finished": False}
+            for i in data.get("order") or []]
+
+
 def score_line(data: dict) -> str:
-    rows = [data["cases"][i] for i in data.get("order") or [] if i in data["cases"]]
+    rows = case_rows(data)
     done = [r for r in rows if r.get("finished")]
     nb = sum(1 for r in rows if r.get("buildable"))
     mins = [r["minutes"] for r in done if isinstance(r.get("minutes"), (int, float))]
@@ -773,7 +784,7 @@ def score_line(data: dict) -> str:
 
 
 def summary_md(data: dict) -> str:
-    rows = [data["cases"][i] for i in data.get("order") or [] if i in data["cases"]]
+    rows = case_rows(data)
     runs = data.get("runs") or [{}]
     run = runs[-1]
     out = ["# Wish Labs bench", "",
@@ -881,12 +892,9 @@ class CaseRun:
         self.rec.update(finished=False, outcome=None, error=None)
         self.run_t0 = time.time()
         self.timeout_s = 60.0 * (case.get("timeout_min") or runner.timeout_min)
-        if self.resumed:
+        if self.resumed:      # a fresh budget: the time the runner was down must not turn into a false timeout
             self.rec["notes"].append(f"resumed {now_utc()} on project {self.rec['project_id']}")
-            self.deadline = max(float(self.rec.get("started_epoch") or time.time()) + self.timeout_s,
-                                time.time() + 120)
-        else:
-            self.deadline = time.time() + self.timeout_s
+        self.deadline = time.time() + self.timeout_s
         self.ev_dir = runner.out / "events" / case["id"]
         self.answers_left = list(case["answers"])[int(self.rec.get("answer_rounds_used") or 0):]
         self.nudges = self.agent_retries = self.regens = 0
@@ -963,6 +971,7 @@ class CaseRun:
             rec["error"] = "HTTP 401: the session is not valid any more (key rotated?); the run stops"
             final = collect = False
         except Stopped:
+            rec["outcome"] = "interrupted"      # not final: --resume carries on from the project's state
             rec["notes"].append(f"interrupted {now_utc()}")
             final = collect = False
         except Exception as e:  # noqa: BLE001 - one case must never take the run down
@@ -1126,7 +1135,8 @@ class CaseRun:
                 name = f"{entry['n']:02d}-{step}" + (f"-try{entry['attempts']}" if entry["attempts"] > 1 else "")
                 log = EventLog(self.ev_dir / f"{name}.jsonl", on_progress=self.note_progress if build else None)
                 try:
-                    res = self.h.sse(f"/api/projects/{self.pid}/chat", body, log.on_event, deadline=self.deadline)
+                    res = self.h.sse(f"/api/projects/{self.pid}/chat", body, log.on_event, deadline=self.deadline,
+                                     stop=self.R.stop.is_set)
                 finally:
                     log.close()
                 st = res["status"]
@@ -1138,6 +1148,9 @@ class CaseRun:
                     entry["repairs"] = entry.get("repairs", []) + log.repairs
                 if log.build_version is not None:
                     self.rec["build_version"] = entry["build_version"] = log.build_version
+                if res.get("stopped"):              # the run is stopping; the server finishes this turn alone
+                    entry["stopped"] = True
+                    raise Stopped()
                 if st is not None and 200 <= st < 300:
                     if res["deadline_hit"]:
                         raise CaseTimeout()
@@ -1346,7 +1359,9 @@ class Runner:
             if prev.get("schema") != SCHEMA:
                 raise ValueError(f"{path} is not a {SCHEMA} results file")
         self.results = Results(path, prev)
-        self.results.data["order"] = [c["id"] for c in cases]
+        # a resume (perhaps with --only) keeps every case of the earlier runs in the table and the score
+        order = list(self.results.data.get("order") or []) if prev else []
+        self.results.data["order"] = order + [c["id"] for c in cases if c["id"] not in order]
         self.meta = dict(meta or {})       # added to results.json "runs" once this run has cases to do
 
     def say(self, msg: str) -> None:
@@ -1378,7 +1393,8 @@ class Runner:
                             f.result()
                     except KeyboardInterrupt:
                         self.stop.set()
-                        self.say("interrupted: finishing the current step of each case (resume with --resume)")
+                        self.say("interrupted: each case stops after its current request, a chat stream within "
+                                 "about 15 s (resume with --resume)")
                         raise
         finally:
             self.write_summary()

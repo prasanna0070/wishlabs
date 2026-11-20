@@ -801,6 +801,69 @@ class Resume(unittest.TestCase):
         self.assertEqual(fake.logins, 1)                      # only the first run signed in
 
 
+class VerifierFindings(unittest.TestCase):
+    """Defects found by the independent check of df5a97a; each test failed before its fix."""
+
+    def setUp(self):
+        self.td = tempfile.TemporaryDirectory()
+        self.out = Path(self.td.name) / "run"
+
+    def tearDown(self):
+        self.td.cleanup()
+
+    def test_resume_with_only_keeps_every_case_in_the_summary(self):
+        cases = bench.parse_cases([dict(CASE, id="a"), dict(CASE, id="b"), dict(CASE, id="c")])
+        fake = FakeStudio()
+        r1, _ = make_runner(fake, cases[:2], self.out)                 # --only a,b
+        r1.run(KEY)
+        r2, _ = make_runner(fake, cases[2:], self.out, resume=True)    # then --resume --only c
+        data = r2.run(KEY)
+        self.assertEqual(data["order"], ["a", "b", "c"])
+        self.assertTrue(data["score"].startswith("3 of 3 buildable"), data["score"])
+        md = (self.out / "summary.md").read_text()
+        for cid in ("a", "b", "c"):
+            self.assertIn(f"| {cid} | yes |", md)
+
+    def test_score_counts_cases_that_never_started(self):
+        data = {"order": ["a", "b", "c"], "cases": {
+            "a": {"id": "a", "finished": True, "buildable": True, "minutes": 9.0, "expectations_met": True}}}
+        self.assertEqual(bench.score_line(data), "1 of 3 buildable; median 9.0 min; expectations met 1 of 1 "
+                                                 "(2 unfinished)")
+        self.assertIn("| b | no (not started) |", bench.summary_md(data))
+
+    def test_resumed_case_gets_a_fresh_time_budget(self):
+        case = bench.parse_cases([dict(CASE, timeout_min=10)])[0]
+        rec = bench.new_record(case, "http://studio.test")
+        rec.update(project_id="p_000000000001", started_epoch=time.time() - 3 * 3600)   # interrupted 3 h ago
+        runner, _ = make_runner(FakeStudio(), [case], self.out)
+        cr = bench.CaseRun(runner, case, rec)
+        self.assertTrue(cr.resumed)
+        self.assertGreater(cr.deadline - time.time(), 9 * 60)       # not the 2 minutes the old rule left
+
+    def test_stop_ends_a_build_stream_promptly(self):
+        fake = FakeStudio(build_finishes=False)
+        holder: dict = {}
+
+        def endless_build_stream(st, method, path, body):
+            if method == "POST" and (body or {}).get("action") == "approve_brief":
+                events = st.turn(st.projects[path.split("/")[3]], body)
+                stop_now = lambda: (holder["runner"].stop.set(), b": ping\n\n")[1]     # noqa: E731
+                pings = [lambda: (time.sleep(0.05), b": ping\n\n")[1] for _ in range(200)]   # 10 s of pings
+                return FakeRaw(200, chunks=sse_chunks(events[:2]) + [stop_now] + pings)
+            return None
+        fake.inject.append(endless_build_stream)
+        runner, _ = make_runner(fake, bench.parse_cases([CASE]), self.out)
+        holder["runner"] = runner
+        t0 = time.time()
+        r = runner.run(KEY)["cases"]["lamp"]
+        self.assertLess(time.time() - t0, 4.0)
+        self.assertFalse(r["finished"])
+        self.assertEqual(r["outcome"], "interrupted")
+        self.assertTrue(any("interrupted" in n for n in r["notes"]))
+        self.assertIn("| lamp | no (interrupted) |", (self.out / "summary.md").read_text())
+        self.assertTrue(next(t for t in r["turns"] if t["step"] == "build").get("stopped"))
+
+
 class KeyHandling(unittest.TestCase):
     def test_key_file_must_be_private(self):
         with tempfile.TemporaryDirectory() as td:
