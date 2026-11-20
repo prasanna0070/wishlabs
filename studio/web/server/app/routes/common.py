@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import asyncio
+import gzip
 import json
+from collections import OrderedDict
 
 from fastapi import HTTPException, Request
 from fastapi.responses import FileResponse, Response, StreamingResponse
@@ -12,6 +14,52 @@ from ..util import content_type_for, safe_rel_path
 
 IMMUTABLE = "private, max-age=31536000, immutable"
 NO_STORE = "no-store"
+
+# Objects up to this size are read whole and sent with a Content-Length. Larger ones (export.zip is 40-60 MB) are
+# streamed with chunked transfer encoding and NO Content-Length: Cloud Run rejects a response that declares more than
+# 32 MiB ("Response size was too large", HTTP 500), while a chunked stream has no size cap.
+WHOLE_MAX = 8 << 20
+
+# gzip for the text-like and 3D files the viewer pulls (assembly.glb shrinks ~65%, JSON ~90%). Only whole, inline
+# responses are compressed: never attachments, never streamed objects, never SSE (this is not a middleware).
+GZIP_MIN = 1024
+GZIP_TYPES = ("application/json", "model/gltf-binary", "model/gltf+json", "image/svg+xml", "text/")
+_GZ_CACHE: OrderedDict[tuple[str, str], bytes] = OrderedDict()
+_GZ_CACHE_MAX = 48 << 20
+
+
+def accepts_encoding(request: Request, coding: str) -> bool:
+    """True when the Accept-Encoding header lists `coding` with a non-zero q value."""
+    for part in (request.headers.get("accept-encoding") or "").lower().split(","):
+        name, _, params = part.strip().partition(";")
+        if name.strip() != coding:
+            continue
+        q = params.strip()
+        if q.startswith("q="):
+            try:
+                return float(q[2:]) > 0
+            except ValueError:
+                return False
+        return True
+    return False
+
+
+def _gzippable(ctype: str, size: int) -> bool:
+    return GZIP_MIN <= size <= WHOLE_MAX and ctype.startswith(GZIP_TYPES)
+
+
+async def _gzip_cached(key: str, etag: str, data: bytes) -> bytes:
+    hit = _GZ_CACHE.get((key, etag))
+    if hit is not None:
+        _GZ_CACHE.move_to_end((key, etag))
+        return hit
+    out = await asyncio.to_thread(gzip.compress, data, 6)
+    _GZ_CACHE[(key, etag)] = out
+    total = sum(len(v) for v in _GZ_CACHE.values())
+    while total > _GZ_CACHE_MAX and len(_GZ_CACHE) > 1:
+        _, old = _GZ_CACHE.popitem(last=False)
+        total -= len(old)
+    return out
 
 
 def err(status: int, code: str, message: str, **details) -> HTTPException:
@@ -42,20 +90,33 @@ async def serve_store_file(request: Request, key: str, *, immutable: bool, downl
     st = await asyncio.to_thread(svc.store.stat, key)
     if st is None:
         raise err(404, "not_found", "File not found.")
-    etag = f'"{st.etag}"'
+    ctype = content_type_for(key)
+    attach = bool(download or filename)
+    varies = not attach and _gzippable(ctype, st.size)
+    gz = varies and accepts_encoding(request, "gzip")
+    etag = f'"{st.etag}-gz"' if gz else f'"{st.etag}"'
     headers = {"Cache-Control": IMMUTABLE if immutable else NO_STORE, "ETag": etag}
-    if download or filename:
+    if varies:
+        headers["Vary"] = "Accept-Encoding"
+    if attach:
         headers["Content-Disposition"] = f'attachment; filename="{filename or key.rsplit("/", 1)[-1]}"'
     if request.headers.get("if-none-match") == etag:
         return Response(status_code=304, headers=headers)
-    ctype = content_type_for(key)
     local = svc.store.local_path(key)
-    if local is not None:
+    if local is not None and not gz:
         return FileResponse(local, media_type=ctype, headers=headers)
-    if st.size <= 8 << 20:
+    if st.size <= WHOLE_MAX:
         data = await asyncio.to_thread(svc.store.read_bytes, key)
+        if data is None:
+            raise err(404, "not_found", "File not found.")
+        if gz:
+            data = await _gzip_cached(key, st.etag, data)
+            headers["Content-Encoding"] = "gzip"
         return Response(content=data, media_type=ctype, headers=headers)
-    headers["Content-Length"] = str(st.size)
+    if request.method == "HEAD":  # no body travels, so the size can be declared
+        headers["Content-Length"] = str(st.size)
+        return Response(status_code=200, media_type=ctype, headers=headers)
+    # No Content-Length on purpose (see WHOLE_MAX): uvicorn then uses chunked transfer encoding.
     return StreamingResponse(svc.store.iter_chunks(key), media_type=ctype, headers=headers)
 
 

@@ -4,7 +4,7 @@ import { useProject } from "../store/project";
 import { useUI } from "../store/ui";
 import { Header } from "../components/Header";
 import { ChatPanel } from "../components/chat/ChatPanel";
-import { RightPanel, TABS, type TabId } from "../components/panel/RightPanel";
+import { homeTab, RightPanel, tabsFor, type TabId } from "../components/panel/RightPanel";
 import { Spinner } from "../components/ui";
 import { clamp } from "../lib/format";
 import { behindLatest } from "../lib/versions";
@@ -50,9 +50,10 @@ export function ProjectPage({ shared = false }: { shared?: boolean }) {
     };
   }, [project?.name]);
 
-  const active: TabId = (TABS.some((t) => t.id === tab) ? tab : "preview") as TabId;
+  const home = homeTab(shared);
+  const active: TabId = (tabsFor(shared).some((t) => t.id === tab) ? tab : home) as TabId;
   const base = shared ? `/s/${token}` : `/p/${pid}`;
-  const setTab = (t: TabId) => nav(t === "preview" ? base : `${base}/${t}`, { replace: false });
+  const setTab = (t: TabId) => nav(t === home ? base : `${base}/${t}`, { replace: false });
 
   if (loading && !project)
     return (
@@ -95,7 +96,7 @@ export function ProjectPage({ shared = false }: { shared?: boolean }) {
       <Header onTab={setTab} />
       <BehindBanner />
       <div
-        className={`ws-body${split ? " split" : ""}${!showChat ? " no-chat" : ""}${!showPanel ? " no-panel" : ""}`}
+        className={`ws-body${split ? " split" : ""}${!showChat ? " no-chat" : ""}${!showPanel ? " no-panel" : ""}${shared && showPanel && active === "overview" ? " ov-mode" : ""}`}
         style={{ ["--chat-w" as any]: `${clamp(chatWidth, 360, 900)}px` }}
       >
         {showChat ? <ChatPanel full={!showPanel} split={split} onTab={setTab} /> : null}

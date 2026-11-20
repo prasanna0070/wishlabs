@@ -9,14 +9,15 @@ RUN if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm inst
 COPY web/app/ ./
 RUN npm run build && test -f dist/index.html
 
-# ---------- 2. light engine subset (spec, library, normalize and the other top-level modules; no stage packages)
+# ---------- 2. light engine subset (spec, library, normalize and the other top-level modules). Of the stage packages
+# only cad/ ships, for its pure-Python kit footprints (normalize's kit overlap checks); CadQuery is not installed.
 FROM python:3.12-slim AS engine
 WORKDIR /stage
 COPY engine/gstudio/ /tmp/gstudio/
 COPY examples/ /tmp/examples/
 RUN mkdir -p engine/gstudio examples \
  && cp /tmp/gstudio/*.py engine/gstudio/ \
- && for d in /tmp/gstudio/data /tmp/gstudio/library; do [ -d "$d" ] && cp -r "$d" engine/gstudio/ || true; done \
+ && for d in /tmp/gstudio/data /tmp/gstudio/library /tmp/gstudio/cad; do [ -d "$d" ] && cp -r "$d" engine/gstudio/ || true; done \
  && for f in /tmp/examples/*/spec.json; do [ -f "$f" ] || continue; s=$(basename $(dirname "$f")); \
       mkdir -p examples/$s && cp "$f" examples/$s/; done
 
