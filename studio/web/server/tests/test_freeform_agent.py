@@ -196,6 +196,9 @@ def test_plain_photo_only_with_the_pack_and_no_face(monkeypatch, tmp_path):
     faceless, faced = {"decor": [{"type": "text", "text": "hi"}]}, {"decor": EYES}
     assert plain_photo(Svc(["freeform"]), faceless) and not plain_photo(Svc(["freeform"]), faced)
     assert not plain_photo(Svc([]), faceless) and not plain_photo(Svc(["sensing"]), faceless)
+    screen_face = dict(faceless, behaviour={"template": "desk_companion"})   # its firmware draws a face on the screen
+    assert not plain_photo(Svc(["freeform"]), screen_face)
+    assert plain_photo(Svc(["freeform"]), dict(faceless, behaviour={"template": "sensor_display"}))
 
 
 # ------------------------------------------------------------------------------------------- render repair loop

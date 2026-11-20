@@ -24,15 +24,21 @@ def concept_base(pid: str, cid: str) -> str:
     return f"/api/projects/{pid}/concepts/{cid}"
 
 
+FACE_APPS = ("desk_companion", "story_player")   # firmware apps that draw a face on the display (engine cad/screens.py)
+
+
 def plain_photo(svc, spec: dict) -> bool:
-    """Pack `freeform`: a concept with no face decor (eyes, mouth, blush) is an appliance or plain product, so its
-    photo is plain product photography with no added face. Always False with the pack off."""
+    """Pack `freeform`: a concept with no face decor (eyes, mouth, blush) whose firmware app draws no face on its
+    screen is an appliance or plain product, so its photo is plain product photography with no added face (its CAD
+    render shows a plain readout on the screen too). Always False with the pack off."""
     fn = getattr(getattr(svc, "bridge", None), "packs_on", None)
     try:
         on = fn() if callable(fn) else ()
     except Exception:  # noqa: BLE001
         on = ()
     if "freeform" not in set(on or ()):
+        return False
+    if ((spec.get("behaviour") or {}).get("template") or "") in FACE_APPS:
         return False
     return not any(isinstance(d, dict) and d.get("type") in ("eye", "mouth", "blush") for d in spec.get("decor") or [])
 
