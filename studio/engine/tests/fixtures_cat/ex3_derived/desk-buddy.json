@@ -1,0 +1,446 @@
+{
+ "derived": {
+  "bbox": [
+   -82.0,
+   82.0,
+   -73.8,
+   73.8,
+   0.0,
+   157.1
+  ],
+  "cartridge": {
+   "backplane": "backplane-v1",
+   "board_origin": [
+    -31.4,
+    -27.748,
+    9.9
+   ],
+   "board_size": [
+    62.8,
+    78.6
+   ],
+   "board_top_z": 11.5,
+   "floor_z": 3.5,
+   "keepout_box": [
+    -36.75,
+    33.4,
+    -27.75,
+    51.36,
+    3.5,
+    35.5
+   ],
+   "rotation_deg": 0.0,
+   "seam_y": null,
+   "split": "base_plate",
+   "usb_c_center": [
+    0.0,
+    51.36,
+    13.1
+   ],
+   "usb_c_tunnel_mm": 18.53,
+   "usb_c_tunnel_size": [
+    13.0,
+    7.0
+   ],
+   "usb_c_wall_gap": 18.53
+  },
+  "engine_version": "0.1.0",
+  "hardware": [
+   {
+    "catalog_row": "09",
+    "group": "CartridgeScrews",
+    "id": "CartridgeScrews",
+    "length_mm": 5.0,
+    "module": "SCREW_M2_5X5_SHCS_A2",
+    "name": "M2.5 x 5 mm socket head screw",
+    "qty": 4,
+    "qty_basis": "planned",
+    "size": "M2.5x5",
+    "use": "backplane to the 4 cartridge bosses"
+   },
+   {
+    "catalog_row": "09",
+    "group": "PlateScrews",
+    "id": "PlateScrews",
+    "length_mm": 12.0,
+    "module": "SCREW_M2_5X12_SHCS_A2",
+    "name": "M2.5 x 12 mm socket head screw",
+    "qty": 4,
+    "qty_basis": "planned",
+    "size": "M2.5x12",
+    "use": "base plate"
+   },
+   {
+    "catalog_row": "09",
+    "group": "ModuleScrews",
+    "id": "ModuleScrews",
+    "length_mm": 8.0,
+    "module": "SCREW_M2_5X8_SHCS_A2",
+    "name": "M2.5 x 8 mm socket head screw",
+    "qty": 7,
+    "qty_basis": "planned",
+    "size": "M2.5x8",
+    "use": "module clamp straps and the speaker ring"
+   },
+   {
+    "catalog_row": "10",
+    "group": "HeatSetInserts",
+    "id": "HeatSetInserts",
+    "length_mm": 4.0,
+    "module": "INSERT_HEATSET_M2_5X4_MEC8005",
+    "name": "M2.5 heat-set insert",
+    "qty": 15,
+    "qty_basis": "planned",
+    "size": "M2.5",
+    "use": "4 cartridge + 4 plate + 7 module bosses"
+   },
+   {
+    "catalog_row": "11",
+    "group": "Feet",
+    "id": "Feet",
+    "length_mm": null,
+    "module": "FEET_RUBBER_8X2_5_SUNROM_4436",
+    "name": "adhesive bumper foot",
+    "qty": 4,
+    "qty_basis": "planned",
+    "size": null,
+    "use": "underside"
+   },
+   {
+    "catalog_row": "08",
+    "group": "CableTies",
+    "id": "CableTies",
+    "length_mm": null,
+    "module": "STRAIN_TIE_NYLON66_100X2_5",
+    "name": "cable tie 100 x 2.5 mm",
+    "qty": 6,
+    "qty_basis": "planned",
+    "size": null,
+    "use": "harness retention at printed anchors + 1 for the USB-C cord tie bridge (REVIEW-1 MIN-3)"
+   },
+   {
+    "catalog_row": "13",
+    "group": "SpeakerGasket",
+    "id": "SpeakerGasket",
+    "length_mm": null,
+    "module": "SPK_GASKET_FOAM_25X3_ADH",
+    "name": "speaker foam gasket strip",
+    "qty": 1,
+    "qty_basis": "planned",
+    "size": null,
+    "use": "seal the speaker to the baffle"
+   },
+   {
+    "catalog_row": "50",
+    "group": "Label",
+    "id": "Label",
+    "length_mm": null,
+    "module": "LABEL_QR_POLYESTER_50X25_PACK",
+    "name": "device ID label + packing kit",
+    "qty": 1,
+    "qty_basis": "planned",
+    "size": null,
+    "use": "serial/QR label and packing"
+   }
+  ],
+  "harness": [
+   {
+    "cable": "JST-PH 2.0 8p 200 mm",
+    "crossed": false,
+    "distance_mm": 167.6,
+    "drawing": "GS-H-PH8-PH8",
+    "id": "H1",
+    "kind": "jst_ph",
+    "length_mm": 200,
+    "made_to_drawing": false,
+    "match": "exact",
+    "module": "CABLE_JSTPH_8P_200",
+    "module_end": "jst_ph",
+    "module_end_family": "jst_ph",
+    "module_end_order": [
+     "VCC",
+     "GND",
+     "DIN",
+     "CLK",
+     "CS",
+     "DC",
+     "RST",
+     "BL"
+    ],
+    "pins": 8,
+    "ref": "DISP1",
+    "sku": "GS-H-PH8-PH8-200",
+    "slot": "J_DISP"
+   },
+   {
+    "cable": "JST-PH 2.0 2p 150 mm",
+    "crossed": false,
+    "distance_mm": 146.4,
+    "drawing": "GS-H-PH2-PH2",
+    "id": "H2",
+    "kind": "speaker_lead",
+    "length_mm": 150,
+    "made_to_drawing": false,
+    "match": "exact",
+    "module": "CABLE_JSTPH_2P_150",
+    "module_end": "factory_prewired",
+    "module_end_family": "factory_prewired",
+    "module_end_order": [
+     "+",
+     "-"
+    ],
+    "pins": 2,
+    "ref": "SPK1",
+    "sku": "GS-H-PH2-PH2-150",
+    "slot": "J_SPK"
+   },
+   {
+    "cable": "JST-PH 2.0 6p 150 mm",
+    "crossed": true,
+    "distance_mm": 141.9,
+    "drawing": "GS-H-PH6-D2X1X3",
+    "id": "H3",
+    "kind": "jst_ph",
+    "length_mm": 150,
+    "made_to_drawing": true,
+    "match": "exact",
+    "module": "CABLE_JSTPH_6P_DUPONT2X1X3_150",
+    "module_end": "dupont_2.54",
+    "module_end_family": "dupont_2.54",
+    "module_end_order": [
+     "VDD",
+     "GND",
+     "L/R",
+     "WS",
+     "SCK",
+     "SD"
+    ],
+    "pins": 6,
+    "ref": "MIC1",
+    "sku": "GS-H-PH6-D2X1X3-150",
+    "slot": "J_MIC"
+   },
+   {
+    "cable": "JST-PH 2.0 3p 200 mm",
+    "crossed": false,
+    "distance_mm": 168.8,
+    "drawing": "GS-H-PH3-SP28",
+    "id": "H4",
+    "kind": "jst_ph",
+    "length_mm": 200,
+    "made_to_drawing": true,
+    "match": "exact",
+    "module": "CABLE_JSTPH_3P_SPADE28_200",
+    "module_end": "spade_2.8",
+    "module_end_family": "spade_2.8",
+    "module_end_order": [
+     "COM",
+     "NO"
+    ],
+    "pins": 3,
+    "ref": "BTN1",
+    "sku": "GS-H-PH3-SP28-200",
+    "slot": "J_IO1"
+   }
+  ],
+  "instances": [
+   {
+    "face": null,
+    "feature": null,
+    "harness": null,
+    "module": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "name": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+    "position": [
+     1.0,
+     28.0,
+     17.5
+    ],
+    "qty": 1,
+    "reason": "",
+    "ref": "U1",
+    "required_by": null,
+    "role": "core",
+    "slot": "U1",
+    "source": "core"
+   },
+   {
+    "face": null,
+    "feature": null,
+    "harness": null,
+    "module": "BACKPLANE_V1",
+    "name": "Standard backplane PCB backplane-v1 (ours)",
+    "position": [
+     0.0,
+     11.6,
+     11.5
+    ],
+    "qty": 1,
+    "reason": "standard core cartridge",
+    "ref": "BP1",
+    "required_by": null,
+    "role": "backplane",
+    "slot": null,
+    "source": "implied"
+   },
+   {
+    "face": null,
+    "feature": null,
+    "harness": null,
+    "module": "USBC_RECEPTACLE_GCT_USB4105",
+    "name": "USB-C 2.0 receptacle on backplane (5V sink, CC 5.1k Rd)",
+    "position": [
+     0.0,
+     46.9,
+     17.5
+    ],
+    "qty": 1,
+    "reason": "USB-C 5 V input on the backplane",
+    "ref": "PWR1",
+    "required_by": null,
+    "role": "power_in",
+    "slot": "J_PWR",
+    "source": "implied"
+   },
+   {
+    "face": "front",
+    "feature": "face",
+    "harness": "H1",
+    "module": "LCD_200_ST7789_240X320_WAVESHARE",
+    "name": "2.0 in IPS colour LCD 240x320, ST7789V, SPI, PH2.0 8-pin",
+    "position": [
+     0.0,
+     -43.3,
+     84.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "ref": "DISP1",
+    "required_by": null,
+    "role": "display",
+    "slot": "J_DISP",
+    "source": "feature"
+   },
+   {
+    "face": "front",
+    "feature": "speaker",
+    "harness": "H2",
+    "module": "SPK_28MM_8R_2W",
+    "name": "Speaker 28 mm round with mounting ears, 8 ohm, 2 W",
+    "position": [
+     0.0,
+     -60.3,
+     36.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "ref": "SPK1",
+    "required_by": null,
+    "role": "speaker",
+    "slot": "J_SPK",
+    "source": "feature"
+   },
+   {
+    "face": "front",
+    "feature": "mic",
+    "harness": "H3",
+    "module": "MIC_INMP441_I2S",
+    "name": "INMP441 I2S MEMS microphone module",
+    "position": [
+     -40.0,
+     -50.6,
+     40.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "ref": "MIC1",
+    "required_by": null,
+    "role": "mic",
+    "slot": "J_MIC",
+    "source": "feature"
+   },
+   {
+    "face": "top",
+    "feature": "pat_button",
+    "harness": "H4",
+    "module": "BUTTON_ARCADE_30MM_SNAPIN",
+    "name": "Big 30 mm snap-in arcade push button (microswitch)",
+    "position": [
+     0.0,
+     -4.0,
+     102.9
+    ],
+    "qty": 1,
+    "reason": "",
+    "ref": "BTN1",
+    "required_by": null,
+    "role": "button",
+    "slot": "J_IO1",
+    "source": "feature"
+   },
+   {
+    "face": null,
+    "feature": null,
+    "harness": null,
+    "module": "AMP_MAX98357A_I2S",
+    "name": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+    "position": [
+     22.0,
+     -9.7,
+     17.5
+    ],
+    "qty": 1,
+    "reason": "a speaker needs the I2S amplifier",
+    "ref": "AMP1",
+    "required_by": null,
+    "role": "amp",
+    "slot": "A1",
+    "source": "implied"
+   },
+   {
+    "face": null,
+    "feature": null,
+    "harness": null,
+    "module": "CABLE_USBC_C2C_1M",
+    "name": "USB-C to USB-C cable, 1 m, USB 2.0",
+    "position": null,
+    "qty": 1,
+    "reason": "USB-C cable in the box",
+    "ref": "CBL1",
+    "required_by": null,
+    "role": "usb_cable",
+    "slot": null,
+    "source": "implied"
+   },
+   {
+    "face": null,
+    "feature": null,
+    "module": "ADAPTER_RPI_15W_USBC_IN",
+    "name": "Raspberry Pi 15W USB-C power supply (5.1 V 3 A, India plug)",
+    "position": null,
+    "qty": 1,
+    "reason": "adapter_in_box (uncapped draw over 80% of the +5V limit)",
+    "ref": "PSU1",
+    "required_by": null,
+    "role": "adapter",
+    "slot": null,
+    "source": "implied"
+   }
+  ],
+  "size_mm": [
+   164.0,
+   147.6,
+   157.1
+  ],
+  "warnings": [
+   "desk_companion: consider a light",
+   "USB-C plug tunnel is 18.5 mm long (outer rear surface to receptacle face): the plug overmold passes through the 13 x 7 tunnel, but little of it is left to grip; a flatter rear helps",
+   "features[0] face: the face curves 13 mm across the module; CAD adds a mounting boss and a deep window"
+  ]
+ },
+ "errors": [],
+ "warnings": [
+  "desk_companion: consider a light",
+  "USB-C plug tunnel is 18.5 mm long (outer rear surface to receptacle face): the plug overmold passes through the 13 x 7 tunnel, but little of it is left to grip; a flatter rear helps",
+  "features[0] face: the face curves 13 mm across the module; CAD adds a mounting boss and a deep window"
+ ]
+}
