@@ -3,7 +3,10 @@
 // come back from GET /turn; the composer does not send), then the concept turn is reloaded too and shot on desktop
 // (collapsed and open) and on a phone; each result must load once the turn ends.
 // AGENT=scripted (canned thoughts, no model calls): reload mid-turn, a dropped connection (offline for a moment),
-// a second tab's 409 (friendly note + Show progress), and a stale lock (16 min) whose Retry sends the message again.
+// a second tab's 409 (friendly note + Show progress; it leaves for the project list and comes back after the turn
+// ended: nothing left spinning), a stale lock (16 min) whose Retry sends the message again, a slow turn past 15 min
+// that is still alive, a quiet one ("may have stopped"), and a message lost before it left vs one whose reply stream
+// died before its first event (review H1, M2, M3, M4).
 // Screenshots and report.json go to OUT.
 //   PLAYWRIGHT_BROWSERS_PATH=/opt/gs/pw/browsers KEY_FILE=<0600 file> AGENT=gemini STORE=<store dir> \
 //     node web/app/dev/thinking-ui.cjs <port> <out>
@@ -58,15 +61,40 @@ function watch(page, tag) {
 }
 
 const composer = (page) => page.getByRole("textbox", { name: "Message", exact: true });
+/** In-app navigation (the SPA's store survives, as with its own links): push the path and let the router follow. */
+const spaGo = (page, to) =>
+  page.evaluate((p) => {
+    history.pushState({}, "", p);
+    dispatchEvent(new PopStateEvent("popstate"));
+  }, to);
 
 /** A dropped connection, exactly: the page's own fetch of POST /chat errors after `window.__dropChatAfter` chunks
- * (0 = never), as a network drop does mid-stream. The turn goes on on the server. */
+ * (0 = never), as a network drop does mid-stream. The turn goes on on the server. `window.__failChat` once:
+ * "before-send" fails the POST before it leaves (the studio never gets the message); "after-send" lets it reach the
+ * studio and kills the reply stream before its first event (turn.start never arrives here). */
 function dropChatStreams() {
   const orig = window.fetch;
   window.__dropChatAfter = 0;
+  window.__failChat = "";
   window.fetch = async (...args) => {
-    const res = await orig(...args);
     const url = String((args[0] && args[0].url) || args[0]);
+    const chat = /\/chat$/.test(new URL(url, location.href).pathname);
+    if (chat && window.__failChat === "before-send") {
+      window.__failChat = "";
+      throw new TypeError("Failed to fetch (simulated: never sent)");
+    }
+    const res = await orig(...args);
+    if (chat && window.__failChat === "after-send" && res.body) {
+      window.__failChat = "";
+      const r0 = res.body.getReader();
+      const dead = new ReadableStream({
+        pull(ctrl) {
+          r0.cancel().catch(() => {});
+          ctrl.error(new TypeError("network error (simulated drop before the first event)"));
+        },
+      });
+      return new Response(dead, { status: res.status, statusText: res.statusText, headers: res.headers });
+    }
     const limit = window.__dropChatAfter;
     if (!limit || !res.body || !/\/chat$/.test(new URL(url, location.href).pathname)) return res;
     window.__dropChatAfter = 0;
@@ -313,9 +341,18 @@ async function scripted(browser) {
     note: (await note.innerText()).trim(),
   });
   check("409: the typed words are back in the box", (await composer(tabB).inputValue()) === "Make it blue");
+  // review H1 + M3: tab B leaves for the project list while it follows the turn and comes back after it ended: no
+  // card left spinning, the composer is free, the busy note is gone
+  await spaGo(tabB, "/studio");
+  await tabB.waitForTimeout(800);
   await waitTurnEnd(page, 90000);
-  await tabB.locator(".working-card").waitFor({ state: "detached", timeout: 30000 });
-  check("409 tab: card goes when the turn ends", (await tabB.locator(".working-card").count()) === 0);
+  await spaGo(tabB, `/studio/p/${pid}`);
+  await composer(tabB).waitFor();
+  await tabB.waitForTimeout(3000);
+  check("409 tab back after the turn: no card, composer free, no busy note", (await tabB.locator(".working-card").count()) === 0 && (await tabB.locator(".composer-busy").count()) === 0 && (await tabB.locator(".callout.warning", { hasText: "still working" }).count()) === 0, {
+    cards: await tabB.locator(".working-card").count(),
+    busy: await tabB.locator(".composer-busy").count(),
+  });
   // a stale lock (16 min): the card says it stopped, Retry sends the same message again
   if (STORE) {
     const f = path.join(STORE, "projects", pid, "project.json");
@@ -336,6 +373,56 @@ async function scripted(browser) {
     await waitTurnEnd(page, 90000);
     const users = await page.locator(".msg.user").allInnerTexts();
     check("stale: the retried message is the last one", /Make it pink/.test(users[users.length - 1] || ""), { last: users[users.length - 1] });
+    // review M4: a lock past 15 min whose record is still rewritten is a slow turn, not a stopped one; a young lock
+    // whose record has had no write for a minute says it may have stopped; then the lock goes and so does the card
+    const rf = path.join(STORE, "projects", pid, "turn-progress.json");
+    const iso = (msAgo) => new Date(Date.now() - msAgo).toISOString().replace(/\.\d+Z$/, "Z");
+    const setLock = (lock) => {
+      const p2 = JSON.parse(fs.readFileSync(f, "utf8"));
+      p2.turn = lock;
+      fs.writeFileSync(f, JSON.stringify(p2, null, 1));
+    };
+    const record = (id, startedAgo, updatedAgo) =>
+      fs.writeFileSync(rf, JSON.stringify({ schema: "gstudio-turn-progress/1", turn_id: id, state: "running", started: iso(startedAgo), updated: iso(updatedAgo), ended: null, action: "text", mode: "pro", user_message_id: null, step: "Rendering concept photos: 4 of 6 done", steps: [{ label: "Rendering concept photos: 4 of 6 done", ts: iso(updatedAgo) }], thoughts: "**Rendering the photos**\n\nFour of six are back.\n\n", error: null }));
+    record("t_slow_e2e", 16 * 60000, 3000);
+    setLock({ id: "t_slow_e2e", started: iso(16 * 60000) });
+    await page.reload();
+    await page.locator(".working-card").waitFor({ timeout: 15000 });
+    await page.waitForTimeout(2500);
+    check("M4: a turn past 15 min with a live record keeps working (no stale card)", (await page.locator(".working-card.stale").count()) === 0 && (await page.locator(".working-card").isVisible()) && /Rendering concept photos/.test(await page.locator(".wc-step").innerText()), {
+      step: (await page.locator(".wc-step").innerText().catch(() => "")).trim(),
+    });
+    record("t_quiet_e2e", 5 * 60000, 90000);
+    setLock({ id: "t_quiet_e2e", started: iso(5 * 60000) });
+    const quiet = page.locator(".wc-quiet");
+    await quiet.waitFor({ timeout: 10000 }).catch(() => {});
+    await page.locator(".working-card").scrollIntoViewIfNeeded();
+    await page.screenshot({ path: path.join(OUT, "s-quiet.png") });
+    check("M4: no progress for a minute says it may have stopped", (await quiet.count()) > 0 && /try again in about 10 min/.test(await quiet.innerText()), { note: (await quiet.innerText().catch(() => "")).trim() });
+    setLock(null);
+    await page.locator(".working-card").waitFor({ state: "detached", timeout: 10000 }).catch(() => {});
+    check("M4: the card goes with the lock", (await page.locator(".working-card").count()) === 0 && (await page.locator(".composer-busy").count()) === 0);
+    // review M2: a message that never left says so and comes back to the box; one that reached the studio although
+    // its reply stream died before the first event is followed to its answer, with no false error
+    const before = (await page.locator(".msg.user").allInnerTexts()).length;
+    await page.evaluate(() => (window.__failChat = "before-send"));
+    await composer(page).fill("Make it green");
+    await composer(page).press("Enter");
+    const lost = page.locator(".callout.danger", { hasText: "dropped before your message reached the studio" });
+    await lost.waitFor({ timeout: 10000 }).catch(() => {});
+    check("M2: a message that never left says so and comes back to the box", (await lost.count()) > 0 && (await composer(page).inputValue()) === "Make it green" && (await page.locator(".msg.user").allInnerTexts()).length === before, {
+      box: await composer(page).inputValue(),
+    });
+    await page.evaluate(() => (window.__failChat = "after-send"));
+    await composer(page).press("Enter");
+    await page.locator(".working-card").waitFor({ timeout: 15000 }).catch(() => {});
+    await waitTurnEnd(page, 90000).catch(() => {});
+    await page.waitForTimeout(1500);
+    const users2 = await page.locator(".msg.user").allInnerTexts();
+    check("M2: dropped before the first event but stored: answered, no false error", (await lost.count()) === 0 && /Make it green/.test(users2[users2.length - 1] || "") && (await composer(page).inputValue()) === "", {
+      last: users2[users2.length - 1],
+      errors: await page.locator(".callout.danger").allInnerTexts(),
+    });
   }
 }
 
