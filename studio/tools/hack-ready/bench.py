@@ -38,8 +38,9 @@ Rules
   buildable  the version finished (state done) AND the engine's CAD collision gate passed (status.buildable is
              true). A held quote, a failed build, a timeout or no build at all is not buildable.
   parts      module ids of the brief that the build used (computed by the server, implied parts included).
-  electronics  the design's spec (the built spec.json, else the brief's spec) has a core board or a module; with
-             no spec at all, whether the build made pcb/ or firmware/ files.
+  electronics  the design's spec (the built spec.json, else the brief's spec) has a core board or a module (a
+             printed-only spec, kind "printed", has none); with no spec at all, whether the build made pcb/ or
+             firmware/ files.
   turn lock  HTTP 409 while a turn runs: wait until the project is idle, then send the SAME request again. A
              network break, 429 or 5xx on a chat POST: wait until idle, then read the chat; a new user message
              means the server took it (never sent twice), otherwise back off and resend. GETs retry 429, 5xx and
@@ -341,7 +342,7 @@ def parts_of(brief: dict | None, spec: dict | None) -> list[dict]:
              "implied": x.get("implied")} for x in (brief or {}).get("parts") or [] if x.get("module_id")]
     if rows or not isinstance(spec, dict):
         return rows
-    el = spec.get("electronics") if isinstance(spec.get("electronics"), dict) else {}
+    el = spec.get("electronics") if isinstance(spec.get("electronics"), dict) and not is_printed(spec) else {}
     ids = [el.get("core")] + [f.get("module") for f in spec.get("features") or [] if isinstance(f, dict)]
     ids += [m if isinstance(m, str) else (m or {}).get("module") for m in el.get("extra_modules") or []]
     seen: list[str] = []
@@ -351,11 +352,18 @@ def parts_of(brief: dict | None, spec: dict | None) -> list[dict]:
     return [{"module_id": i, "qty": None, "role": None, "implied": None} for i in seen]
 
 
+def is_printed(spec) -> bool:
+    """A printed-only object (spec kind "printed", catalog Package A): no core, modules, PCB or firmware."""
+    return isinstance(spec, dict) and str(spec.get("kind") or "").strip().lower() == "printed"
+
+
 def has_electronics(spec) -> bool | None:
     """True when the spec has a core board or any module. A missing electronics block means the engine's default
-    core; an explicit null (or no core and no modules) means none."""
+    core for a gadget; a printed-only spec, an explicit null (or no core and no modules) means none."""
     if not isinstance(spec, dict):
         return None
+    if is_printed(spec):
+        return False
     feats = any(isinstance(f, dict) and f.get("module") for f in spec.get("features") or [])
     if "electronics" not in spec:
         return True
@@ -833,11 +841,14 @@ def summary_md(data: dict) -> str:
     out += ["", "## Concept choices", ""]
     for r in rows:
         cc = r.get("concept_choice") or {}
+        # the case's answers reach the agent only when it asks: say how many were used
+        asked = (f"; questions {len(r.get('questions') or [])} round(s), case answers used "
+                 f"{r.get('answer_rounds_used') or 0} of {r['case_answers']}" if r.get("case_answers") else "")
         if cc:
             out.append(f"- **{r['id']}**: {cc.get('title')} ({cc.get('tier')}, #{(cc.get('index') or 0) + 1} of "
-                       f"{cc.get('of')}): {cc.get('rule')}")
+                       f"{cc.get('of')}): {cc.get('rule')}{asked}")
         else:
-            out.append(f"- **{r['id']}**: none")
+            out.append(f"- **{r['id']}**: none{asked}")
     stage_ids: list[str] = []
     for r in rows:
         for s in (r.get("build") or {}).get("stages") or []:
@@ -859,8 +870,9 @@ def summary_md(data: dict) -> str:
     out += ["", "Buildable = the version finished and the engine's CAD collision gate passed (status.buildable). "
             "Parts = the design's own modules (implied parts such as cables and the backplane are in results.json "
             "and count for parts_any / parts_all). Minutes = the runner's wall time per case, project creation to "
-            "share link. Builder stage seconds come from the version's status.json. Repair rounds = spec validation "
-            "repairs the agent needed; model USD = the project's usage estimate (not billing data).", ""]
+            "share link. Builder stage seconds come from the version's status.json. Repair rounds = distinct spec "
+            "validation rounds the agent hit (the server's own concept count is concept_set_check in results.json); "
+            "model USD = the project's usage estimate (not billing data).", ""]
     return "\n".join(out)
 
 
@@ -991,8 +1003,11 @@ class CaseRun:
             if rec["outcome"] == "runner_error":
                 rec["error"] = rec.get("error") or "the build did not reach a final state"
                 final = False
-        rec["repair_rounds"] = sum(len(t.get("repairs") or []) for t in rec.get("turns") or [])
+        # distinct rounds per turn: the server re-emits a concept round it no longer grants (agent/turn.py:529)
+        rec["repair_rounds"] = sum(len({(x.get("kind"), x.get("round")) for x in t.get("repairs") or []})
+                                   for t in rec.get("turns") or [])
         rec["expect_results"], rec["expectations_met"] = check_expect(self.c["expect"], rec)
+        rec["case_answers"] = len(self.c["answers"])
         rec["ended_utc"] = now_utc()
         rec["timings_s"]["total"] = round(time.time() - float(rec["started_epoch"]), 1)
         if self.resumed and rec.get("server_span_s"):

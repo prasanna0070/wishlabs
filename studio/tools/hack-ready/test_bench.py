@@ -863,6 +863,45 @@ class VerifierFindings(unittest.TestCase):
         self.assertIn("| lamp | no (interrupted) |", (self.out / "summary.md").read_text())
         self.assertTrue(next(t for t in r["turns"] if t["step"] == "build").get("stopped"))
 
+    def test_repair_rounds_count_each_round_once(self):
+        fake = FakeStudio()
+
+        def noisy_repairs(st, method, path, body):
+            if method == "POST" and path.endswith("/chat") and (body or {}).get("text") == "a calm desk lamp":
+                events = st.turn(st.projects[path.split("/")[3]], body)        # turn.start, spec round 1, ...
+                extra = [("repair", {"seq": 3, "round": 2, "errors": ["x"]}),
+                         ("repair", {"seq": 4, "round": 2, "errors": ["x"]}),  # the server re-emits a round
+                         ("repair", {"seq": 5, "round": 1, "kind": "concept_rules", "errors": ["y"]})]
+                return FakeRaw(200, chunks=sse_chunks(events[:2] + extra + events[2:]))
+            return None
+        fake.inject.append(noisy_repairs)
+        runner, _ = make_runner(fake, bench.parse_cases([CASE]), self.out)
+        r = runner.run(KEY)["cases"]["lamp"]
+        self.assertTrue(r["buildable"], r.get("error"))
+        self.assertEqual(r["repair_rounds"], 3)                        # spec 1, spec 2, concept rules 1
+
+    def test_printed_designs_have_no_electronics(self):
+        printed = {"kind": "printed", "name": "Cap", "body": {"family": "revolve"}}
+        with_core = dict(printed, electronics={"core": "CORE_ESP32S3_DEVKITC1_N8R8"})
+        self.assertIs(bench.has_electronics(printed), False)          # no block: no electronics, not the default
+        self.assertIs(bench.has_electronics(with_core), False)
+        self.assertEqual(bench.parts_of(None, with_core), [])
+        self.assertIs(bench.has_electronics({"kind": "gadget", "name": "x"}), True)
+        fake = FakeStudio(built_spec=printed)
+        runner, _ = make_runner(fake, bench.parse_cases([{"id": "cap", "wish": "a keychain cap",
+                                                          "expect": {"electronics": False}}]), self.out)
+        r = runner.run(KEY)["cases"]["cap"]
+        self.assertIs(r["electronics"], False)
+        self.assertTrue(r["expectations_met"])
+
+    def test_summary_says_when_case_answers_were_not_used(self):
+        fake = FakeStudio(questions=False)                     # the agent goes straight to concepts (as in e2e1)
+        runner, _ = make_runner(fake, bench.parse_cases([CASE]), self.out)
+        r = runner.run(KEY)["cases"]["lamp"]
+        self.assertTrue(r["buildable"], r.get("error"))
+        self.assertEqual((r["answer_rounds_used"], r["case_answers"]), (0, 1))
+        self.assertIn("questions 0 round(s), case answers used 0 of 1", (self.out / "summary.md").read_text())
+
 
 class KeyHandling(unittest.TestCase):
     def test_key_file_must_be_private(self):
