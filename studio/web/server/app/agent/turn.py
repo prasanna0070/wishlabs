@@ -661,6 +661,11 @@ class Turn:
         if bad:
             if freeform:                                # explain engine messages that mislead (contract 8, requests 2, 4)
                 bad = {t: [explain_error(e) for e in es] for t, es in bad.items()}
+                for c, r in zip(items, results):        # the failed spec is never stored: log what the model sent
+                    if not r.get("ok"):
+                        log.warning("freeform spec failed: %s: %s | spec: %s", str(c.get("title"))[:60],
+                                    "; ".join(str(e)[:160] for e in (r.get("errors") or [])[:3]),
+                                    json.dumps(_as_spec(c.get("spec")), default=str)[:1500])
             flat = [f"{t}: {e}" for t, es in bad.items() for e in es]
             await self.emit("repair", {"round": self.repairs["propose_concepts"] + 1, "errors": flat[:20]})
             hint = ""
