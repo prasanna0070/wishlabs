@@ -8,7 +8,7 @@ Flow (SoundComposer.start / run):
      with about 32.8 s of 48 kHz stereo 16-bit WAV, base64 in predictions[0].bytesBase64Encoded. The WAV arrives
      double-wrapped: the outer RIFF's data chunk holds a second complete RIFF/WAVE file (parse_wav unwraps it).
   3. compose(): the theme (at most 30 s, leading silence trimmed, faded out), the chime (CHIME_S seconds from the
-     strongest onset, faded), a device chime (16 kHz mono 16-bit WAV under 100 KB, for the gadget's speaker) and 64
+     strongest onset, faded), a device chime (16 kHz mono 16-bit WAV of 2 s, 64,044 bytes, for the gadget) and 64
      waveform peaks for the UI. Theme and chime are MP3 when lameenc is installed, else WAV.
   4. Files go to projects/<pid>/sound/v<n>/<sid>/ in the store (beside the version folders, so the copies that seed
      a new version never carry them into its export); project.json["sound"] carries the metadata, and each Lyria
@@ -53,8 +53,8 @@ COST_BASIS = ("Google lists Lyria 2 on Vertex AI at USD 0.06 per 30 s of generat
               "clip of about 32.8 s.")
 THEME_MAX_S = 30.0
 DEVICE_RATE = 16000
-DEVICE_MAX_S = 3.0
-DEVICE_MAX_BYTES = 100_000             # "under 100 KB": 3.0 s at 16 kHz mono 16-bit is 96,044 bytes
+DEVICE_MAX_S = 2.0                     # 2.0 s at 16 kHz mono 16-bit is 64,044 bytes: within the 64 KB (65,536 bytes)
+DEVICE_MAX_BYTES = 65_536              # the firmware's clip upload takes (POST /api/name_clip), so well under 100 KB
 STALE_S = 300.0                        # a job older than this is dead (instance restarted mid-job)
 HISTORY = 5
 PEAKS = 64
@@ -541,8 +541,11 @@ def compose(raw: bytes, chime_s: float = 2.4) -> dict:
     chime = x[c0:c0 + int(chime_s * rate)].copy()
     fade(chime, rate, 0.005, 0.55 * len(chime) / rate, out_shape="cos2")
     chime, _ = normalize(chime, -1.0)
-    # device chime: mono, 16 kHz, 16-bit, at most DEVICE_MAX_S, peak -3 dBFS (the firmware scales volume itself)
-    dev = resample(chime.mean(axis=1), rate, DEVICE_RATE)[:int(DEVICE_MAX_S * DEVICE_RATE)].copy()
+    # device chime: the same onset, mono, 16 kHz, 16-bit, at most DEVICE_MAX_S with its own fade, peak -3 dBFS (the
+    # firmware scales the volume itself)
+    dsrc = x[c0:c0 + int(min(DEVICE_MAX_S, chime_s) * rate)].mean(axis=1).copy()
+    fade(dsrc, rate, 0.005, 0.55 * len(dsrc) / rate, out_shape="cos2")
+    dev = resample(dsrc, rate, DEVICE_RATE)[:int(DEVICE_MAX_S * DEVICE_RATE)].copy()
     fade(dev, DEVICE_RATE, 0.003, 0.02)
     dev, _ = normalize(dev, -3.0)
     files["device-chime.wav"] = wav_bytes(dev, DEVICE_RATE)

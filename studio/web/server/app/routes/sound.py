@@ -8,7 +8,7 @@ Signed in (studio login):
 Read-only share link (no login; shared_view rewrites /api/projects/<pid>/ URLs to these):
   GET  /api/share/{token}/sound/{sid}/{name}   the same files, nothing else (no compose, no state changes)
 The gadget's parent page (device token, CORS open, like name-audio):
-  GET  /api/device/{tok}/chime.wav             the current device chime: 16 kHz mono 16-bit WAV under 100 KB
+  GET  /api/device/{tok}/chime.wav             the current device chime: 16 kHz mono 16-bit WAV, 2 s, within 64 KB
 """
 from __future__ import annotations
 
@@ -146,7 +146,8 @@ async def device_chime_preflight(tok: str):
 
 @router.api_route("/api/device/{tok}/chime.wav", methods=["GET", "HEAD"])
 async def device_chime(request: Request, tok: str):
-    """The design's signature chime, sized for the gadget: 16 kHz mono 16-bit WAV, under 100 KB."""
+    """The design's signature chime, sized for the gadget: 16 kHz mono 16-bit WAV, 2 s, within 64 KB (the firmware's
+    clip upload limit)."""
     from .device import _limited, _project_for
 
     try:

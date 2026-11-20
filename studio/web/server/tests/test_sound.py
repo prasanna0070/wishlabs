@@ -132,7 +132,7 @@ def test_compose_cuts_theme_chime_and_device_chime():
     assert out["chime"]["seconds"] == 2.4 and out["theme"]["seconds"] <= 30.0
     assert len(out["theme"]["peaks"]) == 64 and max(out["theme"]["peaks"]) == 1.0
     dev = out["files"]["device-chime.wav"]
-    assert len(dev) < DEVICE_MAX_BYTES
+    assert len(dev) == 64_044 < DEVICE_MAX_BYTES == 65_536             # fits the firmware's 64 KB clip upload
     with wave.open(io.BytesIO(dev)) as w:
         assert (w.getframerate(), w.getnchannels(), w.getsampwidth()) == (16000, 1, 2)
         frames = np.frombuffer(w.readframes(w.getnframes()), "<i2")
@@ -218,7 +218,7 @@ def test_compose_play_share_and_device(authed):
     authed.cookies.clear()
     d = authed.get(f"/api/device/{dt}/chime.wav")
     assert d.status_code == 200 and d.headers["access-control-allow-origin"] == "*"
-    assert d.headers["content-type"] == "audio/wav" and len(d.content) < 100_000
+    assert d.headers["content-type"] == "audio/wav" and len(d.content) <= 65_536
     with wave.open(io.BytesIO(d.content)) as w:
         assert (w.getframerate(), w.getnchannels(), w.getsampwidth()) == (16000, 1, 2)
     assert authed.get("/api/device/d_nope/chime.wav").status_code == 404
