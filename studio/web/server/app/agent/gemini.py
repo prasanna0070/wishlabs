@@ -25,8 +25,25 @@ MAX_STEPS = 8
 # A reply with no tool call and no words (finish STOP, 0 tokens, ~2.5 s) comes back now and then from Vertex, with or
 # without thought summaries: 2 of 6 replays of one stored state on 2026-11-20 (scripts/replay_turn.py). Asking the same
 # thing again gets a real answer, so the turn does that instead of failing with "I could not finish that step".
+# Only before the turn has answered: an empty reply after `say` (the only tool during a build) just means "nothing to
+# add", and asking again there repeated the answer. The retries do not use up MAX_STEPS.
 EMPTY_RETRIES = 2
 EMPTY_RETRY_DELAY_S = 1.5
+# Finish reasons worth asking again for: the flake above (STOP), none or unspecified, and a function call the model wrote
+# badly. MAX_TOKENS (thinking used the whole budget) and the safety stops would only repeat at the price of a full call.
+RETRY_FINISH = frozenset({"STOP", "FINISH_REASON_UNSPECIFIED", "MALFORMED_FUNCTION_CALL"})
+
+
+def finish_name(finish) -> str | None:
+    """types.FinishReason (a str enum) or a raw string -> 'STOP', 'MAX_TOKENS', ...; None when the stream gave none."""
+    if finish is None:
+        return None
+    return str(getattr(finish, "name", None) or finish).upper()
+
+
+def retry_empty(finish) -> bool:
+    name = finish_name(finish)
+    return name is None or name in RETRY_FINISH
 
 
 class GeminiBrain:
@@ -62,7 +79,8 @@ class GeminiBrain:
         return types.GenerateContentConfig(**kw)
 
     async def _stream(self, turn, model: str, contents, config):
-        """One model call. Streams text deltas; returns (all parts, function calls, text message or None)."""
+        """One model call. Streams text deltas; returns (all parts, function calls, text message or None, finish
+        reason or None)."""
         client = get_client(self.svc.settings)
         parts, calls = [], []
         msg_id = None
@@ -98,7 +116,7 @@ class GeminiBrain:
         msg = None
         if msg_id and text.strip():
             msg = {**make_message("assistant", "text", lint(text)), "id": msg_id}
-        return parts, calls, msg
+        return parts, calls, msg, finish
 
     async def _call_with_retry(self, turn, model: str, contents, allowed: list[str]):
         last = None
@@ -133,15 +151,17 @@ class GeminiBrain:
         contents = await asyncio.to_thread(build_contents, self.svc, p, allowed, turn.instruction)
         await turn.status("Thinking")
         empty = 0
-        for step in range(MAX_STEPS):
+        step = 0
+        owed = False                                    # the last tool results asked the model to fix something
+        while step < MAX_STEPS:
             try:
-                parts, calls, msg = await self._call_with_retry(turn, model, contents, allowed)
+                parts, calls, msg, finish = await self._call_with_retry(turn, model, contents, allowed)
             except Exception as exc:  # noqa: BLE001
                 code = getattr(exc, "code", None)
                 if code == 404 and model != s.model_fast:
                     log.warning("model %s not available, falling back to %s", model, s.model_fast)
                     model = s.model_fast
-                    continue
+                    continue                            # the same step on the fallback model
                 log.exception("model call failed")
                 await turn.fail("The design assistant is unavailable right now. Please try again in a minute.",
                                 code="model_unavailable", retryable=True)
@@ -149,11 +169,17 @@ class GeminiBrain:
             if msg:
                 await turn.add_message(msg)
                 await turn.emit("message.done", {"message": msg})
-            if not calls and not msg and empty < EMPTY_RETRIES:
-                empty += 1                              # an empty reply (see EMPTY_RETRIES): ask the same thing again
-                await turn.status("Thinking again")
-                await asyncio.sleep(EMPTY_RETRY_DELAY_S * empty)
-                continue
+            if not calls and not msg:
+                if (turn.posted or turn.build_n is not None) and not owed:
+                    return                              # it answered (say) and has nothing to add: the turn is done
+                if empty < EMPTY_RETRIES and retry_empty(finish):
+                    empty += 1                          # an empty reply (see EMPTY_RETRIES): ask the same thing again
+                    log.warning("asking %s again after an empty reply (finish=%s, retry %d of %d)", model,
+                                finish_name(finish), empty, EMPTY_RETRIES)
+                    await turn.status("Thinking again")
+                    await asyncio.sleep(EMPTY_RETRY_DELAY_S * empty)
+                    continue                            # not a step: MAX_STEPS counts real replies only
+            step += 1
             if not parts:
                 await turn.fail("The assistant returned nothing. Please try again.", code="empty", retryable=True)
                 return
@@ -171,6 +197,6 @@ class GeminiBrain:
             contents.append(types.Content(role="user", parts=responses))
             p = await turn.project()
             allowed = turn.allowed(p)
-            await turn.status("Fixing the design" if any(not r.function_response.response.get("ok")
-                                                         for r in responses) else "Thinking")
+            owed = any(not r.function_response.response.get("ok") for r in responses)
+            await turn.status("Fixing the design" if owed else "Thinking")
         await turn.fail("I went round in circles on that one. Could you say it another way?", code="too_many_steps")

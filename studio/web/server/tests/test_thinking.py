@@ -40,11 +40,18 @@ def _final_view(c, pid: str, timeout: float = 5.0) -> dict:
 
 
 # ---------------------------------------------------------------------- a fake Vertex AI stream
-def _chunk(*parts, usage=None):
+def _chunk(*parts, usage=None, finish=None):
     from google.genai import types as gt
 
-    return gt.GenerateContentResponse(candidates=[gt.Candidate(content=gt.Content(role="model", parts=list(parts)))],
-                                      usage_metadata=usage)
+    return gt.GenerateContentResponse(
+        candidates=[gt.Candidate(content=gt.Content(role="model", parts=list(parts)), finish_reason=finish)],
+        usage_metadata=usage)
+
+
+def _say(text, fid="fc_s"):
+    from google.genai import types as gt
+
+    return gt.Part(function_call=gt.FunctionCall(id=fid, name="say", args={"text": text}))
 
 
 def _ask_user_call():
@@ -187,6 +194,82 @@ def test_an_empty_reply_is_asked_again(monkeypatch, tmp_path):
         models.script = lambda n, config: [_chunk(gt.Part(text=""))]
         evs = sse(c, "POST", f"/api/projects/{pid}/chat", json={"answers": [], "skipped": True})
         assert [d["code"] for d in events_named(evs, "error")] == ["no_result"]
+    finally:
+        c.__exit__(None, None, None)
+
+
+def test_an_empty_reply_after_the_answer_ends_the_turn(monkeypatch, tmp_path):
+    """Review R1: `say` answers (during a build it is the only tool), then an empty STOP reply means "nothing to add".
+    The turn ends there: no further model call, no "Thinking again", no repeated answer."""
+    from google.genai import types as gt
+
+    monkeypatch.setattr("app.agent.gemini.EMPTY_RETRY_DELAY_S", 0)
+    said = "Your build is still running; I will answer once it is done."
+
+    def script(n, config):
+        if n == 1:
+            return [_chunk(_say(said))]
+        if n == 3:                                      # what a model asked again did in the review: the same answer
+            return [_chunk(_say(said, "fc_s2"))]
+        return [_chunk(gt.Part(text=""), finish=gt.FinishReason.STOP)]
+
+    c, models = _gemini_client(monkeypatch, tmp_path, script)
+    try:
+        pid = c.post("/api/projects", json={"mode": "pro"}).json()["id"]
+        evs = sse(c, "POST", f"/api/projects/{pid}/chat", json={"text": "is it done yet?"})
+        assert len(models.configs) == 2
+        assert [d["text"] for d in events_named(evs, "status")] == ["Thinking", "Thinking"]
+        assert not events_named(evs, "error")
+        p = c.get(f"/api/projects/{pid}").json()
+        assert [m["text"] for m in p["chat"] if m["role"] == "assistant"] == [said]
+    finally:
+        c.__exit__(None, None, None)
+
+
+def test_an_empty_reply_while_a_fix_is_owed_is_asked_again(monkeypatch, tmp_path):
+    """After `say`, an empty reply is still asked again when the last tool result asked for a fix (here a question list
+    that did not validate): ending there would drop the questions or concepts without a word."""
+    from google.genai import types as gt
+
+    monkeypatch.setattr("app.agent.gemini.EMPTY_RETRY_DELAY_S", 0)
+    bad = gt.Part(function_call=gt.FunctionCall(id="fc_q", name="ask_user", args={"questions": []}))
+
+    def script(n, config):
+        if n == 1:
+            return [_chunk(_say("One question first."), bad)]
+        if n == 2:
+            return [_chunk(gt.Part(text=""), finish=gt.FinishReason.STOP)]
+        return [_chunk(_ask_user_call())]
+
+    c, models = _gemini_client(monkeypatch, tmp_path, script)
+    try:
+        pid = c.post("/api/projects", json={"mode": "pro"}).json()["id"]
+        evs = sse(c, "POST", f"/api/projects/{pid}/chat", json={"text": "A robot"})
+        assert len(models.configs) == 3
+        assert [d["text"] for d in events_named(evs, "status")] == ["Thinking", "Fixing the design", "Thinking again"]
+        assert events_named(evs, "choices") and not events_named(evs, "error")
+    finally:
+        c.__exit__(None, None, None)
+
+
+def test_an_empty_reply_is_asked_again_only_for_a_retryable_finish(monkeypatch, tmp_path):
+    """MAX_TOKENS (thinking used the whole output budget) or a safety stop would only repeat at the price of a full
+    call: the turn ends with the usual error. A function call the model wrote badly is asked again."""
+    from google.genai import types as gt
+
+    monkeypatch.setattr("app.agent.gemini.EMPTY_RETRY_DELAY_S", 0)
+    c, models = _gemini_client(monkeypatch, tmp_path,
+                               lambda n, config: [_chunk(gt.Part(text=""), finish=gt.FinishReason.MAX_TOKENS)])
+    try:
+        pid = c.post("/api/projects", json={"mode": "pro"}).json()["id"]
+        evs = sse(c, "POST", f"/api/projects/{pid}/chat", json={"text": "A robot"})
+        assert len(models.configs) == 1
+        assert [d["code"] for d in events_named(evs, "error")] == ["no_result"]
+        models.script = lambda n, config: ([_chunk(finish=gt.FinishReason.MALFORMED_FUNCTION_CALL)] if n == 2
+                                           else [_chunk(_ask_user_call())])
+        evs = sse(c, "POST", f"/api/projects/{pid}/chat", json={"text": "A robot that tells stories"})
+        assert len(models.configs) == 3
+        assert events_named(evs, "choices") and not events_named(evs, "error")
     finally:
         c.__exit__(None, None, None)
 
