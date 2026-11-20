@@ -1,0 +1,524 @@
+{
+ "derived": {
+  "bbox": [
+   -75.2,
+   75.2,
+   -59.0,
+   59.0,
+   0.0,
+   202.9
+  ],
+  "cartridge": {
+   "backplane": "backplane-v1",
+   "board_origin": [
+    -31.4,
+    -28.0,
+    8.8
+   ],
+   "board_size": [
+    62.8,
+    78.6
+   ],
+   "board_top_z": 10.4,
+   "floor_z": 2.4,
+   "keepout_box": [
+    -36.75,
+    33.4,
+    -28.0,
+    51.11,
+    2.4,
+    34.4
+   ],
+   "rotation_deg": 0.0,
+   "seam_y": 51.5,
+   "split": "rear_cover",
+   "usb_c_center": [
+    0.0,
+    51.11,
+    12.0
+   ],
+   "usb_c_tunnel_mm": 7.92,
+   "usb_c_tunnel_size": [
+    13.0,
+    7.0
+   ],
+   "usb_c_wall_gap": 7.92
+  },
+  "engine_version": "0.1.0",
+  "hardware": [
+   {
+    "catalog_row": "09",
+    "group": "CartridgeScrews",
+    "id": "CartridgeScrews",
+    "length_mm": 5.0,
+    "module": "SCREW_M2_5X5_SHCS_A2",
+    "name": "M2.5 x 5 mm socket head screw",
+    "qty": 4,
+    "qty_basis": "planned",
+    "size": "M2.5x5",
+    "use": "backplane to the 4 cartridge bosses"
+   },
+   {
+    "catalog_row": "09",
+    "group": "CoverScrews",
+    "id": "CoverScrews",
+    "length_mm": 12.0,
+    "module": "SCREW_M2_5X12_SHCS_A2",
+    "name": "M2.5 x 12 mm socket head screw",
+    "qty": 4,
+    "qty_basis": "planned",
+    "size": "M2.5x12",
+    "use": "rear cover"
+   },
+   {
+    "catalog_row": "09",
+    "group": "ModuleScrews",
+    "id": "ModuleScrews",
+    "length_mm": 8.0,
+    "module": "SCREW_M2_5X8_SHCS_A2",
+    "name": "M2.5 x 8 mm socket head screw",
+    "qty": 9,
+    "qty_basis": "planned",
+    "size": "M2.5x8",
+    "use": "module clamp straps and the speaker ring"
+   },
+   {
+    "catalog_row": "09",
+    "group": "SupportPostScrews",
+    "id": "SupportPostScrews",
+    "length_mm": 6.0,
+    "module": "SCREW_M2X6_SHCS_A2",
+    "name": "M2 x 6 mm socket head screw",
+    "qty": 2,
+    "qty_basis": "planned",
+    "size": "M2x6",
+    "use": "microSD module corners into the 2 printed support posts (1.8 mm pilot holes)"
+   },
+   {
+    "catalog_row": "10",
+    "group": "HeatSetInserts",
+    "id": "HeatSetInserts",
+    "length_mm": 4.0,
+    "module": "INSERT_HEATSET_M2_5X4_MEC8005",
+    "name": "M2.5 heat-set insert",
+    "qty": 17,
+    "qty_basis": "planned",
+    "size": "M2.5",
+    "use": "4 cartridge + 4 cover + 9 module bosses"
+   },
+   {
+    "catalog_row": "11",
+    "group": "Feet",
+    "id": "Feet",
+    "length_mm": null,
+    "module": "FEET_RUBBER_8X2_5_SUNROM_4436",
+    "name": "adhesive bumper foot",
+    "qty": 4,
+    "qty_basis": "planned",
+    "size": null,
+    "use": "underside"
+   },
+   {
+    "catalog_row": "08",
+    "group": "CableTies",
+    "id": "CableTies",
+    "length_mm": null,
+    "module": "STRAIN_TIE_NYLON66_100X2_5",
+    "name": "cable tie 100 x 2.5 mm",
+    "qty": 7,
+    "qty_basis": "planned",
+    "size": null,
+    "use": "harness retention at printed anchors + 1 for the USB-C cord tie bridge (REVIEW-1 MIN-3)"
+   },
+   {
+    "catalog_row": "13",
+    "group": "SpeakerGasket",
+    "id": "SpeakerGasket",
+    "length_mm": null,
+    "module": "SPK_GASKET_FOAM_25X3_ADH",
+    "name": "speaker foam gasket strip",
+    "qty": 1,
+    "qty_basis": "planned",
+    "size": null,
+    "use": "seal the speaker to the baffle"
+   },
+   {
+    "catalog_row": "50",
+    "group": "Label",
+    "id": "Label",
+    "length_mm": null,
+    "module": "LABEL_QR_POLYESTER_50X25_PACK",
+    "name": "device ID label + packing kit",
+    "qty": 1,
+    "qty_basis": "planned",
+    "size": null,
+    "use": "serial/QR label and packing"
+   }
+  ],
+  "harness": [
+   {
+    "cable": "JST-PH 2.0 4p 300 mm",
+    "crossed": true,
+    "distance_mm": 240.0,
+    "drawing": "GS-H-PH4-D1X4-X2143",
+    "id": "H1",
+    "kind": "jst_ph",
+    "length_mm": 300,
+    "made_to_drawing": true,
+    "match": "exact",
+    "module": "CABLE_JSTPH_4P_DUPONT1X4_300_X2143",
+    "module_end": "dupont_2.54",
+    "module_end_family": "dupont_2.54",
+    "module_end_order": [
+     "VCC",
+     "GND",
+     "SCL",
+     "SDA"
+    ],
+    "pins": 4,
+    "ref": "DISP1",
+    "sku": "GS-H-PH4-D1X4-X2143-300",
+    "slot": "J_I2C1"
+   },
+   {
+    "cable": "JST-XH 2.5 3p 200 mm",
+    "crossed": false,
+    "distance_mm": 152.2,
+    "drawing": "GS-H-XH3-XH3",
+    "id": "H2",
+    "kind": "jst_xh",
+    "length_mm": 200,
+    "made_to_drawing": false,
+    "match": "exact",
+    "module": "CABLE_JSTXH_3P_200",
+    "module_end": "factory_prewired",
+    "module_end_family": "factory_prewired",
+    "module_end_order": [
+     "5V",
+     "GND",
+     "DI",
+     "DO"
+    ],
+    "pins": 3,
+    "ref": "LED1",
+    "sku": "GS-H-XH3-XH3-200",
+    "slot": "J_LED"
+   },
+   {
+    "cable": "JST-PH 2.0 6p 300 mm",
+    "crossed": true,
+    "distance_mm": 255.1,
+    "drawing": "GS-H-PH6-D2X1X3",
+    "id": "H3",
+    "kind": "jst_ph",
+    "length_mm": 300,
+    "made_to_drawing": true,
+    "match": "exact",
+    "module": "CABLE_JSTPH_6P_DUPONT2X1X3_300",
+    "module_end": "dupont_2.54",
+    "module_end_family": "dupont_2.54",
+    "module_end_order": [
+     "VDD",
+     "GND",
+     "L/R",
+     "WS",
+     "SCK",
+     "SD"
+    ],
+    "pins": 6,
+    "ref": "MIC1",
+    "sku": "GS-H-PH6-D2X1X3-300",
+    "slot": "J_MIC"
+   },
+   {
+    "cable": "JST-PH 2.0 2p 150 mm",
+    "crossed": false,
+    "distance_mm": 129.9,
+    "drawing": "GS-H-PH2-PH2",
+    "id": "H4",
+    "kind": "speaker_lead",
+    "length_mm": 150,
+    "made_to_drawing": false,
+    "match": "exact",
+    "module": "CABLE_JSTPH_2P_150",
+    "module_end": "factory_prewired",
+    "module_end_family": "factory_prewired",
+    "module_end_order": [
+     "+",
+     "-"
+    ],
+    "pins": 2,
+    "ref": "SPK1",
+    "sku": "GS-H-PH2-PH2-150",
+    "slot": "J_SPK"
+   },
+   {
+    "cable": "JST-PH 2.0 3p 300 mm",
+    "crossed": false,
+    "distance_mm": 228.4,
+    "drawing": "GS-H-PH3-SP28",
+    "id": "H5",
+    "kind": "jst_ph",
+    "length_mm": 300,
+    "made_to_drawing": true,
+    "match": "exact",
+    "module": "CABLE_JSTPH_3P_SPADE28_300",
+    "module_end": "spade_2.8",
+    "module_end_family": "spade_2.8",
+    "module_end_order": [
+     "COM",
+     "NO"
+    ],
+    "pins": 3,
+    "ref": "BTN1",
+    "sku": "GS-H-PH3-SP28-300",
+    "slot": "J_IO1"
+   }
+  ],
+  "instances": [
+   {
+    "face": null,
+    "feature": null,
+    "harness": null,
+    "module": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "name": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+    "position": [
+     1.0,
+     27.7,
+     16.4
+    ],
+    "qty": 1,
+    "reason": "",
+    "ref": "U1",
+    "required_by": null,
+    "role": "core",
+    "slot": "U1",
+    "source": "core"
+   },
+   {
+    "face": null,
+    "feature": null,
+    "harness": null,
+    "module": "BACKPLANE_V1",
+    "name": "Standard backplane PCB backplane-v1 (ours)",
+    "position": [
+     0.0,
+     11.3,
+     10.4
+    ],
+    "qty": 1,
+    "reason": "standard core cartridge",
+    "ref": "BP1",
+    "required_by": null,
+    "role": "backplane",
+    "slot": null,
+    "source": "implied"
+   },
+   {
+    "face": null,
+    "feature": null,
+    "harness": null,
+    "module": "USBC_RECEPTACLE_GCT_USB4105",
+    "name": "USB-C 2.0 receptacle on backplane (5V sink, CC 5.1k Rd)",
+    "position": [
+     0.0,
+     46.6,
+     16.4
+    ],
+    "qty": 1,
+    "reason": "USB-C 5 V input on the backplane",
+    "ref": "PWR1",
+    "required_by": null,
+    "role": "power_in",
+    "slot": "J_PWR",
+    "source": "implied"
+   },
+   {
+    "face": "front",
+    "feature": "eyes",
+    "harness": "H1",
+    "module": "OLED_130_SH1106_I2C",
+    "name": "1.3 in 128x64 mono OLED, SH1106, I2C 4-pin",
+    "position": [
+     0.0,
+     -46.0,
+     148.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "ref": "DISP1",
+    "required_by": null,
+    "role": "display",
+    "slot": "J_I2C1",
+    "source": "feature"
+   },
+   {
+    "face": "front",
+    "feature": "night_light",
+    "harness": "H2",
+    "module": "LED_RING_12_WS2812_50MM",
+    "name": "Addressable RGB LED ring, 12 x WS2812 5050, 50 mm OD",
+    "position": [
+     0.0,
+     -50.0,
+     88.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "ref": "LED1",
+    "required_by": null,
+    "role": "led",
+    "slot": "J_LED",
+    "source": "feature"
+   },
+   {
+    "face": "front",
+    "feature": "mic",
+    "harness": "H3",
+    "module": "MIC_INMP441_I2S",
+    "name": "INMP441 I2S MEMS microphone module",
+    "position": [
+     42.0,
+     -50.1,
+     104.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "ref": "MIC1",
+    "required_by": null,
+    "role": "mic",
+    "slot": "J_MIC",
+    "source": "feature"
+   },
+   {
+    "face": "front",
+    "feature": "speaker",
+    "harness": "H4",
+    "module": "SPK_40MM_4R_3W",
+    "name": "Speaker 40 mm round, 4 ohm, 3 W",
+    "position": [
+     0.0,
+     -42.9,
+     36.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "ref": "SPK1",
+    "required_by": null,
+    "role": "speaker",
+    "slot": "J_SPK",
+    "source": "feature"
+   },
+   {
+    "face": "top",
+    "feature": "story_button",
+    "harness": "H5",
+    "module": "BUTTON_ARCADE_30MM_SNAPIN",
+    "name": "Big 30 mm snap-in arcade push button (microswitch)",
+    "position": [
+     0.0,
+     -6.0,
+     163.2
+    ],
+    "qty": 1,
+    "reason": "",
+    "ref": "BTN1",
+    "required_by": null,
+    "role": "button",
+    "slot": "J_IO1",
+    "source": "feature"
+   },
+   {
+    "face": null,
+    "feature": null,
+    "harness": null,
+    "module": "AMP_MAX98357A_I2S",
+    "name": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+    "position": [
+     22.0,
+     -10.0,
+     16.4
+    ],
+    "qty": 1,
+    "reason": "a speaker needs the I2S amplifier",
+    "ref": "AMP1",
+    "required_by": null,
+    "role": "amp",
+    "slot": "A1",
+    "source": "implied"
+   },
+   {
+    "face": null,
+    "feature": null,
+    "harness": null,
+    "module": "MICROSD_SPI_MODULE_5V",
+    "name": "microSD SPI module with LDO and level shifter (Catalex-type)",
+    "position": [
+     -9.9,
+     -7.5,
+     16.4
+    ],
+    "qty": 1,
+    "reason": "story audio files live on microSD",
+    "ref": "SD1",
+    "required_by": null,
+    "role": "storage",
+    "slot": "S1",
+    "source": "implied"
+   },
+   {
+    "face": null,
+    "feature": null,
+    "harness": null,
+    "module": "STORAGE_MICROSD_32GB_A1",
+    "name": "microSD card 32 GB, SDHC Class 10 A1 (SanDisk), FAT32",
+    "position": null,
+    "qty": 1,
+    "reason": "required by SD1 (MICROSD_SPI_MODULE_5V): the story pack and saved clips live on a FAT32 microSD card (SOFTWARE_SETUP.md); the module ships without one",
+    "ref": "CARD1",
+    "required_by": "SD1",
+    "role": "storage_card",
+    "slot": null,
+    "source": "implied"
+   },
+   {
+    "face": null,
+    "feature": null,
+    "harness": null,
+    "module": "CABLE_USBC_C2C_1M",
+    "name": "USB-C to USB-C cable, 1 m, USB 2.0",
+    "position": null,
+    "qty": 1,
+    "reason": "USB-C cable in the box",
+    "ref": "CBL1",
+    "required_by": null,
+    "role": "usb_cable",
+    "slot": null,
+    "source": "implied"
+   },
+   {
+    "face": null,
+    "feature": null,
+    "harness": null,
+    "module": "ADAPTER_RPI_15W_USBC_IN",
+    "name": "Raspberry Pi 15W USB-C power supply (5.1 V 3 A, India plug)",
+    "position": null,
+    "qty": 1,
+    "reason": "adapter_in_box",
+    "ref": "PSU1",
+    "required_by": null,
+    "role": "adapter",
+    "slot": null,
+    "source": "implied"
+   }
+  ],
+  "size_mm": [
+   150.3,
+   118.0,
+   202.9
+  ],
+  "warnings": []
+ },
+ "errors": [],
+ "warnings": []
+}

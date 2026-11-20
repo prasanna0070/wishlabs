@@ -13,6 +13,15 @@ What the merge does
     `backplane_harness` to that scheme; the library agent's original proposal is kept as `backplane_harness_library`;
   * makes `aperture` consistent with the role (`aperture.feature_allowed`, `aperture.required`);
   * keeps `evidence` and `uncertain` verbatim (merge notes go to `merge_notes`, never into `uncertain`).
+
+Packs (CATALOG-PLAN 0.5): every `library/packs/<name>.json` ({"pack": name, "rows": [...], "prompt_rules": [...],
+"known_harness_gaps": [...]}; `enabled.json` and the `examples` folder are skipped) adds rows after the three sources.
+A pack row carries its own `merge` block instead of the tables below: {role, prefix, placement "feature"|"internal"|
+"none", designable, port {port, slots, cable, supported, why}, prewire, unconnected [module pins left open on purpose]}.
+The merged row keeps `merge` and gets `"pack": name`; a generated harness row used only by pack rows gets the pack(s)
+too, so `gstudio.library.Library` hides it with its pack. A pack row never replaces an existing id: a duplicate id, an
+unknown slot, a cable that does not match its port, a role the port does not accept or a module pin that maps to no
+port pin stops the merge.
 """
 
 from __future__ import annotations
@@ -27,6 +36,8 @@ SRC = [LIB / "modules-a.json", LIB / "modules-b.json", LIB / "modules-foundation
 OUT = LIB / "modules.json"
 README = LIB / "README.md"
 BACKPLANE = LIB / "backplane-v1.json"
+PACKS = LIB / "packs"
+PLACEMENTS = ("feature", "internal", "none")
 
 KEYS = ["id", "catalog_row", "catalog_id", "role", "name", "reference_product", "dims_mm", "pcb_thickness_mm", "mount", "pins",
         "module_connector", "backplane_harness", "aperture", "electrical", "firmware", "kicad", "sourcing_in",
@@ -501,6 +512,8 @@ VENDORS = {
     "pimoroni": (("pimoroni.com",), "GB", True), "robodo": (("robodo.in",), "IN", True), "rees52": (("rees52.com",), "IN", True),
     "dna technology": (("dnatechindia.com",), "IN", True), "zbotic": (("zbotic.in",), "IN", True),
     "sunrom": (("sunrom.com",), "IN", True),
+    "industrybuying": (("industrybuying.com",), "IN", True), "moglix": (("moglix.com",), "IN", True),
+    "electronicscomp": (("electronicscomp.com",), "IN", True),
 }
 SKU_RES = [re.compile(r"\b(PRO\d{3,5}|TH\d{4}|SBC\d{3,5}|TIFEC\d{3,5}|COM\d{4})\b"), re.compile(r"\bSKU[:\s]+([A-Z0-9][A-Za-z0-9-]{3,})"),
            re.compile(r"\bRobu SKU (R\d{4,8})\b")]
@@ -707,6 +720,100 @@ def fix_branding(m: dict) -> None:
         m.setdefault("merge_notes", []).append("reference_product.maker: company name replaced by 'Gadget Studio' (no branding in product data)")
 
 
+# ---------------------------------------------------------------------------------------------- packs (CATALOG-PLAN 0.5)
+def load_packs(packs_dir: Path = PACKS) -> list[tuple[str, dict]]:
+    """[(name, data)] for every packs/<name>.json, sorted by file name; enabled.json and sub-folders are skipped."""
+    out = []
+    if not packs_dir.is_dir():
+        return out
+    for f in sorted(packs_dir.glob("*.json")):
+        if f.name == "enabled.json" or not f.is_file():
+            continue
+        data = json.loads(f.read_text(encoding="utf-8"))
+        if not isinstance(data, dict) or not isinstance(data.get("rows"), list):
+            raise SystemExit(f"packs/{f.name}: a pack file is {{\"pack\": \"{f.stem}\", \"rows\": [...], \"prompt_rules\": [...]}}")
+        name = data.get("pack") or f.stem
+        if name != f.stem:
+            raise SystemExit(f"packs/{f.name}: \"pack\" is {name!r}; it must equal the file name {f.stem!r}")
+        if name == "enabled" or not re.fullmatch(r"[a-z][a-z0-9_]*", name):
+            raise SystemExit(f"packs/{f.name}: pack names are lower-case words ([a-z][a-z0-9_]*), not 'enabled'")
+        out.append((name, data))
+    return out
+
+
+def check_pack_row(m: dict, bp: dict) -> list[str]:
+    """Hard errors for one pack row's `merge` block against backplane-v1 (CATALOG-PLAN risk 2: no silent library errors)."""
+    mid, mg = m.get("id"), m.get("merge")
+    if not isinstance(mg, dict):
+        return [f"{mid}: a pack row needs a merge block {{role, prefix, placement, designable, port, prewire}}"]
+    errs = []
+    role = mg.get("role")
+    if not isinstance(role, str) or not role:
+        errs.append(f"{mid}: merge.role missing")
+    if not isinstance(mg.get("prefix"), str) or not re.fullmatch(r"[A-Z]{1,5}", mg.get("prefix") or ""):
+        errs.append(f"{mid}: merge.prefix must be 1-5 capital letters (instance refs are <prefix><n>)")
+    if mg.get("placement") not in PLACEMENTS:
+        errs.append(f"{mid}: merge.placement must be one of {', '.join(PLACEMENTS)}")
+    if not isinstance(mg.get("designable", False), bool):
+        errs.append(f"{mid}: merge.designable must be true or false")
+    if mg.get("designable") and mg.get("placement") == "none":
+        errs.append(f"{mid}: a designable row is placed as a feature or internal, not 'none'")
+    port = mg.get("port")
+    if not isinstance(port, dict) or not {"port", "slots", "cable", "supported"} <= set(port):
+        return errs + [f"{mid}: merge.port must be {{port, slots, cable, supported, why}}"]
+    slots = {s["id"]: s for s in bp["slots"]}
+    pslots = port.get("slots") or []
+    if not isinstance(pslots, list):
+        errs.append(f"{mid}: merge.port.slots must be a list")
+        pslots = []
+    for sid in pslots:
+        if sid not in slots:
+            errs.append(f"{mid}: merge.port.slots names {sid}, which backplane-v1 does not have")
+    cable = port.get("cable")
+    if port.get("supported") and cable:
+        for sid in [s for s in pslots if s in slots]:
+            s = slots[sid]
+            if s.get("kind") != "port":
+                errs.append(f"{mid}: {sid} is a {s.get('kind')}, not a cabled port")
+                continue
+            if cable.get("family") != s.get("connector") or int(cable.get("pins") or 0) != int(s.get("pins_count") or 0):
+                errs.append(f"{mid}: cable {cable.get('family')} {cable.get('pins')}p does not match {sid} "
+                            f"({s.get('connector')} {s.get('pins_count')}p)")
+            if role and role not in (s.get("accepts_roles") or []):
+                errs.append(f"{mid}: {sid} does not accept role {role!r} (accepts {s.get('accepts_roles')}); the role list is in "
+                            "tools/gen_backplane_v1.py (owner E: send a hand-off)")
+        if pslots and pslots[0] in slots and slots[pslots[0]].get("kind") == "port":
+            wires = map_wires(m, slots[pslots[0]])
+            want = [w.get("module_pin") for w in (m.get("backplane_harness") or {}).get("wires", []) if w.get("module_pin")]
+            want = want or list((m.get("module_connector") or {}).get("pin_order") or [p.get("name") for p in m.get("pins") or []
+                                                                                        if p.get("name")])
+            if not want:
+                errs.append(f"{mid}: a cabled row needs module_connector.pin_order or pins[] names")
+            open_ok = set(mg.get("unconnected") or [])
+            lost = [p for p in want if p not in wires and p not in open_ok]
+            if lost:
+                errs.append(f"{mid}: module pin(s) {lost} map to no pin of {pslots[0]} (names and 'accepts' aliases in "
+                            "backplane-v1.json); rename them, ask E for an alias, or list them in merge.unconnected")
+    elif port.get("supported") and pslots:
+        errs.append(f"{mid}: a supported port with slots needs merge.port.cable (or slots [] for parts with no wire)")
+    if not port.get("supported") and not port.get("why"):
+        errs.append(f"{mid}: an unsupported port needs merge.port.why")
+    fm = mg.get("face_mm")
+    if fm is not None and not (isinstance(fm, list) and len(fm) == 2 and all(isinstance(v, (int, float)) and v > 0 for v in fm)):
+        errs.append(f"{mid}: merge.face_mm is [w, h] in mm (the in-shell envelope of a part that sits outside)")
+    dm = mg.get("depth_mm")
+    if dm is not None and not (isinstance(dm, (int, float)) and dm >= 0):
+        errs.append(f"{mid}: merge.depth_mm is a number >= 0")
+    pw = mg.get("prewire")
+    if pw is not None and (not isinstance(pw, dict) or not {"by", "lead", "pads", "slot", "note"} <= set(pw)):
+        errs.append(f"{mid}: merge.prewire is null or {{by, lead, pads, slot, note}}")
+    if mg.get("placement") == "feature" and (m.get("aperture") or {}).get("needs", "none") == "none":
+        errs.append(f"{mid}: a feature row needs aperture.needs (the opening the CAD cuts)")
+    if not isinstance(m.get("catalog_row"), str) or not m.get("catalog_row"):
+        errs.append(f"{mid}: catalog_row must be a non-empty string (e.g. \"P-<pack>-1\")")
+    return errs
+
+
 def merge() -> tuple[list[dict], list[str]]:
     notes: list[str] = []
     rows: list[dict] = []
@@ -727,6 +834,31 @@ def merge() -> tuple[list[dict], list[str]]:
             m["source_file"] = f.name
             rows.append(m)
     bp = json.loads(BACKPLANE.read_text(encoding="utf-8"))
+    # packs come after the three sources, so every core row and generated cable id stays as it was
+    pack_errs: list[str] = []
+    taken = {x.upper() for x in list(seen) + list(RENAME.values())}  # Library.get() also resolves ids case-insensitively
+    for name, data in load_packs():
+        for m in data["rows"]:
+            mid = m.get("id") if isinstance(m, dict) else None
+            if not mid:
+                pack_errs.append(f"packs/{name}.json: a row without an id")
+                continue
+            if mid.upper() in taken:
+                pack_errs.append(f"packs/{name}.json: id {mid} already exists ({seen.get(mid, 'a core row')}); "
+                                 "a pack row never replaces a row")
+                continue
+            pack_errs += [f"packs/{name}.json: {e}" for e in check_pack_row(m, bp)]
+            missing = [k for k in KEYS if k not in m]
+            if missing:
+                notes.append(f"{mid} (pack {name}): missing keys {missing} (added empty)")
+            taken.add(mid.upper())
+            seen[mid] = f"packs/{name}.json"
+            m = dict(m)
+            m["source_file"] = f"packs/{name}.json"
+            m["pack"] = name
+            rows.append(m)
+    if pack_errs:
+        raise SystemExit("pack rows rejected:\n  - " + "\n  - ".join(pack_errs))
     upd = load_updates()
     lint: list[str] = []
     out = []
@@ -743,7 +875,8 @@ def merge() -> tuple[list[dict], list[str]]:
             mc.update(fx)
             m["module_connector"] = mc
         oid = m["id"]
-        role = ROLE.get(oid)
+        mg = m.get("merge") if m.get("pack") else None  # a pack row brings its own role, prefix, placement, port and prewire
+        role = mg["role"] if mg else ROLE.get(oid)
         if role is None:
             raise SystemExit(f"no canonical role for {oid}: add it to ROLE")
         for k in KEYS:
@@ -755,7 +888,7 @@ def merge() -> tuple[list[dict], list[str]]:
             m["id"] = RENAME[oid]
         else:
             m["aliases"] = []
-        m["ref_prefix"] = PREFIX.get(role)
+        m["ref_prefix"] = mg["prefix"] if mg else PREFIX.get(role)
         # geometry convenience
         d = m.get("dims_mm") or {}
         x, y, z = d.get("x"), d.get("y"), d.get("z")
@@ -764,14 +897,20 @@ def merge() -> tuple[list[dict], list[str]]:
             fo, do, why = FACE_OVERRIDE[oid]
             face, depth = fo, do
             m.setdefault("merge_notes", []).append(f"face_mm/depth_mm overridden: {why}")
+        if mg and (mg.get("face_mm") or mg.get("depth_mm") is not None):
+            # a pack row whose part sits outside the shell (cable exit): face/depth = the in-shell envelope (c-to-e 1)
+            face = tuple(mg["face_mm"]) if mg.get("face_mm") else face
+            depth = mg["depth_mm"] if mg.get("depth_mm") is not None else depth
+            m.setdefault("merge_notes", []).append("face_mm/depth_mm from the pack row's merge block (in-shell envelope)")
         m["face_mm"] = list(face) if face else None
         m["depth_mm"] = depth
         mc = (m.get("module_connector") or {}).get("type", "")
         m["harness_clearance_mm"] = 10.0 if mc in ("header_2.54", "wire_leads", "jst_ph_2.0", "jst_xh_2.5", "solder_pads", "spade_2.8") else 0.0
         # requires_soldering = the person following BUILD_GUIDE must solder (coordinator 2026-11-01: we ship built devices).
         # Factory work is recorded separately: `prewire` (leads and pins fitted before assembly) and `factory_soldering`.
-        if m["id"] in PREWIRE:
-            m["prewire"] = PREWIRE[m["id"]]
+        prewire = (mg.get("prewire") if mg else PREWIRE.get(m["id"]))
+        if prewire:
+            m["prewire"] = prewire
             m["requires_soldering"], m["factory_soldering"] = False, True
             m["requires_soldering_basis"] = "the factory pre-wires it (see prewire); the maker never solders"
             for row in EXTRA_SOURCING.get(m["id"], []):
@@ -808,7 +947,7 @@ def merge() -> tuple[list[dict], list[str]]:
         lint += sourcing_pass(m)
         finish_cable(m)
         # backplane binding
-        pv1 = port_for(m, role)
+        pv1 = {k: v for k, v in mg["port"].items()} if mg else port_for(m, role)
         m["backplane_v1"] = pv1
         # electrical normalisation
         e = dict(m.get("electrical") or {})
@@ -827,12 +966,13 @@ def merge() -> tuple[list[dict], list[str]]:
         # aperture consistency
         a = dict(m.get("aperture") or {})
         a.setdefault("needs", "none")
-        a["feature_allowed"] = role in FEATURE_ROLES
-        a["required"] = role in FEATURE_ROLES
+        is_feature = (mg.get("placement") == "feature") if mg else role in FEATURE_ROLES
+        a["feature_allowed"] = is_feature
+        a["required"] = is_feature
         if role == "touch" and a.get("needs") == "none":
             a["needs"] = "touch_zone"
             a.setdefault("merge_note", "touch pads read through a thin non-metallic wall; wall thickness to be test-printed")
-        if role in FEATURE_ROLES and a.get("needs") == "none":
+        if is_feature and a.get("needs") == "none":
             notes.append(f"{m['id']}: feature role {role} but aperture.needs == none")
         m["aperture"] = a
         # harness rewritten to backplane-v1; keep the library proposal verbatim
@@ -851,6 +991,7 @@ def merge() -> tuple[list[dict], list[str]]:
         out.append(m)
         if not pending and not cables_done:
             cables_done = True
+            pack_of = {x["id"]: x.get("pack") for x in out}
             for c in foundation_cables(out, bp, notes):
                 if c["id"] in seen:
                     notes.append(f"generated cable id {c['id']} already exists in {seen[c['id']]}; kept the library one")
@@ -858,6 +999,11 @@ def merge() -> tuple[list[dict], list[str]]:
                 seen[c["id"]] = "foundation"
                 c["source_file"] = "foundation (tools/merge_modules.py)"
                 ROLE[c["id"]] = "harness"
+                # a made-to-drawing row that only pack rows use hides with its pack(s); base rows never do (fallback leads)
+                fits = c.get("fits") or []
+                if c.get("pinning") == "drawing" and fits and all(pack_of.get(f) for f in fits):
+                    ps = sorted({pack_of[f] for f in fits})
+                    c["pack"] = ps[0] if len(ps) == 1 else ps
                 pending.append(c)
     # backplane entry follows backplane-v1.json
     if BACKPLANE.exists():
@@ -901,6 +1047,10 @@ def readme(mods: list[dict], notes: list[str]) -> str:
          "`modules-a.json` (rows 01-07, 14-18, 20-24, 37) and `modules-b.json` (rows 08-13, 19, 25-33, 36, 38, 41-50); "
          "their `*-notes.md` explain every choice. Regenerate with `python3 -I tools/merge_modules.py` after either source changes, "
          "and the backplane with `python3 -I tools/gen_backplane_v1.py` (run that first).", "",
+         "Optional packs (`packs/<name>.json`, CATALOG-PLAN 0.5) add rows marked `pack`; a row whose pack is off "
+         "(`packs/enabled.json`, env `GS_PACKS_ENABLED` / `GS_PACKS_OFF`) is invisible to `gstudio.library.Library`. "
+         + (f"Pack rows in this file: {', '.join(sorted({m['id'] + ' (' + str(m['pack']) + ')' for m in mods if m.get('merge')}))}."
+            if any(m.get("merge") for m in mods) else "No pack rows in this file."), "",
          "Prices are blueprint §3.3 planning ranges (INR, often excluding GST and labour), not quotes. Every unverified number "
          "is listed in that module's `uncertain`. `v1` = how the module connects on `backplane-v1.json`.", "",
          "| id | row | role | name | dims mm (x × y × z) | aperture | v1 slot | price ₹ |", "|---|---|---|---|---|---|---|---|"]
