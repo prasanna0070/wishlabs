@@ -208,7 +208,12 @@ def build_summary(name: str, status: dict | None, build: dict | None, manifest: 
     steps = [s for s in build.get("steps") or [] if isinstance(s, dict)]
     files = [f.get("path", "") for f in (manifest or {}).get("files") or [] if isinstance(f, dict)]
     imgs = image_counts(extra.get("manual_summary"), files)
-    if printed:
+    spec = extra.get("spec") if isinstance(extra.get("spec"), dict) else {}
+    kind = "printed" if spec.get("kind") == "printed" else "gadget"  # CATALOG-PLAN E4: the viewer hides wiring tabs
+    if printed and kind == "printed":
+        made.append(f"{name}: {len(printed)} print part{'s' if len(printed) != 1 else ''} with STEP and STL files "
+                    "(a printed object with no electronics)")
+    elif printed:
         made.append(f"{name}'s printed shell: {len(printed)} print part{'s' if len(printed) != 1 else ''} "
                     "with STEP and STL files")
     if any(f.startswith("pcb/") for f in files) or build.get("pcb"):
@@ -323,7 +328,7 @@ def build_summary(name: str, status: dict | None, build: dict | None, manifest: 
         lines.append("Nothing from this attempt should be ordered or printed. You can ask me to change the design, "
                      "or try the build again.")
         one = f"Build failed{where}"
-    payload = {"state": state, "made": made, "checks": checks, "price": price, "physical_checks": physical,
+    payload = {"state": state, "kind": kind, "made": made, "checks": checks, "price": price, "physical_checks": physical,
                "notes": notes, "requirements": reqs, "buildable": buildable,
                "verdict_message": status.get("verdict_message") if buildable is False else None}
     return payload, "\n".join(lines).strip(), one

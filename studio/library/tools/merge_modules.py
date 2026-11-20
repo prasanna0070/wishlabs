@@ -512,6 +512,8 @@ VENDORS = {
     "pimoroni": (("pimoroni.com",), "GB", True), "robodo": (("robodo.in",), "IN", True), "rees52": (("rees52.com",), "IN", True),
     "dna technology": (("dnatechindia.com",), "IN", True), "zbotic": (("zbotic.in",), "IN", True),
     "sunrom": (("sunrom.com",), "IN", True),
+    "industrybuying": (("industrybuying.com",), "IN", True), "moglix": (("moglix.com",), "IN", True),
+    "electronicscomp": (("electronicscomp.com",), "IN", True),
 }
 SKU_RES = [re.compile(r"\b(PRO\d{3,5}|TH\d{4}|SBC\d{3,5}|TIFEC\d{3,5}|COM\d{4})\b"), re.compile(r"\bSKU[:\s]+([A-Z0-9][A-Za-z0-9-]{3,})"),
            re.compile(r"\bRobu SKU (R\d{4,8})\b")]
@@ -796,6 +798,12 @@ def check_pack_row(m: dict, bp: dict) -> list[str]:
         errs.append(f"{mid}: a supported port with slots needs merge.port.cable (or slots [] for parts with no wire)")
     if not port.get("supported") and not port.get("why"):
         errs.append(f"{mid}: an unsupported port needs merge.port.why")
+    fm = mg.get("face_mm")
+    if fm is not None and not (isinstance(fm, list) and len(fm) == 2 and all(isinstance(v, (int, float)) and v > 0 for v in fm)):
+        errs.append(f"{mid}: merge.face_mm is [w, h] in mm (the in-shell envelope of a part that sits outside)")
+    dm = mg.get("depth_mm")
+    if dm is not None and not (isinstance(dm, (int, float)) and dm >= 0):
+        errs.append(f"{mid}: merge.depth_mm is a number >= 0")
     pw = mg.get("prewire")
     if pw is not None and (not isinstance(pw, dict) or not {"by", "lead", "pads", "slot", "note"} <= set(pw)):
         errs.append(f"{mid}: merge.prewire is null or {{by, lead, pads, slot, note}}")
@@ -889,6 +897,11 @@ def merge() -> tuple[list[dict], list[str]]:
             fo, do, why = FACE_OVERRIDE[oid]
             face, depth = fo, do
             m.setdefault("merge_notes", []).append(f"face_mm/depth_mm overridden: {why}")
+        if mg and (mg.get("face_mm") or mg.get("depth_mm") is not None):
+            # a pack row whose part sits outside the shell (cable exit): face/depth = the in-shell envelope (c-to-e 1)
+            face = tuple(mg["face_mm"]) if mg.get("face_mm") else face
+            depth = mg["depth_mm"] if mg.get("depth_mm") is not None else depth
+            m.setdefault("merge_notes", []).append("face_mm/depth_mm from the pack row's merge block (in-shell envelope)")
         m["face_mm"] = list(face) if face else None
         m["depth_mm"] = depth
         mc = (m.get("module_connector") or {}).get("type", "")

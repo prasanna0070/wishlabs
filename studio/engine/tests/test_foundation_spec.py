@@ -287,3 +287,60 @@ def test_cat_normalize_dispatches_printed_objects(monkeypatch):
     gadget.behaviour = None  # a Spec built in code without behaviour: reported, not a crash
     _, rep = normalize(gadget, Library())
     assert {"path": "behaviour", "msg": "required field is missing"} in rep["errors"]
+
+
+def _blob(prims):
+    d = good()
+    d["body"] = {"family": "blob", "primitives": prims, "wall": 2.4, "split": "base_plate", "feet": 4, "edge_round": 6}
+    return d
+
+
+def test_cat_latch_template_needs_motion2(monkeypatch):
+    _packs(monkeypatch)
+    d = good()
+    d["audience"] = {"child_directed": False}
+    d["behaviour"] = {"template": "latch", "summary": "", "settings": {}}
+    assert any(x["path"] == "behaviour.template" and x.get("code") == "not_available" for x in errs(d))
+    assert "latch" not in spec_json_schema()["$defs"]["Behaviour"]["properties"]["template"]["enum"]
+    _packs(monkeypatch, "motion2")
+    assert load_spec(d).behaviour.template == "latch"
+    assert "latch" in spec_json_schema()["$defs"]["Behaviour"]["properties"]["template"]["enum"]
+
+
+def test_cat_sculpt_contract(monkeypatch):
+    base = {"kind": "rounded_box", "center": [0, 0, 40], "size": [80, 70, 80], "radius": 8}
+    _packs(monkeypatch)
+    cone = dict(base, kind="cone")
+    turned = dict(base, rot=[0, 0, 30])
+    assert any(x["path"] == "body.primitives[0].kind" and x.get("code") == "not_available" for x in errs(_blob([cone])))
+    assert any(x["path"] == "body.primitives[0].rot" and x.get("code") == "not_available" for x in errs(_blob([turned])))
+    many = [dict(base, center=[0, 0, 40 + k]) for k in range(13)]
+    assert any("at most 12 items" in x["msg"] for x in errs(_blob(many)))
+    sch = spec_json_schema()["$defs"]
+    assert "rot" not in sch["Primitive"]["properties"] and "cone" not in sch["Primitive"]["properties"]["kind"]["enum"]
+    assert sch["BlobBody"]["properties"]["primitives"]["maxItems"] == 12
+    dumped = load_spec(_blob([base])).to_json_dict()
+    assert not {"rot", "tip", "sweep"} & set(dumped["body"]["primitives"][0])
+    _packs(monkeypatch, "sculpt")
+    tube = dict(base, kind="tube", sweep=200, axis="z", center=[0, 0, 88], size=[60, 60, 20])
+    s = load_spec(_blob([turned, tube, dict(base, kind="cone", tip=10, center=[0, 0, 110], size=[30, 30, 40])]))
+    a = s.body.primitives[0].aabb()
+    assert a[1] - a[0] > 80  # a turned box takes more room than its own size along x
+    assert load_spec(_blob(many))
+    assert any("ring thickness" in x["msg"] for x in errs(_blob([dict(base, kind="torus", size=[40, 40, 30])])))
+    assert any("tip is only for kind cone" in x["msg"] for x in errs(_blob([dict(base, tip=5)])))
+    sch = spec_json_schema()["$defs"]
+    assert "rot" in sch["Primitive"]["properties"] and sch["BlobBody"]["properties"]["primitives"]["maxItems"] == 24
+
+
+def test_cat_turned_primitive_sdf_without_sdf_ext(monkeypatch):
+    from types import SimpleNamespace
+
+    from gstudio.normalize import _prim_sdf
+
+    monkeypatch.setitem(sys.modules, "gstudio.sdf_ext", None)  # package D's module absent: the turned-box fallback
+    box = SimpleNamespace(kind="rounded_box", center=(0.0, 0.0, 0.0), size=(40.0, 10.0, 10.0), radius=0.0, axis="z",
+                          rot=(0.0, 0.0, 90.0))
+    assert abs(_prim_sdf(box, 0.0, 15.0, 0.0) + 5.0) < 1e-6  # turned 90 degrees about z: the long side now runs along y
+    flat = SimpleNamespace(**{**box.__dict__, "rot": (0.0, 0.0, 0.0)})
+    assert abs(_prim_sdf(flat, 0.0, 15.0, 0.0) - 10.0) < 1e-6

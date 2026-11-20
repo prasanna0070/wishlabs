@@ -30,7 +30,7 @@ from typing import Any, Optional
 from .envelope import fit_orientations, full_envelope
 from .errors import SpecError
 from .spec import (
-    PRINTED_MIN_SIZE, BlobBody, DCartridge, DHardware, DHarness, DInstance, Derived, Feature, RevolveBody, SilhouetteBody,
+    PRINTED_MIN_SIZE, SCULPT_KINDS, _rot_matrix, BlobBody, DCartridge, DHardware, DHarness, DInstance, Derived, Feature, RevolveBody, SilhouetteBody,
     Spec, cross_check, load_spec, outline_points, polygon_area,
 )
 from .version import ENGINE_VERSION
@@ -108,6 +108,14 @@ def _ellipse_sdf(px, py, rx, ry):
 
 
 def _prim_sdf(pr, x, y, z):
+    if _sculpted(pr):  # pack `sculpt` (CATALOG-PLAN 0.5.5, E4)
+        try:
+            from .sdf_ext import prim_sdf as _ext  # package D: turned primitives and cone, torus, tube
+        except ImportError:
+            _ext = None
+        if _ext is not None:
+            return _ext(pr, x, y, z)
+        return _turned_box_sdf(pr, x, y, z)  # without sdf_ext: the turned bounding box (never smaller than the shape)
     (cx, cy, cz), (sx, sy, sz) = pr.center, pr.size
     p = [x - cx, y - cy, z - cz]
     h = [sx / 2, sy / 2, sz / 2]
@@ -133,6 +141,33 @@ def _prim_sdf(pr, x, y, z):
     return math.sqrt(sum(v * v for v in q)) - r
 
 
+def _sculpted(pr) -> bool:
+    return pr.kind in SCULPT_KINDS or any(getattr(pr, "rot", None) or ())
+
+
+def _prim_bounds(pr) -> tuple:
+    """World bounds of a blob primitive: package D's exact sdf_ext.prim_bounds for sculpted ones when it has landed,
+    else the primitive's own (turned, conservative) bounding box."""
+    if _sculpted(pr):
+        try:
+            from .sdf_ext import prim_bounds as _bounds
+        except ImportError:
+            _bounds = None
+        if _bounds is not None:
+            return tuple(_bounds(pr))
+    return pr.aabb()
+
+
+def _turned_box_sdf(pr, x, y, z):
+    """Exact distance to the primitive's bounding box turned by pr.rot (a box SDF in the primitive's own frame)."""
+    (cx, cy, cz), (sx, sy, sz) = pr.center, pr.size
+    R = _rot_matrix(getattr(pr, "rot", None) or (0.0, 0.0, 0.0))
+    d = (x - cx, y - cy, z - cz)
+    p = [sum(R[j][i] * d[j] for j in range(3)) for i in range(3)]  # R^T d
+    q = [abs(p[i]) - h for i, h in enumerate((sx / 2, sy / 2, sz / 2))]
+    return math.sqrt(sum(max(v, 0.0) ** 2 for v in q)) + min(max(q), 0.0)
+
+
 class ShellGeometry:
     """Approximate outer shape of the body as a signed distance field (mm, world coordinates)."""
 
@@ -154,7 +189,7 @@ class ShellGeometry:
             rmax = max(r for r, _ in pts)
             self.bbox = (-rmax, rmax, -rmax * b.squash_y, rmax * b.squash_y, 0.0, max(z for _, z in pts))
         else:
-            boxes = [p.aabb() for p in b.primitives]
+            boxes = [_prim_bounds(p) for p in b.primitives]
             self.bbox = (min(q[0] for q in boxes), max(q[1] for q in boxes), min(q[2] for q in boxes),
                          max(q[3] for q in boxes), 0.0, max(q[5] for q in boxes))
         # inner floor: the shell's own bottom skin (rear_cover) or the top of the CAD's 3.5 mm base plate (base_plate)
@@ -255,6 +290,10 @@ TEMPLATE_RULES = {
                        "need_any": [(("temp_humidity", "pressure", "light_sensor", "soil_moisture", "level_switch", "air_quality"),
                                      "at least one sensor (environment, air quality, soil moisture or water level)",
                                      "at least one environment sensor")]},
+    # pack motion2 (CATALOG-PLAN E4): a known tag or a button opens a servo latch for a few seconds
+    "latch": {"need": [("servo", "a servo arm for the latch")],
+              "need_any": [(("nfc", "button", "touch"), "a tag reader, button or touch control to open it",
+                            "a button or touch control to open it")]},
 }
 ACTUATOR_ROLES = ("servo", "servo_continuous")  # CATALOG-PLAN E1.5: never in a child-directed design
 
@@ -575,6 +614,18 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
     x0, x1, y0, y1, z0, z1 = env["bbox"]
     warnings += [f"envelope: {n}" for n in env["notes"]]
     size = (x1 - x0, y1 - y0, z1 - z0)
+    if getattr(getattr(sp, "mount", None), "kind", "desk") == "wall":  # pack `mount`: room for the keyholes (d-to-e 3)
+        from . import envelope as _envelope
+
+        wk_fn = getattr(_envelope, "wall_keyhole_room", None)  # package D's pure-Python check, when it has landed
+        if callable(wk_fn):
+            try:
+                wk = wk_fn(sp) or {}
+                if not wk.get("ok", True):
+                    _err(errors, "mount", str(wk.get("why") or "no room for the wall keyholes on the back"), wk.get("fix"),
+                         "wall_mount_room")
+            except Exception as exc:  # never crash normalize
+                warnings.append(f"wall keyhole room not checked: {exc}")
     for axis, v in zip("XYZ", size):
         if v < SIZE_MIN - 1e-6:
             _err(errors, "body", f"overall size along {axis} is {v:.0f} mm; minimum is {SIZE_MIN:g} mm", "make the body bigger", "size")
@@ -789,6 +840,10 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
             dist = (abs(start[0] - end[0]) + abs(start[1] - end[1]) + abs(start[2] - end[2])) * ROUTE_FACTOR + ROUTE_SLACK
         else:
             dist = 150.0
+        if ((lib.get(i["module"]).get("aperture") or {}).get("needs")) == "cable_exit":
+            # the part sits outside the shell (soil probe, float switch): its lead continues through the cable exit to the
+            # pot or tank, so it always gets the longest class (hand-off c-to-e 2); reach outside = 300 mm - route
+            dist = max(dist, float(LENGTH_CLASSES[-1]))
         cls = next((c for c in LENGTH_CLASSES if c >= dist), None)
         if cls is None:
             _err(errors, i.get("path", "features"), f"{i['ref']} is about {dist:.0f} mm of cable from {slot_id}; the longest harness is 300 mm",
@@ -961,6 +1016,7 @@ MODULE_POSTS = {"speaker": 3, "touch": 0, "servo": 0, "servo_continuous": 0}  # 
 # pick_screw rule chose on the benchmark shells (12 and 8); the CAD picks per design and its components.json size wins
 PLANNED_SCREW_LEN = {"CoverScrews": 12, "PlateScrews": 12, "ModuleScrews": 8, "SupportPostScrews": 6}
 PURCHASED_INSERT = "INSERT_HEATSET_M2_5X4_MEC8005"
+WALL_SCREW_SET = "WALL_SCREW_PLUG_SET_4X25"  # pack `mount` row (package D)
 PURCHASED_FEET = "FEET_RUBBER_8X2_5_SUNROM_4436"  # REVIEW-1 MIN-25 (integration): Indian retail feet (Sunrom 4436) replace the IndiaMART-only 3M row
 
 
@@ -1019,6 +1075,13 @@ def planned_hardware(sp: Spec, lib, feat_mods: dict, inst: list, harness: list, 
     if feet and sp.body.feet:
         hw.append(DHardware(id="Feet", name="adhesive bumper foot", qty=sp.body.feet, group="Feet", use="underside",
                             module=feet["id"], catalog_row=feet.get("catalog_row")))
+    mt = getattr(sp, "mount", None)  # pack `mount` (hand-off d-to-e 2): the wall screws and plugs are bought, not printed
+    if mt is not None and getattr(mt, "kind", "desk") == "wall" and lib.has(WALL_SCREW_SET):
+        w = lib.get(WALL_SCREW_SET)
+        n = int(getattr(mt, "screws", 2) or 2)
+        hw.append(DHardware(id="WallScrews", name="wall screw + wall plug set", qty=n, size="about 4 x 25 mm screw + plug",
+                            group="WallScrews", use=f"one screw in a wall plug per keyhole ({n} keyholes in the rear cover)",
+                            module=w["id"], catalog_row=w.get("catalog_row")))
     ties = first("ties")
     if ties and harness:
         hw.append(DHardware(id="CableTies", name="cable tie 100 x 2.5 mm", qty=max(3, len(harness) + 1) + 1, group="CableTies",

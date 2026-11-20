@@ -186,8 +186,22 @@ class RevolveBody(_BodyCommon):
         return pts
 
 
+SCULPT_KINDS = ("cone", "torus", "tube")  # pack `sculpt` (CATALOG-PLAN E4); geometry in gstudio.sdf_ext and cad/body.py (D)
+BLOB_MAX = 12  # primitives per blob while pack `sculpt` is off (24 with it)
+BLOB_MAX_SCULPT = 24
+
+
+def _rot_matrix(rot) -> list[list[float]]:
+    """R = Rz @ Ry @ Rx for rot = [rx, ry, rz] degrees: the primitive is turned about x, then y, then z, about its centre."""
+    ax, ay, az = (math.radians(float(v)) for v in rot)
+    cx, sx, cy, sy, cz, sz = math.cos(ax), math.sin(ax), math.cos(ay), math.sin(ay), math.cos(az), math.sin(az)
+    return [[cz * cy, cz * sy * sx - sz * cx, cz * sy * cx + sz * sx],
+            [sz * cy, sz * sy * sx + cz * cx, sz * sy * cx - cz * sx],
+            [-sy, cy * sx, cy * cx]]
+
+
 class Primitive(_M):
-    kind: Literal["rounded_box", "sphere", "ellipsoid", "cylinder", "capsule"]
+    kind: Literal["rounded_box", "sphere", "ellipsoid", "cylinder", "capsule", "cone", "torus", "tube"]
     center: tuple[
         Annotated[float, Field(ge=-MAX_XY, le=MAX_XY)],
         Annotated[float, Field(ge=-MAX_XY, le=MAX_XY)],
@@ -200,17 +214,49 @@ class Primitive(_M):
     ] = Field(..., description="bounding box [sx,sy,sz] mm (sphere: [d,d,d])")
     radius: float = Field(4.0, ge=0, le=60, description="corner/blend fillet mm")
     axis: Literal["x", "y", "z"] = Field("z", description="cylinder/capsule axis")
+    rot: tuple[
+        Annotated[float, Field(ge=-180, le=180)],
+        Annotated[float, Field(ge=-180, le=180)],
+        Annotated[float, Field(ge=-180, le=180)],
+    ] = Field((0.0, 0.0, 0.0), description="[rx, ry, rz] degrees: turn the finished primitive about its centre, first "
+              "about world x, then y, then z; size and axis are before turning")
+    tip: Optional[float] = Field(None, ge=0, le=260, description="cone only: diameter of the flat top at the +axis end, mm "
+                                 "(0 or left out = pointed); the base (at the -axis end) spans the other two sizes")
+    sweep: Optional[float] = Field(None, ge=30, le=330, description="tube only: an arc of the torus ring, in degrees (180 "
+                                   "when left out), from the first other axis turning about +axis; round ends")
+
+    @model_validator(mode="after")
+    def _sculpt_shape(self) -> "Primitive":
+        # CATALOG-PLAN E4 + d-to-e 6: cone, torus and tube (an arc of a torus) use `axis`; other axes in x, y, z order
+        other = [v for a, v in zip("xyz", self.size) if a != self.axis]
+        along = self.size["xyz".index(self.axis)]
+        if self.tip is not None and self.kind != "cone":
+            raise ValueError("tip is only for kind cone")
+        if self.sweep is not None and self.kind != "tube":
+            raise ValueError("sweep is only for kind tube")
+        if self.kind == "cone" and (self.tip or 0.0) > min(other):
+            raise ValueError(f"cone tip {self.tip:g} mm is wider than its base ({min(other):g} mm)")
+        if self.kind in ("torus", "tube") and along >= min(other) / 2:
+            raise ValueError(f"{self.kind} ring thickness (size along {self.axis}, {along:g} mm) must be below half the "
+                             f"smaller outer diameter ({min(other) / 2:g} mm) so the ring has a hole")
+        return self
 
     def aabb(self) -> tuple[float, float, float, float, float, float]:
+        """World bounding box; a turned primitive gets the box around its turned bounding box (conservative)."""
         (cx, cy, cz), (sx, sy, sz) = self.center, self.size
-        return (cx - sx / 2, cx + sx / 2, cy - sy / 2, cy + sy / 2, cz - sz / 2, cz + sz / 2)
+        if not any(self.rot):
+            return (cx - sx / 2, cx + sx / 2, cy - sy / 2, cy + sy / 2, cz - sz / 2, cz + sz / 2)
+        R = _rot_matrix(self.rot)
+        h = (sx / 2, sy / 2, sz / 2)
+        e = [sum(abs(R[i][j]) * h[j] for j in range(3)) for i in range(3)]
+        return (cx - e[0], cx + e[0], cy - e[1], cy + e[1], cz - e[2], cz + e[2])
 
 
 class BlobBody(_BodyCommon):
     """Union of primitives, each filleted, cut flat at z=0. Good for head-on-body bots and ears."""
 
     family: Literal["blob"]
-    primitives: list[Primitive] = Field(..., min_length=1, max_length=12)
+    primitives: list[Primitive] = Field(..., min_length=1, max_length=BLOB_MAX_SCULPT)
     split: Literal["base_plate", "rear_cover", "none"] = "base_plate"
 
     @field_validator("primitives")
@@ -355,7 +401,8 @@ class Electronics(_M):
     power: Power = Field(default_factory=Power)
 
 
-TemplateName = Literal["story_player", "desk_companion", "notifier_clock", "ambient_light", "sensor_display"]
+TemplateName = Literal["story_player", "desk_companion", "notifier_clock", "ambient_light", "sensor_display", "latch"]
+PACK_TEMPLATES = {"latch": "motion2"}  # template -> pack (CATALOG-PLAN E4); the schema leaves it out while the pack is off
 
 
 class Behaviour(_M):
@@ -530,6 +577,13 @@ class Spec(_M):
         for k, empty in (("printed", None), ("cuts", []), ("mount", None)):
             if d.get(k) == empty:
                 d.pop(k, None)
+        for pr in (d.get("body") or {}).get("primitives") or []:
+            if isinstance(pr, dict):
+                if pr.get("rot") in ([0, 0, 0], [0.0, 0.0, 0.0]):
+                    pr.pop("rot", None)
+                for k in ("tip", "sweep"):
+                    if pr.get(k) is None:
+                        pr.pop(k, None)
         return d
 
     def dumps(self, include_derived: bool = True) -> str:
@@ -601,6 +655,19 @@ def pack_checks(spec: Spec) -> list[dict]:
         if spec.body.split == "none":
             errs.append({"path": "body.split", "msg": "split 'none' (a one-piece print) is only for kind 'printed'; a gadget "
                          "opens with a rear_cover or base_plate to fit its electronics", "fix": "use split rear_cover or base_plate"})
+    if spec.body.family == "blob" and "sculpt" not in on:
+        prims = spec.body.primitives
+        if len(prims) > BLOB_MAX:
+            errs.append({"path": "body.primitives", "msg": f"list should have at most {BLOB_MAX} items after validation, not {len(prims)}"})
+        for k, pr in enumerate(prims):
+            if pr.kind in SCULPT_KINDS:
+                errs.append(_na(f"body.primitives[{k}].kind", f"the {pr.kind} primitive",
+                                "use rounded_box, sphere, ellipsoid, cylinder or capsule"))
+            if any(pr.rot):
+                errs.append(_na(f"body.primitives[{k}].rot", "turning a primitive (rot)", "leave rot out (no rotation)"))
+    tmpl = spec.behaviour.template if spec.behaviour is not None else None
+    if tmpl in PACK_TEMPLATES and PACK_TEMPLATES[tmpl] not in on:
+        errs.append(_na("behaviour.template", f"the {tmpl} app", "use another template"))
     if spec.cuts:
         if "printed_cuts" not in on:
             errs.append(_na("cuts", "cutting pockets, slots or holes (cuts)", "remove cuts"))
@@ -832,6 +899,19 @@ def _pack_schema(sch: dict, packs_on: Optional[Any] = None) -> dict:
             sp = ((defs.get(name) or {}).get("properties") or {}).get("split") or {}
             if isinstance(sp.get("enum"), list):
                 sp["enum"] = [v for v in sp["enum"] if v != "none"]
+    if "sculpt" not in on:
+        prim = (defs.get("Primitive") or {}).get("properties") or {}
+        for k in ("rot", "tip", "sweep"):
+            prim.pop(k, None)
+        kind = prim.get("kind") or {}
+        if isinstance(kind.get("enum"), list):
+            kind["enum"] = [k for k in kind["enum"] if k not in SCULPT_KINDS]
+        blob = ((defs.get("BlobBody") or {}).get("properties") or {}).get("primitives") or {}
+        if "maxItems" in blob:
+            blob["maxItems"] = BLOB_MAX
+    beh = ((defs.get("Behaviour") or {}).get("properties") or {}).get("template") or {}
+    if isinstance(beh.get("enum"), list):
+        beh["enum"] = [t for t in beh["enum"] if t not in PACK_TEMPLATES or PACK_TEMPLATES[t] in on]
     used = json.dumps(props)
     for name in ("PrintedOpts", "Cut", "Mount"):
         if f'"#/$defs/{name}"' not in used:
