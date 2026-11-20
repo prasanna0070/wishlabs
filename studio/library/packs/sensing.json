@@ -74,11 +74,11 @@
    "aperture": {
     "needs": "cable_exit",
     "size_mm": {
-     "w": 6,
-     "h": 6,
+     "w": 9.5,
+     "h": 5.5,
      "d": 0
     },
-    "notes": "6.5 mm lead exit through the shell wall with an inner strain-relief clamp (two posts and a cable-tie slot); the probe stays outside, water stays outside the shell."
+    "notes": "9.5 x 5.5 mm exit slot through the shell wall, sized to pass the cable's JST-PH 3-pin port plug, with an inner strain-relief clamp (two posts and a cable-tie slot); the probe stays outside, water stays outside the shell."
    },
    "electrical": {
     "supply_v": "3.3-5.5",
@@ -131,6 +131,7 @@
     "the Probots listing heading says V2.0 while its title and URL say V1.2 (same SKU PRO1003)",
     "connector pin order and the Dupont 1x3 fit on the board's socket (first article)",
     "Robocraze price is a search snippet, not a page read",
+    "the exit slot is sized for a JST-PH 3-pin plug (about 8.0 x 4.5 mm, nominal): passing it is a physical check",
     "never built or measured by us: all checks are digital"
    ],
    "manual": {
@@ -141,7 +142,7 @@
     "face_part": "probe",
     "selftest": "the soil reading changes when the probe goes into damp soil",
     "care": "Push the probe into the soil only up to its line; keep the electronics end above the soil and dry.",
-    "fit": "Pass the lead of the {name} through its cable exit from outside, so the probe itself stays outside the shell. Inside, lay the lead between the two posts and close one cable tie through both post slots over it. Do not pull on the lead to seat it."
+    "fit": "Unplug its cable from the cartridge if it is still plugged in from the bench test. Feed the cable's port plug through the cable exit of the {name} from outside, so the probe itself stays outside the shell. Inside, lay the cable between the two posts and close one cable tie through both post slots over it. Do not pull on the cable to seat it."
    },
    "merge": {
     "role": "soil_moisture",
@@ -233,11 +234,11 @@
    "aperture": {
     "needs": "cable_exit",
     "size_mm": {
-     "w": 6,
-     "h": 6,
+     "w": 9.5,
+     "h": 5.5,
      "d": 0
     },
-    "notes": "6.5 mm lead exit through the shell wall with an inner strain-relief clamp; the float stays in the tank, water stays outside the shell."
+    "notes": "9.5 x 5.5 mm exit slot through the shell wall, sized to pass the cable's JST-PH 3-pin port plug, with an inner strain-relief clamp (two posts and a cable-tie slot); the float stays outside, water stays outside the shell."
    },
    "electrical": {
     "supply_v": "n/a (dry contact; rated 100 V DC, 0.5 A, 50 W per Probots)",
@@ -285,6 +286,7 @@
     "normally open or closed depends on how the float is fitted (Probots: 'NO and NC of this float sensor will depend on the placement of the float sensor'): fit it so the contact closes when the water is up; the self-test shows the live state",
     "whether the listing's 'digital output' means anything beyond a reed contact",
     "the Robocraze price is a search snippet, not a page read (ElectronicsComp Rs 99 ex GST snippet left out: vendor not in the merge list)",
+    "the exit slot is sized for a JST-PH 3-pin plug (about 8.0 x 4.5 mm, nominal): passing it is a physical check",
     "never built or measured by us: all checks are digital"
    ],
    "manual": {
@@ -295,7 +297,7 @@
     "face_part": "float",
     "selftest": "the water reading says OK with the float lifted and LOW with it hanging down",
     "care": "Fit the float so the contact closes when the water is up; keep the gadget itself away from the water.",
-    "fit": "Pass the lead of the {name} through its cable exit from outside, so the float itself stays outside the shell. Inside, lay the lead between the two posts and close one cable tie through both post slots over it. Do not pull on the lead to seat it."
+    "fit": "Unplug its cable from the cartridge if it is still plugged in from the bench test. Feed the cable's port plug through the cable exit of the {name} from outside, so the float itself stays outside the shell. Inside, lay the cable between the two posts and close one cable tie through both post slots over it. Do not pull on the cable to seat it."
    },
    "merge": {
     "role": "level_switch",
