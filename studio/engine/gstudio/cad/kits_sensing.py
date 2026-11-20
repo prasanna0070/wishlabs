@@ -10,7 +10,9 @@ v up, turned by the feature's rotate. Layout (local mm):
   tall, with one cable-tie slot running along u through both, TIE_Z in from the pad: the lead comes in through the
   hole and turns down between the posts; a tie threaded through both slots passes over the lead (pressing it to the
   pad) and closes over the post tips, so a pull on the lead outside never reaches the port inside.
-The CONN anchor (where the internal harness ends) is at the inner mouth of the hole.
+The CONN anchor (where the internal harness ends) is at the inner mouth of the hole. The purchased part itself is
+modelled only as the short length of its lead that sits in the exit (PURCHASE_ExitLead, ref and module_id of the
+part), so the BOM, the build guide's fit step and the CAD join to it; the probe or float stays outside the model.
 
 Light-engine rule: no CadQuery at import time (kit_cable_exit imports it), so normalize can use the footprint in the web
 image. Dimensions are design choices for a 3-core lead about 3-4 mm across (the probe and float leads are UNVERIFIED);
@@ -29,6 +31,7 @@ POST_V = -3.0  # post centres below the hole
 POST_H = 7.0  # post height from the pad, inward
 TIE_W, TIE_T = 3.0, 1.6  # cable-tie slot: TIE_W along v (tie width 2.5 mm), TIE_T along z (tie thickness about 1 mm)
 TIE_Z = 5.0  # slot centre, inward from the pad: above a lead up to 4 mm thick lying on the pad
+LEAD_R = 1.8  # modelled lead in the exit (3.6 mm across: UNVERIFIED lead size), clear of the 6.5 mm hole wall
 
 
 def exit_boxes(desc: dict, skin: float = 2.4) -> list[dict]:
@@ -57,6 +60,7 @@ def kit_cable_exit(kit, F, S, O, desc: dict, fz: dict, colors: dict, spec_path: 
     """KITS hook: pad, lead hole through the wall, two posts with a cable-tie slot; anchor at the inner hole mouth."""
     from .features import _fin, _pad
     from .geom import box_z, cyl_z, rounded_rect_face_fast
+    from .parts import Part
 
     _, zi = S.rect(PAD_W, PAD_H)
     z_in = _fin(zi, -3.0)
@@ -69,6 +73,13 @@ def kit_cable_exit(kit, F, S, O, desc: dict, fz: dict, colors: dict, spec_path: 
                                   2 * POST_U + POST_SU + 2.0, TIE_W)))
     # the lead hole through pad and wall, out past the outer surface
     kit.cuts.append(F.place(cyl_z(0.0, HOLE_V, z_pad - 1.0, 30.0, HOLE_D / 2)))
+    # the part's lead where it passes the wall: from the pad face to just under the outer surface, inside the hole
+    lead = Part("PURCHASE_ExitLead", "PURCHASE", desc.get("name") or "lead through the cable exit", (0.12, 0.12, 0.13),
+                ref=kit.ref, module_id=desc.get("id"), feature_id=kit.feature_id, spec_path=spec_path,
+                mass_g=desc.get("mass_g"), mass_source=desc.get("mass_source", "estimate"), role="module")
+    lead.notes.append("only the lead in the exit is modelled: the probe or float itself stays outside the shell")
+    lead.add("Lead", F.place(cyl_z(0.0, HOLE_V, z_pad - 0.5, -0.4, LEAD_R)))
+    kit.parts.append(lead)
     mouth = F.pt(0.0, HOLE_V, z_pad - 1.0)
     kit.anchors[f"{kit.ref}.CONN"] = mouth.tolist()
     kit.cable_end = (mouth, -F.n)
