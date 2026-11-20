@@ -337,7 +337,7 @@
   }
  ],
  "prompt_rules": [
-  "A soil probe and a float switch can watch a plant pot or a water tank: the gadget shows soil moisture and a tank-low warning on its screen or light and on its own page on the home Wi-Fi (no push messages). It cannot water the plant (no pump yet), and a light strip is not a grow light.",
+  "A soil probe and a float switch can watch a plant pot or a water tank: the gadget shows soil moisture and a tank-low warning on its screen or light and on its own page on the home Wi-Fi (no push messages). It cannot water the plant: the board has no pump driver yet (say that, not a voltage reason), and a light strip is not a grow light.",
   "The probe and the float stay outside the shell in the pot or tank; their leads come in through a cable exit on the back or a side, at least 50 mm up from the bottom (the core board fills the bottom), and the gadget itself stays dry next to the pot or tank.",
   "Use behaviour template sensor_display for soil and tank readings; the soil probe needs a per-probe dry and wet calibration (settings soil_raw_dry and soil_raw_wet), and the reading is relative moisture, not a lab measurement."
  ]
