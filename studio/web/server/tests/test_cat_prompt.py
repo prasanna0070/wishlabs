@@ -173,6 +173,8 @@ def test_printed_size_range_only_with_the_printed_pack(studio, monkeypatch):
     _, on = _prompt(studio, monkeypatch, "printed")
     assert "Every axis 60-260 mm (a printed object: 20-260 mm);" in on
     assert "depth included (a printed object with no electronics: 20-260 mm)." in on
+    assert "- Core cartridge (gadgets only: a printed object has no electronics): " in on
+    assert "- Core cartridge: it lies flat" in off
 
 
 def test_held_price_names_the_colliding_parts_in_words():
