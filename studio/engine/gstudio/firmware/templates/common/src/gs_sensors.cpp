@@ -171,7 +171,9 @@ int read_all(Reading* out, int cap) {
   {
     const int raw = soil_raw();
     const int pct = gs::soil_percent(raw, GS_CFG_SOIL_RAW_DRY, GS_CFG_SOIL_RAW_WET);
-    put(out, cap, &n, "soil", "soil", "%", pct < 0 ? NAN : float(pct), pct >= 0, raw);
+    // A working probe sits between the rails; 0 or full scale means a short or an open lead: no moisture value then.
+    const bool rail = raw <= 50 || raw >= 4050;
+    put(out, cap, &n, "soil", "soil", "%", pct < 0 ? NAN : float(pct), pct >= 0 && !rail, raw);
   }
 #endif
 #if GS_HAS_LEVEL

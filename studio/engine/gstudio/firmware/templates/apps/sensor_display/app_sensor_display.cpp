@@ -81,11 +81,13 @@ class SensorDisplayApp : public GsApp {
     if (GS_HAS_SOIL) {
       out["soil_dry_below_percent"] = GS_CFG_SOIL_DRY_PERCENT;
       out["soil_dry"] = soil_warn();
+      out["soil_probe_ok"] = soil_ok_;
     }
     if (GS_HAS_LEVEL) out["water_ok"] = water_.value();
     String w;
     if (water_warn()) w = "Water tank is low: refill it";
     if (soil_warn()) w += String(w.length() ? "; " : "") + "Soil is dry: water the plant";
+    if (GS_HAS_SOIL && !soil_ok_) w += String(w.length() ? "; " : "") + "No soil reading: check the probe and its lead";
     if (temp_warn_.active()) w += String(w.length() ? "; " : "") + "Temperature outside the set range";
     if (hum_warn_.active()) w += String(w.length() ? "; " : "") + "Humidity outside the set range";
     if (w.length()) out["warning"] = w;
@@ -206,6 +208,7 @@ class SensorDisplayApp : public GsApp {
       const int bh = h / 6 > 12 ? h / 6 : 12;
       if (water_warn()) banner("Refill the tank", h - bh, w, bh, warn);
       else if (soil_warn()) banner("Water me", h - bh, w, bh, warn);
+      else if (GS_HAS_SOIL && !soil_ok_) banner("Check the probe", h - bh, w, bh, warn);
     } else if (page_ == 1) {
       float pts[160];
       const int cols = w - 4 > 160 ? 160 : w - 4;

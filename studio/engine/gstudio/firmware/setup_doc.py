@@ -173,7 +173,8 @@ def _sensing(spec: dict, template: str, settings: dict) -> str | None:
                   "edge carries the electronics), put both numbers in the design's settings and rebuild. Push the probe into "
                   f"the soil only up to its line. Below {settings.get('soil_dry_percent')} % the screen says **Water me**"
                   + (", the warning light breathes" if settings.get("led_warning") else "") + " and the gadget chimes once "
-                  "(if it has a buzzer or speaker)."]
+                  "(if it has a buzzer or speaker). A raw reading stuck at 0 or at full scale means a short or an open lead: "
+                  "the screen then says **Check the probe** and shows no percent."]
     if level:
         L += ["", "**Tank float.** Fit the float so its contact closes when the water is up (most floats can be flipped on "
                   "their stem to swap this). An open contact reads as low, so an unplugged or broken lead also shows "
