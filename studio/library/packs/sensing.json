@@ -103,7 +103,8 @@
      "seen_on": "2026-11-20",
      "status": "page_read",
      "stock": "in_stock",
-     "gst": "incl"
+     "gst": "incl",
+     "sku": "PRO1003"
     },
     {
      "vendor": "Robocraze",
@@ -127,6 +128,7 @@
     "some boards miss the R4-to-GND link (hackmd note), so the reading never settles",
     "the reading is relative, not volumetric water content: per-unit dry/wet calibration",
     "the electronics end is not waterproof: it must stay above the soil (conformal coat recommended)",
+    "the Probots listing heading says V2.0 while its title and URL say V1.2 (same SKU PRO1003)",
     "connector pin order and the Dupont 1x3 fit on the board's socket (first article)",
     "Robocraze price is a search snippet, not a page read",
     "never built or measured by us: all checks are digital"
@@ -212,7 +214,7 @@
      "GND"
     ],
     "location": "two bare leads from the stem",
-    "notes": "8 cm cable (Probots). Dry contact: either lead can be SIG."
+    "notes": "Cable Length: 8cm (Probots page, read 2026-11-20). Dry contact: either lead can be SIG."
    },
    "backplane_harness": {
     "backplane_connector": "JST_PH_2.0_3P (J_IO1..3); factory pre-wired lead, 3V3 position empty",
@@ -260,7 +262,8 @@
      "seen_on": "2026-11-20",
      "status": "page_read",
      "stock": "in_stock",
-     "gst": "incl"
+     "gst": "incl",
+     "sku": "PRO757"
     },
     {
      "vendor": "Robocraze",
@@ -279,7 +282,7 @@
    ],
    "uncertain": [
     "dimensions and stem thread",
-    "normally open or closed depends on which way the float is fitted on its stem: fit it so the contact closes when the water is up; the self-test shows the live state",
+    "normally open or closed depends on how the float is fitted (Probots: 'NO and NC of this float sensor will depend on the placement of the float sensor'): fit it so the contact closes when the water is up; the self-test shows the live state",
     "whether the listing's 'digital output' means anything beyond a reed contact",
     "the Robocraze price is a search snippet, not a page read (ElectronicsComp Rs 99 ex GST snippet left out: vendor not in the merge list)",
     "never built or measured by us: all checks are digital"
