@@ -212,7 +212,8 @@ class EngineBridge:
             lines += [
                 f"- Core cartridge: it lies flat on the inner floor at the rear. The body must be at least {need_w:.0f} mm "
                 f"wide and {need_d:.0f} mm deep (front to back) over its first {h:.0f} mm of height, so plan a body depth "
-                f"of {need_d + 10:.0f} mm or more and a wide, flat-bottomed lower body.",
+                f"of {need_d + 10:.0f} mm or more and a wide, flat-bottomed lower body. On a silhouette body the front "
+                "and rear edge rounds eat into that floor: add the edge_round to the depth (or keep edge_round small).",
                 f"- Modules behind the front wall must clear the cartridge: a module that reaches below z = {h + 2:.0f} "
                 "collides unless the body is deeper; put deep modules (big button, 40 mm speaker) higher on the face.",
                 f"- Openings (feature apertures, grilles) need {gap:.0f} mm clear between each other and from engraved "
