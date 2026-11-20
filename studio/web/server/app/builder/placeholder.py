@@ -20,8 +20,8 @@ def _hex_rgb(h: str | None, default=(140, 201, 192)) -> tuple[int, int, int]:
 
 
 # ------------------------------------------------------------------ csg bodies (pack freeform)
-CSG_GRID = 40           # silhouette rows and columns sampled on a csg body
-CSG_DEPTH_SAMPLES = 12  # samples through the body along the view direction
+CSG_GRID = (72, 32)          # silhouette rows and columns on a csg body: with the engine's numpy sdf, point by point
+CSG_DEPTH_SAMPLES = (20, 10)  # samples through the body along the view direction (same two cases)
 
 
 def _csg_shape(body: dict):
@@ -103,35 +103,52 @@ def csg_views_uncached(body: dict) -> dict:
                 "bounds": (x0, x1, y0, y1, 0.0, z1)}
     x0, x1, y0, y1, z0, z1 = (float(v) for v in shape.bounds)
     z0 = max(0.0, z0)
-    n, m = CSG_GRID, CSG_DEPTH_SAMPLES
+    fast = 0 if callable(getattr(shape, "sdf_np", None)) else 1
+    n, m = CSG_GRID[fast], CSG_DEPTH_SAMPLES[fast]
 
-    def lin(a, b, k, cnt):
-        return a + (b - a) * (k + 0.5) / cnt
+    def lin(a, b, cnt):
+        return [a + (b - a) * (k + 0.5) / cnt for k in range(cnt)]
 
-    def spans(u0, u1, w0, w1, inside):
+    zs, xs, ys = lin(z0, z1, n), lin(x0, x1, n), lin(y0, y1, n)
+    xd, yd = lin(x0, x1, m), lin(y0, y1, m)
+    front_mask = _csg_mask(shape, zs, xs, yd, front=True)       # [z][x]: any sample along y inside
+    side_mask = _csg_mask(shape, zs, ys, xd, front=False)       # [z][y]: any sample along x inside
+
+    def spans(us, mask, u0, u1):
         right, left = [], []
-        half = (u1 - u0) / n / 2                        # a hit cell spans half a cell either side of its centre
-        for i in range(n):
-            z = lin(z0, z1, i, n)
-            us = [lin(u0, u1, j, n) for j in range(n)]
-            hit = [u for u in us if any(inside(u, lin(w0, w1, k, m), z) for k in range(m))]
+        half = (us[1] - us[0]) / 2 if len(us) > 1 else 1.0      # a hit cell spans half a cell either side
+        for z, row in zip(zs, mask):
+            hit = [u for u, h in zip(us, row) if h]
             if hit:
                 right.append((max(hit) + half, z))
                 left.append((min(hit) - half, z))
         if not right:
             return [(u0, 0.0), (u1, 0.0), (u1, z1), (u0, z1)]
-        bottom = [(left[0][0], 0.0), (right[0][0], 0.0)]
-        return bottom + right + list(reversed(left))
+        return [(left[0][0], 0.0), (right[0][0], 0.0)] + right + list(reversed(left))
 
-    def sdf(x, y, z):
+    return {"front": spans(xs, front_mask, x0, x1), "side": spans(ys, side_mask, y0, y1),
+            "bounds": (x0, x1, y0, y1, 0.0, z1)}
+
+
+def _csg_mask(shape, zs: list, us: list, ws: list, front: bool) -> list[list[bool]]:
+    """[z][u] True where any sample w along the view direction is inside the shape (front: u = x, w = y; side: u = y,
+    w = x). The engine's vectorised sdf_np when there is one, else its scalar sdf."""
+    try:
+        import numpy as np
+
+        Z, U, W = np.meshgrid(np.asarray(zs), np.asarray(us), np.asarray(ws), indexing="ij")
+        P = np.stack([U, W, Z], -1) if front else np.stack([W, U, Z], -1)
+        d = np.asarray(shape.sdf_np(P.reshape(-1, 3))).reshape(Z.shape)
+        return (d <= 0).any(axis=2).tolist()
+    except Exception:  # noqa: BLE001 - no numpy or no sdf_np: sample point by point
+        pass
+
+    def inside(x, y, z):
         try:
-            return float(shape.sdf(x, y, z))
+            return float(shape.sdf(x, y, z)) <= 0
         except Exception:  # noqa: BLE001
-            return 1.0
-
-    front = spans(x0, x1, y0, y1, lambda u, w, z: sdf(u, w, z) <= 0)
-    side = spans(y0, y1, x0, x1, lambda u, w, z: sdf(w, u, z) <= 0)
-    return {"front": front, "side": side, "bounds": (x0, x1, y0, y1, 0.0, z1)}
+            return False
+    return [[any(inside(u, w, z) if front else inside(w, u, z) for w in ws) for u in us] for z in zs]
 
 
 # ------------------------------------------------------------------ outline from any body family
