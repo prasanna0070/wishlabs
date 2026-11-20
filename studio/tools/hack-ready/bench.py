@@ -67,10 +67,13 @@ local store in <out>/store and a throwaway access key held only in memory (the s
 cases; then stops exactly that server and its child processes (never by pattern). Server knobs (MODEL_FAST,
 MODEL_PRO, AGENT_THINKING, VERTEX_LOCATION, ...) pass through from the environment. From the laptop:
   wt-vm.sh <worktree> sync
-  wt-vm.sh <worktree> run 'mkdir -p _out/bench && cd tools/hack-ready && setsid nohup python bench.py \
+  wt-vm.sh <worktree> run 'mkdir -p _out/bench && cd tools/hack-ready && { setsid nohup python bench.py \
       --server-local 9231 --cases bench_cases.example.json --out ../../_out/bench/r1 \
-      > ../../_out/bench/r1.log 2>&1 < /dev/null & echo $!'
+      > ../../_out/bench/r1.log 2>&1 < /dev/null & echo "bench pid $!"; }'
   wt-vm.sh <worktree> pull _out/bench/r1/summary.md      # also results.json, events, server-9231.log
+Keep the braces: without them `&` backgrounds the whole && list and $! is a wrapper shell, whose kill leaves the
+bench and its server running. The log's first line repeats the PID; `kill <pid>` stops the run (each case within
+about 15 s, then the --server-local server); resume with the same command plus --resume.
 <out>/store holds every project and full build (tens of MB each): pull single files, not the whole folder.
 Share links of a VM-local server point at 127.0.0.1 (open them on the VM or through an SSH tunnel).
 If the VM cannot reach Vertex AI, run the same cases against a deployed service with --base instead.
@@ -1652,6 +1655,7 @@ def main(argv=None) -> int:
     out = Path(a.out) if a.out else STUDIO / "_out" / "bench" / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     out = out.resolve()
     out.mkdir(parents=True, exist_ok=True)
+    print(f"bench pid {os.getpid()} (stop: kill {os.getpid()}); out {out}", flush=True)
     server = None
 
     def _term(signum, frame):       # `kill <pid>` runs the finally below, so a --server-local server is stopped too

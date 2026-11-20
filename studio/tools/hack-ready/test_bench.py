@@ -941,6 +941,22 @@ class VerifierFindings(unittest.TestCase):
         self.assertEqual(kept[0].read_text(), "{}\n")
         self.assertNotEqual((self.out / "events" / "mid" / "01-wish.jsonl").read_text(), "{}\n")
 
+    def test_main_logs_its_own_pid_first(self):
+        cases_file = Path(self.td.name) / "cases.json"
+        cases_file.write_text(json.dumps([CASE]))
+        old_env = os.environ.pop("GS_KEY", None)
+        out, err_buf = io.StringIO(), io.StringIO()
+        old = sys.stdout, sys.stderr
+        sys.stdout, sys.stderr = out, err_buf
+        try:
+            rc = bench.main(["--cases", str(cases_file), "--base", "http://studio.test", "--out", str(self.out)])
+        finally:
+            sys.stdout, sys.stderr = old
+            if old_env is not None:
+                os.environ["GS_KEY"] = old_env
+        self.assertEqual(rc, 2)                                        # no key: nothing was sent
+        self.assertTrue(out.getvalue().startswith(f"bench pid {os.getpid()} "), out.getvalue()[:200])
+
     def test_local_server_env_never_carries_the_studio_key(self):
         old = os.environ.get("GS_KEY")
         os.environ["GS_KEY"] = KEY
