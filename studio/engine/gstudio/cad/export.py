@@ -405,6 +405,23 @@ def print_orient(part) -> tuple[cq.Shape, str]:
     return s, info.get("reason", "default")
 
 
+def weld_slivers(m):
+    """A watertight copy of a mesh whose only defects are sub-micron slivers (OCC tessellation where a cut meets a fillet
+    seam, seen on a printed card stand: 16 open edges between vertices 0.3 um apart), else None. Welds vertices to 1 um,
+    drops the zero-area faces, fills pinholes; kept only when it closes and the volume stays within 0.01 % (+1 mm3)."""
+    import trimesh
+
+    w = m.copy()
+    w.merge_vertices(digits_vertex=3)
+    w.update_faces(w.nondegenerate_faces(height=1e-9))
+    w.remove_unreferenced_vertices()
+    if not w.is_watertight:
+        trimesh.repair.fill_holes(w)
+    if w.is_watertight and abs(abs(w.volume) - abs(m.volume)) <= 1e-4 * max(abs(m.volume), 1.0) + 1.0:
+        return w
+    return None
+
+
 def _stl(shape, f: Path, tol: float = 0.02, ang: float = 0.1) -> None:
     import trimesh
     from OCP.BRepTools import BRepTools
@@ -419,6 +436,10 @@ def _stl(shape, f: Path, tol: float = 0.02, ang: float = 0.1) -> None:
         m.update_faces(nd)
         m.remove_unreferenced_vertices()
         changed = True
+    if not m.is_watertight:
+        w = weld_slivers(m)
+        if w is not None:
+            m, changed = w, True
     if not m.is_watertight:
         parts = m.split(only_watertight=False)
         keep = [p for p in parts if p.is_watertight and abs(p.volume) > 1e-3]

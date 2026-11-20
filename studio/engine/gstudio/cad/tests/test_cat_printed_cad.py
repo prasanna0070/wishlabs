@@ -191,3 +191,26 @@ def test_concept_preview_shows_the_printed_object(tmp_path):
     r = preview(spec, Library(), tmp_path)
     assert not [w for w in r["warnings"] if "printed opening/cuts skipped" in w], r["warnings"]
     assert (tmp_path / "preview.glb").is_file()
+
+
+def test_weld_slivers_closes_a_sub_micron_gap_only():
+    """export.weld_slivers: a box whose top corner vertex is split by 0.3 um (open edges, as OCC left at a cut/fillet seam)
+    is welded closed with the same volume; a real hole is left alone."""
+    import numpy as np
+    import trimesh
+
+    from gstudio.cad.export import weld_slivers
+
+    box = trimesh.creation.box((10, 10, 10))
+    v = box.vertices.copy()
+    f = box.faces.copy()
+    k = int(np.argmax(v.sum(axis=1)))  # the (+,+,+) corner
+    v = np.vstack([v, v[k] + [3e-4, 0, 0]])
+    first = np.where((f == k).any(axis=1))[0][0]
+    f[first][f[first] == k] = len(v) - 1  # one face uses the split copy: open edges around the corner
+    m = trimesh.Trimesh(vertices=v, faces=f, process=False)
+    assert not m.is_watertight
+    w = weld_slivers(m)
+    assert w is not None and w.is_watertight and abs(w.volume - 1000.0) < 1e-3
+    holed = trimesh.Trimesh(vertices=box.vertices, faces=box.faces[2:], process=False)  # a whole side missing
+    assert weld_slivers(holed) is None  # filling a whole missing side would change the volume: refused
