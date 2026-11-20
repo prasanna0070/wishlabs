@@ -313,14 +313,21 @@ def test_notifier_clock_light_rule_names_only_visible_roles(monkeypatch):
     from gstudio.normalize import normalize
 
     _clean_env(monkeypatch)
+    # every pack off explicitly: the checkout's library/packs/enabled.json (integrator, hack/catalog) may switch motion on
+    monkeypatch.setenv("GS_PACKS_ENABLED", "")
     d = _example("desk-buddy")
     d["behaviour"] = {"template": "notifier_clock", "summary": "", "settings": {}}
     d["features"] = [f for f in d["features"] if Library().get(f["module"])["role"] != "led"]
     _, rep = normalize(d, Library())
     e = next(e for e in rep["errors"] if e.get("code") == "template_requirement" and "notifications" in e["msg"])
-    # no motion pack in this checkout: the agent is told about LEDs only, never about a servo it cannot see
+    # no motion pack: the agent is told about LEDs only, never about a servo it cannot see
     assert e["msg"] == "notifier_clock needs an LED feature for notifications"
     assert "servo" not in e["fix"] and "LED_RING_12_WS2812_50MM" in e["fix"]
+    if any(n == "motion" for n, _ in packs.pack_files()):  # with the motion pack on, the servo flag is named too
+        monkeypatch.setenv("GS_PACKS_ENABLED", "motion")
+        _, rep = normalize(d, Library())
+        e = next(e for e in rep["errors"] if e.get("code") == "template_requirement" and "notifications" in e["msg"])
+        assert e["msg"] == "notifier_clock needs an LED or a servo flag for notifications"
 
 
 def test_cable_exit_part_gets_the_longest_lead(merged, monkeypatch):
