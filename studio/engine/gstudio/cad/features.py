@@ -22,6 +22,11 @@ from .geom import (Frame, V, box_z, circle_face, cone_z, cyl_z, ellipse_face, la
 from .modules import pick_screw, screw_length
 from .parts import Fastener, Kit, Part
 
+try:
+    from . import kits_ext  # pack kits (cad/kits_*.py)
+except ImportError:  # pragma: no cover - a vendored gadget_cad copy without the registry (export.VENDOR)
+    kits_ext = None
+
 FACE_RAY = {
     "front": ((0, 1, 0), (0, 0, 1)),
     "rear": ((0, -1, 0), (0, 0, 1)),
@@ -723,6 +728,8 @@ def build_kit(feat: dict, desc: dict, ref: str, probeO, probeC, O, fz, colors, s
         kit_mic(kit, F, S, O, desc, fz, colors, spec_path)
     elif k == "touch":
         kit_board(kit, F, S, O, desc, fz, colors, spec_path, None, touch=True)
+    elif kits_ext is not None and kits_ext.kit_fn(k) is not None:  # pack kits (cad/kits_*.py), before the generic clamp
+        kits_ext.kit_fn(k)(kit, F, S, O, desc, fz, colors, spec_path)
     else:
         if k not in ("sensor", "sensor_window"):
             kit.warnings.append(f"feature {feat['id']}: module kind '{k}' has no dedicated mount kit; held by a generic clamp")
