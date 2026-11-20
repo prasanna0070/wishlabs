@@ -627,4 +627,8 @@ def build_body(body: dict, skin_front: float) -> BodyGeom:
         return revolve(body)
     if fam == "blob":
         return blob(body)
+    if fam == "csg":  # pack `freeform` (gstudio.csg; the spec only accepts it while the pack is on)
+        from .csg_body import csg_body
+
+        return csg_body(body)
     raise ValueError(f"unknown body family {fam}")

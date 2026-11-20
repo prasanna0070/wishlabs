@@ -1,0 +1,38 @@
+{
+  "schema": "gadget-spec/1",
+  "name": "Bedside Tray Dock",
+  "slug": "bedside-tray-dock",
+  "tagline": "A low bedside dock with a rounded tray groove for your phone, keys and watch, and a soft night glow",
+  "audience": {"child_directed": false},
+  "region": "IN",
+  "colors": {"body": "#A8B5A2", "accent": "#EDE3D1", "detail": "#3B3F45", "body_name": "sage", "accent_name": "sand", "detail_name": "graphite"},
+  "body": {
+    "family": "csg",
+    "csg": {
+      "op": "cut", "name": "dock with a tray groove",
+      "node": {"op": "extrude", "name": "front view of the dock", "axis": "y", "h": 120, "round": 8,
+               "points": [[-95, 0], [95, 0], [95, 50], [70, 78], [-70, 78], [-95, 50]]},
+      "minus": [
+        {"op": "move", "name": "tray groove along x", "to": [-65, 10, 90], "rot": [0, 90, 0],
+         "node": {"op": "cylinder", "r": 26, "h": 130, "round": 6}}
+      ]
+    },
+    "wall": 2.4,
+    "edge_round": 0,
+    "split": "base_plate",
+    "feet": 4
+  },
+  "decor": [],
+  "features": [
+    {"id": "glow", "module": "LED_RING_12_WS2812_50MM", "face": "front", "at": [0, 36], "label": "Soft night glow"},
+    {"id": "touch_top", "module": "TOUCH_TTP223_SMALL_15X11", "face": "top", "at": [60, -32], "label": "Tap for the next scene, hold for off"},
+    {"id": "room_light", "module": "LIGHT_BH1750_GY302_I2C", "face": "rear", "at": [0, 56], "label": "Dims itself as the room gets dark"}
+  ],
+  "electronics": {"core": "CORE_ESP32S3_DEVKITC1_N8R8", "extra_modules": [], "power": {"input": "usb_c_5v", "adapter_in_box": false}},
+  "behaviour": {
+    "template": "ambient_light",
+    "summary": "A warm glow from the front ring with gentle scenes. Tap the top for the next scene, hold to switch off. It dims itself as the room gets dark. The groove on top holds a phone, keys or a watch; it does not charge them.",
+    "settings": {}
+  },
+  "safety": {"flags": ["NIGHT_USE"], "notes": "LED brightness capped in firmware; no charging and no mains. External certified USB-C 5 V supply."}
+}

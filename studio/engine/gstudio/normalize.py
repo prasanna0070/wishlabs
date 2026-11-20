@@ -190,6 +190,22 @@ class ShellGeometry:
             self.poly_pts = pts
             rmax = max(r for r, _ in pts)
             self.bbox = (-rmax, rmax, -rmax * b.squash_y, rmax * b.squash_y, 0.0, max(z for _, z in pts))
+        elif getattr(b, "family", None) == "csg":  # pack `freeform`: the compiled CSG tree (gstudio.csg, pure Python)
+            from .csg import CsgError, compile_tree, solid_checks
+
+            self.csg_info: dict = {}
+            try:
+                self.csg = compile_tree(b.csg, "body.csg")
+            except CsgError:
+                self.csg = None  # the spec checks report the tree errors; nothing is inside an invalid tree
+            if self.csg is not None:  # cached grid analysis: which hollow piece the CAD keeps (inside() honours it)
+                try:
+                    solid_checks(b.csg, "printed" if getattr(spec, "kind", "gadget") == "printed" else "gadget", "body.csg",
+                                 info=self.csg_info, wall=b.wall)
+                except Exception:  # noqa: BLE001 - without it inside() is the plain distance test
+                    self.csg_info = {}
+            bb = self.csg.bounds if self.csg is not None else None
+            self.bbox = tuple(bb) if bb else (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         else:
             boxes = [_prim_bounds(p) for p in b.primitives]
             self.bbox = (min(q[0] for q in boxes), max(q[1] for q in boxes), min(q[2] for q in boxes),
@@ -206,6 +222,8 @@ class ShellGeometry:
             rho = math.sqrt(x * x + (y / b.squash_y) ** 2)
             d = self.poly.sdf(rho, z)
             return d * min(1.0, b.squash_y) if d < 0 else d
+        if b.family == "csg":
+            return self.csg.sdf(x, y, z) if self.csg is not None else 1.0
         d = min(_prim_sdf(p, x, y, z) for p in b.primitives)
         return max(d, -z)
 
@@ -218,7 +236,12 @@ class ShellGeometry:
 
     def inside(self, x: float, y: float, z: float, margin: float = 0.0) -> bool:
         """True when the point lies in the inner cavity with `margin` mm to the inner wall surface."""
-        return self.outer_sdf(x, y, z) <= -(self.wall + margin) and z >= self.floor_z + margin - 1e-9
+        ok = self.outer_sdf(x, y, z) <= -(self.wall + margin) and z >= self.floor_z + margin - 1e-9
+        if ok and self.family == "csg":  # a csg piece whose hollow does not join the main one prints solid (cad.csg_body)
+            from .csg import in_main_hollow
+
+            return in_main_hollow(getattr(self, "csg_info", None) or {}, x, y, z)
+        return ok
 
     def solid(self, x: float, y: float, z: float) -> bool:
         return self.outer_sdf(x, y, z) <= 0.0
@@ -340,7 +363,8 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
         return normalize_printed(sp, lib, raise_on_error)
     sp = sp.model_copy(deep=True)
     errors: list[dict] = list(cross_check(sp))
-    if sp.behaviour is None:  # a gadget needs behaviour (cross_check says so); nothing else can be checked without it
+    if sp.behaviour is None or (sp.body.family == "csg" and any(  # pack `freeform`: no geometry from a bad CSG tree
+            str(e.get("path", "")).startswith("body.csg") or (e.get("path") == "body.family") for e in errors)):
         if raise_on_error:
             raise SpecError(errors)
         return sp, _bare_report(errors)
@@ -627,6 +651,11 @@ def normalize(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spec, dict]
     # the full envelope the CAD builds: its own outline spline plus every ear and antenna where decor.apply_ears puts them
     # (live failure 2026-11-02: the old estimate said 148 x 105 x 195 mm for a shell the CAD made 167.6 x 97.6 x 212.7 mm)
     env = full_envelope(sp, geom)
+    if sp.body.family == "csg":  # pack `freeform`: pieces that print solid (their hollow does not join the main one)
+        for pc in (getattr(geom, "csg_info", None) or {}).get("solid_pieces") or []:
+            warnings.append(f"body.csg: {pc['label']} prints solid ({pc['cm3']:.0f} cm3 of plastic): its hollow does not join the "
+                            f"main hollow, so nothing can mount behind its faces; overlap it with the main body by at least "
+                            f"{2 * sp.body.wall + 1:.0f} mm if it should be hollow")
     x0, x1, y0, y1, z0, z1 = env["bbox"]
     warnings += [f"envelope: {n}" for n in env["notes"]]
     size = (x1 - x0, y1 - y0, z1 - z0)
@@ -1322,8 +1351,13 @@ def _place_feature(geom: ShellGeometry, f: Feature, m: dict, k: int, errors, war
                 if not geom.inside(*p, margin=0.0):
                     back_ok = False
     if not back_ok:
+        fix = "move it where the body is deeper (toward the centre) or make the body deeper"
+        pcs = (getattr(geom, "csg_info", None) or {}).get("solid_pieces") if geom.family == "csg" else None
+        if pcs:  # pack `freeform`: say why a csg piece has no room inside
+            fix += (f"; note {', '.join(p['label'] for p in pcs[:2])} print solid because their hollow does not join the main "
+                    f"hollow: overlap such a piece with the main body by at least {2 * geom.wall + 1:.0f} mm")
         _err(errors, f"features[{k}].at", f"{f.id}: {m['id']} needs {depth:.0f} mm behind the wall (module + cable); about {avail:.0f} mm is available at {list(f.at)}",
-             "move it where the body is deeper (toward the centre) or make the body deeper", "feature_depth")
+             fix, "feature_depth")
     a = geom.point(face, u - fw / 2, v - fh / 2, plane)
     b = geom.point(face, u + fw / 2, v + fh / 2, plane + depth)
     box = (min(a[0], b[0]), max(a[0], b[0]), min(a[1], b[1]), max(a[1], b[1]), min(a[2], b[2]), max(a[2], b[2]))
