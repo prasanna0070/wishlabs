@@ -13,6 +13,10 @@ from __future__ import annotations
 
 import copy
 import json
+import os
+import subprocess
+import sys
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -134,3 +138,32 @@ def test_pack_examples_normalize(motion_on, slug):
     assert rep["ok"], rep["errors"]
     assert any(i.role == "servo" for i in sp.derived.instances)
     assert not any(i.role == "led" for i in sp.derived.instances)
+
+
+def test_light_engine_normalizes_a_servo_design(motion_on):
+    """The web image (no CadQuery, no firmware/manual/order/pcb) validates a servo design with the real kit keep-out."""
+    spec = EXAMPLES / "waving-desk-buddy" / "spec.json"
+    code = textwrap.dedent(f"""
+        import json, sys
+        for m in ("cadquery", "OCP", "gstudio.firmware", "gstudio.manual", "gstudio.order", "gstudio.pcb"):
+            sys.modules[m] = None
+        from gstudio.cad import footprint as FP
+        from gstudio.library import Library
+        from gstudio.normalize import normalize
+        lib = Library()
+        spec = json.load(open({str(spec)!r}))
+        sp, rep = normalize(spec, lib)
+        assert rep["ok"], rep["errors"]
+        warn = " ".join(map(str, list(rep.get("warnings") or []) + list(sp.derived.warnings or [])))
+        assert "fell back" not in warn, warn
+        arm = next(f for f in sp.features if f.module == "SERVO_SG90_ARM")
+        boxes = FP.kit_footprint(arm, None, lib_get=lib.get)
+        assert any(b["what"] == "servo case" for b in boxes), boxes
+        print("LIGHT_SERVO_OK")
+    """)
+    env = {**os.environ, "PYTHONPATH": str(Path(__file__).resolve().parents[1]), "GS_PACKS_ENABLED": "motion"}
+    env.pop("GS_PACKS_OFF", None)
+    r = subprocess.run([sys.executable, "-c", code], cwd=str(Path(__file__).resolve().parents[1]), env=env,
+                       capture_output=True, text=True, timeout=300)
+    assert r.returncode == 0, r.stdout[-2000:] + r.stderr[-4000:]
+    assert "LIGHT_SERVO_OK" in r.stdout
