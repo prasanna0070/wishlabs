@@ -123,6 +123,7 @@ def normalize_printed(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spe
                  f"(the CAD opens the highest part of the body straight down)",
                  f"give the body a flat top at least {need:.0f} mm across in both directions (a cup, pot or vase shape) with nothing "
                  "sticking up above it, or use opening \"none\"", "opening")
+        _check_open_rim(sp, geom, errors)
 
     # ---------------------------------------------------------------- cuts (pack printed_cuts; the pack gate is in cross_check)
     for k, c in enumerate(getattr(sp, "cuts", None) or []):
@@ -150,6 +151,21 @@ def normalize_printed(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spe
     if raise_on_error and errors:
         raise SpecError(errors)
     return sp, report
+
+
+def _check_open_rim(sp: Spec, geom, errors: list) -> None:
+    """Open top on a blob: the primitives that make the top edge must not be rounded more than the wall, or the vertical
+    mouth meets the rounding and the rim thins to a knife edge (BENCH pre-check 20 Nov: an agent's cat cap, cylinder
+    radius 4 on a 2.4 mm wall, 0.03 mm at the rim, CAD min_wall failed)."""
+    b = sp.body
+    if getattr(b, "family", None) != "blob":
+        return
+    top = geom.bbox[5]
+    for k, pr in enumerate(b.primitives):
+        if pr.aabb()[5] >= top - 1.0 and pr.kind in ("rounded_box", "cylinder") and float(pr.radius) > float(b.wall) + 1e-6:
+            _err(errors, f"body.primitives[{k}].radius", f"an open top cuts straight down through this primitive's rounded top "
+                 f"edge (radius {float(pr.radius):g} mm on a {float(b.wall):g} mm wall), leaving a knife-thin rim",
+                 f"set its radius to {float(b.wall):g} or less, or use printed.opening \"none\"", "opening_rim")
 
 
 CUT_EDGE_MARGIN = 1.5  # mm of material kept around a cut on its face

@@ -206,3 +206,17 @@ def test_a_through_hole_is_only_a_warning(monkeypatch, lib):
     _, rep = normalize(s, lib)
     assert rep["ok"], rep["errors"]
     assert any("all the way through" in w for w in rep["warnings"])
+
+
+def test_open_top_rim_must_keep_its_wall(monkeypatch, lib):
+    """BENCH pre-check: an agent's open-top cap used a cylinder with radius 4 on a 2.4 mm wall; the vertical mouth met the
+    rounded top edge and left a 0.03 mm rim (CAD min_wall failed). normalize now refuses it with a fix."""
+    monkeypatch.setenv("GS_PACKS_ENABLED", "printed,printed_cuts")
+    spec = json.loads((STUDIO / "library" / "packs" / "examples" / "printed_cuts" / "keychain-cap" / "spec.json").read_text())
+    spec["body"]["primitives"][0]["radius"] = 4
+    _, rep = normalize(spec, lib)
+    hit = [e for e in rep["errors"] if e.get("code") == "opening_rim"]
+    assert hit and hit[0]["path"] == "body.primitives[0].radius" and "2.4" in hit[0]["fix"], rep["errors"]
+    spec["printed"]["opening"] = "none"
+    _, rep = normalize(spec, lib)
+    assert not [e for e in rep["errors"] if e.get("code") == "opening_rim"]
