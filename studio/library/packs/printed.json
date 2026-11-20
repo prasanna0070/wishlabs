@@ -6,6 +6,7 @@
   "If the wish needs no electronics (holder, stand, organiser, planter, figurine, decorative vessel, shop fixture), design kind \"printed\": no features, no electronics, no behaviour, and say plainly it has no electronics.",
   "Printed PETG is not food-safe and not for hot liquids: a teapot, cup or bowl is decorative or a planter.",
   "No threads, filters or load ratings are promised; fit is a physical check.",
+  "Print limits: one printed piece, 20-260 mm on every axis, fitting the 250 x 210 x 210 mm bed; no downward face over 500 mm2 may hang in the air (keep undersides flat or sloped), and no wall, tab or rim may be thinner than 1.2 mm. Give its size in mm and say its checks are digital: it has not been printed yet.",
   "An open top (printed.opening \"top\": a cup, pot, planter or vase) needs a flat-topped body at least 10 mm across inside, with its top edge rounded no more than the wall; a drain hole only goes with an open top."
  ]
 }

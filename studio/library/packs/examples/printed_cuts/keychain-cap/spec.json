@@ -74,6 +74,6 @@
  "features": [],
  "safety": {
   "flags": [],
-  "notes": "Printed-only object: no electronics. No thread or seal: fit on a bottle neck is a physical check."
+  "notes": "Printed-only object: no electronics. No thread, seal or filter: it does not clean water, and fit on a bottle neck is a physical check."
  }
 }
