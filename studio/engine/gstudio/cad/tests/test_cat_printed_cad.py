@@ -120,10 +120,13 @@ def test_pipeline_end_to_end(tmp_path):
     q = json.loads((out / "order/quote.json").read_text())
     assert q["delivered_price_inr"]["pilot_one_off"] > 0
     assert q["lead_time_days"]["breakdown"]["pcb_fabrication_days"] is None
+    assert not any("adapter" in r or "USB-C" in r for r in q["reasons"]), q["reasons"]
+    assert any("printed-only design" in r for r in q["reasons"])
     ops = q["inputs"]["assembly_ops"]
     assert not {"core_prep", "flash_provision", "functional_test", "cable_route", "insert_heatset"} & set(ops), ops
     md = (out / "BUILD_GUIDE.md").read_text()
     assert "## Wiring" not in md and "no electronics" in md and "not food-safe" in md and "wiring table" not in md
+    assert "Built the printed object" in json.dumps(s["stages"]["cad"])
     b = json.loads((out / "build.json").read_text())
     assert [x["id"] for x in b["steps"]] == ["check-parts", "print-parts", "fit-feet", "final-checks"]
     assert b["wiring"]["steps"] == [] and b["firmware"] is None and b["pcb"] is None
@@ -157,3 +160,16 @@ def test_cuts_make_pen_holes_and_a_card_slot(tmp_path):
         assert abs((top - z) - depth) < 1.0, (x, y, top - z)
     hits, _, _ = m.ray.intersects_location([[50, -14, top + 5]], [[0, 0, -1]])  # no cut there: the top surface
     assert abs(max(h[2] for h in hits) - top) < 1.0
+
+
+def test_printed_standalone_source_rebuilds(built, tmp_path):
+    """The delivered cad/gadget_cad.py rebuilds a printed object from params.json without the engine."""
+    import subprocess
+    import sys
+
+    out, _ = built["pen-cup-planter"]
+    r = subprocess.run([sys.executable, str(out / "cad/gadget_cad.py"), "--out", str(tmp_path), "--no-checks"],
+                       capture_output=True, text=True, timeout=900, cwd=str(tmp_path))
+    assert r.returncode == 0, r.stderr[-2000:]
+    assert (tmp_path / "print/PRINT_Shell.stl").exists() and (tmp_path / "cad/assembly.step").exists()
+    assert not list((tmp_path / "print").glob("TEST_*.stl"))

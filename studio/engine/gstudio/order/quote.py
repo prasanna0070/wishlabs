@@ -276,7 +276,9 @@ def make_quote(purchased: list[dict], print_parts: dict, spec: dict, lib: Any = 
                      f"₹{abs(delta_total):,.0f} {'more' if delta_total >= 0 else 'less'} than their planning ranges would give "
                      f"({n_above} seen above the range, {n_below} below it); steady state still uses the planning ranges")
     in_box_adapter = any(str(r.get("role") or "").lower() == "adapter" and r.get("in_box") for r in purchased)
-    if not in_box_adapter:
+    if spec.get("kind") == "printed":  # catalog package A: nothing to power
+        extra.append("printed-only design: no electronics, so no power supply, PCB, firmware or functional test is priced")
+    elif not in_box_adapter:
         extra.append("no USB-C power adapter in the box: the buyer supplies a 5 V 3 A USB-C supply")
     variant = {"modules": mods_one, "assembly_ops": ops, "cloud": None, "child_directed": child, "extra_reasons": extra,
                "launch_status": "REVIEW_REQUIRED"}

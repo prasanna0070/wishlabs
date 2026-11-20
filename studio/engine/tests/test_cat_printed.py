@@ -168,11 +168,13 @@ def _organiser() -> dict:
     return json.loads((STUDIO / "library" / "packs" / "examples" / "printed_cuts" / "desk-organiser" / "spec.json").read_text())
 
 
-def test_cuts_example_normalizes(monkeypatch, lib):
+@pytest.mark.parametrize("slug,n_cuts", [("desk-organiser", 4), ("keychain-cap", 1)])
+def test_cuts_examples_normalize(monkeypatch, lib, slug, n_cuts):
     monkeypatch.setenv("GS_PACKS_ENABLED", "printed,printed_cuts")
-    sp, rep = normalize(_organiser(), lib)
+    spec = json.loads((STUDIO / "library" / "packs" / "examples" / "printed_cuts" / slug / "spec.json").read_text())
+    sp, rep = normalize(spec, lib)
     assert rep["ok"], rep["errors"]
-    assert len(sp.cuts) == 4
+    assert len(sp.cuts) == n_cuts and sp.derived.instances == []
 
 
 def test_cuts_are_refused_when_their_pack_is_off(printed_on, lib):

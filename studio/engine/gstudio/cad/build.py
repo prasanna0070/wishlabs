@@ -1043,4 +1043,16 @@ def make_coupons(M: Model, params, kits, sp, shell, other, split, fz) -> dict:
                                     "note": f"matching {mate} corner: print with TEST_SeamShell; the parts must close and the screw must reach the insert"}
         except Exception as e:  # pragma: no cover
             M.warnings.append(f"seam coupon failed: {e}")
+    # wall mount (catalog package D, hand-off d-to-a #4): a keyhole coupon to print first; absent until D's mount.py lands
+    mt = (getattr(sp, "info", None) or {}).get("mount") if split == "rear_cover" else None
+    if isinstance(mt, dict) and mt.get("kind") == "wall":
+        try:
+            from .mount import keyhole_coupon_entry
+        except ImportError:
+            keyhole_coupon_entry = None
+        if keyhole_coupon_entry is not None:
+            try:
+                out["TEST_Keyhole"] = keyhole_coupon_entry(float(params["body"].get("wall", 2.4)))
+            except Exception as e:  # pragma: no cover
+                M.warnings.append(f"keyhole coupon failed: {e}")
     return out

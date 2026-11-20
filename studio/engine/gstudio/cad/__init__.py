@@ -123,6 +123,13 @@ def run(ctx) -> dict:
     n_print = sum(1 for v in files["print"].values() if not v.get("test"))
     say = (f"Built the enclosure: {len(model.parts)} named parts, {n_print} printed parts plus "
            f"{len(model.coupons)} fit coupons; {len(res['checks']) - len(failed)} of {len(res['checks'])} CAD checks passed.")
+    if model.info.get("kind") == "printed":  # catalog package A: say what was built, and that some checks do not apply
+        na = sum(1 for c in res["checks"] if c["status"] == "not_run")
+        ok_n = sum(1 for c in res["checks"] if c["status"] == "passed")
+        say = (f"Built the printed object: {n_print} printed part" + ("s" if n_print != 1 else "")
+               + (" and its adhesive feet" if any(p.name == "PURCHASE_Feet" for p in model.parts) else "")
+               + f", no electronics; {ok_n} of {len(res['checks']) - na} CAD checks passed"
+               + (f" ({na} do not apply to a printed object)." if na else "."))
     _say(ctx, say)
     summary = {
         "ok": not failed,
