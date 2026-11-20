@@ -23,6 +23,7 @@ export interface TurnState {
   thoughts?: string; // the model's thought summaries (thinking.delta; the server's newest ~3 KB when remote)
   remote?: boolean; // mirrors a turn this tab is not streaming (after a reload or a dropped stream)
   stale?: boolean; // the server's turn lock is older than 15 min: the turn stopped unexpectedly
+  quiet?: boolean; // remote only: no progress write for over a minute, so it has probably stopped (lock still held)
   concepts?: Record<string, string>; // concept id -> render state, for this turn's concept counter
   conceptTotal?: number;
 }
@@ -43,11 +44,14 @@ export interface TurnView {
   mode: string | null;
   updated: string | null;
   quiet_s: number | null;
+  quiet?: boolean; // running, but no progress write for over a minute (the server's LIVE_S)
   error?: string | null;
 }
 
 export const MAX_THOUGHTS = 30000;
 export const POLL_MS = 2000;
+export const STALE_POLL_MS = 15000; // a stale turn is still checked now and then: a slow one may yet finish
+export const TURN_POLL_TIMEOUT_MS = 10000; // one GET /turn on venue Wi-Fi: give up and try again after this
 export const TURN_STALE_S = 15 * 60; // the server's turn lock blocks a new message this long (agent/turn.py)
 
 /** Add one streamed thought summary; keeps the newest `limit` characters, cut where a paragraph (ideally a bold
@@ -141,6 +145,7 @@ export function remoteTurn(v: TurnView, prev: TurnState | null | undefined, chat
     running: !!v.running,
     stale: !!v.stale,
     remote: true,
+    quiet: !!v.quiet && !!v.running,
     startedAt,
     userMsgId: v.user_message_id || (same ? prev?.userMsgId : undefined) || lastUser?.id,
     status: v.step || prev?.status || "Working",
@@ -185,3 +190,29 @@ export function agoText(secs: number): string {
 
 /** The friendly words for a 409 from /chat: the previous message is still being worked on. */
 export const CONFLICT_TEXT = "The assistant is still working on your previous message, so this one was not sent yet.";
+/** A 409 for the turn lock, but the turn had ended by the time the project was reloaded. */
+export const CONFLICT_OVER_TEXT = "Your previous message was still being answered, so this one was not sent. That answer is done now, so you can send it again.";
+/** The send failed before the server stored the message. */
+export const NEVER_ARRIVED_TEXT = "The connection dropped before your message reached the studio. Check the connection and send it again.";
+
+/** The words of a typed message (a body the composer can take back after a refusal); null for a button's action. */
+export function typedText(body: Record<string, any> | null | undefined): string | null {
+  if (!body || body.action || body.answers || body.skipped || typeof body.text !== "string") return null;
+  return body.text.trim() ? body.text : null;
+}
+
+/** Did a message this tab sent reach the server? A user message that was not in the chat before the send, with the
+ * same words (typed) or the same action (a button). Used before saying "it never reached the studio". */
+export function sentArrived(chat: ChatMessage[], before: Set<string>, body: Record<string, any>): boolean {
+  const action = body.action || (body.answers || body.skipped ? "answers" : null);
+  const words = String(body.text || "").trim();
+  return chat.some((m) => {
+    if (m.role !== "user" || before.has(m.id)) return false;
+    return action ? m.payload?.action === action : !m.payload?.action && (m.text || "").trim() === words;
+  });
+}
+
+/** Minutes until the server lets a new message past a turn lock started at `startedAt` (it expires after 15 min). */
+export function minutesToUnlock(startedAt: number, now = Date.now()): number {
+  return Math.max(1, Math.ceil((startedAt + TURN_STALE_S * 1000 - now) / 60000));
+}

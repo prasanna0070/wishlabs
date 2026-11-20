@@ -50,9 +50,17 @@ describe("working card", () => {
     expect(html).toContain("No thoughts shared yet");
   });
 
+  it("a turn with no progress for a minute says it may have stopped and when it can be tried again", () => {
+    const html = renderToStaticMarkup(<WorkingCard t={{ ...t, quiet: true }} now={t.startedAt + 5 * 60_000} />);
+    expect(html).toContain("No progress for over a minute, so it may have stopped");
+    expect(html).toContain("try again in about 10 min");
+    expect(renderToStaticMarkup(<WorkingCard t={t} now={t.startedAt + 5 * 60_000} />)).not.toContain("No progress");
+  });
+
   it("a stale turn says it stopped and offers Retry", () => {
     const html = renderToStaticMarkup(<StaleCard t={{ ...t, running: false, stale: true, status: "Designing concepts" }} now={t.startedAt + 16 * 60_000} />);
-    expect(html).toContain('role="alert"');
+    expect(html).toContain('role="status"'); // polite: it shows on every open of a project with an old lock
+    expect(html).not.toContain('role="alert"');
     expect(html).toContain("The last step stopped unexpectedly");
     expect(html).toContain("16 min ago");
     expect(html).toContain("last step: Designing concepts");

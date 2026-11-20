@@ -43,6 +43,21 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
   const nav = useNavigate();
   const running = !!turn?.running;
   useNow(15000, running); // re-render so "started N min ago" stays current
+  // a typed message the studio did not take (a 409, or the connection dropped before it arrived) comes back as typed,
+  // attachments included, unless something new is already in the box
+  const unsent = useProject((s) => s.unsent);
+  const lastSubmit = useRef<{ body: string; typed: string; files: { name: string; text: string }[] } | null>(null);
+  useEffect(() => {
+    if (!unsent) return;
+    useProject.setState({ unsent: null });
+    if (ta.current?.value) return;
+    const mine = lastSubmit.current;
+    if (mine && mine.body === unsent.text) {
+      setText(mine.typed);
+      setFiles(mine.files);
+    } else setText(unsent.text);
+    lastSubmit.current = null;
+  }, [unsent]);
   // "Talk" while the project is still empty: the voice chat becomes this project's first message
   const voiceOff = useAuth((s) => s.voiceOff);
   const canTalk = project.chat.length === 0 && !running && !project.voice && !voiceOff;
@@ -79,11 +94,8 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
   const submit = () => {
     const body = [text.trim(), ...files.map((f) => f.text)].filter(Boolean).join("\n\n");
     if (!body || running || disabled) return;
-    const typed = text;
-    void send({ text: body }).then(() => {
-      // refused because another turn was still running (409): the words go back in the box, nothing is lost
-      if (useProject.getState().sendErrorCode === "conflict" && !ta.current?.value) setText(typed);
-    });
+    lastSubmit.current = { body, typed: text, files };
+    void send({ text: body });
     setText("");
     setFiles([]);
   };
@@ -91,9 +103,13 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
   return (
     <div className="composer-wrap">
       {running ? (
-        // a turn is running (here or on the server after a reload): sending now would only get a 409
-        <div className="composer-busy" role="status">
-          <Spinner /> Still working on your last message (started {agoText((Date.now() - turn!.startedAt) / 1000)})
+        // a turn is running (here or on the server after a reload): sending now would only get a 409. Only the fixed
+        // words are a live region, so the minute counter is not announced again every minute.
+        <div className="composer-busy">
+          <Spinner />
+          <span>
+            <span role="status">Still working on your last message</span> (started {agoText((Date.now() - turn!.startedAt) / 1000)})
+          </span>
         </div>
       ) : null}
       <form

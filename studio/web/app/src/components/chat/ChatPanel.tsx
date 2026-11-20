@@ -73,8 +73,9 @@ export function ChatPanel({ full, split, onTab: _onTab, voiceCard = true }: { fu
   }, [lastUser]);
 
   const empty = project.chat.length === 0;
-  // a turn with no message of its own to sit under (just sent, or followed from the server): show it at the end
-  const pendingTurn = (turn?.running || turn?.stale) && !turn.userMsgId;
+  // a turn with no message of its own to sit under (just sent, followed from the server, or started in another tab
+  // whose message is not loaded yet): show it at the end
+  const pendingTurn = (turn?.running || turn?.stale) && !(turn.userMsgId && project.chat.some((m) => m.id === turn.userMsgId));
 
   return (
     <section className={`chat${full ? " full" : ""}`} aria-label="Project conversation">
@@ -137,6 +138,11 @@ export function ChatPanel({ full, split, onTab: _onTab, voiceCard = true }: { fu
                 >
                   Show progress
                 </button>
+              </div>
+            ) : sendErrorCode === "refused" ? (
+              // a 409 that is not "still answering": the server's reason, as a note (nothing broke)
+              <div className="callout warning" role="status">
+                {sendError}
               </div>
             ) : (
               <div className="callout danger">{sendError}</div>

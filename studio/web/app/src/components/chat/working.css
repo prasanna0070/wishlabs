@@ -70,6 +70,8 @@
 .wc-thoughts-done { margin-top: 8px; }
 .wc-empty { margin: 0; color: var(--ink-2); }
 .wc-note { color: var(--ink-2); font-size: 12px; }
+/* no progress for a minute (the server's `quiet`): the stale card's amber, as a small inset */
+.wc-note.wc-quiet { padding: 6px 10px; border-radius: var(--r-control); background: var(--warning-soft); color: #6E4A10; font-size: 12.5px; }
 .working-card.stale { border-color: #EED9B2; background: var(--warning-soft); color: #6E4A10; box-shadow: none; }
 .working-card.stale .wc-head,
 .working-card.stale .wc-step { color: #6E4A10; }

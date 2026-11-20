@@ -4,7 +4,25 @@ import { api, ApiError, clearFileCache } from "../lib/api";
 import { openEventStream, postStream, type SSEEvent } from "../lib/sse";
 import type { ChatMessage, Mode, Project, Status, Version } from "../lib/types";
 import type { Ctx } from "../lib/urls";
-import { appendThought, conceptStepLabel, CONFLICT_TEXT, POLL_MS, remoteTurn, renderingTotal, retryBody, TURN_STALE_S, watchDecision, type TurnState, type TurnStep } from "../lib/working";
+import {
+  appendThought,
+  conceptStepLabel,
+  CONFLICT_OVER_TEXT,
+  CONFLICT_TEXT,
+  NEVER_ARRIVED_TEXT,
+  POLL_MS,
+  remoteTurn,
+  renderingTotal,
+  retryBody,
+  sentArrived,
+  STALE_POLL_MS,
+  TURN_POLL_TIMEOUT_MS,
+  TURN_STALE_S,
+  typedText,
+  watchDecision,
+  type TurnState,
+  type TurnStep,
+} from "../lib/working";
 
 export type { TurnState, TurnStep } from "../lib/working";
 
@@ -28,7 +46,10 @@ interface ProjectState {
   saving: number;
   saveError: string | null;
   sendError: string | null;
-  sendErrorCode: string | null; // "conflict" (409: a turn is still running) | "network" | an API error code
+  // "conflict" (409: another message is still being answered; the note offers Show progress) | "refused" (any other
+  // 409) | "network" (the message never reached the studio) | an API error code
+  sendErrorCode: string | null;
+  unsent: { text: string } | null; // the words of a typed message the studio did not take: the composer puts them back
   streamOpen: boolean;
 
   load: (pid: string) => Promise<void>;
@@ -55,9 +76,16 @@ interface ProjectState {
 
 let closeStream: (() => void) | null = null;
 let shareTimer: number | null = null;
-// the server-turn watcher (GET /turn every ~2 s while a turn runs that this tab is not streaming)
+// the server-turn watcher (GET /turn every ~2 s while a turn runs that this tab is not streaming; every 15 s once stale)
 let turnTimer: number | null = null;
-let turnWatch: { pid: string; fails: number } | null = null;
+let turnWatch: { pid: string; fails: number; seen?: string } | null = null;
+// the last message this tab sent: tells "it never reached the studio" from "the stream dropped after it did"
+let lastSend: { pid: string; before: Set<string>; body: Record<string, any> } | null = null;
+
+const unsentOf = (body: Record<string, any> | null | undefined): { text: string } | null => {
+  const text = typedText(body);
+  return text != null ? { text } : null;
+};
 
 function stopTurnWatch() {
   if (turnTimer) window.clearTimeout(turnTimer);
@@ -235,6 +263,18 @@ export const useProject = create<ProjectState>((set, get) => {
     set({ turn: null, turns: done.userMsgId ? { ...get().turns, [done.userMsgId]: finished } : get().turns });
   };
 
+  /** Did this tab's last send reach the studio? Yes when the last turn's message is newer than the send, or the
+   * refreshed chat holds it; never claimed lost for another project or without a record of the send. */
+  const sentReached = (viewMsgId: string | null | undefined, refreshed: boolean): boolean => {
+    const s = lastSend;
+    if (!s || s.pid !== get().ctx?.pid) return true;
+    if (viewMsgId && !s.before.has(viewMsgId)) return true;
+    return refreshed ? sentArrived(get().project?.chat || [], s.before, s.body) : false;
+  };
+
+  /** The message never reached the studio: say so, and give the typed words back to the composer. */
+  const lostSend = () => set({ sendError: NEVER_ARRIVED_TEXT, sendErrorCode: "network", unsent: unsentOf(lastSend?.body) });
+
   const pollTurn = async () => {
     const w = turnWatch;
     const ctx = get().ctx;
@@ -242,44 +282,53 @@ export const useProject = create<ProjectState>((set, get) => {
     const live = get().turn;
     if (live?.running && !live.remote) return stopTurnWatch(); // this tab streams the turn itself
     let v;
+    const abort = new AbortController();
+    const timer = window.setTimeout(() => abort.abort(), TURN_POLL_TIMEOUT_MS); // a stalled GET must not freeze the card
     try {
-      v = await api.turnStatus(w.pid);
+      v = await api.turnStatus(w.pid, abort.signal);
     } catch (e: any) {
       if (turnWatch !== w) return;
       if (e instanceof ApiError && (e.status === 404 || e.status === 401)) return stopTurnWatch();
-      w.fails += 1; // flaky network: keep the card, try again a little later
+      w.fails += 1; // flaky network or a timeout: keep the card, try again a little later
       turnTimer = window.setTimeout(() => void pollTurn(), Math.min(10000, POLL_MS * (1 + w.fails)));
       return;
+    } finally {
+      window.clearTimeout(timer);
     }
     if (turnWatch !== w || get().ctx?.pid !== w.pid) return;
     w.fails = 0;
     const cur = get().turn;
     if (cur?.running && !cur.remote) return stopTurnWatch();
     const decision = watchDecision(v);
-    if (decision === "running") {
-      set({ turn: remoteTurn(v, cur, get().project?.chat || []) });
-      turnTimer = window.setTimeout(() => void pollTurn(), POLL_MS);
+    if (decision !== "ended") {
+      const chat = get().project?.chat || [];
+      const next = remoteTurn(v, cur, chat);
+      set({ turn: next });
+      // a turn started elsewhere (another tab, a voice call): load its message, so the card has a place to sit
+      if (next.turnId && next.turnId !== w.seen) {
+        w.seen = next.turnId;
+        if (next.userMsgId && !chat.some((m) => m.id === next.userMsgId)) void get().refresh().catch(() => {});
+      }
+      // a stale turn is still checked now and then (a slow one may finish yet, and then its result loads)
+      turnTimer = window.setTimeout(() => void pollTurn(), decision === "stale" ? STALE_POLL_MS : POLL_MS);
       return;
     }
     stopTurnWatch();
-    if (decision === "stale") {
-      set({ turn: remoteTurn(v, cur, get().project?.chat || []) });
-      return;
-    }
     // the turn ended: keep its steps and thinking under its message, then load what it made
+    const unstarted = !!cur && !cur.turnId && !cur.userMsgId; // this tab's send, whose turn.start never arrived
     if (cur) {
       const fin = v.turn_id && v.turn_id === cur.turnId ? remoteTurn({ ...v, running: false }, cur, get().project?.chat || []) : cur;
-      set({ turn: { ...fin, running: false, stale: false } });
-      // a message that never reached the server (the connection dropped while sending): say so
-      if (!cur.turnId && !cur.userMsgId)
-        set({ sendError: "The connection dropped before your message reached the studio. Check the connection and send it again.", sendErrorCode: "network" });
+      set({ turn: { ...fin, running: false, stale: false, quiet: false } });
     }
+    if (get().sendErrorCode === "conflict") set({ sendError: null, sendErrorCode: null }); // the busy note is over
     settleTurn();
+    let refreshed = true;
     try {
       await get().refresh();
     } catch {
-      /* the next load shows it */
+      refreshed = false; /* the next load shows it */
     }
+    if (unstarted && !sentReached(v.user_message_id, refreshed)) lostSend();
     if (isBuilding(get().project)) get().followBuild();
   };
 
@@ -297,11 +346,13 @@ export const useProject = create<ProjectState>((set, get) => {
     saveError: null,
     sendError: null,
     sendErrorCode: null,
+    unsent: null,
     streamOpen: false,
 
     reset: () => {
       get().stopFollow();
-      set({ ctx: null, project: null, error: null, turn: null, turns: {}, conceptProgress: {}, statuses: {}, sendError: null, sendErrorCode: null, readOnly: false });
+      lastSend = null;
+      set({ ctx: null, project: null, error: null, turn: null, turns: {}, conceptProgress: {}, statuses: {}, sendError: null, sendErrorCode: null, unsent: null, readOnly: false });
     },
 
     setProject: (p) => {
@@ -320,8 +371,12 @@ export const useProject = create<ProjectState>((set, get) => {
         get().setProject(p);
         set({ loading: false });
         // a turn is running on the server (this page was reloaded, or the message came from another tab or a voice
-        // call): show it working instead of an idle composer
-        if (p.turn && !get().turn?.running) get().watchTurn();
+        // call): show it working instead of an idle composer. One this page followed before is followed again.
+        const t = get().turn;
+        if (p.turn && (!t?.running || t.remote)) get().watchTurn();
+        else if (!p.turn && t?.remote) set({ turn: null }); // a followed turn ended while the page was away
+        // "still working on your previous message" is over once no turn runs
+        if (!p.turn && get().sendErrorCode === "conflict") set({ sendError: null, sendErrorCode: null });
         if (isBuilding(p)) get().followBuild();
       } catch (e: any) {
         set({ loading: false, error: e instanceof ApiError && e.status === 404 ? "This project was not found." : e?.message || String(e) });
@@ -353,12 +408,13 @@ export const useProject = create<ProjectState>((set, get) => {
       stopTurnWatch();
       const action = body.action || (body.answers || body.skipped ? "answers" : "text");
       const t: TurnState = { running: true, startedAt: Date.now(), action, status: "Reading your message", steps: [{ id: "start", label: "Reading your message", state: "running" }], thoughts: "" };
-      set({ turn: t, sendError: null, sendErrorCode: null, conceptProgress: body.action === "regenerate_concepts" || body.action === "more_concepts" ? {} : get().conceptProgress });
+      set({ turn: t, sendError: null, sendErrorCode: null, unsent: null, conceptProgress: body.action === "regenerate_concepts" || body.action === "more_concepts" ? {} : get().conceptProgress });
+      lastSend = { pid: ctx.pid, before: new Set(project.chat.map((m) => m.id)), body };
       const mode = project.mode;
       let sawStart = false;
       let sawDone = false;
       let dropped = false; // the stream ended without `done` (network, reload of the server, proxy timeout)
-      let conflict = false;
+      let refused: ApiError | null = null; // the server said no before storing the message (409, 422, ...)
       try {
         // follow_build false: the turn ends once a build is queued, so the composer stays usable during a long build;
         // progress then arrives on the project event stream (followBuild below).
@@ -369,28 +425,41 @@ export const useProject = create<ProjectState>((set, get) => {
         });
         if (!sawDone) dropped = true;
       } catch (e: any) {
-        if (e instanceof ApiError) {
-          conflict = e.code === "conflict";
-          set({ sendError: conflict ? CONFLICT_TEXT : e.message || String(e), sendErrorCode: e.code || "error" });
-        } else dropped = true;
+        if (e instanceof ApiError) refused = e;
+        else dropped = true;
       } finally {
+        // `done` came: the `project` event before it carried the final state, so the turn ends now and the refresh
+        // below catches up in its own time (a stalled GET on venue Wi-Fi must not keep the card spinning)
+        if (sawDone) settleTurn();
         let refreshed = true;
         try {
           await get().refresh();
         } catch {
           refreshed = false; /* keep what we have */
         }
+        const here = get().ctx?.pid === ctx.pid;
         const running = !!get().project?.turn || !refreshed;
-        if ((dropped || conflict) && running && get().ctx?.pid === ctx.pid) {
+        // a 409 while another message is still being answered gets the friendly note and Show progress; any other
+        // refusal keeps the server's reason ("New concepts can be shown once the build finishes"). Typed words go back.
+        const busy = !!refused && refused.code === "conflict" && running;
+        if (refused && here) {
+          const over = refused.code === "conflict" && /still answering/i.test(refused.message || ""); // the lock, gone now
+          set({
+            sendError: busy ? CONFLICT_TEXT : over ? CONFLICT_OVER_TEXT : refused.message || String(refused),
+            sendErrorCode: busy ? "conflict" : refused.code === "conflict" ? "refused" : refused.code || "error",
+            unsent: unsentOf(body),
+          });
+        }
+        if ((dropped || busy) && running && here) {
           // the turn goes on on the server: keep the card and follow it there (GET /turn)
           const cur = get().turn;
-          if (conflict || !cur) set({ turn: null });
+          if (busy || !cur) set({ turn: null });
           else set({ turn: { ...cur, remote: true } });
           get().watchTurn();
         } else {
           settleTurn();
-          if (dropped && !sawStart && !conflict)
-            set({ sendError: "The connection dropped before your message reached the studio. Check the connection and send it again.", sendErrorCode: "network" });
+          // the stream dropped before turn.start: only a message the studio does not have was really lost
+          if (dropped && !sawStart && !sentReached(null, refreshed)) lostSend();
         }
         if (isBuilding(get().project)) get().followBuild();
       }
@@ -469,6 +538,9 @@ export const useProject = create<ProjectState>((set, get) => {
       if (shareTimer) clearInterval(shareTimer);
       shareTimer = null;
       stopTurnWatch();
+      // a turn this page only followed (GET /turn) must not stay "running" with nobody polling it: that locked the
+      // composer for good. The next load() follows it again if it still runs.
+      if (get().turn?.remote) set({ turn: null });
     },
 
     rename: async (name) => {

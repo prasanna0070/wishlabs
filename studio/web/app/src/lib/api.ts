@@ -58,7 +58,7 @@ export const api = {
   createProject: (body: { name?: string; mode?: Mode }) => request<Project>("POST", "/api/projects", body),
   project: (pid: string) => request<Project>("GET", `/api/projects/${pid}`),
   /** Is a chat turn running, and what is it doing (step, steps, thought summaries)? For a reload or a dropped stream. */
-  turnStatus: (pid: string) => request<TurnView>("GET", `/api/projects/${pid}/turn`),
+  turnStatus: (pid: string, signal?: AbortSignal) => request<TurnView>("GET", `/api/projects/${pid}/turn`, undefined, signal ? { signal } : {}),
   patchProject: (pid: string, body: { name?: string; mode?: Mode }) => request<Project>("PATCH", `/api/projects/${pid}`, body),
   deleteProject: (pid: string) => request("DELETE", `/api/projects/${pid}`),
   checklist: (pid: string, body: { assembly?: Record<string, boolean>; wiring?: Record<string, boolean> }) =>

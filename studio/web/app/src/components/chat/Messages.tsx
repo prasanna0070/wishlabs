@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useId, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Check, ChevronRight, Circle, CircleCheck, CircleDashed, CircleX, Hammer, RefreshCw, RotateCw, SlidersHorizontal } from "lucide-react";
 import { useProject, type TurnState } from "../../store/project";
 import { useNow, useVersionFile } from "../../lib/hooks";
@@ -11,7 +11,7 @@ import { rewriteShareUrl } from "../../lib/urls";
 import type { Build, ChatMessage, Concept, Status, StatusStage } from "../../lib/types";
 import { Markdown, ProgressBar, Spinner } from "../ui";
 import { BriefView } from "../BriefView";
-import { agoText, currentStepLabel, latestThought } from "../../lib/working";
+import { agoText, currentStepLabel, latestThought, minutesToUnlock } from "../../lib/working";
 import "./working.css";
 
 export function MessageView({ m, active }: { m: ChatMessage; active: string | null }) {
@@ -92,9 +92,6 @@ export function TurnActivity({ t }: { t: TurnState }) {
  * step (announced politely), the newest thought in one line, and the model's thinking behind a toggle. */
 export function WorkingCard({ t, now: fixedNow, open: initiallyOpen = false }: { t: TurnState; now?: number; open?: boolean }) {
   const [open, setOpen] = useState(initiallyOpen);
-  const ticking = useNow(1000, t.running && fixedNow == null);
-  const now = fixedNow ?? ticking;
-  const secs = Math.max(0, (now - t.startedAt) / 1000);
   const step = currentStepLabel(t);
   const latest = latestThought(t.thoughts);
   const panelId = useId();
@@ -107,9 +104,7 @@ export function WorkingCard({ t, now: fixedNow, open: initiallyOpen = false }: {
       <div className="wc-head">
         <Spinner />
         <strong>Working on it</strong>
-        <span className="wc-time" aria-label={`for ${duration(secs)}`}>
-          {duration(secs)}
-        </span>
+        <Elapsed since={t.startedAt} now={fixedNow} on={t.running} />
       </div>
       <div className="wc-step" aria-live="polite" aria-atomic="true">
         {`${step}…`}
@@ -126,6 +121,12 @@ export function WorkingCard({ t, now: fixedNow, open: initiallyOpen = false }: {
       <div id={panelId} className="wc-panel" hidden={!open}>
         {open ? <ThinkingPanel t={t} /> : null}
       </div>
+      {t.quiet ? (
+        // the server has had no progress write for over a minute (an instance restart, say); its lock still holds
+        <div className="wc-note wc-quiet">
+          No progress for over a minute, so it may have stopped. If nothing changes, you can try again in about {minutesToUnlock(t.startedAt, fixedNow)} min.
+        </div>
+      ) : null}
       {conceptTurn ? (
         <div className="wc-note">
           Concepts with photos usually take {waitText(eta)}
@@ -136,6 +137,22 @@ export function WorkingCard({ t, now: fixedNow, open: initiallyOpen = false }: {
     </div>
   );
 }
+
+/** The card's ticking clock, in its own component: the 1 s tick re-renders only this, never the thinking's Markdown. */
+function Elapsed({ since, now: fixedNow, on }: { since: number; now?: number; on: boolean }) {
+  const ticking = useNow(1000, on && fixedNow == null);
+  const secs = Math.max(0, ((fixedNow ?? ticking) - since) / 1000);
+  return (
+    <span className="wc-time" aria-label={`for ${duration(secs)}`}>
+      {duration(secs)}
+    </span>
+  );
+}
+
+/** Thought summaries as Markdown, parsed again only when the text changes (up to 30 KB while a turn runs). */
+const Thoughts = memo(function Thoughts({ text }: { text: string }) {
+  return <Markdown text={text} className="compact" />;
+});
 
 /** The steps so far (with a repair round's reason) and the model's thought summaries, newest at the bottom. */
 export function ThinkingPanel({ t }: { t: TurnState }) {
@@ -172,7 +189,7 @@ export function ThinkingPanel({ t }: { t: TurnState }) {
             stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
           }}
         >
-          <Markdown text={t.thoughts} className="compact" />
+          <Thoughts text={t.thoughts} />
         </div>
       ) : (
         <p className="wc-empty">No thoughts shared yet. The steps update as it works.</p>
@@ -181,13 +198,14 @@ export function ThinkingPanel({ t }: { t: TurnState }) {
   );
 }
 
-/** The server holds a turn lock older than 15 minutes: the turn stopped (an instance restart, a crash). */
+/** The server holds a turn lock older than 15 minutes: the turn stopped (an instance restart, a crash). A polite status,
+ * not an alert: it shows on every open of a project with an old lock. */
 export function StaleCard({ t, now }: { t: TurnState; now?: number }) {
   const retry = useProject((s) => s.retryLast);
   const readOnly = useProject((s) => s.readOnly);
   const secs = ((now ?? Date.now()) - t.startedAt) / 1000;
   return (
-    <div className="working-card stale" role="alert">
+    <div className="working-card stale" role="status">
       <div className="wc-head">
         <AlertTriangle size={16} aria-hidden="true" />
         <strong>The last step stopped unexpectedly</strong>
@@ -235,7 +253,7 @@ function FinishedActivity({ t }: { t: TurnState }) {
           </ul>
           {t.thoughts ? (
             <div className="wc-thoughts wc-thoughts-done" tabIndex={0} role="region" aria-label="The assistant's thinking">
-              <Markdown text={t.thoughts} className="compact" />
+              <Thoughts text={t.thoughts} />
             </div>
           ) : null}
         </>
