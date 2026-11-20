@@ -38,6 +38,8 @@ const fs = require("fs");
   res.owner_chime_playing = await pressed(card, /Chime/);
   await card.getByRole("button", { name: /^Prompt$/ }).click();
   res.owner_prompt_shown = await card.locator(".sound-prompt").count();
+  res.owner_caption_shown = await card.locator(".sound-caption").count();
+  res.owner_meta = (await card.locator(".sound-meta").first().innerText()).replace(/\s+/g, " ");
   await page.screenshot({ path: `${out}/2-owner-preview-prompt.png` });
   await page.waitForTimeout(2500);
   res.owner_chime_ended = await pressed(card, /Chime/);

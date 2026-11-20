@@ -16,8 +16,8 @@ import pytest
 
 from app.projects import vkey
 from app.routes.sound import byte_range
-from app.sound import (DEVICE_MAX_BYTES, LyriaRejected, SoundComposer, SoundConfig, SoundError, compose,
-                       effective_status, parse_wav, prompt_for, wav_bytes)
+from app.sound import (DEVICE_MAX_BYTES, LyriaRejected, SoundComposer, SoundConfig, SoundError, adapt_prompt,
+                       caption_of, compose, effective_status, mp3_bytes, parse_wav, prompt_for, wav_bytes)
 from app.util import now_iso
 from conftest import KEY
 
@@ -44,21 +44,27 @@ def synth_wav(seconds: float = 6.0, rate: int = 48000, hit: float = 2.0, nested:
 
 
 class FakeLyria:
+    """Stands in for app.sound.Lyria. Answers like Lyria 2 (WAV bytes) unless `answer` gives a Lyria 3 style dict."""
+
     def __init__(self, wav: bytes | None = None, fail: Exception | None = None, refuse_first: bool = False,
-                 gate: threading.Event | None = None):
+                 gate: threading.Event | None = None, fail_models: tuple = (), answer: dict | None = None):
         self.wav = wav if wav is not None else synth_wav()
         self.fail, self.refuse_first, self.gate = fail, refuse_first, gate
-        self.calls: list[tuple[str, str]] = []
+        self.fail_models, self.answer = fail_models, answer
+        self.calls: list[tuple[str, str | None, str | None]] = []
 
-    def generate(self, prompt: str, negative: str, seed: int) -> bytes:
-        self.calls.append((prompt, negative))
+    def generate(self, prompt: str, negative: str | None, seed: int, model: str | None = None,
+                 location: str | None = None):
+        self.calls.append((prompt, negative, model))
         if self.gate is not None:
             assert self.gate.wait(10)
         if self.refuse_first and len(self.calls) == 1:
             raise LyriaRejected("Lyria refused the prompt: blocked")
         if self.fail is not None:
             raise self.fail
-        return self.wav
+        if model in self.fail_models:
+            raise SoundError(f"Lyria HTTP 503: {model} is overloaded")
+        return dict(self.answer) if self.answer else self.wav
 
 
 def use_fake(client, lyria: FakeLyria | None = None, **cfg) -> FakeLyria:
@@ -179,15 +185,16 @@ def test_compose_play_share_and_device(authed):
     st = wait_sound(authed, pid)
     assert st["status"] == "ready", st
     cur = st["sound"]["current"]
-    assert cur["provider"] == "Lyria on Vertex AI" and cur["model"] == "lyria-002" and cur["version"] == 1
+    assert cur["provider"] == "Lyria on Vertex AI" and cur["model"] == "lyria-3-clip-preview" and cur["version"] == 1
+    assert cur["location"] == "global" and cur["negative_prompt"] is None and "Avoid vocals" in cur["prompt"]
     assert "Mochi Desk Buddy" in cur["prompt"] and cur["prompt"] == lyria.calls[0][0]
-    assert cur["trigger"] == "user" and cur["cost_usd_est"] == 0.06
+    assert cur["trigger"] == "user" and cur["cost_usd_est"] == 0.04 and cur["fallback_from"] is None
     # the project carries it, with the usage record the AI receipts read
     p = authed.get(f"/api/projects/{pid}").json()
     assert p["sound"]["current"]["id"] == cur["id"]
     turn = p["usage"]["turns"][-1]
     assert turn["label"] == "Gadget sound (Lyria)" and turn["calls"][0]["kind"] == "music"
-    assert turn["calls"][0]["model"] == "lyria-002" and turn["cost_usd_est"] == 0.06
+    assert turn["calls"][0]["model"] == "lyria-3-clip-preview" and turn["cost_usd_est"] == 0.04
     # owner playback, with HTTP ranges for <audio>
     theme = authed.get(cur["theme"]["url"])
     assert theme.status_code == 200 and theme.headers["content-type"].startswith("audio/")
@@ -337,3 +344,51 @@ def test_auto_is_off_when_sound_is_off(authed):
             break
         time.sleep(0.05)
     assert p["versions"][0]["state"] == "done" and p.get("sound") is None
+
+
+def test_falls_back_to_lyria_2(authed):
+    lyria = use_fake(authed, FakeLyria(fail_models=("lyria-3-clip-preview",)))
+    pid = done_project(authed)
+    assert authed.post(f"/api/projects/{pid}/sound").status_code == 202
+    st = wait_sound(authed, pid)
+    cur = st["sound"]["current"]
+    assert st["status"] == "ready" and cur["model"] == "lyria-002" and cur["location"] == "us-central1"
+    assert cur["fallback_from"] == "lyria-3-clip-preview" and "503" in cur["fallback_reason"]
+    assert cur["negative_prompt"] and "Avoid" not in cur["prompt"]          # Lyria 2 takes a negative prompt
+    assert [c[2] for c in lyria.calls] == ["lyria-3-clip-preview", "lyria-002"]
+    calls = authed.get(f"/api/projects/{pid}").json()["usage"]["turns"][-1]["calls"]
+    assert [c["model"] for c in calls] == ["lyria-002"]                    # the failed call returned no audio
+
+
+def test_no_fallback_when_switched_off(authed):
+    use_fake(authed, FakeLyria(fail_models=("lyria-3-clip-preview",)), fallback=None)
+    pid = done_project(authed)
+    assert authed.post(f"/api/projects/{pid}/sound").status_code == 202
+    st = wait_sound(authed, pid)
+    assert st["status"] == "error" and "overloaded" in st["sound"]["error"]
+
+
+def test_lyria_3_mp3_and_caption(authed):
+    rate = 44100
+    x, _ = parse_wav(synth_wav(seconds=8.0, rate=rate, hit=3.0, nested=False))
+    mp3 = mp3_bytes(x, rate, 192)
+    assert mp3 and (mp3[:3] == b"ID3" or mp3[0] == 0xFF)
+    text = "<instrumental>\nCaption: A bright, playful marimba theme with pizzicato strings."
+    use_fake(authed, FakeLyria(answer={"audio": mp3, "mime": "audio/mpeg", "text": text}))
+    pid = done_project(authed)
+    assert authed.post(f"/api/projects/{pid}/sound").status_code == 202
+    cur = wait_sound(authed, pid)["sound"]["current"]
+    assert cur["caption"] == "A bright, playful marimba theme with pizzicato strings."
+    assert cur["source"]["file"] == "lyria.mp3" and cur["source"]["sample_rate"] == 44100
+    assert abs(cur["chime"]["onset_s"] - 3.0) < 0.08                       # MP3 adds about 25 ms of encoder delay
+    raw = authed.get(f"/api/projects/{pid}/sound/{cur['id']}/lyria.mp3")
+    assert raw.status_code == 200 and raw.content == mp3                   # the model's MP3 is kept as it came
+
+
+def test_prompt_adapts_to_the_model():
+    pr = prompt_for(spec_of("bedtime-robot"))
+    l3 = adapt_prompt(pr, "lyria-3-clip-preview")
+    assert l3["negative_prompt"] is None and l3["prompt"].endswith("Avoid " + pr["negative_prompt"] + ".")
+    assert adapt_prompt(pr, "lyria-002") == pr
+    assert caption_of("<instrumental>\nCaption: Soft and dreamy.\n") == "Soft and dreamy."
+    assert caption_of("<instrumental>") is None and caption_of(None) is None

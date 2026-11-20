@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { audioUrl, clock, hasSound, kb, playable, soundOf, soundStatus, STALE_MS } from "./sound";
+import { audioUrl, clock, hasSound, kb, khz, playable, soundOf, soundStatus, STALE_MS } from "./sound";
 import type { Project } from "./types";
 
 const cur = {
@@ -39,5 +39,7 @@ describe("gadget sound", () => {
     expect(clock(75.4)).toBe("1:15");
     expect(kb(76844)).toBe("77 KB");
     expect(kb(2880044)).toBe("2.9 MB");
+    expect(khz(44100)).toBe("44.1 kHz");
+    expect(khz(48000)).toBe("48 kHz");
   });
 });

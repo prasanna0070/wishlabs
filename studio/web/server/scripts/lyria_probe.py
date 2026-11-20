@@ -3,8 +3,9 @@
   python scripts/lyria_probe.py models                 # which Lyria models Vertex AI knows (no generation, no cost)
   python scripts/lyria_probe.py generate --out DIR     # ONE real composition through app.sound (about USD 0.06)
 
-`generate` uses the same code the server runs (prompt_for -> Lyria.generate -> compose) on an example design's spec
-and writes theme, chime, device chime and a meta.json into DIR. LYRIA_MODEL / LYRIA_LOCATION pick the model."""
+`generate` uses the same code the server runs (prompt_for -> adapt_prompt -> Lyria.generate -> compose) on an example
+design's spec and writes theme, chime, device chime and a meta.json into DIR. LYRIA_MODEL / LYRIA_LOCATION pick the
+model (default lyria-3-clip-preview on global; LYRIA_MODEL=lyria-002 for Lyria 2)."""
 from __future__ import annotations
 
 import argparse
@@ -20,9 +21,9 @@ STUDIO = SERVER.parents[1]
 sys.path.insert(0, str(SERVER))
 
 from app.config import GCP_PROJECT  # noqa: E402
-from app.sound import Lyria, SoundConfig, compose, prompt_for  # noqa: E402
+from app.sound import Lyria, SoundConfig, adapt_prompt, caption_of, compose, prompt_for  # noqa: E402
 
-CANDIDATES = ("lyria-002", "lyria-003", "lyria-3", "lyria-2", "lyria-realtime-exp", "lyria-002-preview")
+CANDIDATES = ("lyria-002", "lyria-3-clip-preview", "lyria-3-pro-preview", "lyria-003", "lyria-realtime-exp")
 
 
 def _token() -> str:
@@ -69,21 +70,25 @@ class _S:
 
 def generate(out: Path, example: str) -> None:
     cfg = SoundConfig.from_env(_S())
+    model, location = cfg.chain()[0]
     spec = json.loads((STUDIO / "examples" / example / "spec.json").read_text())
-    pr = prompt_for(spec, {"name": spec.get("name")})
-    print("model", cfg.model, "location", cfg.location)
+    pr = adapt_prompt(prompt_for(spec, {"name": spec.get("name")}), model)
+    print("model", model, "location", location)
     print("prompt:", pr["prompt"])
     t0 = time.time()
-    raw = Lyria(_S(), cfg).generate(pr["prompt"], pr["negative_prompt"], 12345)
+    got = Lyria(_S(), cfg).generate(pr["prompt"], pr["negative_prompt"], 12345, model, location)
+    raw = got["audio"]
     t_model = time.time() - t0
-    print(f"lyria answered in {t_model:.1f} s, {len(raw)} bytes, head {raw[:4]!r} {raw[8:12]!r}")
-    res = compose(raw, cfg.chime_s)
+    print(f"lyria answered in {t_model:.1f} s, {len(raw)} bytes, {got.get('mime')}, head {raw[:4]!r}")
+    if got.get("text"):
+        print("model text:", got["text"][:400].replace("\n", " | "))
+    res = compose(raw, cfg.chime_s, got.get("mime"))
     out.mkdir(parents=True, exist_ok=True)
     for name, data in res["files"].items():
         (out / name).write_bytes(data)
     meta = {k: v for k, v in res.items() if k != "files"}
-    meta.update(model=cfg.model, location=cfg.location, prompt=pr["prompt"], model_seconds=round(t_model, 1),
-                compose_seconds=round(time.time() - t0 - t_model, 2),
+    meta.update(model=model, location=location, prompt=pr["prompt"], caption=caption_of(got.get("text")),
+                model_seconds=round(t_model, 1), compose_seconds=round(time.time() - t0 - t_model, 2),
                 files={k: len(v) for k, v in res["files"].items()})
     meta["theme"] = {k: v for k, v in meta["theme"].items() if k != "peaks"}
     (out / "meta.json").write_text(json.dumps(meta, indent=2))

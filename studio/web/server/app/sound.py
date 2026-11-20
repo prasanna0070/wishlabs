@@ -4,20 +4,23 @@ musical onset in that theme becomes the gadget's signature chime.
 Flow (SoundComposer.start / run):
   1. prompt_for(spec, project): a music prompt from the design's name, tagline, behaviour template, audience and
      colours. Deterministic, stored and shown in the UI exactly as it was sent.
-  2. Lyria (env LYRIA_MODEL, default lyria-002, Vertex AI :predict in LYRIA_LOCATION, default us-central1) answers
-     with about 32.8 s of 48 kHz stereo 16-bit WAV, base64 in predictions[0].bytesBase64Encoded. The WAV arrives
-     double-wrapped: the outer RIFF's data chunk holds a second complete RIFF/WAVE file (parse_wav unwraps it).
+  2. Lyria (env LYRIA_MODEL, default lyria-3-clip-preview; LYRIA_FALLBACK, default lyria-002, is tried once when the
+     main model fails). Lyria 3 Clip: Vertex AI generateContent on `global`, about 12 s, one 30 s MP3 (44.1 kHz) plus
+     text parts (the lyrics, "<instrumental>" here, and a caption of the music); it takes no negative prompt, so the
+     things to avoid go into the prompt. Lyria 2: Vertex AI :predict in us-central1, about 28 s, about 32.8 s of 48 kHz
+     stereo 16-bit WAV in base64, double-wrapped (the outer RIFF's data chunk holds a second RIFF; parse_wav unwraps).
   3. compose(): the theme (at most 30 s, leading silence trimmed, faded out), the chime (CHIME_S seconds from the
      strongest onset, faded), a device chime (16 kHz mono 16-bit WAV of 2 s, 64,044 bytes, for the gadget) and 64
-     waveform peaks for the UI. Theme and chime are MP3 when lameenc is installed, else WAV.
+     waveform peaks for the UI. Theme and chime are MP3 when lameenc is installed, else WAV. MP3 from Lyria 3 is read
+     with miniaudio.
   4. Files go to projects/<pid>/sound/v<n>/<sid>/ in the store (beside the version folders, so the copies that seed
      a new version never carry them into its export); project.json["sound"] carries the metadata, and each Lyria
-     call is one usage record (kind "music") in project.json["usage"] for the AI receipts.
+     call that returned audio is one usage call (kind "music") in project.json["usage"] for the AI receipts.
 
 It costs money, so it needs the studio login (routes/sound.py), runs one job per project at a time, has a
 per-session hourly limit and a store-backed daily cap for the whole service, and every failure ends closed
-(no model call, status "error"). Google lists Lyria 2 at USD 0.06 per 30 s of generated music, so one generation
-(one ~32.8 s clip) costs about USD 0.06-0.07.
+(no model call, status "error"). Cost estimates per call: MODELS (Lyria 3 Clip USD 0.04 per 30 s clip, Lyria 2
+USD 0.06 per 30 s of music).
 
 It runs by itself once, after a design's first successful build (maybe_auto, called from builds.finalize), and again
 whenever the owner presses the button.
@@ -48,9 +51,29 @@ from .util import new_id, now_iso, parse_iso
 log = logging.getLogger("gstudio.sound")
 
 PROVIDER = "Lyria on Vertex AI"
-COST_USD_EST = 0.06
-COST_BASIS = ("Google lists Lyria 2 on Vertex AI at USD 0.06 per 30 s of generated music; one generation is one "
-              "clip of about 32.8 s.")
+# The Lyria models this code can call. "predict": Vertex AI :predict, base64 WAV back (Lyria 2). "generate_content":
+# Vertex AI generateContent, MP3 plus text (lyrics and a caption) back, no negative prompt (Lyria 3).
+MODELS = {
+    "lyria-3-clip-preview": {"api": "generate_content", "location": "global", "cost_usd": 0.04,
+                             "basis": "Lyria 3 Clip is listed at USD 0.04 per 30 s clip (Gemini API price list; the "
+                                      "Vertex AI price for this preview model was not confirmed).",
+                             "negative": False},
+    "lyria-002": {"api": "predict", "location": "us-central1", "cost_usd": 0.06,
+                  "basis": "Google lists Lyria 2 on Vertex AI at USD 0.06 per 30 s of generated music; one generation "
+                           "is one clip of about 32.8 s.",
+                  "negative": True},
+}
+DEFAULT_MODEL = "lyria-3-clip-preview"
+DEFAULT_FALLBACK = "lyria-002"
+
+
+def model_info(model: str) -> dict:
+    """Known models by name; an unknown lyria-3* name is treated like Lyria 3, anything else like Lyria 2."""
+    if model in MODELS:
+        return MODELS[model]
+    return MODELS["lyria-3-clip-preview" if model.startswith("lyria-3") else "lyria-002"]
+
+
 THEME_MAX_S = 30.0
 DEVICE_RATE = 16000
 DEVICE_MAX_S = 2.0                     # 2.0 s at 16 kHz mono 16-bit is 64,044 bytes: within the 64 KB (65,536 bytes)
@@ -59,7 +82,7 @@ STALE_S = 300.0                        # a job older than this is dead (instance
 HISTORY = 5
 PEAKS = 64
 MIME = {"theme.mp3": "audio/mpeg", "theme.wav": "audio/wav", "chime.mp3": "audio/mpeg", "chime.wav": "audio/wav",
-        "device-chime.wav": "audio/wav", "lyria.wav": "audio/wav"}
+        "device-chime.wav": "audio/wav", "lyria.wav": "audio/wav", "lyria.mp3": "audio/mpeg"}
 SID_RE = re.compile(r"^snd_[a-z0-9]{6,24}$")
 
 
@@ -82,8 +105,9 @@ def _num(name: str, default: float, lo: float, hi: float) -> float:
 @dataclass
 class SoundConfig:
     enabled: bool = False
-    model: str = "lyria-002"
-    location: str = "us-central1"
+    model: str = DEFAULT_MODEL
+    location: str | None = None          # None: the model's own location (MODELS)
+    fallback: str | None = DEFAULT_FALLBACK   # tried once when the main model fails; None: no fallback
     timeout_s: float = 120.0
     daily_cap: int = 40                  # generations per UTC day for the whole service (store-backed)
     session_hourly: int = 5              # generations per signed-in browser session per hour (per instance)
@@ -91,15 +115,24 @@ class SoundConfig:
 
     @classmethod
     def from_env(cls, settings) -> "SoundConfig":
+        fb = os.environ.get("LYRIA_FALLBACK")
         return cls(
             enabled=_flag("SOUND", getattr(settings, "agent", "") == "gemini"),
-            model=(os.environ.get("LYRIA_MODEL") or "lyria-002").strip(),
-            location=(os.environ.get("LYRIA_LOCATION") or "us-central1").strip(),
+            model=(os.environ.get("LYRIA_MODEL") or DEFAULT_MODEL).strip(),
+            location=(os.environ.get("LYRIA_LOCATION") or "").strip() or None,
+            fallback=DEFAULT_FALLBACK if fb is None else (fb.strip() or None),
             timeout_s=_num("LYRIA_TIMEOUT_S", 120.0, 20.0, 300.0),
             daily_cap=int(_num("SOUND_DAILY_CAP", 40, 0, 1000)),
             session_hourly=int(_num("SOUND_SESSION_HOURLY", 5, 0, 100)),
             chime_s=_num("SOUND_CHIME_S", 2.4, 1.0, 3.0),
         )
+
+    def chain(self) -> list[tuple[str, str]]:
+        """[(model, location)] in the order they are tried: the main model, then the fallback."""
+        out = [(self.model, self.location or model_info(self.model)["location"])]
+        if self.fallback and self.fallback != self.model:
+            out.append((self.fallback, model_info(self.fallback)["location"]))
+        return out
 
 
 # ------------------------------------------------------------------ errors
@@ -232,20 +265,34 @@ def prompt_for(spec: dict, project: dict | None = None, *, safe: bool = False) -
 
 # ------------------------------------------------------------------ Lyria client
 class Lyria:
-    """Vertex AI :predict for Lyria models (lyria-002). Blocking; call through asyncio.to_thread."""
+    """Calls one Lyria model on Vertex AI and answers {audio, mime, text, model, location}. Blocking; call through
+    asyncio.to_thread. Lyria 2 (lyria-002): :predict, base64 WAV. Lyria 3 (lyria-3-clip-preview): generateContent
+    through google-genai, MP3 plus text parts (the lyrics, "<instrumental>" here, and a caption of the music)."""
 
     def __init__(self, settings, config: SoundConfig):
         self.settings = settings
         self.config = config
         self._token: tuple[str, float] | None = None
         self._lock = threading.Lock()
+        self._clients: dict[str, object] = {}
 
-    def url(self) -> str:
-        loc = self.config.location
+    def url(self, model: str | None = None, location: str | None = None) -> str:
+        model = model or self.config.model
+        loc = location or self.config.location or model_info(model)["location"]
         host = "aiplatform.googleapis.com" if loc == "global" else f"{loc}-aiplatform.googleapis.com"
         return (f"https://{host}/v1/projects/{self.settings.gcp_project}/locations/{loc}/publishers/google/models/"
-                f"{self.config.model}:predict")
+                f"{model}:predict")
 
+    def generate(self, prompt: str, negative_prompt: str | None, seed: int, model: str | None = None,
+                 location: str | None = None) -> dict:
+        model = model or self.config.model
+        location = location or self.config.location or model_info(model)["location"]
+        if model_info(model)["api"] == "generate_content":
+            return self._generate_content(model, location, prompt)
+        return {"audio": self._predict(model, location, prompt, negative_prompt, seed), "mime": "audio/wav",
+                "text": None, "model": model, "location": location}
+
+    # ---- Lyria 2: :predict
     def _auth(self) -> str:
         with self._lock:
             if self._token and time.time() < self._token[1]:
@@ -258,15 +305,17 @@ class Lyria:
             self._token = (creds.token, time.time() + 1800)
             return creds.token
 
-    def generate(self, prompt: str, negative_prompt: str, seed: int) -> bytes:
+    def _predict(self, model: str, location: str, prompt: str, negative_prompt: str | None, seed: int) -> bytes:
         import urllib.error
         import urllib.request
 
-        body = json.dumps({"instances": [{"prompt": prompt, "negative_prompt": negative_prompt, "seed": int(seed)}],
-                           "parameters": {}}).encode()
+        inst = {"prompt": prompt, "seed": int(seed)}
+        if negative_prompt:
+            inst["negative_prompt"] = negative_prompt
+        body = json.dumps({"instances": [inst], "parameters": {}}).encode()
         last = ""
         for attempt in range(3):
-            req = urllib.request.Request(self.url(), data=body, method="POST", headers={
+            req = urllib.request.Request(self.url(model, location), data=body, method="POST", headers={
                 "Authorization": "Bearer " + self._auth(), "Content-Type": "application/json",
                 "x-goog-user-project": self.settings.gcp_project})
             try:
@@ -289,6 +338,70 @@ class Lyria:
             if attempt < 2:
                 time.sleep(3.0 * (attempt + 1))
         raise SoundError(f"Lyria did not answer: {last}"[:400])
+
+    # ---- Lyria 3: generateContent
+    def _client(self, location: str):
+        with self._lock:
+            c = self._clients.get(location)
+            if c is None:
+                from google import genai
+
+                c = genai.Client(vertexai=True, project=self.settings.gcp_project, location=location)
+                self._clients[location] = c
+            return c
+
+    def _generate_content(self, model: str, location: str, prompt: str) -> dict:
+        from google.genai import errors, types
+
+        cfg = types.GenerateContentConfig(response_modalities=["AUDIO", "TEXT"],
+                                          http_options=types.HttpOptions(timeout=int(self.config.timeout_s * 1000)))
+        last = ""
+        for attempt in range(3):
+            try:
+                r = self._client(location).models.generate_content(model=model, contents=prompt, config=cfg)
+            except errors.APIError as e:
+                code = int(getattr(e, "code", 0) or 0)
+                msg = str(getattr(e, "message", "") or e)[:240]
+                if code == 400:
+                    raise LyriaRejected(f"Lyria refused the prompt: {msg}") from None
+                if 400 <= code < 500 and code != 429:
+                    raise SoundError(f"Lyria HTTP {code}: {msg}") from None
+                last = f"HTTP {code} {msg}"
+            except Exception as e:  # noqa: BLE001 - network errors and timeouts: retried
+                last = f"{type(e).__name__}: {e}"[:240]
+            else:
+                audio, mime, texts = None, None, []
+                cand = (r.candidates or [None])[0]
+                for part in ((cand.content.parts if cand is not None and cand.content else None) or []):
+                    if part.inline_data is not None and part.inline_data.data:
+                        audio, mime = part.inline_data.data, part.inline_data.mime_type
+                    elif part.text:
+                        texts.append(part.text)
+                if not audio:
+                    reason = getattr(cand, "finish_reason", None) if cand is not None else None
+                    raise LyriaRejected(f"Lyria returned no audio for this prompt ({reason}).")
+                return {"audio": bytes(audio), "mime": mime or "audio/mpeg", "text": "\n".join(texts) or None,
+                        "model": model, "location": location}
+            if attempt < 2:
+                time.sleep(3.0 * (attempt + 1))
+        raise SoundError(f"Lyria did not answer: {last}"[:400])
+
+
+def caption_of(text: str | None) -> str | None:
+    """Lyria 3's own description of the music ("Caption: ..."), on one line, at most 400 characters."""
+    m = re.search(r"caption\s*:\s*(.+)", text or "", flags=re.I | re.S)
+    cap = " ".join((m.group(1) if m else "").split())
+    if len(cap) > 400:
+        cap = cap[:400].rsplit(" ", 1)[0] + "..."
+    return cap or None
+
+
+def adapt_prompt(pr: dict, model: str) -> dict:
+    """Lyria 3 takes no negative prompt: its things to avoid go into the prompt itself."""
+    if model_info(model)["negative"] or not pr.get("negative_prompt"):
+        return pr
+    p = pr["prompt"] + f" Avoid {pr['negative_prompt']}."
+    return {**pr, "prompt": p[:1000], "negative_prompt": None}
 
 
 # ------------------------------------------------------------------ audio
@@ -340,6 +453,37 @@ def parse_wav(raw: bytes):
     else:
         raise SoundError(f"Unsupported WAV encoding ({tag}, {bits} bit).")
     return x.reshape(-1, ch), int(rate)
+
+
+def is_mp3(raw: bytes, mime: str | None = None) -> bool:
+    return raw[:3] == b"ID3" or (len(raw) > 1 and raw[0] == 0xFF and (raw[1] & 0xE0) == 0xE0) or \
+        (mime or "").lower() in ("audio/mpeg", "audio/mp3")
+
+
+def parse_mp3(raw: bytes):
+    """MP3 -> (float32 array [frames, 2] in [-1, 1], 44100) through miniaudio (dr_mp3; a prebuilt wheel)."""
+    import numpy as np
+
+    try:
+        import miniaudio  # type: ignore
+    except ImportError:
+        raise SoundError("This server cannot read MP3 (miniaudio is not installed).") from None
+    try:
+        d = miniaudio.decode(bytes(raw), output_format=miniaudio.SampleFormat.SIGNED16, nchannels=2,
+                             sample_rate=44100)
+    except Exception as e:  # noqa: BLE001 - miniaudio.DecodeError and friends
+        raise SoundError(f"The MP3 from Lyria could not be read: {e}"[:300]) from None
+    x = np.frombuffer(d.samples, dtype=np.int16).astype(np.float32) / 32768.0
+    ch = int(d.nchannels) or 2
+    return x[:len(x) // ch * ch].reshape(-1, ch), int(d.sample_rate)
+
+
+def decode_audio(raw: bytes, mime: str | None = None):
+    if raw[:4] == b"RIFF":
+        return parse_wav(raw)
+    if is_mp3(raw, mime):
+        return parse_mp3(raw)
+    raise SoundError("Lyria returned audio in a format this server cannot read.")
 
 
 def wav_bytes(x, rate: int) -> bytes:
@@ -512,18 +656,19 @@ def peaks_of(y, n: int = PEAKS) -> list[float]:
     return [round(float(x) / m, 3) for x in v]
 
 
-def compose(raw: bytes, chime_s: float = 2.4) -> dict:
+def compose(raw: bytes, chime_s: float = 2.4, mime: str | None = None) -> dict:
     """Lyria WAV -> theme, chime, device chime. Returns {files: {name: bytes}, theme: {...}, chime: {...},
     device_chime: {...}, source: {...}}."""
     import numpy as np
 
-    x, rate = parse_wav(raw)
+    x, rate = decode_audio(raw, mime)
     if x.shape[1] > 2:
         x = x[:, :2]
     src_s = len(x) / rate
     if src_s < 3.0:
         raise SoundError("Lyria returned a clip that is too short.")
-    files: dict[str, bytes] = {"lyria.wav": wav_bytes(x, rate)}
+    src_name = "lyria.wav" if raw[:4] == b"RIFF" else "lyria.mp3"   # the model's output, kept as it came (WAV unwrapped)
+    files: dict[str, bytes] = {src_name: wav_bytes(x, rate) if src_name == "lyria.wav" else bytes(raw)}
     # theme: trim leading silence (below -50 dBFS), at most THEME_MAX_S, short fade-in, cosine fade-out
     lvl = np.abs(x).max(axis=1)
     loud = np.nonzero(lvl > 10 ** (-50 / 20))[0]
@@ -570,7 +715,8 @@ def compose(raw: bytes, chime_s: float = 2.4) -> dict:
         "device_chime": {"file": "device-chime.wav", "mime": "audio/wav", "seconds": round(len(dev) / DEVICE_RATE, 2),
                          "sample_rate": DEVICE_RATE, "channels": 1, "bits": 16,
                          "bytes": len(files["device-chime.wav"])},
-        "source": {"file": "lyria.wav", "seconds": round(src_s, 2), "sample_rate": rate, "channels": int(x.shape[1])},
+        "source": {"file": src_name, "mime": MIME[src_name], "seconds": round(src_s, 2), "sample_rate": rate,
+                   "channels": int(x.shape[1])},
     }
 
 
@@ -614,18 +760,24 @@ def effective_status(s: dict | None, now: float | None = None) -> str:
     return st
 
 
-def usage_record(meta: dict, ok: bool = True) -> dict:
-    """One Lyria call as a usage turn (kind "music"), the shape agent turns use (usage.apply_turn)."""
-    call = {"model": meta.get("model"), "kind": "music", "input_tokens": 0, "output_tokens": 0, "thinking_tokens": 0,
-            "cached_tokens": 0, "images": 0, "seconds": meta.get("model_seconds"), "cost_usd_est": COST_USD_EST,
-            "audio_seconds": (meta.get("source") or {}).get("seconds"), "ok": ok}
-    return {"turn_id": meta.get("id"), "ts": now_iso(), "action": "sound", "label": "Gadget sound (Lyria)",
-            "mode": None, "calls": [call], **sum_records([call])}
+def usage_call(model: str, seconds: float, ok: bool = True, audio_seconds: float | None = None) -> dict:
+    """One Lyria call that returned audio (so it is billed), as a usage call record of kind "music"."""
+    return {"model": model, "kind": "music", "input_tokens": 0, "output_tokens": 0, "thinking_tokens": 0,
+            "cached_tokens": 0, "images": 0, "seconds": round(float(seconds or 0), 1),
+            "cost_usd_est": model_info(model)["cost_usd"], "audio_seconds": audio_seconds, "ok": ok}
 
 
-def _apply_usage(pp: dict, meta: dict, ok: bool = True) -> None:
+def usage_turn(sid: str, calls: list[dict]) -> dict:
+    """The Lyria calls of one composition as a usage turn, the shape agent turns use (usage.apply_turn)."""
+    return {"turn_id": sid, "ts": now_iso(), "action": "sound", "label": "Gadget sound (Lyria)", "mode": None,
+            "calls": calls, **sum_records(calls)}
+
+
+def _apply_usage(pp: dict, sid: str, calls: list[dict]) -> None:
+    if not calls:
+        return
     try:
-        apply_turn(pp, usage_record(meta, ok))
+        apply_turn(pp, usage_turn(sid, calls))
     except Exception:  # noqa: BLE001 - usage logging must never lose the sound
         log.exception("sound usage logging failed")
 
@@ -730,44 +882,80 @@ class SoundComposer:
         inp = await asyncio.to_thread(st.read_json, f"projects/{pid}/inputs/v{n}.json") or {}
         return inp.get("spec") or await asyncio.to_thread(st.read_json, vkey(pid, n, "spec.json")) or {}
 
+    async def _attempt(self, model: str, location: str, spec: dict, p: dict, seed: int, calls: list[dict]) -> dict:
+        """One model: the prompt (adapted to the model), the call (a refused prompt is retried once with the prompt
+        that carries no user text) and the cuts. Each call that returned audio is appended to `calls` (billed)."""
+        budget = min(self.config.timeout_s * 3 + 30, 140.0)     # two models stay inside STALE_S
+
+        async def call(pr: dict) -> dict:
+            t = time.time()
+            res = await asyncio.wait_for(asyncio.to_thread(
+                self.lyria.generate, pr["prompt"], pr["negative_prompt"], seed, model, location), budget)
+            if isinstance(res, (bytes, bytearray)):
+                res = {"audio": bytes(res), "mime": None, "text": None}
+            res = {**res, "model": model, "location": location, "seconds": time.time() - t}
+            calls.append(usage_call(model, res["seconds"]))
+            return res
+
+        pr = adapt_prompt(prompt_for(spec, p), model)
+        try:
+            res = await call(pr)
+        except LyriaRejected as e:
+            log.warning("%s refused the prompt for %s (%s); retrying without user text", model, p.get("id"), e)
+            pr = adapt_prompt(prompt_for(spec, p, safe=True), model)
+            res = await call(pr)
+        try:
+            out = await asyncio.to_thread(compose, res["audio"], self.config.chime_s, res.get("mime"))
+        except Exception:
+            calls[-1]["ok"] = False
+            raise
+        calls[-1]["audio_seconds"] = out["source"]["seconds"]
+        return {"pr": pr, "res": res, "out": out}
+
     async def run(self, pid: str, n: int, sid: str, *, charge: bool = False) -> None:
         t0 = time.time()
-        billed: dict | None = None             # set once Lyria has answered with audio (that call is paid for)
+        calls: list[dict] = []                  # Lyria calls that returned audio: billed, recorded as usage
         try:
             if charge:
                 await asyncio.to_thread(self.charge_budget)
             spec = await self._spec(pid, n)
             p = await self.svc.repo.aget(pid)
-            pr = prompt_for(spec, p)
             seed = random.randint(1, 2 ** 31 - 1)
-            budget = self.config.timeout_s * 2 + 30
-            try:
-                raw = await asyncio.wait_for(asyncio.to_thread(
-                    self.lyria.generate, pr["prompt"], pr["negative_prompt"], seed), budget)
-            except LyriaRejected as e:
-                log.warning("lyria refused the prompt for %s (%s); retrying without user text", pid, e)
-                pr = prompt_for(spec, p, safe=True)
-                raw = await asyncio.wait_for(asyncio.to_thread(
-                    self.lyria.generate, pr["prompt"], pr["negative_prompt"], seed), budget)
-            t_model = time.time() - t0
-            billed = {"id": sid, "model": self.config.model, "model_seconds": round(t_model, 1)}
-            out = await asyncio.to_thread(compose, raw, self.config.chime_s)
+            chain = self.config.chain()
+            got, failed = None, []
+            for i, (model, location) in enumerate(chain):
+                try:
+                    got = await self._attempt(model, location, spec, p, seed, calls)
+                    break
+                except (SoundError, asyncio.TimeoutError) as e:
+                    why = str(e) if isinstance(e, SoundError) else "Lyria took too long to answer."
+                    failed.append({"model": model, "error": why[:200]})
+                    if i == len(chain) - 1:
+                        raise SoundError(why if len(failed) == 1 else
+                                         "; ".join(f"{f['model']}: {f['error']}" for f in failed)) from None
+                    log.warning("sound %s for %s: %s failed (%s); trying %s", sid, pid, model, why, chain[i + 1][0])
+            pr, res, out = got["pr"], got["res"], got["out"]
+            info = model_info(res["model"])
             base = skey(pid, n, sid)
             for name, data in out["files"].items():
                 await asyncio.to_thread(self.svc.store.write_bytes, f"{base}/{name}", data, MIME[name])
             root = f"/api/projects/{pid}/sound/{sid}"
             meta = {
-                "id": sid, "version": n, "created": now_iso(), "provider": PROVIDER, "model": self.config.model,
-                "location": self.config.location, "prompt": pr["prompt"], "negative_prompt": pr["negative_prompt"],
-                "prompt_source": pr["source"], "seed": seed, "bpm": pr["bpm"],
+                "id": sid, "version": n, "created": now_iso(), "provider": PROVIDER, "model": res["model"],
+                "location": res["location"], "prompt": pr["prompt"], "negative_prompt": pr["negative_prompt"],
+                "prompt_source": pr["source"], "seed": seed if info["api"] == "predict" else None, "bpm": pr["bpm"],
+                "caption": caption_of(res.get("text")),
                 "theme": {**out["theme"], "url": f"{root}/{out['theme']['file']}"},
                 "chime": {**out["chime"], "url": f"{root}/{out['chime']['file']}"},
                 "device_chime": {**out["device_chime"], "url": f"{root}/device-chime.wav"},
                 "source": out["source"], "files": sorted(out["files"]),
-                "model_seconds": round(t_model, 1), "elapsed_s": round(time.time() - t0, 1),
-                "cost_usd_est": COST_USD_EST, "cost_basis": COST_BASIS,
+                "model_seconds": round(res["seconds"], 1), "elapsed_s": round(time.time() - t0, 1),
+                "cost_usd_est": round(sum(c["cost_usd_est"] for c in calls), 4), "cost_basis": info["basis"],
+                "fallback_from": failed[0]["model"] if failed else None,
+                "fallback_reason": failed[0]["error"] if failed else None,
             }
-            await asyncio.to_thread(self.svc.store.write_json, f"{base}/sound.json", meta)
+            await asyncio.to_thread(self.svc.store.write_json, f"{base}/sound.json",
+                                    {**meta, "model_text": (res.get("text") or "")[:2000] or None})
 
             def done(pp):
                 s = pp.get("sound") or {}
@@ -780,11 +968,12 @@ class SoundComposer:
                 else:                   # a newer job owns the status; keep this one in the history only
                     s["history"] = ([meta] + list(s.get("history") or []))[:HISTORY]
                     pp["sound"] = s
-                _apply_usage(pp, meta)
+                _apply_usage(pp, sid, calls)
             await self.svc.repo.aupdate(pid, done)
-            billed = None
-            log.info("sound %s for %s v%s: %s s (model %s s), theme %s s, chime at %s s", sid, pid, n,
-                     meta["elapsed_s"], meta["model_seconds"], meta["theme"]["seconds"], meta["chime"]["onset_s"])
+            calls = []
+            log.info("sound %s for %s v%s: %s in %s s (model %s s), theme %s s, chime at %s s%s", sid, pid, n,
+                     meta["model"], meta["elapsed_s"], meta["model_seconds"], meta["theme"]["seconds"],
+                     meta["chime"]["onset_s"], f", after {meta['fallback_from']} failed" if failed else "")
         except Exception as exc:  # noqa: BLE001 - any failure becomes status "error", never a crash
             if isinstance(exc, SoundError):
                 msg = str(exc)
@@ -794,13 +983,13 @@ class SoundComposer:
                 msg = "The sound could not be composed."
             log.exception("sound %s for %s v%s failed", sid, pid, n) if not isinstance(exc, SoundError) else \
                 log.warning("sound %s for %s v%s failed: %s", sid, pid, n, exc)
+            billed = list(calls)
 
             def fail(pp):
                 s = pp.get("sound") or {}
                 if (s.get("job") or {}).get("id") == sid:
                     pp["sound"] = {**s, "status": "error", "job": None, "error": msg[:300], "error_at": now_iso()}
-                if billed:              # Lyria answered (and billed) but the sound could not be finished
-                    _apply_usage(pp, billed, ok=False)
+                _apply_usage(pp, sid, billed)   # Lyria answered (and billed) but the sound could not be finished
             try:
                 await self.svc.repo.aupdate(pid, fail)
             except NotFound:
@@ -876,5 +1065,6 @@ def public_state(p: dict, c: SoundComposer, session: str | None = None) -> dict:
     if out is not None and st != out.get("status"):
         out.update(status=st, job=None, error=out.get("error") or "The last composition stopped before it finished.")
     return {"enabled": c.enabled, "status": st, "sound": out, "provider": PROVIDER, "model": c.config.model,
-            "cost_usd_est": COST_USD_EST, "cost_basis": COST_BASIS, "session_hourly": c.config.session_hourly,
+            "cost_usd_est": model_info(c.config.model)["cost_usd"], "cost_basis": model_info(c.config.model)["basis"],
+            "fallback": c.config.fallback, "session_hourly": c.config.session_hourly,
             "session_left": c.session_left(session) if session else None}

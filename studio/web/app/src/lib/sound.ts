@@ -32,7 +32,11 @@ export interface SoundRecord {
   theme: SoundFile;
   chime: SoundFile;
   device_chime?: SoundFile | null;
-  source?: { seconds?: number; sample_rate?: number; channels?: number } | null;
+  source?: { file?: string; seconds?: number; sample_rate?: number; channels?: number } | null;
+  /** Lyria 3's own description of what it composed (its "Caption:" text part). */
+  caption?: string | null;
+  /** Set when the main model failed and the fallback model composed this one. */
+  fallback_from?: string | null;
   model_seconds?: number;
   elapsed_s?: number;
   cost_usd_est?: number;
@@ -96,6 +100,12 @@ export function audioUrl(url: string, ctx: Ctx | null | undefined): string {
 export function clock(s: number | null | undefined): string {
   const t = Math.max(0, Math.round(Number(s) || 0));
   return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`;
+}
+
+/** 48000 -> "48 kHz", 44100 -> "44.1 kHz" */
+export function khz(rate: number | null | undefined): string {
+  const k = (Number(rate) || 0) / 1000;
+  return `${Number.isInteger(k) ? k : k.toFixed(1)} kHz`;
 }
 
 export function kb(bytes: number | null | undefined): string {

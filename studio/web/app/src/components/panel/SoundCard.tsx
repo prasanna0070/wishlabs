@@ -3,7 +3,7 @@
 // play only, and nothing at all until a composition exists. The share page mounts this file by name (SoundCard.tsx).
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { BellRing, Download, Music2, Pause, Play, RefreshCw } from "lucide-react";
-import { audioUrl, clock, hasSound, kb, playable, soundApi, soundOf, soundStatus, type SoundApiState, type SoundRecord, type SoundState } from "../../lib/sound";
+import { audioUrl, clock, hasSound, kb, khz, playable, soundApi, soundOf, soundStatus, type SoundApiState, type SoundRecord, type SoundState } from "../../lib/sound";
 import type { Project, Version } from "../../lib/types";
 import type { Ctx } from "../../lib/urls";
 import { useProject } from "../../store/project";
@@ -214,7 +214,7 @@ export function SoundCard({ project, version, ctx, readOnly, compact = false }: 
   const working =
     status === "generating" ? (
       <span className="pill primary sound-working" role="status">
-        <Spinner /> Lyria is composing{elapsed ? ` · ${elapsed} s` : ""} <span className="muted">(about 30 s)</span>
+        <Spinner /> Lyria is composing{elapsed ? ` · ${elapsed} s` : ""} <span className="muted">(usually 15 to 30 s)</span>
       </span>
     ) : null;
 
@@ -224,12 +224,19 @@ export function SoundCard({ project, version, ctx, readOnly, compact = false }: 
     <div className="sound-details">
       <div className="muted small">Prompt sent to Lyria{cur.prompt_source === "safe_template" ? " (a general prompt: Lyria declined the first one)" : ""}</div>
       <p className="sound-prompt">{cur.prompt}</p>
+      {cur.caption ? (
+        <>
+          <div className="muted small">Lyria's own note on what it composed</div>
+          <p className="sound-prompt sound-caption">{cur.caption}</p>
+        </>
+      ) : null}
       <div className="sound-meta">
         <span className="mono">{cur.model}</span>
-        {cur.source?.seconds ? ` · ${cur.source.seconds.toFixed(1)} s composed at ${Math.round((cur.source.sample_rate || 48000) / 1000)} kHz` : ""}
+        {cur.source?.seconds ? ` · ${cur.source.seconds.toFixed(1)} s composed at ${khz(cur.source.sample_rate || 48000)}` : ""}
         {cur.chime.onset_s != null ? ` · chime from ${cur.chime.onset_s.toFixed(1)} s` : ""}
         {` · for version ${cur.version}`}
         {cur.trigger === "auto" ? " · composed after its first build" : ""}
+        {cur.fallback_from ? ` · ${cur.fallback_from} was unavailable` : ""}
       </div>
       {cur.device_chime?.url ? (
         <a className="linkish small sound-device" href={`${audioUrl(cur.device_chime.url, ctx)}?download=1`} download>
