@@ -902,6 +902,22 @@ class VerifierFindings(unittest.TestCase):
         self.assertEqual((r["answer_rounds_used"], r["case_answers"]), (0, 1))
         self.assertIn("questions 0 round(s), case answers used 0 of 1", (self.out / "summary.md").read_text())
 
+    def test_local_server_env_never_carries_the_studio_key(self):
+        old = os.environ.get("GS_KEY")
+        os.environ["GS_KEY"] = KEY
+        try:
+            srv = bench.LocalServer(9299, self.out, say=lambda m: None)
+            env = srv.env()
+        finally:
+            if old is None:
+                del os.environ["GS_KEY"]
+            else:
+                os.environ["GS_KEY"] = old
+        self.assertNotIn("GS_KEY", env)
+        self.assertNotIn(KEY, json.dumps(env))
+        self.assertEqual(env["ACCESS_KEY"], srv.key)
+        self.assertEqual((env["BUILDER"], env["AGENT"]), ("local", "gemini"))
+
 
 class KeyHandling(unittest.TestCase):
     def test_key_file_must_be_private(self):

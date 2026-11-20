@@ -1469,16 +1469,22 @@ class LocalServer:
         self.log_path = out / f"server-{port}.log"
         self.proc: subprocess.Popen | None = None
 
-    def start(self, wait_s: float = 120) -> dict:
-        if _port_in_use(self.port):
-            raise RuntimeError(f"port {self.port} is already in use; pick another one")
-        server_dir = STUDIO / "web" / "server"
+    def env(self) -> dict:
+        """The server's environment: this one, minus the remote builder/bucket and the studio key (GS_KEY is never
+        handed to the server or its build subprocesses), plus the local settings and the throwaway key."""
         env = dict(os.environ)
-        for k in ("BUILDER_URL", "BUCKET"):
+        for k in ("BUILDER_URL", "BUCKET", "GS_KEY"):
             env.pop(k, None)
         env.update(ACCESS_KEY=self.key, BUILDER="local", AGENT="gemini", PHOTOS="1" if self.photos else "0",
                    STORE_DIR=str((self.out / "store").resolve()), COOKIE_SECURE="0", PYTHONUNBUFFERED="1")
         env.setdefault("ENGINE_PYTHON", sys.executable)
+        return env
+
+    def start(self, wait_s: float = 120) -> dict:
+        if _port_in_use(self.port):
+            raise RuntimeError(f"port {self.port} is already in use; pick another one")
+        server_dir = STUDIO / "web" / "server"
+        env = self.env()
         self.out.mkdir(parents=True, exist_ok=True)
         with open(self.log_path, "ab") as logf:
             self.proc = subprocess.Popen(
