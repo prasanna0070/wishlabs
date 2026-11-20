@@ -16,7 +16,7 @@ import pytest
 
 STUDIO = Path(__file__).resolve().parents[4]
 EX = STUDIO / "library" / "packs" / "examples" / "printed"
-SLUGS = ["card-qr-stand", "pen-cup-planter"]
+SLUGS = ["card-qr-stand", "pen-cup-planter", "owl-figurine"]
 
 
 def _ctx(slug: str, out: Path):

@@ -15,7 +15,7 @@ from gstudio.printed import REASON, empty_electrical, printed_options
 
 STUDIO = Path(__file__).resolve().parents[2]
 EX = STUDIO / "library" / "packs" / "examples" / "printed"
-SLUGS = ["card-qr-stand", "pen-cup-planter"]
+SLUGS = ["card-qr-stand", "pen-cup-planter", "owl-figurine"]
 
 
 def _spec(slug: str) -> dict:
