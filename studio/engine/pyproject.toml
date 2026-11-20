@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gstudio"
-description = "Gadget Studio engine: spec -> electrical -> CAD | PCB | firmware -> manual -> package"
+description = "Wish Labs engine: spec -> electrical -> CAD | PCB | firmware -> manual -> package"
 requires-python = ">=3.11"
 dynamic = ["version"]
 dependencies = [

@@ -45,8 +45,8 @@ def _pcb_steps(design: Design, pcb_dir: Path, timings: dict, options: dict, prog
         silk.free_label(["U1", "DevKitC-1"], ((a_[0] + a_[2]) / 2, (min(a_[3], b_[3]) + max(a_[1], b_[1])) / 2),
                         size=1.4, tag="U1 label")
     # no version number or date on copper or silk: the same electrical design prints the same board (MIN-36)
-    silk.top_title("GADGET STUDIO", f"BP1 {design.backplane_id} rev {design.revision}")
-    silk.bottom_identity(f"GADGET STUDIO {design.backplane_id.upper()}",
+    silk.top_title("WISH LABS", f"BP1 {design.backplane_id} rev {design.revision}")
+    silk.bottom_identity(f"WISH LABS {design.backplane_id.upper()}",
                          f"BP1 rev {design.revision}  {design.slug}", f"ID {design.design_id[:8]}")
     silk.test_pads([p for p in design.parts if p.ref.startswith("TP")])
     bb.silk_boxes = list(silk.top_boxes) + list(silk.bot_boxes)  # stitching vias stay out of silk text

@@ -269,7 +269,7 @@ def _build_in(fw: Path, proj: Path, workspace: Path, lib_deps: list[str], run_te
     res: dict[str, Any] = {"compiled": False, "tests_passed": None, "tests_total": None, "timings": {}}
     scrub = [(str(fw), "."), (str(proj), "<staging>"), (str(workspace), "<workspace>"),
              (env["PLATFORMIO_LIBDEPS_DIR"], "<libdeps>"), (str(sh), "<pio-shared>"), (env["PLATFORMIO_CORE_DIR"], "<pio-core>")]
-    log_parts = ["# Gadget Studio firmware build\n# project . (compiled in a fixed staging copy, <staging>)\n"
+    log_parts = ["# Wish Labs firmware build\n# project . (compiled in a fixed staging copy, <staging>)\n"
                  "# PLATFORMIO_CORE_DIR=<pio-core>\n# libdeps <libdeps>\n# workspace <workspace>\n"]
     rc, ver, _ = _run([pio, "--version"], proj, env, 60)
     res["platformio"] = ver.strip()

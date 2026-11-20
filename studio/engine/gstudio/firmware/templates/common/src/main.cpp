@@ -1,4 +1,4 @@
-// Gadget Studio firmware: shared core. The behaviour lives in src/app_<template>.cpp.
+// Wish Labs firmware: shared core. The behaviour lives in src/app_<template>.cpp.
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <Preferences.h>

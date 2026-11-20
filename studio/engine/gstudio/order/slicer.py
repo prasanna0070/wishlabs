@@ -324,7 +324,7 @@ def write_stl(path: str | Path, tris) -> Path:
     rec["n"], rec["v"] = n, t
     path = Path(path)
     with open(path, "wb") as fh:
-        fh.write(b"Gadget Studio oriented print mesh".ljust(80, b" "))
+        fh.write(b"Wish Labs oriented print mesh".ljust(80, b" "))
         fh.write(struct.pack("<I", len(t)))
         fh.write(rec.tobytes())
     return path

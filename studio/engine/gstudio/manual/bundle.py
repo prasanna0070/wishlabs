@@ -88,7 +88,7 @@ def write_figures_json(out: Path, figs: list[FigureSpec], scene: Scene, mesh: di
 
 
 TEMPLATE = r'''#!/usr/bin/env python3
-"""Re-render this gadget's build-manual images from the delivered files (no Gadget Studio install needed).
+"""Re-render this gadget's build-manual images from the delivered files (no Wish Labs install needed).
 
     python manual/render_manual.py                 # re-render every image into ./manual (overwrites)
     python manual/render_manual.py --out /tmp/x    # render into another folder

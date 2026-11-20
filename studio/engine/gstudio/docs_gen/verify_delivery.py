@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Re-check this delivery without the Gadget Studio engine (Python 3.9+, standard library only).
+"""Re-check this delivery without the Wish Labs engine (Python 3.9+, standard library only).
 
     python verify_delivery.py            run from the folder that holds manifest.json
 

@@ -55,7 +55,7 @@ def render(b: Bundle, lib: Any = None) -> str:
     sp = b.spec
     rows = b.build.get("purchased") or []
     L: list[str] = [f"# {sp.get('name', 'Gadget')}: parts, sources and evidence", ""]
-    L.append("Every part comes from the Gadget Studio module library; no other part may appear in a design. Sources are "
+    L.append("Every part comes from the Wish Labs module library; no other part may appear in a design. Sources are "
              "local-first for India. Nothing has been ordered. Retail prices and stock are snapshots, not reserved inventory, "
              "and a price check is not evidence of a seller's reliability.")
 

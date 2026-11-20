@@ -1,4 +1,4 @@
-// Board bring-up for the Gadget Studio backplane: buttons, I2C, microSD, buzzer, servo.
+// Board bring-up for the Wish Labs backplane: buttons, I2C, microSD, buzzer, servo.
 // Every pin comes from include/hardware.h, which binds roles to include/pins.h (generated from
 // electrical.json). No GPIO number is written by hand in this firmware.
 #pragma once

@@ -1,7 +1,7 @@
 {
   "schema": "gadget-stories/1",
   "language": "en-IN",
-  "note": "Original stories written for Gadget Studio. Calm, age 3 to 7, no peril. {FAV} is the child's favourite (the hero) and {FRIEND} a second favourite (the friend); each starts a sentence so spoken name clips slot in at a natural pause.",
+  "note": "Original stories written for Wish Labs. Calm, age 3 to 7, no peril. {FAV} is the child's favourite (the hero) and {FRIEND} a second favourite (the friend); each starts a sentence so spoken name clips slot in at a natural pause.",
   "stories": [
     {
       "id": "mango_tree",

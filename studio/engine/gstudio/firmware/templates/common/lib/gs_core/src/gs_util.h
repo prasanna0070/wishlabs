@@ -1,4 +1,4 @@
-// Gadget Studio core: small portable helpers (no Arduino, no ESP-IDF).
+// Wish Labs core: small portable helpers (no Arduino, no ESP-IDF).
 #pragma once
 #include <stddef.h>
 #include <stdint.h>

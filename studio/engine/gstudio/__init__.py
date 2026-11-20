@@ -1,4 +1,4 @@
-"""Gadget Studio engine.
+"""Wish Labs engine.
 
 Importing `gstudio` is cheap: it never imports cadquery, OCP, pcbnew, vtk or PlatformIO. Stage packages
 (gstudio.cad, gstudio.pcb, gstudio.firmware, gstudio.manual, gstudio.order) are imported only when used.

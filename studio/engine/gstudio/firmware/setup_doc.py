@@ -82,7 +82,7 @@ def _wifi(name: str, slug: str, minutes: int, settings: dict) -> str:
 
 This gadget has **no Wi-Fi**: the radio is never switched on, there is no setup hotspot and no parent page
 (the default for a gadget made for a child). Everything it needs is on the story card. To change names or
-stories, edit them in the Gadget Studio app, download the new story card and copy it onto the microSD card.
+stories, edit them in the Wish Labs studio, download the new story card and copy it onto the microSD card.
 Holding the button while plugging in does nothing special in this build."""
     return f"""## 2. Connect it to your home Wi-Fi
 
@@ -107,7 +107,7 @@ def _parent(template: str, settings: dict) -> str:
         if template == "story_player":
             return """## 3. Favourites without a parent page
 
-The names you typed in the Gadget Studio app are on the story card with their spoken clips. At start-up the
+The names you typed in the Wish Labs studio are on the story card with their spoken clips. At start-up the
 gadget adds each one to its favourites; a story then stars one as the hero and another as the friend.
 To add, rename or remove a name, change it in the app and copy the new story card."""
         return """## 3. Settings
@@ -125,7 +125,7 @@ in all it locks the page for everyone. The counts and locks survive unplugging t
 On the page you can:
 - add, rename and remove favourite names (each change asks you to confirm). A new name shows **not spoken yet**
   until it has a spoken clip: add one with **Add spoken name** (a 16-bit mono WAV of 64 KB or less, for
-  example the one the Gadget Studio app makes for that name). Until then a story uses the default name there;
+  example the one the Wish Labs studio makes for that name). Until then a story uses the default name there;
 - erase every favourite (type ERASE);
 - set the volume (0 to {settings.get('volume_max')}; this is a software setting, not a measured loudness);
 - set the night light: on or off during stories, timer up to 120 minutes, brightness up to {settings.get('night_light_max_percent')} %;
@@ -178,7 +178,7 @@ card that is lost or copied."""
     return """## 5. Privacy
 
 This gadget **records no voice**. Favourite names are typed by a parent and spoken from clips made by the
-Gadget Studio app. If the design has a microphone, this firmware opens it only for the factory self-test's
+Wish Labs studio. If the design has a microphone, this firmware opens it only for the factory self-test's
 level check, with the listening light and face on. Nothing is sent to the internet."""
 
 

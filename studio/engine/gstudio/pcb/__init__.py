@@ -1,4 +1,4 @@
-"""Gadget Studio PCB stage: a real, routed, DRC-checked backplane PCB for every design.
+"""Wish Labs PCB stage: a real, routed, DRC-checked backplane PCB for every design.
 
     gstudio.pcb.run(ctx) -> summary dict (for build.json `pcb` and digital checks)
 
