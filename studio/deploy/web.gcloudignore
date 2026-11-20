@@ -9,7 +9,9 @@
 .git/
 /builder/
 /tools/
-engine/gstudio/cad/
+# engine/gstudio/cad/ ships: its pure-Python footprints let the web design check catch kit overlaps the builder
+# would reject (CadQuery is imported lazily and is not installed in the web image). Its tests stay out.
+engine/gstudio/cad/tests/
 engine/gstudio/pcb/
 engine/gstudio/firmware/
 engine/gstudio/manual/
