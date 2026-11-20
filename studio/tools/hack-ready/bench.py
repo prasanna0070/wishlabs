@@ -771,10 +771,12 @@ def score_line(data: dict) -> str:
 
 def summary_md(data: dict) -> str:
     rows = [data["cases"][i] for i in data.get("order") or [] if i in data["cases"]]
-    run = (data.get("runs") or [{}])[-1]
+    runs = data.get("runs") or [{}]
+    run = runs[-1]
     out = ["# Wish Labs bench", "",
            f"Base: {run.get('base')}  ", f"Server: {json.dumps(run.get('health'))}  ",
            f"Cases: {run.get('cases_file')}; jobs {run.get('jobs')}; timeout {run.get('timeout_min')} min  ",
+           f"Runs: {len(runs)} (started {', '.join(str(x.get('started_utc')) for x in runs)})  ",
            f"Updated: {data.get('updated_utc') or now_utc()}", "",
            f"**Score: {score_line(data)}**", "",
            "| Case | Buildable | Price | Parts | Failed checks | Minutes | Share link | Expectations |",
@@ -788,10 +790,16 @@ def summary_md(data: dict) -> str:
             if why == "timeout" and prog.get("percent") is not None:
                 why += f" at {prog.get('percent')}%"
             b = f"no ({why})"
-        price = (r.get("price") or {}).get("label") or "-"
+        pr = r.get("price") or {}
+        if pr.get("inr") is not None:
+            price = pr.get("label") or f"Rs {pr['inr']:,.0f}"
+        elif str(pr.get("status") or "").upper() == "HELD":
+            price = "held (collision check failed)"
+        else:
+            price = pr.get("label") or "-"
         fails = (r.get("checks") or {}).get("failed") or []
-        fc = "; ".join(f"{f.get('title')}: {f.get('detail')}" if f.get("detail") else str(f.get("title"))
-                       for f in fails) or ("0" if r.get("checks") else "-")
+        fc = "; ".join(f"{f.get('id') or f.get('title')}: {_cell(f.get('detail'), 110)}" if f.get("detail")
+                       else str(f.get("id") or f.get("title")) for f in fails) or ("0" if r.get("checks") else "-")
         exp = r.get("expect_results") or {}
         if r.get("expectations_met") is None:
             e = "-"
@@ -1324,8 +1332,7 @@ class Runner:
                 raise ValueError(f"{path} is not a {SCHEMA} results file")
         self.results = Results(path, prev)
         self.results.data["order"] = [c["id"] for c in cases]
-        self.meta = dict(meta or {})
-        self.results.data["runs"].append(self.meta)
+        self.meta = dict(meta or {})       # added to results.json "runs" once this run has cases to do
 
     def say(self, msg: str) -> None:
         with self._log_lock:
@@ -1342,6 +1349,7 @@ class Runner:
             if todo:
                 if not key:
                     raise LoginError("no access key: set GS_KEY or pass --key-file")
+                self.results.data["runs"].append(self.meta)
                 self.http.login(key)
                 h = self.http.call("GET", "/api/health")
                 self.meta["health"] = h.json() if h.status == 200 else {"error": h.err_text()}
@@ -1580,7 +1588,7 @@ def main(argv=None) -> int:
 
     def _term(signum, frame):       # `kill <pid>` runs the finally below, so a --server-local server is stopped too
         raise KeyboardInterrupt()
-    signal.signal(signal.SIGTERM, _term)
+    prev_term = signal.signal(signal.SIGTERM, _term)
     try:
         if a.server_local:
             server = LocalServer(a.server_local, out, photos=not a.no_photos,
@@ -1588,16 +1596,17 @@ def main(argv=None) -> int:
             base, key = server.base, server.key
         else:
             base, key = a.base, read_key(a.key_file)
-            if not key:
-                print("no access key: set GS_KEY or pass --key-file (chmod 600)", file=sys.stderr)
-                return 2
         meta = {"started_utc": now_utc(), "base": base, "cases_file": str(Path(a.cases).resolve()),
                 "jobs": a.jobs, "timeout_min": a.timeout_min, "server_local": bool(a.server_local),
                 "photos": (not a.no_photos) if a.server_local else None, "git": _git_head(), "only": a.only}
         # the Runner checks <out>/results.json (resume or refuse) before any server starts
         runner = Runner(Http(base), cases, out, jobs=a.jobs, timeout_min=a.timeout_min, resume=a.resume, meta=meta)
-        if server is not None and runner.pending():
-            meta["server_health"] = server.start()
+        if runner.pending():
+            if server is not None:
+                meta["server_health"] = server.start()
+            elif not key:
+                print("no access key: set GS_KEY or pass --key-file (chmod 600)", file=sys.stderr)
+                return 2
         data = runner.run(key)
         print(f"score: {data.get('score')}")
         print(f"results: {out / 'results.json'}\nsummary: {out / 'summary.md'}")
@@ -1611,6 +1620,7 @@ def main(argv=None) -> int:
     finally:
         if server is not None:
             server.stop()
+        signal.signal(signal.SIGTERM, prev_term)
 
 
 if __name__ == "__main__":

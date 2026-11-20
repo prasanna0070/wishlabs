@@ -451,7 +451,7 @@ class EndToEndWithFakeStudio(unittest.TestCase):
         md = (self.out / "summary.md").read_text()
         self.assertIn("| lamp | yes | Rs 16,599 delivered (estimate) |", md)
         self.assertIn("**Score: 1 of 1 buildable; median", md)
-        self.assertIn("Walls thick enough: 1.1 mm at the rear cover", md)
+        self.assertIn("| min_wall: 1.1 mm at the rear cover |", md)
         self.assertIn("| repair rounds | model USD (est.) |", md)
         self.assertEqual(json.loads((self.out / "results.json").read_text())["score"], data["score"])
         self.assertTrue(list((self.out / "events" / "lamp").glob("01-wish.jsonl")))
@@ -753,6 +753,30 @@ class Resume(unittest.TestCase):
         self.assertTrue(r["buildable"], r.get("error"))
         self.assertFalse([c for c in fake.calls if c[0] == "POST" and c[1].endswith("/chat")])   # none re-sent
         self.assertGreaterEqual(reads["n"], 3)
+
+
+    def test_finished_run_rerenders_without_a_key(self):
+        fake = FakeStudio(buildable=False)
+        r1, _ = make_runner(fake, bench.parse_cases([CASE]), self.out)
+        r1.run(KEY)
+        (self.out / "summary.md").unlink()
+        cases_file = Path(self.td.name) / "cases.json"
+        cases_file.write_text(json.dumps([CASE]))
+        old_env = os.environ.pop("GS_KEY", None)
+        out = io.StringIO()
+        old = sys.stdout
+        sys.stdout = out
+        try:
+            rc = bench.main(["--cases", str(cases_file), "--base", "http://studio.test", "--out", str(self.out),
+                             "--resume"])
+        finally:
+            sys.stdout = old
+            if old_env is not None:
+                os.environ["GS_KEY"] = old_env
+        self.assertEqual(rc, 0)
+        md = (self.out / "summary.md").read_text()
+        self.assertIn("| lamp | no (not_buildable) | held (collision check failed) |", md)
+        self.assertEqual(fake.logins, 1)                      # only the first run signed in
 
 
 class KeyHandling(unittest.TestCase):
