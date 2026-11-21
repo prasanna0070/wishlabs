@@ -582,6 +582,17 @@ def kit_led(kit: Kit, F, S: Surf, O, d: dict, fz, colors, spec_path, ring: bool)
     zo, zi = S.disk(tube_id / 2 + 4)
     z_in = _fin(zi, -3.0)
     z_pad = min(z_in, -2.0)
+    # The diffuser's flange sits behind the pad plane, so the wall's inner surface must not reach behind z_pad anywhere
+    # over the flange. On a curved face (a rounded top edge above the light) the inner surface dips behind the plane
+    # near the flange's rim, where the samples above do not look (rings at r/2 and r; the outer ring can miss the
+    # cavity altogether): the flange stood 0.27 mm in the wall (PRINT_Shell / PRINT_LedDiffuser 0.10-0.13 mm3, bench
+    # p_a4avhj6v4pth / c_vs6fhhn2d6). The whole stack moves back to the deepest inner point over the flange (its rim
+    # at 24 points); where the flange already clears nothing changes.
+    _, zi_f = S.disk(flange_d / 2, n_ring=24)
+    z_rim = min(z_pad, _fin(zi_f, z_pad))
+    if z_rim < z_pad - 1e-6:
+        kit.info["flange_moved_back_mm"] = round(z_pad - z_rim, 3)
+        z_pad = z_rim
     kit.adds.append(_pad(F, O, rounded_rect_face_fast(max(pcb["w"], tube_id) + 2 * (0.6 + fz["insert"]["boss_d"]) + 6,
                                                       max(pcb["h"], tube_id) + 6, 4.0), z_pad))
     kit.cuts.append(F.place(cyl_z(0, 0, z_pad - 1.0, 30, win / 2)))

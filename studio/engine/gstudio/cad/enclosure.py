@@ -398,13 +398,16 @@ def plate_prism(opening: Polygon, plate_poly: Polygon, t_bp: float) -> tuple:
 
     faces = fo.Faces() if hasattr(fo, "Faces") else [fo]
     built = unary_union([Polygon(ring_pts(f.outerWire()), [ring_pts(w) for w in f.innerWires()]).buffer(0) for f in faces])
-    P2 = built.buffer(-PLATE_GAP, quad_segs=8).intersection(plate_poly)
-    P2 = largest(P2.buffer(-0.01).buffer(0.01)).simplify(0.005)
+    P2 = built.buffer(-PLATE_GAP, quad_segs=8).intersection(plate_poly).buffer(-0.01).buffer(0.01)
+    pieces = [g.simplify(0.005) for g in getattr(P2, "geoms", [P2]) if isinstance(g, Polygon) and g.area > 0.05]
+
+    def ring_wire(coords):
+        return cq.Wire.makePolygon([V(x, y, 0) for x, y in list(coords)[:-1]], close=True)
+
     try:
-        outer = cq.Wire.makePolygon([V(x, y, 0) for x, y in list(P2.exterior.coords)[:-1]], close=True)
-        inners = [cq.Wire.makePolygon([V(x, y, 0) for x, y in list(r.coords)[:-1]], close=True) for r in P2.interiors
-                  if Polygon(r).area > 0.05]
-        f2 = cq.Face.makeFromWires(outer, inners)
+        fs = [cq.Face.makeFromWires(ring_wire(g.exterior.coords), [ring_wire(r.coords) for r in g.interiors if Polygon(r).area > 0.05])
+              for g in pieces]
+        f2 = fs[0] if len(fs) == 1 else cq.Compound.makeCompound(fs)
         over2 = float(f2.cut(fo).Area())
     except Exception as e:  # pragma: no cover
         return prism(fp, 0.0, t_bp), {"overlap_mm2": round(over, 4), "rebuilt": False, "why": str(e)[:120]}
