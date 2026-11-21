@@ -207,6 +207,22 @@ def test_mint_cli_prints_only_a_working_url(app, team, monkeypatch, capsys):
     assert open_link(TestClient(app), out.rsplit("/", 1)[1]).status_code == 303
 
 
+def test_mint_cli_needs_only_the_standard_library(app):
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    from app import magic
+
+    now = time.time()
+    assert magic.mint_token(KEY, "jurors", 21, now) == app.state.signer.mint_magic("jurors", 21, now)
+    code = "import sys, app.magic; bad = [m for m in ('fastapi', 'starlette', 'google') if m in sys.modules]; " \
+           "print(bad); sys.exit(1 if bad else 0)"
+    r = subprocess.run([sys.executable, "-c", code], cwd=Path(magic.__file__).parents[1], capture_output=True,
+                       text=True)
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
 # ------------------------------------------------------------------ isolation: every route
 def test_guest_gets_404_on_every_route_of_a_team_project(app, team, guest_c, team_project):
     before = project_bytes(app, team_project)

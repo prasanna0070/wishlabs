@@ -11,7 +11,7 @@ from fastapi.responses import Response
 
 from ..agent.turn import Turn, TurnError
 from ..auth import current_session, require_session
-from ..guest import LimitReached, charge_owner, quota_of, view_for, visible_rows
+from ..guest import charge_owner, quota_of, view_for, visible_rows
 from ..brief import assemble_brief
 from ..builds import BuildBusy, enrich_status
 from ..changes import changes_text, describe
