@@ -587,52 +587,96 @@ def build_printed(params: dict, progress: Optional[Callable] = None, on_draft: O
     return M
 
 
-PLATE_TRIM_MAX_MM3 = 20.0  # a kit add reaching deeper into the plate's room than this is a real clash: not trimmed
+PLATE_TRIM_MAX_MM3 = 20.0  # most add material one kit may lose to the plate's room (summed over the kit's adds)
+PLATE_TRIM_MAX_DEPTH = 1.0  # deepest an add may reach below the plate top and still be trimmed (speaker cup: 0.9 mm)
 
 
-def trim_adds_at_plate(kits, room, z_room: float):
+def _low_items(kit, rb, z_room: float) -> list:
+    """Boxes (lo, hi) of a kit's fasteners and gaskets whose BODY reaches below z_room + 0.5 over the plate room's
+    footprint. A fastener is its axis segment swept by d/2 + 0.5 (the radius counts: a horizontal insert with its axis at
+    z 5.5 still reaches 1.2 mm into a 3.5 mm plate). Inserts and gaskets are allowed to overlap printed parts by rule
+    (checks.allowed), so the shell material around them is what makes such a part's clash with the plate visible; an add
+    near one is never trimmed (review of 5bed7aa: a clamp post 1.5 mm over the opening, trimmed, left its insert
+    0.55 mm3 inside the plate and the gate passed it)."""
+    out = []
+    for f_ in kit.fasteners:
+        a_ = unit(f_.axis)
+        r = float(f_.d) / 2 + 0.5
+        p0 = np.asarray(f_.head, float)
+        p1 = p0 + a_ * float(f_.length)
+        out.append((np.minimum(p0, p1) - r, np.maximum(p0, p1) + r))
+    for p in kit.parts:
+        if "Gasket" in p.name or p.name.startswith("PURCHASE_HeatSetInserts"):
+            for _, s, _ in p.subparts:
+                b = s.BoundingBox()
+                out.append((np.array([b.xmin, b.ymin, b.zmin]) - 0.5, np.array([b.xmax, b.ymax, b.zmax]) + 0.5))
+    return [(lo, hi) for lo, hi in out if lo[2] < z_room + 0.5 and hi[0] >= rb.xmin - 1 and lo[0] <= rb.xmax + 1
+            and hi[1] >= rb.ymin - 1 and lo[1] <= rb.ymax + 1]
+
+
+def trim_adds_at_plate(kits, room, z_room: float, z_plate: Optional[float] = None):
     """Kit adds in a base-plate design yield to the plate's room (the opening prism `room`, up to z_room = 0.8 mm above
-    the plate top). Adds are carved out of the cavity, and the cavity there is the opening prism, so an add reaching down
-    into it stood inside the plate: a front speaker low on its face put its cup wall 0.9 mm into the plate top
-    (1.41 mm3 PRINT_Shell / PRINT_BasePlate, live 2026-11-21 p_h77zjgp6fekk). The part of such an add inside the room is
-    trimmed off; the add keeps everything above it, and the plate's top closes the cavity there. Not trimmed (so the
-    collision check still refuses it): a kit with a fastener inside the room, or more than PLATE_TRIM_MAX_MM3 of one add
-    in it. Purchased parts are never trimmed. Returns (adds, records)."""
+    the plate top z_plate). Adds are carved out of the cavity, and the cavity there is the opening prism, so an add
+    reaching down into it stood inside the plate: a front speaker low on its face put its cup wall 0.9 mm into the plate
+    top (1.41 mm3 PRINT_Shell / PRINT_BasePlate, live 2026-11-21 p_h77zjgp6fekk). The part of such an add inside the
+    room is trimmed off; the add keeps everything above it, and the plate's top closes the cavity there. Only a shallow
+    sliver is trimmed. NOT trimmed (so the collision check still refuses the design):
+      - any add of a kit with a fastener or gasket whose body reaches the room (_low_items), and any add whose box meets
+        such a fastener or gasket of any kit (inserts and gaskets may overlap printed parts by rule);
+      - an add reaching more than PLATE_TRIM_MAX_DEPTH below the plate top;
+      - every add of a kit whose adds have more than PLATE_TRIM_MAX_MM3 in the room in total.
+    Purchased parts are never trimmed. Returns (adds, records)."""
+    if z_plate is None:
+        z_plate = z_room - 0.8
     rb = room.BoundingBox()
+    low = {id(k): _low_items(k, rb, z_room) for k in kits}
+    low_all = [b for k in kits for b in low[id(k)]]
     out, recs = [], []
     for k in kits:
-        fz_in = False
-        for f_ in k.fasteners:
-            a_ = np.asarray(f_.axis, float)
-            for q in (np.asarray(f_.head, float), np.asarray(f_.head, float) + a_ * float(f_.length)):
-                if q[2] < z_room + 0.5 and rb.xmin - 1 <= q[0] <= rb.xmax + 1 and rb.ymin - 1 <= q[1] <= rb.ymax + 1:
-                    fz_in = True
+        cand = []  # [index in out, add, rec]
         for a in k.adds:
             ab = a.BoundingBox()
             if ab.zmin >= z_room or ab.xmax < rb.xmin or ab.xmin > rb.xmax or ab.ymax < rb.ymin or ab.ymin > rb.ymax:
                 out.append(a)
                 continue
             try:
-                ov = float(a.intersect(room).Volume())
+                ia = a.intersect(room)
+                ov = float(ia.Volume())
             except Exception:  # pragma: no cover
                 out.append(a)
                 continue
             if ov < 1e-4:
                 out.append(a)
                 continue
-            rec = {"feature": k.feature_id, "in_room_mm3": round(ov, 3)}
-            if fz_in or ov > PLATE_TRIM_MAX_MM3:
-                rec["trimmed"] = False
-                rec["why"] = "a fastener of the kit stands in the plate's room" if fz_in else f"over {PLATE_TRIM_MAX_MM3:g} mm3"
-                out.append(a)
-            else:
-                try:
-                    out.append(a.cut(room))
-                    rec["trimmed"] = True
-                except Exception:  # pragma: no cover
-                    rec["trimmed"] = False
-                    out.append(a)
+            depth = z_plate - float(ia.BoundingBox().zmin)  # a loose box only reads deeper: errs toward refusing
+            rec = {"feature": k.feature_id, "in_room_mm3": round(ov, 3), "depth_below_plate_top_mm": round(depth, 3)}
+            hosts = [b for b in low_all if b[0][0] <= ab.xmax and b[1][0] >= ab.xmin and b[0][1] <= ab.ymax
+                     and b[1][1] >= ab.ymin and b[0][2] <= ab.zmax and b[1][2] >= ab.zmin]
+            why = None
+            if low[id(k)]:
+                why = "a fastener or gasket of the kit reaches the plate's room"
+            elif hosts:
+                why = "a fastener or gasket reaching the plate's room meets this add"
+            elif depth > PLATE_TRIM_MAX_DEPTH:
+                why = f"reaches {depth:.2f} mm below the plate top (over {PLATE_TRIM_MAX_DEPTH:g} mm)"
+            elif ov > PLATE_TRIM_MAX_MM3:
+                why = f"over {PLATE_TRIM_MAX_MM3:g} mm3"
+            out.append(a)
             recs.append(rec)
+            if why:
+                rec.update(trimmed=False, why=why)
+            else:
+                cand.append((len(out) - 1, a, rec))
+        total = sum(r_["in_room_mm3"] for _, _, r_ in cand)
+        for i, a, rec in cand:
+            if total > PLATE_TRIM_MAX_MM3:
+                rec.update(trimmed=False, why=f"the kit's adds have {total:.2f} mm3 in the room (over {PLATE_TRIM_MAX_MM3:g})")
+                continue
+            try:
+                out[i] = a.cut(room)
+                rec["trimmed"] = True
+            except Exception:  # pragma: no cover
+                rec["trimmed"] = False
     return out, recs
 
 
@@ -787,7 +831,7 @@ def build(params: dict, progress: Optional[Callable] = None, on_draft: Optional[
             M.warnings.append(f"ceiling fins skipped: {e}")
     M.info["ceiling_fins"] = fin_info
     if split == "base_plate":
-        kit_adds, trims = trim_adds_at_plate(kits, pr, t_bp + 0.8)
+        kit_adds, trims = trim_adds_at_plate(kits, pr, t_bp + 0.8, z_plate=t_bp)
         if trims:
             M.info["kit_adds_trimmed_at_plate"] = trims
     adds = kit_adds + sp.shell_adds + (floor_adds if split == "rear_cover" else [])
