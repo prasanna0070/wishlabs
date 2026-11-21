@@ -1,0 +1,146 @@
+{
+ "schema": "gadget-spec/1",
+ "name": "Tralalero Chubby",
+ "slug": "tralalero-chubby",
+ "tagline": "A chunky decorative shark teapot figurine for your desk",
+ "kind": "printed",
+ "audience": {
+  "child_directed": false,
+  "age_years": null
+ },
+ "region": "IN",
+ "colors": {
+  "body": "#4A90E2",
+  "accent": "#FFF6EA",
+  "detail": "#2B3A42",
+  "body_name": "ocean blue",
+  "accent_name": "warm cream",
+  "detail_name": "dark grey"
+ },
+ "body": {
+  "wall": 2.4,
+  "edge_round": 12.0,
+  "feet": 4,
+  "family": "blob",
+  "primitives": [
+   {
+    "kind": "ellipsoid",
+    "center": [
+     0.0,
+     0.0,
+     50.0
+    ],
+    "size": [
+     110.0,
+     100.0,
+     100.0
+    ],
+    "radius": 4.0,
+    "axis": "z"
+   },
+   {
+    "kind": "ellipsoid",
+    "center": [
+     -55.0,
+     0.0,
+     60.0
+    ],
+    "size": [
+     30.0,
+     30.0,
+     40.0
+    ],
+    "radius": 4.0,
+    "axis": "z"
+   },
+   {
+    "kind": "capsule",
+    "center": [
+     55.0,
+     0.0,
+     55.0
+    ],
+    "size": [
+     25.0,
+     25.0,
+     60.0
+    ],
+    "radius": 4.0,
+    "axis": "z"
+   },
+   {
+    "kind": "capsule",
+    "center": [
+     0.0,
+     0.0,
+     110.0
+    ],
+    "size": [
+     15.0,
+     40.0,
+     40.0
+    ],
+    "radius": 4.0,
+    "axis": "y"
+   }
+  ],
+  "split": "none"
+ },
+ "decor": [
+  {
+   "at": [
+    -20.0,
+    75.0
+   ],
+   "color": "detail",
+   "type": "eye",
+   "style": "oval",
+   "size": [
+    12.0,
+    12.0
+   ],
+   "relief": "engrave",
+   "depth": 0.8
+  },
+  {
+   "at": [
+    20.0,
+    75.0
+   ],
+   "color": "detail",
+   "type": "eye",
+   "style": "oval",
+   "size": [
+    12.0,
+    12.0
+   ],
+   "relief": "engrave",
+   "depth": 0.8
+  },
+  {
+   "at": [
+    0.0,
+    50.0
+   ],
+   "color": "accent",
+   "type": "mouth",
+   "style": "smile",
+   "size": [
+    40.0,
+    20.0
+   ],
+   "relief": "engrave",
+   "depth": 0.8
+  }
+ ],
+ "features": [],
+ "behaviour": null,
+ "safety": {
+  "flags": [],
+  "notes": "Decorative printed-only object with no electronics. PETG is not food-safe and cannot be used with hot liquids."
+ },
+ "printed": {
+  "opening": "none",
+  "drain_hole": false
+ }
+}

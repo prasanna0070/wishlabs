@@ -57,13 +57,57 @@ def _r(v: float, n: int = 1) -> float:
     return round(float(v), n)
 
 
+def _feet_row(lib) -> Optional[dict]:
+    """The library row of the adhesive feet a printed object buys (normalize.planned_hardware's feet row)."""
+    from .normalize import PURCHASED_FEET
+
+    return lib.get(PURCHASED_FEET) if lib.has(PURCHASED_FEET) else next(iter(lib.by_role("feet")), None)
+
+
+FEET_EDGE_CLEAR = 2.0  # mm: cad/enclosure.feet_points seats a foot only (seat radius + this) inside the base outline
+
+
+def _feet_room(geom, feet: Optional[dict], z: float = 0.05, step: float = 1.0) -> tuple[Optional[bool], float]:
+    """Whether the body's section at the bed has a spot (seat radius + 2 mm) in from its edge, which the CAD needs to
+    seat the adhesive feet: it insets the base section by that much and places no foot at all when nothing is left
+    (cad/build.py, "feet: room for 0 of N feet on the base"), while the BOM still buys them, so the build then fails
+    at the manual (2026-11-21 live: a blob shark teapot with a small rounded base). Half a grid step of tolerance, so
+    only a base that clearly has no room is refused. Returns (room, needed mm); room is None when unknown."""
+    dm = (feet or {}).get("dims_mm") or {}
+    need = (float(dm.get("x", 7.9)) + 0.8) / 2.0 + FEET_EDGE_CLEAR
+    try:
+        import numpy as np
+
+        x0, x1, y0, y1, _, _ = geom.bbox
+        xs, ys = np.arange(x0, x1 + step, step), np.arange(y0, y1 + step, step)
+        m = np.array([[geom.outer_sdf(float(x), float(y), z) <= 0.0 for x in xs] for y in ys], dtype=bool)
+        if not m.any():
+            return None, need
+        H, W = m.shape
+        r_mm = need - step / 2.0
+        r = int(r_mm // step)
+        er = m.copy()
+        for dy in range(-r, r + 1):
+            for dx in range(-r, r + 1):
+                if (dx * dx + dy * dy) * step * step > r_mm * r_mm:
+                    continue
+                sh = np.zeros_like(m)
+                i0, i1, j0, j1 = max(0, -dy), H - max(0, dy), max(0, -dx), W - max(0, dx)
+                if i0 < i1 and j0 < j1:
+                    sh[i0:i1, j0:j1] = m[i0 + dy:i1 + dy, j0 + dx:j1 + dx]
+                er &= sh
+                if not er.any():
+                    return False, need
+        return True, need
+    except Exception:  # noqa: BLE001 - a pre-check only; the CAD stays the real gate
+        return None, need
+
+
 def _feet_hardware(sp: Spec, lib) -> list[DHardware]:
     """The only purchased part of a printed object: its adhesive feet (normalize.planned_hardware's feet row)."""
     if not getattr(sp.body, "feet", 0):
         return []
-    from .normalize import PURCHASED_FEET
-
-    feet = lib.get(PURCHASED_FEET) if lib.has(PURCHASED_FEET) else next(iter(lib.by_role("feet")), None)
+    feet = _feet_row(lib)
     if not feet:
         return []
     return [DHardware(id="Feet", name="adhesive bumper foot", qty=sp.body.feet, group="Feet", use="underside",
@@ -140,6 +184,15 @@ def normalize_printed(spec: Any, lib, raise_on_error: bool = False) -> tuple[Spe
             continue
         if geom.surface_depth("front", d.at[0], d.at[1]) is None:
             warnings.append(f"decor[{dk}] ({d.type}) at {list(d.at)} is outside the front silhouette")
+
+    # ---------------------------------------------------------------- feet need a base to sit on
+    nfeet = int(getattr(sp.body, "feet", 0) or 0)
+    if nfeet > 0:
+        room, need = _feet_room(geom, _feet_row(lib))
+        if room is False:
+            _err(errors, "body.feet", f"the base at the bed has no spot {need:.1f} mm in from its edge, so the {nfeet} "
+                 "adhesive feet cannot be seated (the CAD would place none while the parts list still buys them)",
+                 "set body.feet to 0 (the print stands on its own flat base), or widen the bottom of the body", "feet_room")
 
     # ---------------------------------------------------------------- derived (no electronics)
     hw = _feet_hardware(sp, lib)
