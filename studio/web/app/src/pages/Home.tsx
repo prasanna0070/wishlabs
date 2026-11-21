@@ -382,6 +382,7 @@ export function HomePage() {
                   <div className="proj-meta">
                     <div className="proj-name">
                       {p.showcase ? <span className="showcase-tag">Showcase</span> : null}
+                      {!isGuest && p.owner ? <span className="showcase-tag guest-tag">Guest</span> : null}
                       {p.name || "Untitled gadget"}
                     </div>
                     <div className="row small muted">

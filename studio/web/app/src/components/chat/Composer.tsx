@@ -31,6 +31,7 @@ export interface ComposerHandle {
 }
 
 export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabled?: boolean }>(function Composer({ placeholder, disabled }, ref) {
+  const isGuest = useAuth((s) => s.guest !== null); // magic-link guests design in Standard mode only
   const project = useProject((s) => s.project)!;
   const turn = useProject((s) => s.turn);
   const send = useProject((s) => s.send);
@@ -240,7 +241,7 @@ export const Composer = forwardRef<ComposerHandle, { placeholder: string; disabl
             </button>
           ) : null}
           <div className="grow" />
-          <ModeSelect value={project.mode || "pro"} onChange={(m) => void setMode(m)} up disabled={disabled} />
+          {isGuest ? null : <ModeSelect value={project.mode || "pro"} onChange={(m) => void setMode(m)} up disabled={disabled} />}
           <button
             className="send-btn"
             aria-label={running ? "Working" : uploading ? "Uploading the image" : "Send"}
