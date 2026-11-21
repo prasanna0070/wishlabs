@@ -25,6 +25,8 @@ SECRET_NAME = "gstudio-access-key"
 GUEST_PREFIX = "g_"                              # project.json "owner" of a project a magic-link guest made
 LABEL_RE = re.compile(r"[a-z0-9][a-z0-9-]{0,31}")
 GID_RE = re.compile(r"[0-9a-f]{24}")
+SIG_RE = re.compile(r"[0-9a-f]{64}")
+EXP_RE = re.compile(r"[0-9]{1,12}")                # ASCII digits only (str.isdigit also accepts "²")
 
 
 class KeyUnavailable(RuntimeError):
@@ -154,7 +156,7 @@ class SessionSigner:
         if len(parts) != 4 or parts[0] != "m1" or not magic_enabled():
             return None
         _, label, exp_s, sig = parts
-        if not LABEL_RE.fullmatch(label) or not exp_s.isdigit() or len(exp_s) > 12:
+        if not LABEL_RE.fullmatch(label) or not EXP_RE.fullmatch(exp_s) or not SIG_RE.fullmatch(sig):
             return None
         try:
             want = self._sig(self._magic_key(), f"m1.{label}.{exp_s}")
@@ -180,7 +182,8 @@ class SessionSigner:
         if len(parts) != 5 or parts[0] != "g1":
             return None
         _, exp_s, gid, label, sig = parts
-        if not exp_s.isdigit() or len(exp_s) > 12 or not GID_RE.fullmatch(gid) or not LABEL_RE.fullmatch(label):
+        if not (EXP_RE.fullmatch(exp_s) and GID_RE.fullmatch(gid) and LABEL_RE.fullmatch(label)
+                and SIG_RE.fullmatch(sig)):
             return None
         try:
             want = self._sig(self._mac_key(), f"g1.{exp_s}.{gid}.{label}")

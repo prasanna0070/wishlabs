@@ -127,7 +127,8 @@ def test_magic_link_signs_in_a_guest_with_its_own_id(app, team):
     assert team.get("/api/me").json()["kind"] == "team"
 
 
-@pytest.mark.parametrize("case", ["expired", "forged", "wrong_label", "other_key", "garbage", "cookie_as_link"])
+@pytest.mark.parametrize("case", ["expired", "forged", "wrong_label", "other_key", "garbage", "cookie_as_link",
+                                  "unicode"])
 def test_bad_links_sign_nobody_in(app, team, settings, tmp_path, case):
     good = mint(app)
     if case == "expired":
@@ -141,6 +142,9 @@ def test_bad_links_sign_nobody_in(app, team, settings, tmp_path, case):
         tok = create_app(make_settings(tmp_path / "o", access_key="another-key")).state.signer.mint_magic("jurors")
     elif case == "garbage":
         tok = "m1.jurors.notanumber.abc"
+    elif case == "unicode":                 # non-ASCII digits and signature: a 404, never a 500
+        v, label, exp, sig = good.split(".")
+        tok = ".".join([v, label, exp + "\u00b2", "\u00e9" * 64])
     else:   # a team session token is not a magic link
         tok = team.cookies.get(COOKIE)
     c = TestClient(app)
@@ -185,7 +189,7 @@ def test_forged_guest_cookie_is_refused(app, team):
     g = new_guest(app)
     v, exp, gid, label, sig = g.cookies.get(COOKIE).split(".")
     for bad in (f"g1.{exp}.{'0' * 24}.{label}.{sig}", f"g1.{int(exp) + 9}.{gid}.{label}.{sig}",
-                f"g1.{exp}.{gid}.press.{sig}", f"v1.{exp}.{gid}.{sig}"):
+                f"g1.{exp}.{gid}.press.{sig}", f"v1.{exp}.{gid}.{sig}", f"g1.{exp}.{gid}.{label}.{'Z' * 64}"):
         c = TestClient(app)
         c.cookies.set(COOKIE, bad)
         assert c.get("/api/me").status_code == 401, bad
