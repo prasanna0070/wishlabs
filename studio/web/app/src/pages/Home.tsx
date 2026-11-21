@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowUp, Box, CloudRain, LogOut, Mic, Moon, Paperclip, Sprout, Trash2, Eye, ImagePlus } from "lucide-react";
 import { api } from "../lib/api";
 import type { Mode, ProjectSummary, Upload } from "../lib/types";
+import { GuestNote } from "../components/GuestNote";
 import { stageLabel, timeAgo } from "../lib/format";
 import { useAuth } from "../store/auth";
 import { Logo, Spinner, Dropdown } from "../components/ui";
@@ -41,6 +42,16 @@ export function HomePage() {
   const loc = useLocation();
   const setAuthed = useAuth((s) => s.setAuthed);
   const voiceOff = useAuth((s) => s.voiceOff);
+  const guest = useAuth((s) => s.guest);
+  const setGuest = useAuth((s) => s.setGuest);
+  const isGuest = guest !== null;
+  useEffect(() => {
+    if (!isGuest) return; // a guest's limits change as it works: fresh numbers each time the list shows
+    api.session().then(
+      (r) => r?.kind === "guest" && r.guest && setGuest(r.guest),
+      () => {},
+    );
+  }, [isGuest, setGuest]);
   const wishTaken = useRef(false);
 
   // A wish from the landing page (?wish=..., or kept through sign-in) fills the composer. It is never sent for the
@@ -146,15 +157,19 @@ export function HomePage() {
       <header className="home-top">
         <Logo />
         <div className="grow" />
-        <button
-          className="btn ghost sm"
-          onClick={async () => {
-            await api.logout().catch(() => {});
-            setAuthed(false);
-          }}
-        >
-          <LogOut size={15} /> Sign out
-        </button>
+        {guest ? (
+          <GuestNote guest={guest} />
+        ) : (
+          <button
+            className="btn ghost sm"
+            onClick={async () => {
+              await api.logout().catch(() => {});
+              setAuthed(false);
+            }}
+          >
+            <LogOut size={15} /> Sign out
+          </button>
+        )}
       </header>
 
       <section className="hero">
@@ -164,7 +179,7 @@ export function HomePage() {
           <span className="shape s3" />
           <span className="shape s4" />
         </div>
-        <h1>What will you make today?</h1>
+        <h1>{isGuest ? "Make your own wish" : "What will you make today?"}</h1>
         <p className="muted hero-sub">From an idea to a printed shell, a circuit board, firmware and a delivered price in India.</p>
         <form
           className={`home-composer${drag ? " drag" : ""}`}
@@ -248,7 +263,7 @@ export function HomePage() {
               </button>
             )}
             <div className="grow" />
-            <ModeSelect value={mode} onChange={setMode} />
+            {isGuest ? null : <ModeSelect value={mode} onChange={setMode} />}
             <button className="send-btn" aria-label="Start" disabled={(!text.trim() && !images.length) || busy}>
               {busy ? <Spinner /> : <ArrowUp size={18} />}
             </button>
@@ -340,9 +355,14 @@ export function HomePage() {
 
       <section className="projects">
         <div className="row" style={{ marginBottom: 14 }}>
-          <h2 style={{ fontSize: 18 }}>Your projects</h2>
+          <h2 style={{ fontSize: 18 }}>{isGuest ? "Showcases and your projects" : "Your projects"}</h2>
           <span className="muted small">{projects ? `${projects.length}` : ""}</span>
         </div>
+        {isGuest ? (
+          <p className="muted small guest-help">
+            Open a showcase to see a finished gadget, view only. Describe your own above to make one.
+          </p>
+        ) : null}
         {projects === null ? (
           <div className="row muted">
             <Spinner /> Loading
@@ -354,13 +374,17 @@ export function HomePage() {
         ) : (
           <div className="proj-grid">
             {projects.map((p) => (
-              <div key={p.id} className="proj-card">
+              <div key={p.id} className={`proj-card${p.showcase ? " is-showcase" : ""}`}>
                 <Link to={`/p/${p.id}`} className="proj-link" aria-label={`Open ${p.name}`}>
                   <div className="proj-thumb">
                     {p.thumb_url ? <img src={p.thumb_url} alt="" loading="lazy" /> : <Box size={34} strokeWidth={1.4} />}
                   </div>
                   <div className="proj-meta">
-                    <div className="proj-name">{p.name || "Untitled gadget"}</div>
+                    <div className="proj-name">
+                      {p.showcase ? <span className="showcase-tag">Showcase</span> : null}
+                      {!isGuest && p.owner ? <span className="showcase-tag guest-tag">Guest</span> : null}
+                      {p.name || "Untitled gadget"}
+                    </div>
                     <div className="row small muted">
                       <span className={`dot-stage ${p.stage}`} /> {stageLabel(p.stage)}
                       {p.current_version ? <span>· v{p.current_version}</span> : null}
@@ -369,6 +393,7 @@ export function HomePage() {
                     </div>
                   </div>
                 </Link>
+                {p.showcase ? null : (
                 <Dropdown
                   align="right"
                   trigger={({ toggle }) => (
@@ -389,6 +414,7 @@ export function HomePage() {
                     </button>
                   )}
                 </Dropdown>
+                )}
               </div>
             ))}
           </div>

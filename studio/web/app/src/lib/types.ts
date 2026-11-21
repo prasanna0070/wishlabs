@@ -195,6 +195,7 @@ export interface Project {
   order_requests?: OrderRequest[];
   share?: { token: string; created: string } | null;
   read_only?: boolean;
+  showcase?: boolean; // a magic-link guest viewing a showcase: read-only (server app/guest.py)
   image_brief?: ImageBrief | null; // what the agent read from the starting image(s)
   share_uploads?: boolean; // the owner lets share links show the uploaded images (missing = false)
   uploads?: (Upload & { source_mime?: string; created?: string })[]; // owner JSON: every upload, oldest first
@@ -208,6 +209,15 @@ export interface ProjectSummary {
   stage: Stage;
   current_version?: number | null;
   thumb_url?: string | null;
+  showcase?: boolean; // a guest's list: a showcase (read-only), listed first
+  owner?: string; // a project a magic-link guest made
+}
+
+/** A magic-link guest's day (GET /api/session, /api/me): what is left of each daily limit. */
+export interface GuestInfo {
+  left: { projects: number; turns: number; builds: number; voice: number; sound: number };
+  limits: { projects: number; turns: number; builds: number; voice: number; sound: number };
+  day: string;
 }
 
 export interface FileEntry {

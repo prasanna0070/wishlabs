@@ -79,8 +79,13 @@ async def load_project(request: Request, pid: str, reconcile: bool = True) -> di
         p = await svc.repo.aget(pid)
     except NotFound:
         raise err(404, "not_found", "Project not found.") from None
-    if reconcile:
-        p = await svc.builds.reconcile(p)
+    from ..auth import current_session
+    from ..guest import ACTING, owns
+
+    gs = current_session(request)
+    ACTING.set(gs)                          # builds this request starts are charged by it (guest.build_owner)
+    if reconcile:                           # a guest reading a showcase never starts an AI call (as a share visit)
+        p = await svc.builds.reconcile(p, auto_sound=not (gs is not None and gs.guest and not owns(gs, p)))
     return p
 
 
@@ -154,7 +159,7 @@ def shared_view(p: dict) -> dict:
     token = (p.get("share") or {}).get("token")
     # "uploads" (every image ever uploaded, sent or not, with file names) never goes out: the SPA builds image URLs
     # from the messages' attachments, and the share route serves only those
-    q = {k: v for k, v in p.items() if k not in ("order_requests", "share", "turn", "device", "uploads")}
+    q = {k: v for k, v in p.items() if k not in ("order_requests", "share", "turn", "device", "uploads", "owner")}
     if q.get("share_uploads") is not True:      # the owner's images stay private unless shared (app/uploads.py)
         from ..uploads import hide_uploads
 

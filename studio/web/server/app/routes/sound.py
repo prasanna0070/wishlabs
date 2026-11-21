@@ -107,10 +107,18 @@ async def sound_compose(request: Request, pid: str):
             raise err(422, "invalid", "version must be a version number") from None
     svc = svc_of(request)
     c = sound_composer(svc)
-    await load_project(request, pid, reconcile=False)
+    p0 = await load_project(request, pid, reconcile=False)
+    from ..guest import charge_owner, quota_of
+
+    from ..auth import current_session
+
+    gs = current_session(request)               # a guest's daily sound limit (the team has none)
+    charged = await asyncio.to_thread(charge_owner, svc, p0.get("owner") if gs and gs.guest else None, "sound")
     try:
         await c.start(pid, n, trigger="user", session=session_key(request))
     except SoundError as e:
+        if charged:
+            await asyncio.to_thread(quota_of(svc).refund, p0["owner"], "sound")
         raise err(e.status, e.code, str(e)) from None
     except NotFound:
         raise err(404, "not_found", "Project not found.") from None

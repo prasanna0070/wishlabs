@@ -31,7 +31,17 @@ fi
 # env var: SHARE_URL (the sign-in page's "See a real build" link, hidden when empty; pass
 # SHARE_URL=https://.../studio/s/<token> to set it) and LIVE_ALLOWED_ORIGINS (set by hand in an emergency with
 # gcloud run services update --update-env-vars, see docs/hackathon/DEPLOY-TONIGHT.md).
-LIVE_ENV_JSON=$(gcloud run services describe $SVC --region=$REGION --project=$P --format=json 2>/dev/null || true)
+# Fail closed: when the describe call fails (expired gcloud auth, a network blip) every kept value would come back empty
+# and the redeploy would silently drop MAGIC_REVOKED, MAGIC_LINKS=off and SHOWCASE_PROJECTS. Only a first deploy
+# (the service does not exist yet) may go on without them: FIRST_DEPLOY=1 bash studio/deploy/web.sh
+if ! LIVE_ENV_JSON=$(gcloud run services describe $SVC --region=$REGION --project=$P --format=json 2>/dev/null); then
+  if [ "${FIRST_DEPLOY:-}" != "1" ]; then
+    echo "could not read the live $SVC service (gcloud auth? network?), so its kept env vars (magic-link revocations," >&2
+    echo "showcases, packs) would be lost. Fix gcloud and retry; on a first deploy set FIRST_DEPLOY=1." >&2
+    exit 1
+  fi
+  LIVE_ENV_JSON=""
+fi
 live_env() {
   printf '%s' "$LIVE_ENV_JSON" | python3 -c 'import json, sys
 try:
@@ -42,6 +52,23 @@ except Exception:
 }
 SHARE_URL=${SHARE_URL:-$(live_env SHARE_URL)}
 LIVE_ALLOWED_ORIGINS=${LIVE_ALLOWED_ORIGINS:-$(live_env LIVE_ALLOWED_ORIGINS)}
+# The same for the design packs (GS_PACKS_ENABLED, GS_PACKS_OFF), the guest showcases (SHOWCASE_PROJECTS=p_a+p_b) and
+# the magic-link switches and guest limits (app/guest.py): a redeploy must never drop a revoked label (MAGIC_REVOKED)
+# or the off switch (MAGIC_LINKS=off). A value set in this shell wins. '+' separates list values; no commas.
+KEPT=""
+for k in GS_PACKS_ENABLED GS_PACKS_OFF SHOWCASE_PROJECTS MAGIC_LINKS MAGIC_REVOKED GUEST_IDS_PER_IP_HOUR \
+         GUEST_DAILY_PROJECTS GUEST_DAILY_TURNS GUEST_DAILY_BUILDS GUEST_DAILY_VOICE GUEST_DAILY_SOUND \
+         GUEST_DAILY_PREVIEWS GUEST_DAILY_NAMES GUESTS_DAILY_PROJECTS GUESTS_DAILY_TURNS GUESTS_DAILY_BUILDS \
+         GUESTS_DAILY_VOICE GUESTS_DAILY_SOUND GUESTS_DAILY_PREVIEWS GUESTS_DAILY_NAMES; do
+  v="${!k:-$(live_env "$k")}"
+  [ -n "$v" ] || continue
+  case "$v" in *,*) echo "$k must not contain a comma (use + between list values): $k" >&2; exit 1 ;; esac
+  KEPT="$KEPT,$k=$v"
+done
+[ -z "$KEPT" ] || echo "kept from the live service or this shell: $(printf '%s' "${KEPT#,}" | sed 's/=[^,]*//g')"
+# the magic-link switches are not secret: print them so a dropped revocation is visible before the deploy goes out
+echo "magic links: MAGIC_LINKS=${MAGIC_LINKS:-$(live_env MAGIC_LINKS)} MAGIC_REVOKED=${MAGIC_REVOKED:-$(live_env MAGIC_REVOKED)}" \
+  "SHOWCASE_PROJECTS=${SHOWCASE_PROJECTS:-$(live_env SHOWCASE_PROJECTS)}"
 
 # MAJ-33: story_player builds carry name_audio_url = $PUBLIC_URL/api/device/<token>/name-audio (empty on a first deploy)
 PUBLIC_URL=${PUBLIC_URL:-$(gcloud run services describe $SVC --region=$REGION --project=$P \
@@ -69,7 +96,7 @@ gcloud run deploy $SVC --project=$P --region=$REGION --image=$IMAGE \
   --service-account=$SA --allow-unauthenticated \
   --cpu=1 --memory=1Gi --no-cpu-throttling --min-instances=0 --max-instances=3 --concurrency=40 \
   --timeout=3600 --execution-environment=gen2 \
-  --set-env-vars="BUILDER=remote,BUILDER_URL=$BUILDER_URL,BUCKET=$BUCKET,AGENT=gemini,GOOGLE_CLOUD_PROJECT=$P${PUBLIC_URL:+,PUBLIC_URL=$PUBLIC_URL}${SHARE_URL:+,SHARE_URL=$SHARE_URL}$KNOBS" \
+  --set-env-vars="BUILDER=remote,BUILDER_URL=$BUILDER_URL,BUCKET=$BUCKET,AGENT=gemini,GOOGLE_CLOUD_PROJECT=$P${PUBLIC_URL:+,PUBLIC_URL=$PUBLIC_URL}${SHARE_URL:+,SHARE_URL=$SHARE_URL}$KEPT$KNOBS" \
   --set-secrets="ACCESS_KEY=gstudio-access-key:latest"
 URL=$(gcloud run services describe $SVC --region=$REGION --project=$P --format='value(status.url)')
 echo "deployed: $URL"

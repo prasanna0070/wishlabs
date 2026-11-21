@@ -25,16 +25,18 @@ export function App() {
   const setAuthed = useAuth((s) => s.setAuthed);
   const setShareUrl = useAuth((s) => s.setShareUrl);
   const setVoiceOff = useAuth((s) => s.setVoiceOff);
+  const setGuest = useAuth((s) => s.setGuest);
   useEffect(() => {
     api.session().then(
       (r) => {
         setShareUrl(safeShareUrl(r?.share_url));
         setVoiceOff(r?.voice === false);
+        setGuest(r?.authenticated && r.kind === "guest" && r.guest ? r.guest : null);
         setAuthed(!!r?.authenticated);
       },
       () => setAuthed(false),
     );
-  }, [setAuthed, setShareUrl, setVoiceOff]);
+  }, [setAuthed, setShareUrl, setVoiceOff, setGuest]);
   return (
     <BrowserRouter basename={STUDIO_BASE || "/"}>
       <Routes>

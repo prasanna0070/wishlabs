@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { ArrowDown, PanelLeftClose, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { useProject } from "../../store/project";
 import { useUI } from "../../store/ui";
@@ -195,9 +196,23 @@ export function ChatPanel({
             <Composer ref={composer} placeholder={empty ? "Describe what you want to make..." : "Add a detail, or ask anything..."} />
           </div>
         </div>
+      ) : project.showcase ? (
+        <ShowcaseBanner />
       ) : (
         <div className="chat-bottom ro muted small">This is a read-only shared view.</div>
       )}
     </section>
+  );
+}
+
+/** A magic-link guest inside a showcase: no composer, a way to make its own wish instead (server app/guest.py). */
+export function ShowcaseBanner() {
+  return (
+    <div className="chat-bottom ro showcase-banner small" role="status">
+      <span>Showcase: view only.</span>{" "}
+      <Link to="/" className="showcase-cta">
+        Make your own wish
+      </Link>
+    </div>
   );
 }

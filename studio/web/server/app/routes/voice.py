@@ -35,7 +35,8 @@ async def voice_live(ws: WebSocket):
     app.state.voice_cfg = cfg
     svc = app.state.svc
     cookie = ws.cookies.get(COOKIE)
-    if app.state.signer.verify(cookie) is None:
+    gs = app.state.signer.session(cookie)
+    if gs is None:
         await ws.close(code=4401)                  # handshake refused: not signed in
         return
     if not origin_ok(ws.headers.get("origin"), ws.headers.get("x-forwarded-host") or ws.headers.get("host"), cfg,
@@ -78,7 +79,25 @@ async def voice_live(ws: WebSocket):
             await fail("invalid", "Send a start message first.")
             return
         connect = getattr(app.state, "voice_connect", None) or vertex_live
+        if gs.guest:                               # a magic-link guest: its daily voice limit (app/guest.py), charged
+            from ..guest import LimitReached, quota_of   # only once the call is admitted and has a valid start
+
+            try:
+                await asyncio.to_thread(quota_of(svc).charge, gs.owner, "voice")
+            except LimitReached as e:
+                await fail("limit", e.message)
+                return
+        if gs.guest:                               # Standard mode; only its own project can be the target
+            opts = {**opts, "mode": "fast"}
+            tp = str(opts.get("project_id") or "")
+            try:
+                own = bool(tp) and (await svc.repo.aget(tp)).get("owner") == gs.owner
+            except Exception:  # noqa: BLE001 - NotFound or a bad id: no target
+                own = False
+            if not own:
+                opts.pop("project_id", None)
         session = VoiceSession(ws, app, svc, cfg, connect, opts)
+        session.owner = gs.owner
         ticket.session = session
         reason = await session.run()
         log.info("voice session ended: %s", reason)

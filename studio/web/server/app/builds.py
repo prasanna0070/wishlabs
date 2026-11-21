@@ -52,7 +52,25 @@ class BuildManager:
         return self.svc.repo
 
     # ------------------------------------------------------------------ start
-    async def start(self, pid: str, spec: dict, *, source: str, label: str, brief: dict | None = None,
+    async def start(self, pid: str, spec: dict, **kw) -> tuple[dict, dict]:
+        """_start, with a magic-link guest's daily build limit (app/guest.py) charged first and refunded when the
+        build does not start. Every build path (agent, tweak, restore, story audio, voice) comes through here."""
+        from .guest import build_owner, quota_of
+
+        try:
+            owner = build_owner(await self.repo.aget(pid))
+        except NotFound:
+            owner = None
+        if owner:
+            await asyncio.to_thread(quota_of(self.svc).charge, owner, "builds")
+        try:
+            return await self._start(pid, spec, **kw)
+        except BaseException:
+            if owner:
+                await asyncio.to_thread(quota_of(self.svc).refund, owner, "builds")
+            raise
+
+    async def _start(self, pid: str, spec: dict, *, source: str, label: str, brief: dict | None = None,
                     base_version: int | None = None, extra_messages: list[dict] | None = None,
                     copy_from: int | None = None, seed_from: int | None = None, options: dict | None = None,
                     changes: list[dict] | None = None, change_text: str | None = None,

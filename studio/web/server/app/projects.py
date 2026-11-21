@@ -87,7 +87,7 @@ def summary_of(p: dict) -> dict:
         thumb = p["uploads"][0].get("thumb_url")
     return {"id": p["id"], "name": p["name"], "created": p["created"], "updated": p["updated"],
             "stage": p["stage"], "current_version": p.get("current_version"), "thumb_url": thumb,
-            **measured_waits(p)}
+            **({"owner": p["owner"]} if p.get("owner") else {}), **measured_waits(p)}
 
 
 def measured_waits(p: dict) -> dict:
@@ -126,8 +126,10 @@ class ProjectRepo:
             raise NotFound(pid)
         return p
 
-    def create(self, name: str | None = None, mode: str | None = None) -> dict:
+    def create(self, name: str | None = None, mode: str | None = None, owner: str | None = None) -> dict:
         p = blank_project(name, mode)
+        if owner:                       # a magic-link guest's project (app/guest.py): only that guest sees it
+            p["owner"] = owner
         self.store.write_json(pkey(p["id"]), p)
         return p
 
