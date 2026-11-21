@@ -76,7 +76,7 @@ def _room():
 
 def test_small_kit_add_in_the_plate_room_is_trimmed_clear():
     room = _room()
-    add = cq.Solid.makeBox(12.0, 3.0, 20.0, cq.Vector(-6.0, -42.0, 3.4))  # 0.9 mm into the room, like the speaker cup
+    add = cq.Solid.makeBox(12.0, 3.0, 20.0, cq.Vector(-6.0, -45.0, 3.4))  # 1 x 0.9 mm into the room, like the speaker cup
     out, recs = trim_adds_at_plate([_kit([add])], room, T_BP + 0.8)
     assert recs and recs[0]["trimmed"] is True and 0 < recs[0]["in_room_mm3"] <= PLATE_TRIM_MAX_MM3
     assert out[0].intersect(room).Volume() < 1e-6
