@@ -150,8 +150,35 @@ class SessionSigner:
         body = f"m1.{label}.{exp}"
         return f"{body}.{self._sig(self._magic_key(), body)}"
 
+    # The link submitted to the Buildathon form on 21 Nov 2026 (it closed at 08:00 IST) was minted by 1159cbc as 32 hex
+    # chars: HMAC(session mac key, "magic-link-v1:jurors"). The form cannot be edited, so that exact link must keep
+    # working, but only as a GUEST link for the label "jurors" (showcases + own projects + limits), never a team session.
+    LEGACY_LABEL = "jurors"
+    LEGACY_UNTIL = 1797379200  # 2026-12-16 00:00 UTC: after the 2 Dec finale
+
+    def _legacy_magic(self, token: str | None, now: float | None = None) -> tuple[str, int] | None:
+        """("jurors", LEGACY_UNTIL) for the submitted 32-hex link while magic links are on and "jurors" is not revoked.
+        MAGIC_LEGACY_TOKENS (+-separated) pins extra accepted values, so rotating the access key need not break it."""
+        t = (token or "").strip().lower()
+        if not re.fullmatch(r"[0-9a-f]{32}", t) or not magic_enabled():
+            return None
+        if self.LEGACY_LABEL in revoked_labels() or (now or time.time()) >= self.LEGACY_UNTIL:
+            return None
+        pinned = [x for x in re.split(r"[+,\s]+", (os.environ.get("MAGIC_LEGACY_TOKENS") or "").strip().lower()) if x]
+        try:
+            derived = hmac.new(self._mac_key(), f"magic-link-v1:{self.LEGACY_LABEL}".encode(), hashlib.sha256).hexdigest()[:32]
+        except KeyUnavailable:
+            derived = None
+        cands = pinned + ([derived] if derived else [])
+        if not any(hmac.compare_digest(t.encode(), c.encode()) for c in cands):
+            return None
+        return self.LEGACY_LABEL, self.LEGACY_UNTIL
+
     def check_magic(self, token: str | None, now: float | None = None) -> tuple[str, int] | None:
         """(label, exp) for a valid, unexpired, unrevoked magic token while magic links are on; else None."""
+        legacy = self._legacy_magic(token, now)
+        if legacy is not None:
+            return legacy
         parts = (token or "").split(".")
         if len(parts) != 4 or parts[0] != "m1" or not magic_enabled():
             return None
