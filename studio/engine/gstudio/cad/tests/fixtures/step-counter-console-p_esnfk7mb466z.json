@@ -1,0 +1,601 @@
+{
+ "schema": "gadget-spec/1",
+ "name": "Step Counter Console",
+ "slug": "step-counter-console",
+ "tagline": "A dual-level clinical counter console with physical controls separated from the main screen",
+ "audience": {
+  "child_directed": false,
+  "age_years": null
+ },
+ "region": "IN",
+ "colors": {
+  "body": "#4A7A96",
+  "accent": "#F2EFE8",
+  "detail": "#212529",
+  "body_name": "clinical blue",
+  "accent_name": "warm alabaster",
+  "detail_name": "charcoal"
+ },
+ "body": {
+  "wall": 2.4,
+  "edge_round": 10.0,
+  "feet": 4,
+  "family": "silhouette",
+  "outline": [
+   [
+    -85.0,
+    0.0
+   ],
+   [
+    85.0,
+    0.0
+   ],
+   [
+    85.0,
+    50.0
+   ],
+   [
+    55.0,
+    50.0
+   ],
+   [
+    55.0,
+    110.0
+   ],
+   [
+    -55.0,
+    110.0
+   ],
+   [
+    -55.0,
+    50.0
+   ],
+   [
+    -85.0,
+    50.0
+   ]
+  ],
+  "depth": 130.0,
+  "split": "base_plate"
+ },
+ "decor": [],
+ "features": [
+  {
+   "id": "screen",
+   "module": "LCD_200_ST7789_240X320_WAVESHARE",
+   "face": "front",
+   "at": [
+    0.0,
+    72.0
+   ],
+   "label": "Patient queue display",
+   "grille": null,
+   "rotate": 0
+  },
+  {
+   "id": "btn_checkin",
+   "module": "BUTTON_ARCADE_30MM_SNAPIN",
+   "face": "front",
+   "at": [
+    -65.0,
+    25.0
+   ],
+   "label": "Check-In Button",
+   "grille": null,
+   "rotate": 0
+  },
+  {
+   "id": "btn_help",
+   "module": "BUTTON_ARCADE_30MM_SNAPIN",
+   "face": "front",
+   "at": [
+    65.0,
+    25.0
+   ],
+   "label": "Help Button",
+   "grille": null,
+   "rotate": 0
+  },
+  {
+   "id": "status_led",
+   "module": "LED_WS2812B_1PX_MODULE",
+   "face": "front",
+   "at": [
+    0.0,
+    104.0
+   ],
+   "label": "Status light",
+   "grille": null,
+   "rotate": 0
+  },
+  {
+   "id": "chime",
+   "module": "BUZZER_PASSIVE_TRANSISTOR_MODULE",
+   "face": "rear",
+   "at": [
+    0.0,
+    50.0
+   ],
+   "label": "Tone emitter",
+   "grille": null,
+   "rotate": 0
+  }
+ ],
+ "electronics": {
+  "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+  "extra_modules": [],
+  "power": {
+   "input": "usb_c_5v",
+   "adapter_in_box": false
+  }
+ },
+ "behaviour": {
+  "template": "notifier_clock",
+  "summary": "Keeps track of daily check-ins and appointment slots, displaying them on the elevated screen. Patients interact with the robust arcade buttons on the side wings.",
+  "settings": {
+   "servo_rest_deg": 0,
+   "servo_speed_deg_s": 120,
+   "volume_default": 35,
+   "volume_max": 60,
+   "long_press_ms": 600,
+   "led_max_percent": 45,
+   "network": "parent_page",
+   "setup_hotspot_minutes": 15,
+   "mic_gain_shift": 13,
+   "timezone": "IST-5:30",
+   "ntp_server": "in.pool.ntp.org",
+   "clock_24h": true,
+   "quiet_hours_start": "22:00",
+   "quiet_hours_end": "07:00",
+   "notification_chime": true,
+   "ring_brightness": 30,
+   "default_notice_minutes": 60,
+   "schedule": [
+    {
+     "time": "09:00",
+     "text": "Morning slots open"
+    },
+    {
+     "time": "13:00",
+     "text": "Lunch break interval"
+    }
+   ],
+   "servo_on_notice": true,
+   "servo_open_deg": 90,
+   "servo_hold_s": 3
+  }
+ },
+ "safety": {
+  "flags": [],
+  "notes": "Separate touch area prevents accidental tipping. Non-slip feet for high-traffic reception desks."
+ },
+ "derived": {
+  "engine_version": "0.1.0",
+  "size_mm": [
+   198.7,
+   130.0,
+   139.0
+  ],
+  "bbox": [
+   -99.3,
+   99.3,
+   -65.0,
+   65.0,
+   0.0,
+   139.0
+  ],
+  "instances": [
+   {
+    "ref": "U1",
+    "module": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "role": "core",
+    "name": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+    "source": "core",
+    "feature": null,
+    "slot": "U1",
+    "face": null,
+    "position": [
+     1.0,
+     36.0,
+     17.5
+    ],
+    "qty": 1,
+    "reason": "",
+    "required_by": null,
+    "harness": null
+   },
+   {
+    "ref": "BP1",
+    "module": "BACKPLANE_V1",
+    "role": "backplane",
+    "name": "Standard backplane PCB backplane-v1 (ours)",
+    "source": "implied",
+    "feature": null,
+    "slot": null,
+    "face": null,
+    "position": [
+     0.0,
+     19.6,
+     11.5
+    ],
+    "qty": 1,
+    "reason": "standard core cartridge",
+    "required_by": null,
+    "harness": null
+   },
+   {
+    "ref": "PWR1",
+    "module": "USBC_RECEPTACLE_GCT_USB4105",
+    "role": "power_in",
+    "name": "USB-C 2.0 receptacle on backplane (5V sink, CC 5.1k Rd)",
+    "source": "implied",
+    "feature": null,
+    "slot": "J_PWR",
+    "face": null,
+    "position": [
+     0.0,
+     55.0,
+     17.5
+    ],
+    "qty": 1,
+    "reason": "USB-C 5 V input on the backplane",
+    "required_by": null,
+    "harness": null
+   },
+   {
+    "ref": "DISP1",
+    "module": "LCD_200_ST7789_240X320_WAVESHARE",
+    "role": "display",
+    "name": "2.0 in IPS colour LCD 240x320, ST7789V, SPI, PH2.0 8-pin",
+    "source": "feature",
+    "feature": "screen",
+    "slot": "J_DISP",
+    "face": "front",
+    "position": [
+     0.0,
+     -52.6,
+     72.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "required_by": null,
+    "harness": "H1"
+   },
+   {
+    "ref": "BTN1",
+    "module": "BUTTON_ARCADE_30MM_SNAPIN",
+    "role": "button",
+    "name": "Big 30 mm snap-in arcade push button (microswitch)",
+    "source": "feature",
+    "feature": "btn_checkin",
+    "slot": "J_IO1",
+    "face": "front",
+    "position": [
+     -65.0,
+     -38.6,
+     25.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "required_by": null,
+    "harness": "H2"
+   },
+   {
+    "ref": "BTN2",
+    "module": "BUTTON_ARCADE_30MM_SNAPIN",
+    "role": "button",
+    "name": "Big 30 mm snap-in arcade push button (microswitch)",
+    "source": "feature",
+    "feature": "btn_help",
+    "slot": "J_IO2",
+    "face": "front",
+    "position": [
+     65.0,
+     -38.6,
+     25.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "required_by": null,
+    "harness": "H3"
+   },
+   {
+    "ref": "LED1",
+    "module": "LED_WS2812B_1PX_MODULE",
+    "role": "led",
+    "name": "Addressable RGB LED, single WS2812B 5050 on a mini board",
+    "source": "feature",
+    "feature": "status_led",
+    "slot": "J_LED",
+    "face": "front",
+    "position": [
+     0.0,
+     -56.0,
+     104.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "required_by": null,
+    "harness": "H4"
+   },
+   {
+    "ref": "BZ1",
+    "module": "BUZZER_PASSIVE_TRANSISTOR_MODULE",
+    "role": "buzzer",
+    "name": "Passive buzzer module with transistor driver (low-level trigger)",
+    "source": "feature",
+    "feature": "chime",
+    "slot": "J_IO3",
+    "face": "rear",
+    "position": [
+     0.0,
+     52.1,
+     50.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "required_by": null,
+    "harness": "H5"
+   },
+   {
+    "ref": "CBL1",
+    "module": "CABLE_USBC_C2C_1M",
+    "role": "usb_cable",
+    "name": "USB-C to USB-C cable, 1 m, USB 2.0",
+    "source": "implied",
+    "feature": null,
+    "slot": null,
+    "face": null,
+    "position": null,
+    "qty": 1,
+    "reason": "USB-C cable in the box",
+    "required_by": null,
+    "harness": null
+   }
+  ],
+  "harness": [
+   {
+    "id": "H1",
+    "ref": "DISP1",
+    "slot": "J_DISP",
+    "kind": "jst_ph",
+    "cable": "JST-PH 2.0 8p 200 mm",
+    "pins": 8,
+    "length_mm": 200,
+    "distance_mm": 173.0,
+    "module": "CABLE_JSTPH_8P_200",
+    "module_end": "jst_ph",
+    "module_end_family": "jst_ph",
+    "sku": "GS-H-PH8-PH8-200",
+    "drawing": "GS-H-PH8-PH8",
+    "made_to_drawing": false,
+    "crossed": false,
+    "match": "exact",
+    "module_end_order": [
+     "VCC",
+     "GND",
+     "DIN",
+     "CLK",
+     "CS",
+     "DC",
+     "RST",
+     "BL"
+    ]
+   },
+   {
+    "id": "H2",
+    "ref": "BTN1",
+    "slot": "J_IO1",
+    "kind": "jst_ph",
+    "cable": "JST-PH 2.0 3p 150 mm",
+    "pins": 3,
+    "length_mm": 150,
+    "distance_mm": 117.8,
+    "module": "CABLE_JSTPH_3P_SPADE28_150",
+    "module_end": "spade_2.8",
+    "module_end_family": "spade_2.8",
+    "sku": "GS-H-PH3-SP28-150",
+    "drawing": "GS-H-PH3-SP28",
+    "made_to_drawing": true,
+    "crossed": false,
+    "match": "exact",
+    "module_end_order": [
+     "COM",
+     "NO"
+    ]
+   },
+   {
+    "id": "H3",
+    "ref": "BTN2",
+    "slot": "J_IO2",
+    "kind": "jst_ph",
+    "cable": "JST-PH 2.0 3p 150 mm",
+    "pins": 3,
+    "length_mm": 150,
+    "distance_mm": 147.1,
+    "module": "CABLE_JSTPH_3P_SPADE28_150",
+    "module_end": "spade_2.8",
+    "module_end_family": "spade_2.8",
+    "sku": "GS-H-PH3-SP28-150",
+    "drawing": "GS-H-PH3-SP28",
+    "made_to_drawing": true,
+    "crossed": false,
+    "match": "exact",
+    "module_end_order": [
+     "COM",
+     "NO"
+    ]
+   },
+   {
+    "id": "H4",
+    "ref": "LED1",
+    "slot": "J_LED",
+    "kind": "jst_xh",
+    "cable": "JST-XH 2.5 3p 200 mm",
+    "pins": 3,
+    "length_mm": 200,
+    "distance_mm": 181.4,
+    "module": "CABLE_JSTXH_3P_200",
+    "module_end": "factory_prewired",
+    "module_end_family": "factory_prewired",
+    "sku": "GS-H-XH3-XH3-200",
+    "drawing": "GS-H-XH3-XH3",
+    "made_to_drawing": false,
+    "crossed": false,
+    "match": "exact",
+    "module_end_order": [
+     "5V",
+     "GND",
+     "DIN",
+     "DOUT"
+    ]
+   },
+   {
+    "id": "H5",
+    "ref": "BZ1",
+    "slot": "J_IO3",
+    "kind": "jst_ph",
+    "cable": "JST-PH 2.0 3p 150 mm",
+    "pins": 3,
+    "length_mm": 150,
+    "distance_mm": 145.1,
+    "module": "CABLE_JSTPH_3P_DUPONT1X3_150_X231",
+    "module_end": "dupont_2.54",
+    "module_end_family": "dupont_2.54",
+    "sku": "GS-H-PH3-D1X3-X231-150",
+    "drawing": "GS-H-PH3-D1X3-X231",
+    "made_to_drawing": true,
+    "crossed": true,
+    "match": "exact",
+    "module_end_order": [
+     "VCC",
+     "I/O",
+     "GND"
+    ]
+   }
+  ],
+  "hardware": [
+   {
+    "id": "CartridgeScrews",
+    "name": "M2.5 x 5 mm socket head screw",
+    "qty": 4,
+    "use": "backplane to the 4 cartridge bosses",
+    "module": "SCREW_M2_5X5_SHCS_A2",
+    "catalog_row": "09",
+    "group": "CartridgeScrews",
+    "size": "M2.5x5",
+    "qty_basis": "planned",
+    "length_mm": 5.0
+   },
+   {
+    "id": "PlateScrews",
+    "name": "M2.5 x 12 mm socket head screw",
+    "qty": 4,
+    "use": "base plate",
+    "module": "SCREW_M2_5X12_SHCS_A2",
+    "catalog_row": "09",
+    "group": "PlateScrews",
+    "size": "M2.5x12",
+    "qty_basis": "planned",
+    "length_mm": 12.0
+   },
+   {
+    "id": "ModuleScrews",
+    "name": "M2.5 x 8 mm socket head screw",
+    "qty": 6,
+    "use": "module clamp straps and the speaker ring",
+    "module": "SCREW_M2_5X8_SHCS_A2",
+    "catalog_row": "09",
+    "group": "ModuleScrews",
+    "size": "M2.5x8",
+    "qty_basis": "planned",
+    "length_mm": 8.0
+   },
+   {
+    "id": "HeatSetInserts",
+    "name": "M2.5 heat-set insert",
+    "qty": 14,
+    "use": "4 cartridge + 4 plate + 6 module bosses",
+    "module": "INSERT_HEATSET_M2_5X4_MEC8005",
+    "catalog_row": "10",
+    "group": "HeatSetInserts",
+    "size": "M2.5",
+    "qty_basis": "planned",
+    "length_mm": 4.0
+   },
+   {
+    "id": "Feet",
+    "name": "adhesive bumper foot",
+    "qty": 4,
+    "use": "underside",
+    "module": "FEET_RUBBER_8X2_5_SUNROM_4436",
+    "catalog_row": "11",
+    "group": "Feet",
+    "size": null,
+    "qty_basis": "planned",
+    "length_mm": null
+   },
+   {
+    "id": "CableTies",
+    "name": "cable tie 100 x 2.5 mm",
+    "qty": 7,
+    "use": "harness retention at printed anchors + 1 for the USB-C cord tie bridge (REVIEW-1 MIN-3)",
+    "module": "STRAIN_TIE_NYLON66_100X2_5",
+    "catalog_row": "08",
+    "group": "CableTies",
+    "size": null,
+    "qty_basis": "planned",
+    "length_mm": null
+   },
+   {
+    "id": "Label",
+    "name": "device ID label + packing kit",
+    "qty": 1,
+    "use": "serial/QR label and packing",
+    "module": "LABEL_QR_POLYESTER_50X25_PACK",
+    "catalog_row": "50",
+    "group": "Label",
+    "size": null,
+    "qty_basis": "planned",
+    "length_mm": null
+   }
+  ],
+  "cartridge": {
+   "backplane": "backplane-v1",
+   "board_origin": [
+    -31.4,
+    -19.685,
+    9.9
+   ],
+   "rotation_deg": 0.0,
+   "floor_z": 3.5,
+   "board_top_z": 11.5,
+   "board_size": [
+    62.8,
+    78.6
+   ],
+   "keepout_box": [
+    -36.75,
+    33.4,
+    -19.69,
+    59.42,
+    3.5,
+    35.5
+   ],
+   "usb_c_center": [
+    0.0,
+    59.42,
+    13.1
+   ],
+   "usb_c_wall_gap": 5.61,
+   "usb_c_tunnel_mm": 5.61,
+   "usb_c_tunnel_size": [
+    13.0,
+    7.0
+   ],
+   "split": "base_plate",
+   "seam_y": null
+  },
+  "warnings": []
+ }
+}

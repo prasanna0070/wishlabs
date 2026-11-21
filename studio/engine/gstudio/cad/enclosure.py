@@ -19,7 +19,7 @@ from shapely import affinity
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon, box as sbox
 from shapely.ops import nearest_points, unary_union
 
-from .geom import V, box_z, cyl_axis, cyl_z, largest_solid, poly_face, prism, rounded_rect_face_fast, try_fillet
+from .geom import V, box_z, cyl_axis, cyl_z, largest_solid, poly_face, prism, rounded_rect_face_fast, try_fillet, wire_points_2d
 from .internals import board_size, keepout_plan, usb_face_by
 from .modules import pick_screw, screw_length
 from .parts import Fastener, Part
@@ -367,12 +367,61 @@ def base_plate_opening(probeO, probeC, wall: float, t_bp: float):
     return op if not op.is_empty else None
 
 
+PLATE_GAP = 0.3  # mm between the base plate's edge and the shell's bottom opening (the designed seam)
+
+
+def plate_prism(opening: Polygon, plate_poly: Polygon, t_bp: float) -> tuple:
+    """The base plate's prism, kept PLATE_GAP inside the opening the shell is actually cut with.
+
+    The shell's opening cut (build.py) and the plate are both _xy_prism outlines: each polygon is resampled at 1.2 mm and
+    run through its own interpolating periodic B-spline. At a corner of the opening (where the footprint and the cavity
+    section meet) the two splines round the corner differently, and the plate's spline crossed the shell's by 0.1-0.5 mm
+    through the 2.4 mm floor: a real lens of plate inside the shell, 0.05-0.24 mm3 (live 2026-11-21 p_esnfk7mb466z,
+    p_h77zjgp6fekk; bench p_qg7gntgnpjyt, p_m84ggdt39tpm, p_puuzzexmaciv), which held the price. The plate stays as it
+    was when its outline clears the opening face (2D face boolean, exact); otherwise its edge is rebuilt from the
+    as-built opening curve (sampled every 0.25 mm), offset inward by PLATE_GAP, as a polygon prism (planar facets, no
+    spline to overshoot). Returns (solid, info or None)."""
+    fp = poly_face(plate_poly, spacing=1.2)
+    fo = poly_face(opening, spacing=1.2)
+    if fp is None or fo is None:
+        return _xy_prism(plate_poly, 0.0, t_bp), None
+    try:
+        over = float(fp.cut(fo).Area())
+    except Exception:  # pragma: no cover - keep the old plate when OCC cannot answer
+        return prism(fp, 0.0, t_bp), None
+    if over < 1e-6:
+        return prism(fp, 0.0, t_bp), None
+
+    def ring_pts(w):
+        n = max(8, int(math.ceil(w.Length() / 0.25 / max(len(w.Edges()), 1))))
+        return [tuple(p) for p in wire_points_2d(w, "xy", n)]
+
+    faces = fo.Faces() if hasattr(fo, "Faces") else [fo]
+    built = unary_union([Polygon(ring_pts(f.outerWire()), [ring_pts(w) for w in f.innerWires()]).buffer(0) for f in faces])
+    P2 = built.buffer(-PLATE_GAP, quad_segs=8).intersection(plate_poly)
+    P2 = largest(P2.buffer(-0.01).buffer(0.01)).simplify(0.005)
+    try:
+        outer = cq.Wire.makePolygon([V(x, y, 0) for x, y in list(P2.exterior.coords)[:-1]], close=True)
+        inners = [cq.Wire.makePolygon([V(x, y, 0) for x, y in list(r.coords)[:-1]], close=True) for r in P2.interiors
+                  if Polygon(r).area > 0.05]
+        f2 = cq.Face.makeFromWires(outer, inners)
+        over2 = float(f2.cut(fo).Area())
+    except Exception as e:  # pragma: no cover
+        return prism(fp, 0.0, t_bp), {"overlap_mm2": round(over, 4), "rebuilt": False, "why": str(e)[:120]}
+    if over2 >= over:  # pragma: no cover - never seen; keep what is smaller so the collision check still judges it
+        return prism(fp, 0.0, t_bp), {"overlap_mm2": round(over, 4), "rebuilt": False, "overlap_after_mm2": round(over2, 6)}
+    return prism(f2, 0.0, t_bp), {"overlap_mm2": round(over, 4), "rebuilt": True, "overlap_after_mm2": round(over2, 6),
+                                  "gap_mm": PLATE_GAP, "area_change_mm2": round(f2.Area() - fp.Area(), 3)}
+
+
 def base_plate(O, C, opening: Polygon, t_bp: float, probeC, fz, keep_plan_boxes, colors, n_screws=4, keep_boxes3d=()) -> Split:
     sp = Split("base_plate", opening=opening)
     ins, scr = fz["insert"], fz["screw"]
     rb = ins["boss_d"] / 2
-    plate_poly = opening.buffer(-0.3)
-    plate = _xy_prism(plate_poly, 0.0, t_bp)
+    plate_poly = opening.buffer(-PLATE_GAP)
+    plate, edge_info = plate_prism(opening, plate_poly, t_bp)
+    if edge_info:
+        sp.info["plate_edge"] = edge_info
     cands = []
     ring = largest(opening.buffer(-(rb + 0.6)))
     sec_hi = largest(probeC.section("z", t_bp + 6.0))

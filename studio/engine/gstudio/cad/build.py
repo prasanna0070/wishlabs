@@ -587,6 +587,55 @@ def build_printed(params: dict, progress: Optional[Callable] = None, on_draft: O
     return M
 
 
+PLATE_TRIM_MAX_MM3 = 20.0  # a kit add reaching deeper into the plate's room than this is a real clash: not trimmed
+
+
+def trim_adds_at_plate(kits, room, z_room: float):
+    """Kit adds in a base-plate design yield to the plate's room (the opening prism `room`, up to z_room = 0.8 mm above
+    the plate top). Adds are carved out of the cavity, and the cavity there is the opening prism, so an add reaching down
+    into it stood inside the plate: a front speaker low on its face put its cup wall 0.9 mm into the plate top
+    (1.41 mm3 PRINT_Shell / PRINT_BasePlate, live 2026-11-21 p_h77zjgp6fekk). The part of such an add inside the room is
+    trimmed off; the add keeps everything above it, and the plate's top closes the cavity there. Not trimmed (so the
+    collision check still refuses it): a kit with a fastener inside the room, or more than PLATE_TRIM_MAX_MM3 of one add
+    in it. Purchased parts are never trimmed. Returns (adds, records)."""
+    rb = room.BoundingBox()
+    out, recs = [], []
+    for k in kits:
+        fz_in = False
+        for f_ in k.fasteners:
+            a_ = np.asarray(f_.axis, float)
+            for q in (np.asarray(f_.head, float), np.asarray(f_.head, float) + a_ * float(f_.length)):
+                if q[2] < z_room + 0.5 and rb.xmin - 1 <= q[0] <= rb.xmax + 1 and rb.ymin - 1 <= q[1] <= rb.ymax + 1:
+                    fz_in = True
+        for a in k.adds:
+            ab = a.BoundingBox()
+            if ab.zmin >= z_room or ab.xmax < rb.xmin or ab.xmin > rb.xmax or ab.ymax < rb.ymin or ab.ymin > rb.ymax:
+                out.append(a)
+                continue
+            try:
+                ov = float(a.intersect(room).Volume())
+            except Exception:  # pragma: no cover
+                out.append(a)
+                continue
+            if ov < 1e-4:
+                out.append(a)
+                continue
+            rec = {"feature": k.feature_id, "in_room_mm3": round(ov, 3)}
+            if fz_in or ov > PLATE_TRIM_MAX_MM3:
+                rec["trimmed"] = False
+                rec["why"] = "a fastener of the kit stands in the plate's room" if fz_in else f"over {PLATE_TRIM_MAX_MM3:g} mm3"
+                out.append(a)
+            else:
+                try:
+                    out.append(a.cut(room))
+                    rec["trimmed"] = True
+                except Exception:  # pragma: no cover
+                    rec["trimmed"] = False
+                    out.append(a)
+            recs.append(rec)
+    return out, recs
+
+
 def build(params: dict, progress: Optional[Callable] = None, on_draft: Optional[Callable] = None, route_cables: bool = True) -> Model:
     if params.get("kind") == "printed":  # catalog package A: printed-only objects have no electronics at all
         return build_printed(params, progress, on_draft)
@@ -737,6 +786,10 @@ def build(params: dict, progress: Optional[Callable] = None, on_draft: Optional[
         except Exception as e:  # pragma: no cover
             M.warnings.append(f"ceiling fins skipped: {e}")
     M.info["ceiling_fins"] = fin_info
+    if split == "base_plate":
+        kit_adds, trims = trim_adds_at_plate(kits, pr, t_bp + 0.8)
+        if trims:
+            M.info["kit_adds_trimmed_at_plate"] = trims
     adds = kit_adds + sp.shell_adds + (floor_adds if split == "rear_cover" else [])
     # Mount material is carved out of the cavity, not fused onto the shell: S = O - (C - adds) = (O - C) + (adds & O).
     # This avoids fusing many pieces that share the outer B-spline surface (slow) and clips every add to the body.

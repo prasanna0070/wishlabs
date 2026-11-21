@@ -1,0 +1,634 @@
+{
+ "schema": "gadget-spec/1",
+ "name": "Clinic Organizer Dock",
+ "slug": "clinic-organizer-dock",
+ "tagline": "A wide desktop tray dock with an integrated screen and dual tap-buttons",
+ "audience": {
+  "child_directed": false,
+  "age_years": null
+ },
+ "region": "IN",
+ "colors": {
+  "body": "#7F8C8D",
+  "accent": "#BDC3C7",
+  "detail": "#2C3E50",
+  "body_name": "granite grey",
+  "accent_name": "silver",
+  "detail_name": "charcoal"
+ },
+ "body": {
+  "wall": 2.4,
+  "edge_round": 8.0,
+  "feet": 4,
+  "family": "silhouette",
+  "outline": [
+   [
+    -100.0,
+    0.0
+   ],
+   [
+    100.0,
+    0.0
+   ],
+   [
+    100.0,
+    55.0
+   ],
+   [
+    90.0,
+    65.0
+   ],
+   [
+    -90.0,
+    65.0
+   ],
+   [
+    -100.0,
+    55.0
+   ]
+  ],
+  "depth": 130.0,
+  "split": "base_plate"
+ },
+ "decor": [],
+ "features": [
+  {
+   "id": "screen",
+   "module": "OLED_130_SH1106_I2C",
+   "face": "front",
+   "at": [
+    -20.0,
+    45.0
+   ],
+   "label": "Queue tracker",
+   "grille": null,
+   "rotate": 0
+  },
+  {
+   "id": "btn_one",
+   "module": "BUTTON_TACTILE_KY004",
+   "face": "front",
+   "at": [
+    50.0,
+    20.0
+   ],
+   "label": "Tap to check in",
+   "grille": null,
+   "rotate": 0
+  },
+  {
+   "id": "btn_two",
+   "module": "BUTTON_TACTILE_KY004",
+   "face": "front",
+   "at": [
+    80.0,
+    32.0
+   ],
+   "label": "View queue",
+   "grille": null,
+   "rotate": 0
+  },
+  {
+   "id": "alert_led",
+   "module": "LED_WS2812B_1PX_MODULE",
+   "face": "front",
+   "at": [
+    20.0,
+    45.0
+   ],
+   "label": "Notification light",
+   "grille": null,
+   "rotate": 0
+  },
+  {
+   "id": "speaker",
+   "module": "SPK_28MM_8R_2W",
+   "face": "front",
+   "at": [
+    -70.0,
+    25.0
+   ],
+   "label": "Alert speaker",
+   "grille": {
+    "pattern": "hex_holes",
+    "w": 25.2,
+    "h": 25.2,
+    "hole": 2.6,
+    "pitch": 4.4
+   },
+   "rotate": 0
+  }
+ ],
+ "electronics": {
+  "core": "CORE_ESP32S3_DEVKITC1_N8R8",
+  "extra_modules": [],
+  "power": {
+   "input": "usb_c_5v",
+   "adapter_in_box": true
+  }
+ },
+ "behaviour": {
+  "template": "notifier_clock",
+  "summary": "Serves as a counter organiser. Features a front-mounted screen and buttons; patients tap the buttons to interact and receive queue status updates with clear beeps.",
+  "settings": {
+   "servo_rest_deg": 0,
+   "servo_speed_deg_s": 120,
+   "volume_default": 35,
+   "volume_max": 60,
+   "long_press_ms": 600,
+   "led_max_percent": 45,
+   "network": "parent_page",
+   "setup_hotspot_minutes": 15,
+   "mic_gain_shift": 13,
+   "timezone": "IST-5:30",
+   "ntp_server": "in.pool.ntp.org",
+   "clock_24h": true,
+   "quiet_hours_start": "22:00",
+   "quiet_hours_end": "07:00",
+   "notification_chime": true,
+   "ring_brightness": 30,
+   "default_notice_minutes": 60,
+   "schedule": [],
+   "servo_on_notice": true,
+   "servo_open_deg": 90,
+   "servo_hold_s": 3
+  }
+ },
+ "safety": {
+  "flags": [],
+  "notes": "Non-slip feet for stability on shiny reception surfaces."
+ },
+ "derived": {
+  "engine_version": "0.1.0",
+  "size_mm": [
+   217.9,
+   130.0,
+   94.4
+  ],
+  "bbox": [
+   -108.9,
+   108.9,
+   -65.0,
+   65.0,
+   0.0,
+   94.4
+  ],
+  "instances": [
+   {
+    "ref": "U1",
+    "module": "CORE_ESP32S3_DEVKITC1_N8R8",
+    "role": "core",
+    "name": "ESP32-S3-DevKitC-1 (WROOM-1 N8R8, Octal PSRAM)",
+    "source": "core",
+    "feature": null,
+    "slot": "U1",
+    "face": null,
+    "position": [
+     1.0,
+     36.0,
+     17.5
+    ],
+    "qty": 1,
+    "reason": "",
+    "required_by": null,
+    "harness": null
+   },
+   {
+    "ref": "BP1",
+    "module": "BACKPLANE_V1",
+    "role": "backplane",
+    "name": "Standard backplane PCB backplane-v1 (ours)",
+    "source": "implied",
+    "feature": null,
+    "slot": null,
+    "face": null,
+    "position": [
+     0.0,
+     19.6,
+     11.5
+    ],
+    "qty": 1,
+    "reason": "standard core cartridge",
+    "required_by": null,
+    "harness": null
+   },
+   {
+    "ref": "PWR1",
+    "module": "USBC_RECEPTACLE_GCT_USB4105",
+    "role": "power_in",
+    "name": "USB-C 2.0 receptacle on backplane (5V sink, CC 5.1k Rd)",
+    "source": "implied",
+    "feature": null,
+    "slot": "J_PWR",
+    "face": null,
+    "position": [
+     0.0,
+     55.0,
+     17.5
+    ],
+    "qty": 1,
+    "reason": "USB-C 5 V input on the backplane",
+    "required_by": null,
+    "harness": null
+   },
+   {
+    "ref": "DISP1",
+    "module": "OLED_130_SH1106_I2C",
+    "role": "display",
+    "name": "1.3 in 128x64 mono OLED, SH1106, I2C 4-pin",
+    "source": "feature",
+    "feature": "screen",
+    "slot": "J_I2C1",
+    "face": "front",
+    "position": [
+     -20.0,
+     -52.0,
+     45.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "required_by": null,
+    "harness": "H1"
+   },
+   {
+    "ref": "BTN1",
+    "module": "BUTTON_TACTILE_KY004",
+    "role": "button",
+    "name": "Tactile push-button module (KY-004 type)",
+    "source": "feature",
+    "feature": "btn_one",
+    "slot": "J_IO1",
+    "face": "front",
+    "position": [
+     50.0,
+     -54.6,
+     20.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "required_by": null,
+    "harness": "H2"
+   },
+   {
+    "ref": "BTN2",
+    "module": "BUTTON_TACTILE_KY004",
+    "role": "button",
+    "name": "Tactile push-button module (KY-004 type)",
+    "source": "feature",
+    "feature": "btn_two",
+    "slot": "J_IO2",
+    "face": "front",
+    "position": [
+     80.0,
+     -54.6,
+     32.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "required_by": null,
+    "harness": "H3"
+   },
+   {
+    "ref": "LED1",
+    "module": "LED_WS2812B_1PX_MODULE",
+    "role": "led",
+    "name": "Addressable RGB LED, single WS2812B 5050 on a mini board",
+    "source": "feature",
+    "feature": "alert_led",
+    "slot": "J_LED",
+    "face": "front",
+    "position": [
+     20.0,
+     -56.0,
+     45.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "required_by": null,
+    "harness": "H4"
+   },
+   {
+    "ref": "SPK1",
+    "module": "SPK_28MM_8R_2W",
+    "role": "speaker",
+    "name": "Speaker 28 mm round with mounting ears, 8 ohm, 2 W",
+    "source": "feature",
+    "feature": "speaker",
+    "slot": "J_SPK",
+    "face": "front",
+    "position": [
+     -70.0,
+     -55.0,
+     25.0
+    ],
+    "qty": 1,
+    "reason": "",
+    "required_by": null,
+    "harness": "H5"
+   },
+   {
+    "ref": "AMP1",
+    "module": "AMP_MAX98357A_I2S",
+    "role": "amp",
+    "name": "MAX98357A I2S 3 W class-D mono amplifier breakout",
+    "source": "implied",
+    "feature": null,
+    "slot": "A1",
+    "face": null,
+    "position": [
+     22.0,
+     -1.7,
+     17.5
+    ],
+    "qty": 1,
+    "reason": "a speaker needs the I2S amplifier",
+    "required_by": null,
+    "harness": null
+   },
+   {
+    "ref": "CBL1",
+    "module": "CABLE_USBC_C2C_1M",
+    "role": "usb_cable",
+    "name": "USB-C to USB-C cable, 1 m, USB 2.0",
+    "source": "implied",
+    "feature": null,
+    "slot": null,
+    "face": null,
+    "position": null,
+    "qty": 1,
+    "reason": "USB-C cable in the box",
+    "required_by": null,
+    "harness": null
+   },
+   {
+    "ref": "PSU1",
+    "module": "ADAPTER_RPI_15W_USBC_IN",
+    "role": "adapter",
+    "name": "Raspberry Pi 15W USB-C power supply (5.1 V 3 A, India plug)",
+    "source": "implied",
+    "feature": null,
+    "slot": null,
+    "face": null,
+    "position": null,
+    "qty": 1,
+    "reason": "adapter_in_box (uncapped draw over 80% of the +5V limit)",
+    "required_by": null
+   }
+  ],
+  "harness": [
+   {
+    "id": "H1",
+    "ref": "DISP1",
+    "slot": "J_I2C1",
+    "kind": "jst_ph",
+    "cable": "JST-PH 2.0 4p 200 mm",
+    "pins": 4,
+    "length_mm": 200,
+    "distance_mm": 170.2,
+    "module": "CABLE_JSTPH_4P_DUPONT1X4_200_X2143",
+    "module_end": "dupont_2.54",
+    "module_end_family": "dupont_2.54",
+    "sku": "GS-H-PH4-D1X4-X2143-200",
+    "drawing": "GS-H-PH4-D1X4-X2143",
+    "made_to_drawing": true,
+    "crossed": true,
+    "match": "exact",
+    "module_end_order": [
+     "VCC",
+     "GND",
+     "SCL",
+     "SDA"
+    ]
+   },
+   {
+    "id": "H2",
+    "ref": "BTN1",
+    "slot": "J_IO1",
+    "kind": "jst_ph",
+    "cable": "JST-PH 2.0 3p 200 mm",
+    "pins": 3,
+    "length_mm": 200,
+    "distance_mm": 153.6,
+    "module": "CABLE_JSTPH_3P_DUPONT1X3_200_X321",
+    "module_end": "dupont_2.54",
+    "module_end_family": "dupont_2.54",
+    "sku": "GS-H-PH3-D1X3-X321-200",
+    "drawing": "GS-H-PH3-D1X3-X321",
+    "made_to_drawing": true,
+    "crossed": true,
+    "match": "exact",
+    "module_end_order": [
+     "S",
+     "+",
+     "-"
+    ]
+   },
+   {
+    "id": "H3",
+    "ref": "BTN2",
+    "slot": "J_IO2",
+    "kind": "jst_ph",
+    "cable": "JST-PH 2.0 3p 200 mm",
+    "pins": 3,
+    "length_mm": 200,
+    "distance_mm": 185.1,
+    "module": "CABLE_JSTPH_3P_DUPONT1X3_200_X321",
+    "module_end": "dupont_2.54",
+    "module_end_family": "dupont_2.54",
+    "sku": "GS-H-PH3-D1X3-X321-200",
+    "drawing": "GS-H-PH3-D1X3-X321",
+    "made_to_drawing": true,
+    "crossed": true,
+    "match": "exact",
+    "module_end_order": [
+     "S",
+     "+",
+     "-"
+    ]
+   },
+   {
+    "id": "H4",
+    "ref": "LED1",
+    "slot": "J_LED",
+    "kind": "jst_xh",
+    "cable": "JST-XH 2.5 3p 150 mm",
+    "pins": 3,
+    "length_mm": 150,
+    "distance_mm": 118.2,
+    "module": "CABLE_JSTXH_3P_150",
+    "module_end": "factory_prewired",
+    "module_end_family": "factory_prewired",
+    "sku": "GS-H-XH3-XH3-150",
+    "drawing": "GS-H-XH3-XH3",
+    "made_to_drawing": false,
+    "crossed": false,
+    "match": "exact",
+    "module_end_order": [
+     "5V",
+     "GND",
+     "DIN",
+     "DOUT"
+    ]
+   },
+   {
+    "id": "H5",
+    "ref": "SPK1",
+    "slot": "J_SPK",
+    "kind": "speaker_lead",
+    "cable": "JST-PH 2.0 2p 300 mm",
+    "pins": 2,
+    "length_mm": 300,
+    "distance_mm": 208.2,
+    "module": "CABLE_JSTPH_2P_300",
+    "module_end": "factory_prewired",
+    "module_end_family": "factory_prewired",
+    "sku": "GS-H-PH2-PH2-300",
+    "drawing": "GS-H-PH2-PH2",
+    "made_to_drawing": false,
+    "crossed": false,
+    "match": "exact",
+    "module_end_order": [
+     "+",
+     "-"
+    ]
+   }
+  ],
+  "hardware": [
+   {
+    "id": "CartridgeScrews",
+    "name": "M2.5 x 5 mm socket head screw",
+    "qty": 4,
+    "use": "backplane to the 4 cartridge bosses",
+    "module": "SCREW_M2_5X5_SHCS_A2",
+    "catalog_row": "09",
+    "group": "CartridgeScrews",
+    "size": "M2.5x5",
+    "qty_basis": "planned",
+    "length_mm": 5.0
+   },
+   {
+    "id": "PlateScrews",
+    "name": "M2.5 x 12 mm socket head screw",
+    "qty": 4,
+    "use": "base plate",
+    "module": "SCREW_M2_5X12_SHCS_A2",
+    "catalog_row": "09",
+    "group": "PlateScrews",
+    "size": "M2.5x12",
+    "qty_basis": "planned",
+    "length_mm": 12.0
+   },
+   {
+    "id": "ModuleScrews",
+    "name": "M2.5 x 8 mm socket head screw",
+    "qty": 11,
+    "use": "module clamp straps and the speaker ring",
+    "module": "SCREW_M2_5X8_SHCS_A2",
+    "catalog_row": "09",
+    "group": "ModuleScrews",
+    "size": "M2.5x8",
+    "qty_basis": "planned",
+    "length_mm": 8.0
+   },
+   {
+    "id": "HeatSetInserts",
+    "name": "M2.5 heat-set insert",
+    "qty": 19,
+    "use": "4 cartridge + 4 plate + 11 module bosses",
+    "module": "INSERT_HEATSET_M2_5X4_MEC8005",
+    "catalog_row": "10",
+    "group": "HeatSetInserts",
+    "size": "M2.5",
+    "qty_basis": "planned",
+    "length_mm": 4.0
+   },
+   {
+    "id": "Feet",
+    "name": "adhesive bumper foot",
+    "qty": 4,
+    "use": "underside",
+    "module": "FEET_RUBBER_8X2_5_SUNROM_4436",
+    "catalog_row": "11",
+    "group": "Feet",
+    "size": null,
+    "qty_basis": "planned",
+    "length_mm": null
+   },
+   {
+    "id": "CableTies",
+    "name": "cable tie 100 x 2.5 mm",
+    "qty": 7,
+    "use": "harness retention at printed anchors + 1 for the USB-C cord tie bridge (REVIEW-1 MIN-3)",
+    "module": "STRAIN_TIE_NYLON66_100X2_5",
+    "catalog_row": "08",
+    "group": "CableTies",
+    "size": null,
+    "qty_basis": "planned",
+    "length_mm": null
+   },
+   {
+    "id": "SpeakerGasket",
+    "name": "speaker foam gasket strip",
+    "qty": 1,
+    "use": "seal the speaker to the baffle",
+    "module": "SPK_GASKET_FOAM_25X3_ADH",
+    "catalog_row": "13",
+    "group": "SpeakerGasket",
+    "size": null,
+    "qty_basis": "planned",
+    "length_mm": null
+   },
+   {
+    "id": "Label",
+    "name": "device ID label + packing kit",
+    "qty": 1,
+    "use": "serial/QR label and packing",
+    "module": "LABEL_QR_POLYESTER_50X25_PACK",
+    "catalog_row": "50",
+    "group": "Label",
+    "size": null,
+    "qty_basis": "planned",
+    "length_mm": null
+   }
+  ],
+  "cartridge": {
+   "backplane": "backplane-v1",
+   "board_origin": [
+    -31.4,
+    -19.685,
+    9.9
+   ],
+   "rotation_deg": 0.0,
+   "floor_z": 3.5,
+   "board_top_z": 11.5,
+   "board_size": [
+    62.8,
+    78.6
+   ],
+   "keepout_box": [
+    -36.75,
+    33.4,
+    -19.69,
+    59.42,
+    3.5,
+    35.5
+   ],
+   "usb_c_center": [
+    0.0,
+    59.42,
+    13.1
+   ],
+   "usb_c_wall_gap": 5.61,
+   "usb_c_tunnel_mm": 5.61,
+   "usb_c_tunnel_size": [
+    13.0,
+    7.0
+   ],
+   "split": "base_plate",
+   "seam_y": null
+  },
+  "warnings": [
+   "notifier_clock: consider a buzzer or speaker for alerts"
+  ]
+ }
+}
