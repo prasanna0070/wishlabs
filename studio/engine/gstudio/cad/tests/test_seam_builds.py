@@ -8,6 +8,7 @@ under a rounded top edge). Each is built once per session in a worker process (p
 from __future__ import annotations
 
 import json
+import multiprocessing
 import os
 import sys
 import tempfile
@@ -41,7 +42,9 @@ def _build(args) -> dict:
 @pytest.fixture(scope="session")
 def seam_built():
     root = tempfile.mkdtemp(prefix="gs-seam-")
-    with ProcessPoolExecutor(max_workers=3) as ex:
+    # spawn, not fork: inside the full CAD suite the pytest process is multi-threaded by now, and forked workers
+    # deadlocked before doing any work (0 s CPU for 12 min, 2026-11-21 on the VM); alone the suite passed either way.
+    with ProcessPoolExecutor(max_workers=3, mp_context=multiprocessing.get_context("spawn")) as ex:
         return dict(zip(SPECS, ex.map(_build, [(n, root) for n in SPECS])))
 
 
