@@ -72,6 +72,11 @@ class SessionSigner:
             return False
         return hmac.compare_digest(candidate.strip().encode(), self.access_key.get().encode())
 
+    def magic_token(self, label: str) -> str:
+        """Token of the magic sign-in link for `label` (32 hex chars). Derived from the access key, so rotating the key
+        revokes every link."""
+        return hmac.new(self._mac_key(), f"magic-link-v1:{label}".encode(), hashlib.sha256).hexdigest()[:32]
+
     def issue(self, now: float | None = None) -> tuple[str, int]:
         exp = int((now or time.time()) + self.days * 86400)
         body = f"v1.{exp}.{secrets.token_hex(8)}"
