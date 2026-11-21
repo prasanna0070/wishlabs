@@ -379,7 +379,7 @@ export const useProject = create<ProjectState>((set, get) => {
       try {
         const p = await api.project(pid);
         get().setProject(p);
-        set({ loading: false });
+        set({ loading: false, readOnly: p.read_only === true }); // a guest's showcase: view only
         // a turn is running on the server (this page was reloaded, or the message came from another tab or a voice
         // call): show it working instead of an idle composer. One this page followed before is followed again.
         const t = get().turn;

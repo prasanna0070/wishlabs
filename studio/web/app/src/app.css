@@ -587,3 +587,11 @@ body.resizing iframe, body.resizing canvas { pointer-events: none; }
 @media (max-width: 600px) {
   .view-toggles .section-ctl input[type="range"] { width: 92px; }
 }
+
+/* magic-link guests (server app/guest.py): the "Guest" note, showcase labels and the showcase banner */
+.guest-note { padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel, #fff); color: var(--ink-2, #4a5058); white-space: nowrap; }
+.guest-help { margin: -6px 0 14px; }
+.showcase-tag { display: inline-block; margin-right: 8px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .02em; vertical-align: 1px; background: var(--primary-soft, #E8F0FF); color: var(--primary, #2457D6); }
+.chat-bottom.ro.showcase-banner { color: var(--ink-2, #4a5058); }
+.showcase-cta { font-weight: 600; margin-left: 4px; }
+@media (max-width: 640px) { .guest-note { white-space: normal; text-align: right; } }

@@ -94,8 +94,8 @@ export function Header({ onTab: _onTab }: { onTab: (t: TabId) => void }) {
         </h1>
       )}
       {readOnly ? (
-        <span className="pill ro-pill" title="Read-only share">
-          <Eye size={13} /> <span className="lbl">Read-only share</span>
+        <span className="pill ro-pill" title={project?.showcase ? "Showcase: view only" : "Read-only share"}>
+          <Eye size={13} /> <span className="lbl">{project?.showcase ? "Showcase" : "Read-only share"}</span>
         </span>
       ) : null}
       <div className="grow" />
