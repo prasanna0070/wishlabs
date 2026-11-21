@@ -262,6 +262,9 @@ def test_guests_never_see_each_other(app, team):
     assert b.delete(f"/api/projects/{pa['id']}").status_code == 404
     assert a.get(f"/api/projects/{pa['id']}").status_code == 200
     assert any(p["id"] == pa["id"] for p in team.get("/api/projects").json()["projects"])   # the team sees all
+    sh = a.post(f"/api/projects/{pa['id']}/share").json()           # a guest may share its own project
+    tok = sh.get("token") or sh.get("share", {}).get("token")
+    assert tok and "owner" not in TestClient(app).get(f"/api/share/{tok}").json()
 
 
 # ------------------------------------------------------------------ showcases: read-only

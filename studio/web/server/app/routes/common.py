@@ -159,7 +159,7 @@ def shared_view(p: dict) -> dict:
     token = (p.get("share") or {}).get("token")
     # "uploads" (every image ever uploaded, sent or not, with file names) never goes out: the SPA builds image URLs
     # from the messages' attachments, and the share route serves only those
-    q = {k: v for k, v in p.items() if k not in ("order_requests", "share", "turn", "device", "uploads")}
+    q = {k: v for k, v in p.items() if k not in ("order_requests", "share", "turn", "device", "uploads", "owner")}
     if q.get("share_uploads") is not True:      # the owner's images stay private unless shared (app/uploads.py)
         from ..uploads import hide_uploads
 
