@@ -2,11 +2,12 @@
 from __future__ import annotations
 
 import asyncio
+import hmac
 import os
 import re
 
 from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from ..auth import COOKIE, KeyUnavailable, client_ip, is_secure
 from ..config import SERVER_VERSION
@@ -48,6 +49,39 @@ async def login(request: Request):
     res = JSONResponse({"ok": True, "expires": datetime.fromtimestamp(exp, timezone.utc).isoformat()
                        .replace("+00:00", "Z")})
     res.set_cookie(COOKIE, token, max_age=signer.days * 86400, httponly=True, samesite="lax", path="/",
+                   secure=is_secure(request, request.app.state.svc.settings))
+    return res
+
+
+MAGIC_LABELS = ("jurors",)
+
+
+def magic_on() -> bool:
+    return (os.environ.get("MAGIC_LINKS") or "on").strip().lower() not in ("off", "0", "false", "no")
+
+
+@router.get("/api/magic/{token}")
+async def magic(request: Request, token: str):
+    """Magic sign-in link (the Buildathon submission form takes only a URL, no access key): a valid token gets the same
+    session as the key login and lands on /studio/. Any number of people can use one link. MAGIC_LINKS=off turns
+    every link off; rotating the access key revokes them. A wrong token counts as a failed login."""
+    if not magic_on():
+        raise err(404, "not_found", "Not found.")
+    ip = client_ip(request)
+    limiter = request.app.state.limiter
+    if limiter.blocked(ip):
+        raise err(429, "rate_limited", "Too many attempts. Wait a few minutes and try again.")
+    signer = request.app.state.signer
+    try:
+        want = await asyncio.to_thread(lambda: [signer.magic_token(label) for label in MAGIC_LABELS])
+    except KeyUnavailable:
+        raise err(503, "unavailable", "Sign-in is not configured on this server.") from None
+    if not any(hmac.compare_digest(str(token).encode(), w.encode()) for w in want):
+        limiter.fail(ip)
+        return RedirectResponse("/studio/", status_code=302)
+    tok, _ = signer.issue()
+    res = RedirectResponse("/studio/", status_code=302)
+    res.set_cookie(COOKIE, tok, max_age=signer.days * 86400, httponly=True, samesite="lax", path="/",
                    secure=is_secure(request, request.app.state.svc.settings))
     return res
 
