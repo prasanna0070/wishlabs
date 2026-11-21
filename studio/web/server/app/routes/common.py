@@ -79,8 +79,13 @@ async def load_project(request: Request, pid: str, reconcile: bool = True) -> di
         p = await svc.repo.aget(pid)
     except NotFound:
         raise err(404, "not_found", "Project not found.") from None
-    if reconcile:
-        p = await svc.builds.reconcile(p)
+    from ..auth import current_session
+    from ..guest import ACTING, owns
+
+    gs = current_session(request)
+    ACTING.set(gs)                          # builds this request starts are charged by it (guest.build_owner)
+    if reconcile:                           # a guest reading a showcase never starts an AI call (as a share visit)
+        p = await svc.builds.reconcile(p, auto_sound=not (gs is not None and gs.guest and not owns(gs, p)))
     return p
 
 

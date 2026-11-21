@@ -76,12 +76,16 @@ async def session(request: Request):
     a 401 logged in the browser console. /api/me keeps its 401 contract."""
     from datetime import datetime, timezone
 
-    exp = request.app.state.signer.verify(request.cookies.get(COOKIE))
-    if exp is None:
+    gs = request.app.state.signer.session(request.cookies.get(COOKIE))
+    if gs is None:
         body = {"authenticated": False, "expires": None}
     else:
-        body = {"authenticated": True,
-                "expires": datetime.fromtimestamp(exp, timezone.utc).isoformat().replace("+00:00", "Z")}
+        body = {"authenticated": True, "kind": gs.kind,
+                "expires": datetime.fromtimestamp(gs.exp, timezone.utc).isoformat().replace("+00:00", "Z")}
+        if gs.guest:                # a magic-link guest (app/guest.py): what is left today, for the "Guest" note
+            from ..guest import quota_of
+
+            body["guest"] = await asyncio.to_thread(quota_of(svc_of(request)).left, gs.owner)
     link = share_url()
     if link:  # only when configured: the response keeps its old shape otherwise
         body["share_url"] = link

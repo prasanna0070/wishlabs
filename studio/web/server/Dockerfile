@@ -37,6 +37,7 @@ COPY --from=engine /stage/examples /srv/examples
 COPY library/ /srv/library/
 COPY docs/ARCHITECTURE.md /srv/docs/ARCHITECTURE.md
 COPY web/server/app/ ./app/
+COPY web/server/showcase.json ./showcase.json
 COPY --from=spa /src/web/app/dist /srv/web/app/dist
 RUN useradd -r -u 10001 app && python -c "import app.main" 
 USER app

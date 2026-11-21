@@ -79,6 +79,9 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
     from .routes import sound as sound_routes   # gadget sound (Lyria): owner, read-only share and device routes
     app.include_router(sound_routes.router)
     app.include_router(public_routes.router)
+    from .routes import magic as magic_routes      # magic links: guest sessions (app/guest.py)
+
+    app.include_router(magic_routes.router)
     app.include_router(device_routes.router)
     app.include_router(project_routes.router)
     from .routes import voice as voice_routes      # voice wish: Gemini Live WebSocket + stored recording

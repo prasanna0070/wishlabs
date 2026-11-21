@@ -4,10 +4,13 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+import os
+import re
 import secrets
 import threading
 import time
 from collections import defaultdict, deque
+from dataclasses import dataclass
 
 from fastapi import HTTPException, Request
 
@@ -19,8 +22,40 @@ COOKIE = "gs_session"
 SECRET_NAME = "gstudio-access-key"
 
 
+GUEST_PREFIX = "g_"                              # project.json "owner" of a project a magic-link guest made
+LABEL_RE = re.compile(r"[a-z0-9][a-z0-9-]{0,31}")
+GID_RE = re.compile(r"[0-9a-f]{24}")
+
+
 class KeyUnavailable(RuntimeError):
     pass
+
+
+@dataclass(frozen=True)
+class Session:
+    """A signed-in browser: the team (shared access key, full access) or a magic-link guest (own random id)."""
+    kind: str                       # "team" | "guest"
+    exp: int
+    gid: str = ""
+    label: str = ""
+
+    @property
+    def guest(self) -> bool:
+        return self.kind == "guest"
+
+    @property
+    def owner(self) -> str | None:
+        return GUEST_PREFIX + self.gid if self.guest else None
+
+
+def magic_enabled() -> bool:
+    """MAGIC_LINKS=off switches magic links AND every guest session off (guests then see the sign-in page)."""
+    return (os.environ.get("MAGIC_LINKS") or "on").strip().lower() not in ("off", "0", "false", "no")
+
+
+def revoked_labels() -> set[str]:
+    """MAGIC_REVOKED=jurors+demo revokes those labels: their links and the guest sessions they started."""
+    return {x for x in re.split(r"[+,\s]+", (os.environ.get("MAGIC_REVOKED") or "").strip().lower()) if x}
 
 
 class AccessKey:
@@ -67,6 +102,12 @@ class SessionSigner:
     def _mac_key(self) -> bytes:
         return hmac.new(b"gstudio-session-v1", self.access_key.get().encode(), hashlib.sha256).digest()
 
+    def _magic_key(self) -> bytes:
+        return hmac.new(b"gstudio-magic-v1", self.access_key.get().encode(), hashlib.sha256).digest()
+
+    def _sig(self, key: bytes, body: str) -> str:
+        return hmac.new(key, body.encode(), hashlib.sha256).hexdigest()
+
     def check_key(self, candidate: str) -> bool:
         if not candidate:
             return False
@@ -96,6 +137,60 @@ class SessionSigner:
         if exp < (now or time.time()):
             return None
         return exp
+
+
+    # ---------------------------------------------------------------- magic links + guest sessions
+    def mint_magic(self, label: str, days: float = 21, now: float | None = None) -> str:
+        """m1.<label>.<exp>.<sig>: anyone who opens /api/magic/<token> before exp becomes a guest (own id)."""
+        if not LABEL_RE.fullmatch(label or ""):
+            raise ValueError("label: 1-32 of a-z, 0-9 and -, starting with a letter or digit")
+        exp = int((now or time.time()) + days * 86400)
+        body = f"m1.{label}.{exp}"
+        return f"{body}.{self._sig(self._magic_key(), body)}"
+
+    def check_magic(self, token: str | None, now: float | None = None) -> tuple[str, int] | None:
+        """(label, exp) for a valid, unexpired, unrevoked magic token while magic links are on; else None."""
+        parts = (token or "").split(".")
+        if len(parts) != 4 or parts[0] != "m1" or not magic_enabled():
+            return None
+        _, label, exp_s, sig = parts
+        if not LABEL_RE.fullmatch(label) or not exp_s.isdigit() or len(exp_s) > 12:
+            return None
+        try:
+            want = self._sig(self._magic_key(), f"m1.{label}.{exp_s}")
+        except KeyUnavailable:
+            return None
+        if not hmac.compare_digest(want, sig):
+            return None
+        if int(exp_s) < (now or time.time()) or label in revoked_labels():
+            return None
+        return label, int(exp_s)
+
+    def issue_guest(self, label: str, exp: int, gid: str | None = None) -> tuple[str, str]:
+        """A guest session cookie g1.<exp>.<gid>.<label>.<sig> (team verify() rejects it: other shape)."""
+        gid = gid if gid and GID_RE.fullmatch(gid) else secrets.token_hex(12)
+        body = f"g1.{int(exp)}.{gid}.{label}"
+        return f"{body}.{self._sig(self._mac_key(), body)}", gid
+
+    def session(self, token: str | None, now: float | None = None) -> Session | None:
+        exp = self.verify(token, now)
+        if exp is not None:
+            return Session("team", exp)
+        parts = (token or "").split(".")
+        if len(parts) != 5 or parts[0] != "g1":
+            return None
+        _, exp_s, gid, label, sig = parts
+        if not exp_s.isdigit() or len(exp_s) > 12 or not GID_RE.fullmatch(gid) or not LABEL_RE.fullmatch(label):
+            return None
+        try:
+            want = self._sig(self._mac_key(), f"g1.{exp_s}.{gid}.{label}")
+        except KeyUnavailable:
+            return None
+        if not hmac.compare_digest(want, sig) or int(exp_s) < (now or time.time()):
+            return None
+        if not magic_enabled() or label in revoked_labels():
+            return None
+        return Session("guest", int(exp_s), gid, label)
 
 
 class LoginLimiter:
@@ -133,10 +228,21 @@ def is_secure(request: Request, settings: Settings) -> bool:
     return proto == "https"
 
 
+def current_session(request: Request) -> Session | None:
+    """The session require_session accepted for this request (None on public routes)."""
+    return getattr(request.state, "gs", None)
+
+
 def require_session(request: Request) -> int:
-    """FastAPI dependency for every protected /api route."""
+    """FastAPI dependency for every protected /api route. A guest session is also checked here, against the route
+    it matched (app/guest.py guard): its own projects, the showcases read-only, nothing else (deny by default)."""
     signer: SessionSigner = request.app.state.signer
-    exp = signer.verify(request.cookies.get(COOKIE))
-    if exp is None:
+    s = signer.session(request.cookies.get(COOKIE))
+    if s is None:
         raise HTTPException(status_code=401, detail={"code": "unauthorized", "message": "Please sign in."})
-    return exp
+    request.state.gs = s
+    if s.guest:
+        from .guest import guard
+
+        guard(request, s)
+    return s.exp

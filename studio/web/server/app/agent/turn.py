@@ -41,6 +41,9 @@ RENDER_INFRA = re.compile(r"timed out|HTTP \d{3}|no answer|not JSON|builder /pre
                           r"Connection (refused|reset|aborted)|ConnectError|ReadTimeout|ConnectTimeout", re.I)
 
 
+from ..guest import LimitReached  # noqa: E402
+
+
 class TurnError(Exception):
     def __init__(self, status: int, code: str, message: str):
         super().__init__(message)
@@ -539,6 +542,9 @@ class Turn:
         except BuildBusy as exc:
             await self.fail(f"Version {exc.n} is still building. I will be able to make changes once it finishes.",
                             code="busy")
+            return False
+        except LimitReached as exc:             # a magic-link guest's daily build limit (app/guest.py)
+            await self.fail(exc.message, code="limit")
             return False
         for m in extra:
             await self.emit("message.done", {"message": m})

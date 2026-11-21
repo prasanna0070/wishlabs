@@ -10,7 +10,8 @@ from fastapi.responses import JSONResponse
 from fastapi.responses import Response
 
 from ..agent.turn import Turn, TurnError
-from ..auth import require_session
+from ..auth import current_session, require_session
+from ..guest import LimitReached, charge_owner, quota_of, view_for, visible_rows
 from ..brief import assemble_brief
 from ..builds import BuildBusy, enrich_status
 from ..changes import changes_text, describe
@@ -46,17 +47,24 @@ async def _update(request: Request, pid: str, fn) -> dict:
 
 
 @router.get("/api/me")
-async def me(exp: int = Depends(require_session)):
+async def me(request: Request, exp: int = Depends(require_session)):
     from datetime import datetime, timezone
 
-    return {"authenticated": True, "expires": datetime.fromtimestamp(exp, timezone.utc).isoformat()
-            .replace("+00:00", "Z")}
+    out = {"authenticated": True, "expires": datetime.fromtimestamp(exp, timezone.utc).isoformat()
+           .replace("+00:00", "Z")}
+    s = current_session(request)
+    if s is not None and s.guest:   # a magic-link guest: the SPA shows "Guest" and what is left today
+        out.update(kind="guest", guest=await asyncio.to_thread(quota_of(svc_of(request)).left, s.owner))
+    else:
+        out["kind"] = "team"
+    return out
 
 
 # ------------------------------------------------------------------ CRUD
 @router.get("/api/projects")
 async def list_projects(request: Request):
-    return {"projects": await asyncio.to_thread(svc_of(request).repo.list)}
+    rows = await asyncio.to_thread(svc_of(request).repo.list)
+    return {"projects": visible_rows(current_session(request), rows)}
 
 
 @router.post("/api/projects", status_code=201)
@@ -65,17 +73,23 @@ async def create_project(request: Request):
     mode = b.get("mode")
     if mode is not None and mode not in ("pro", "fast"):
         raise err(422, "invalid", "mode must be pro or fast")
-    return await asyncio.to_thread(svc_of(request).repo.create, b.get("name"), mode)
+    s = current_session(request)
+    owner = s.owner if s is not None and s.guest else None
+    if owner:                                   # a guest: Standard mode only, and its daily wish limit
+        mode = "fast"
+        await asyncio.to_thread(charge_owner, svc_of(request), owner, "projects")
+    return await asyncio.to_thread(svc_of(request).repo.create, b.get("name"), mode, owner)
 
 
 @router.get("/api/projects/{pid}")
 async def get_project(request: Request, pid: str):
-    return await load_project(request, pid)
+    return view_for(current_session(request), await load_project(request, pid))
 
 
 @router.patch("/api/projects/{pid}")
 async def patch_project(request: Request, pid: str):
     b = await _body(request)
+    _no_deep(request, b)
 
     def mut(p):
         if "name" in b:
@@ -99,6 +113,15 @@ async def patch_project(request: Request, pid: str):
 async def delete_project(request: Request, pid: str):
     await _update(request, pid, lambda p: p.update(deleted=True))
     return {"ok": True}
+
+
+DEEP_MESSAGE = "Deep mode is for the Wish Labs team. Guests design in Standard mode."
+
+
+def _no_deep(request: Request, b: dict) -> None:
+    s = current_session(request)
+    if s is not None and s.guest and b.get("mode") == "pro":
+        raise err(403, "standard_only", DEEP_MESSAGE)
 
 
 async def _guarded_update(request, pid, mut):
@@ -178,12 +201,19 @@ async def edit_part(request: Request, pid: str, component: str):
 
 async def _turn_stream(request: Request, pid: str, body: dict):
     svc = svc_of(request)
-    await load_project(request, pid)
+    p = await load_project(request, pid)
+    s = current_session(request)
+    charged = False
+    if s is not None and s.guest:               # a guest's own project (guard): Standard mode, daily turn limit
+        body = {**body, "mode": "fast"}
+        charged = await asyncio.to_thread(charge_owner, svc, p.get("owner"), "turns")
     ch = EventChannel()
     turn = Turn(svc, pid, ch.emit)
     try:
         await turn.begin(body)
     except TurnError as e:
+        if charged:
+            await asyncio.to_thread(quota_of(svc).refund, p["owner"], "turns")
         raise err(e.status, e.code, e.message) from None
     except NotFound:
         raise err(404, "not_found", "Project not found.") from None
@@ -218,7 +248,8 @@ async def turn_status(request: Request, pid: str):
 @router.get("/api/projects/{pid}/stream")
 async def stream(request: Request, pid: str, once: int = 0):
     svc = svc_of(request)
-    p = await load_project(request, pid)
+    s = current_session(request)
+    p = view_for(s, await load_project(request, pid))
     ch = EventChannel()
 
     async def producer():
@@ -230,7 +261,7 @@ async def stream(request: Request, pid: str, once: int = 0):
                     async for ev, data in svc.builds.watch(pid, n):
                         await ch.emit(ev, data)
                 if active:
-                    await ch.emit("project", {"project": await svc.repo.aget(pid)})
+                    await ch.emit("project", {"project": view_for(s, await svc.repo.aget(pid))})
         finally:
             await ch.emit("done", {})
             await ch.close()

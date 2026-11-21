@@ -455,20 +455,23 @@ def _blank(p: dict) -> bool:
 
 
 async def create_project(svc, wish: str, details: list[dict], mode: str, voice: dict,
-                         target_pid: str | None = None) -> dict:
+                         target_pid: str | None = None, owner: str | None = None) -> dict:
     """The existing create path (or the still-empty project the person started talking from), then the spoken session
-    and the question budget on it."""
+    and the question budget on it. owner: a magic-link guest (app/guest.py): only its own projects are targets, and a
+    new project counts against its daily wish limit (raises guest.LimitReached)."""
+    from .guest import charge_owner
     from .projects import NotFound
 
     p = None
     if target_pid:
         try:
             cur = await svc.repo.aget(target_pid)
-            p = cur if _blank(cur) else None
+            p = cur if _blank(cur) and cur.get("owner") == owner else None
         except NotFound:
             p = None
     if p is None:
-        p = await asyncio.to_thread(svc.repo.create, None, mode)
+        await asyncio.to_thread(charge_owner, svc, owner, "projects")
+        p = await asyncio.to_thread(svc.repo.create, None, mode, owner)
 
     def mut(pp):
         pp["voice"] = voice
@@ -484,6 +487,13 @@ async def start_first_turn(app, svc, pid: str, text: str, mode: str) -> bool:
     p = await svc.repo.aget(pid)
     if p.get("chat") or p.get("turn"):
         return False
+    from .guest import LimitReached, charge_owner, quota_of
+
+    try:
+        charged = await asyncio.to_thread(charge_owner, svc, p.get("owner"), "turns")   # a guest's daily turns
+    except LimitReached as e:
+        log.info("voice first turn not started for %s: %s", pid, e.message)
+        return False
 
     async def quiet(_ev: str, _data: dict) -> None:
         return None
@@ -493,6 +503,8 @@ async def start_first_turn(app, svc, pid: str, text: str, mode: str) -> bool:
         await turn.begin({"text": text, "mode": mode, "follow_build": False})
     except TurnError as e:
         log.info("voice first turn not started for %s: %s", pid, e.message)
+        if charged:
+            await asyncio.to_thread(quota_of(svc).refund, p["owner"], "turns")
         return False
 
     async def runner():
@@ -534,6 +546,7 @@ class VoiceSession:
         self.max_bytes = int(cfg.max_seconds * IN_RATE * 2) + IN_RATE * 2
         self.model = cfg.model
         self.pid: str | None = None
+        self.owner: str | None = None       # a magic-link guest (routes/voice.py sets it): its projects only
         self.first_text = ""
         self.wish: tuple[str, list[dict]] | None = None
         self.submitted = asyncio.Event()
@@ -717,9 +730,15 @@ class VoiceSession:
         await self.send({"type": "submitting"})
         wish, details = got
         self.first_text = first_message(wish, details, self.transcript.user_text())
+        from .guest import LimitReached
+
         try:
             p = await create_project(self.svc, wish, details, self.mode, self.voice_record(final=False),
-                                     self.target_pid)
+                                     self.target_pid, self.owner)
+        except LimitReached as e:
+            await self.live.tool_response(fc.id, name, {"ok": False, "error": "Today's limit is reached."})
+            await self.send({"type": "error", "code": "limit", "message": e.message})
+            return
         except Exception as e:  # noqa: BLE001 - tell the person, keep the call so they can type instead
             log.exception("voice: project create failed")
             await self.live.tool_response(fc.id, name, {"ok": False, "error": "The studio could not save it."})
