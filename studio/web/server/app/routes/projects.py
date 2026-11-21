@@ -73,12 +73,20 @@ async def create_project(request: Request):
     mode = b.get("mode")
     if mode is not None and mode not in ("pro", "fast"):
         raise err(422, "invalid", "mode must be pro or fast")
+    name = b.get("name")
+    if name is not None and not isinstance(name, str):
+        raise err(422, "invalid", "name must be text")
     s = current_session(request)
     owner = s.owner if s is not None and s.guest else None
-    if owner:                                   # a guest: Standard mode only, and its daily wish limit
-        mode = "fast"
-        await asyncio.to_thread(charge_owner, svc_of(request), owner, "projects")
-    return await asyncio.to_thread(svc_of(request).repo.create, b.get("name"), mode, owner)
+    if not owner:
+        return await asyncio.to_thread(svc_of(request).repo.create, name, mode, None)
+    mode = "fast"                               # a guest: Standard mode only, and its daily wish limit
+    await asyncio.to_thread(charge_owner, svc_of(request), owner, "projects")
+    try:
+        return await asyncio.to_thread(svc_of(request).repo.create, name, mode, owner)
+    except BaseException:
+        await asyncio.to_thread(quota_of(svc_of(request)).refund, owner, "projects")
+        raise
 
 
 @router.get("/api/projects/{pid}")
@@ -564,10 +572,17 @@ async def name_audio(request: Request, pid: str):
     svc = svc_of(request)
     b = await _body(request)
     p = await load_project(request, pid, reconcile=False)
+    gs = current_session(request)
+    owner = gs.owner if gs is not None and gs.guest else None   # a guest reaches this only in its own project
+    charged = await asyncio.to_thread(charge_owner, svc, owner, "names")
     try:
         data, info = await svc.names.clip(str(b.get("name") or ""), b.get("voice") or await _pack_voice(svc, p))
-    except TtsError as e:
-        raise err(e.status, "invalid" if e.status == 422 else "unavailable", str(e)) from None
+    except BaseException as e:
+        if charged:
+            await asyncio.to_thread(quota_of(svc).refund, owner, "names")
+        if isinstance(e, TtsError):
+            raise err(e.status, "invalid" if e.status == 422 else "unavailable", str(e)) from None
+        raise
     return wav_response(data, info)
 
 
@@ -611,8 +626,18 @@ async def preview(request: Request, pid: str):
         has_glb = await asyncio.to_thread(svc.store.exists, key + ".glb")
         return {"ok": True, "png_url": base + ".png", "glb_url": base + ".glb" if has_glb else None,
                 "warnings": r.get("warnings") or [], "errors": [], "cached": True}
-    res = await svc.builder.preview(spec)
+    gs = current_session(request)
+    owner = gs.owner if gs is not None and gs.guest else None   # a guest reaches this only in its own project
+    charged = await asyncio.to_thread(charge_owner, svc, owner, "previews")
+    try:
+        res = await svc.builder.preview(spec)
+    except BaseException:
+        if charged:
+            await asyncio.to_thread(quota_of(svc).refund, owner, "previews")
+        raise
     if not res.get("ok"):
+        if charged:
+            await asyncio.to_thread(quota_of(svc).refund, owner, "previews")
         raise err(422, "invalid", "The preview could not be rendered.", errors=res.get("errors") or [])
     await asyncio.to_thread(svc.store.write_bytes, key + ".png", res["png"], "image/png")
     if res.get("glb"):

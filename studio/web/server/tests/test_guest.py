@@ -113,7 +113,8 @@ def test_magic_link_signs_in_a_guest_with_its_own_id(app, team):
     assert sc.startswith(COOKIE + "=g1.") and "HttpOnly" in sc and "samesite=lax" in sc.lower()
     s = c.get("/api/session").json()
     assert s["authenticated"] is True and s["kind"] == "guest"
-    assert s["guest"]["left"] == {"projects": 2, "turns": 15, "builds": 3, "voice": 3, "sound": 3}
+    assert s["guest"]["left"] == {"projects": 2, "turns": 15, "builds": 3, "voice": 3, "sound": 3, "previews": 20,
+                                  "names": 10}
     me = c.get("/api/me").json()
     assert me["kind"] == "guest" and me["guest"]["limits"]["builds"] == 3
     gid = c.cookies.get(COOKIE).split(".")[2]
@@ -431,6 +432,78 @@ def test_guest_voice_never_targets_a_team_project(settings, team_project, app, m
     assert project_bytes(app, blank["id"]) == before
     assert [p["id"] for p in g.get("/api/projects").json()["projects"]] == [sub["project_id"]]
     monkeypatch.setenv("GUEST_DAILY_VOICE", "1")
-    with g.websocket_connect("/api/voice/live") as ws:
+    with g.websocket_connect("/api/voice/live") as ws:        # charged only after a valid start message
+        ws.send_text(json.dumps({"type": "start", "client_turn": True}))
         ev = json.loads(ws.receive_text())
     assert ev["type"] == "error" and ev["code"] == "limit" and "1 voice wish." in ev["message"]
+
+
+def test_guest_voice_is_not_charged_for_a_call_that_never_starts(settings, app, monkeypatch):
+    from test_voice_live import connector
+
+    from app.voice_live import LiveSettings
+
+    app.state.voice_cfg = LiveSettings(max_seconds=30, fallback_model=None)
+    app.state.voice_connect = connector()
+    g = new_guest(app)
+    with g.websocket_connect("/api/voice/live") as ws:
+        ws.send_text("not a start message")
+        ev = json.loads(ws.receive_text())
+    assert ev["code"] == "invalid"
+    assert g.get("/api/me").json()["guest"]["left"]["voice"] == 3
+
+
+# ------------------------------------------------------------------ review fixes: hard caps for all guests
+def test_every_guest_unit_has_a_site_wide_cap(monkeypatch):
+    per, site = guest.limits()
+    assert set(per) == set(site) == {"projects", "turns", "builds", "voice", "sound", "previews", "names"}
+    assert site["sound"] < 40 and site["voice"] <= 30 and site["projects"] <= 100
+    monkeypatch.setenv("GUESTS_DAILY_PROJECTS", "7")
+    assert guest.limits()[1]["projects"] == 7
+
+
+def test_new_guests_share_the_site_wide_wish_cap(app, team, monkeypatch):
+    monkeypatch.setenv("GUESTS_DAILY_PROJECTS", "2")
+    assert new_guest(app).post("/api/projects", json={}).status_code == 201
+    assert new_guest(app).post("/api/projects", json={}).status_code == 201
+    r = new_guest(app).post("/api/projects", json={})               # a fresh guest id does not reset the cap
+    assert r.status_code == 429 and r.json()["error"]["details"]["site"] is True
+    assert team.post("/api/projects", json={}).status_code == 201   # the team has no limits
+
+
+def test_new_guest_ids_per_ip_are_limited(app, team, monkeypatch):
+    monkeypatch.setenv("GUEST_IDS_PER_IP_HOUR", "2")
+    tok = mint(app)
+    keep = new_guest(app)
+    new_guest(app)
+    c = TestClient(app)
+    r = open_link(c, tok)
+    assert r.status_code == 429 and COOKIE not in c.cookies and "Too many new guests" in r.text
+    assert open_link(keep, tok).status_code == 303                   # a returning guest keeps its id
+    assert open_link(team, tok).status_code == 303                   # a team browser stays team
+
+
+def test_bad_wish_name_is_refused_before_it_is_charged(app, team, guest_c):
+    r = guest_c.post("/api/projects", json={"name": 5})
+    assert r.status_code == 422
+    assert guest_c.get("/api/me").json()["guest"]["left"]["projects"] == 2
+
+
+def test_showcase_with_shared_uploads_shows_only_sent_images(app, team, guest_c, team_project, monkeypatch):
+    from app.uploads import upload_key
+
+    monkeypatch.setenv("SHOWCASE_PROJECTS", team_project)
+    sent, unsent = "u_sent000001", "u_secret0001"
+
+    def mut(pp):
+        pp["share_uploads"] = True
+        pp["uploads"] = [{"id": sent, "name": "sketch.png"}, {"id": unsent, "name": "client-secret.png"}]
+        pp["chat"] = (pp.get("chat") or []) + [{"role": "user", "text": "this", "attachments": [{"id": sent}]}]
+    app.state.svc.repo.update(team_project, mut)
+    for uid in (sent, unsent):
+        app.state.svc.store.write_bytes(upload_key(team_project, uid), b"\xff\xd8 jpeg", "image/jpeg")
+    p = guest_c.get(f"/api/projects/{team_project}").json()
+    assert "uploads" not in p and "client-secret" not in json.dumps(p)
+    assert guest_c.get(f"/api/projects/{team_project}/uploads/{unsent}").status_code == 404
+    assert guest_c.get(f"/api/projects/{team_project}/uploads/{sent}").status_code == 200
+    assert team.get(f"/api/projects/{team_project}/uploads/{unsent}").status_code == 200   # the team sees all

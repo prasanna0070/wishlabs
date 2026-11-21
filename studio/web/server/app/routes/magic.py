@@ -12,7 +12,7 @@ import time
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from ..auth import COOKIE, is_secure
+from ..auth import COOKIE, LoginLimiter, client_ip, is_secure
 from ..config import SPA_BASE
 
 router = APIRouter()
@@ -24,6 +24,25 @@ content="width=device-width,initial-scale=1"><title>Wish Labs</title></head>
 <h1 style="font-size:22px">This link no longer works</h1>
 <p>It has expired or was switched off. Ask the Wish Labs team for a new one.</p>
 <p><a href="/studio/" style="color:#1B1F24">Go to the studio</a></p></body></html>"""
+BUSY = INVALID.replace("This link no longer works", "Too many new guests from this network").replace(
+    "It has expired or was switched off. Ask the Wish Labs team for a new one.",
+    "Please try again in an hour, or open the link in the browser you used before.")
+
+
+def _new_ids(request: Request) -> LoginLimiter | None:
+    """The per-IP limiter for new guest ids (app/guest.py GUEST_IDS_PER_IP_HOUR, default 20; 0 = off)."""
+    import os
+
+    try:
+        n = int(os.environ.get("GUEST_IDS_PER_IP_HOUR") or 20)
+    except ValueError:
+        n = 20
+    if n <= 0:
+        return None
+    lim = getattr(request.app.state, "guest_ids", None)
+    if lim is None or lim.limit != n:
+        lim = request.app.state.guest_ids = LoginLimiter(limit=n, window=3600)
+    return lim
 
 
 @router.get("/api/magic/{token}")
@@ -37,6 +56,12 @@ async def magic(request: Request, token: str):
     cur = signer.session(request.cookies.get(COOKIE))
     if cur is not None and not cur.guest:
         return res                                   # a team browser stays a team browser
+    if cur is None:                                  # a new guest id: at most N per IP per hour (best effort)
+        lim, ip = _new_ids(request), client_ip(request)
+        if lim is not None:
+            if lim.blocked(ip):
+                return HTMLResponse(BUSY, status_code=429, headers=NO_STORE)
+            lim.fail(ip)
     now = int(time.time())
     until = min(exp, now + signer.days * 86400)
     cookie, _gid = signer.issue_guest(label, until, cur.gid if cur is not None else None)

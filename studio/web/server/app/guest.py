@@ -91,9 +91,14 @@ def guard(request: Request, s: Session) -> None:
     if str(pid) in showcase_ids():
         if request.method not in READ_METHODS:
             raise showcase_forbidden()
-        # the uploaded images of a showcase follow the share-link rule: hidden unless the team shares them
-        if (template or "").startswith("/api/projects/{pid}/uploads") and p.get("share_uploads") is not True:
-            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "File not found."})
+        # the uploaded images of a showcase follow the share-link rule (routes/uploads.share_upload_file): hidden
+        # unless the team shares them, and then only the images some chat message carries (never an unsent upload)
+        if (template or "").startswith("/api/projects/{pid}/uploads"):
+            from .uploads import attached_ids
+
+            uid = request.path_params.get("uid")
+            if p.get("share_uploads") is not True or uid is None or str(uid) not in attached_ids(p):
+                raise HTTPException(status_code=404, detail={"code": "not_found", "message": "File not found."})
         return
     raise not_found()
 
@@ -108,7 +113,8 @@ def view_for(s: Session | None, p: dict) -> dict:
     if not (s and s.guest) or owns(s, p):
         return p
     q = {k: v for k, v in p.items() if k not in PRIVATE_KEYS}
-    if q.get("share_uploads") is not True:          # as on a share link (routes/common.shared_view)
+    q.pop("uploads", None)                          # as on a share link (routes/common.shared_view): no upload list
+    if q.get("share_uploads") is not True:
         from .uploads import hide_uploads
 
         q = hide_uploads(q)
@@ -129,15 +135,24 @@ def visible_rows(s: Session | None, rows: list[dict]) -> list[dict]:
 
 
 # ------------------------------------------------------------------ daily limits
-PER_GUEST = {"projects": 2, "turns": 15, "builds": 3, "voice": 3, "sound": 3}
-SITE = {"turns": 300, "builds": 50}
+# Per guest per day, and for all guests together per day. Anyone can get a new guest id (open the link in a fresh
+# browser), so every unit a guest can spend has a site-wide cap too: that is the hard bound on cost and on the
+# team's shared quotas (sound stays well under SOUND_DAILY_CAP=40, voice under LIVE_SESSIONS_PER_HOUR_TOTAL).
+PER_GUEST = {"projects": 2, "turns": 15, "builds": 3, "voice": 3, "sound": 3, "previews": 20, "names": 10}
+SITE = {"projects": 100, "turns": 300, "builds": 50, "voice": 30, "sound": 20, "previews": 300, "names": 100}
 ENV_GUEST = {"projects": "GUEST_DAILY_PROJECTS", "turns": "GUEST_DAILY_TURNS", "builds": "GUEST_DAILY_BUILDS",
-             "voice": "GUEST_DAILY_VOICE", "sound": "GUEST_DAILY_SOUND"}
-ENV_SITE = {"turns": "GUESTS_DAILY_TURNS", "builds": "GUESTS_DAILY_BUILDS"}
+             "voice": "GUEST_DAILY_VOICE", "sound": "GUEST_DAILY_SOUND", "previews": "GUEST_DAILY_PREVIEWS",
+             "names": "GUEST_DAILY_NAMES"}
+ENV_SITE = {"projects": "GUESTS_DAILY_PROJECTS", "turns": "GUESTS_DAILY_TURNS", "builds": "GUESTS_DAILY_BUILDS",
+            "voice": "GUESTS_DAILY_VOICE", "sound": "GUESTS_DAILY_SOUND", "previews": "GUESTS_DAILY_PREVIEWS",
+            "names": "GUESTS_DAILY_NAMES"}
 WHAT = {"projects": "wishes", "turns": "messages to the designer", "builds": "builds", "voice": "voice wishes",
-        "sound": "sound generations"}
+        "sound": "sound generations", "previews": "tweak previews", "names": "spoken names"}
 ONE = {"projects": "wish", "turns": "message to the designer", "builds": "build", "voice": "voice wish",
-       "sound": "sound generation"}
+       "sound": "sound generation", "previews": "tweak preview", "names": "spoken name"}
+# New guest ids one IP may get from /api/magic per hour (per instance, best effort: the site-wide caps above are the
+# hard bound). 0 switches the check off.
+GUEST_IDS_PER_IP_HOUR = "GUEST_IDS_PER_IP_HOUR"
 
 
 def _env_int(name: str, default: int) -> int:

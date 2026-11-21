@@ -53,14 +53,6 @@ async def voice_live(ws: WebSocket):
     if not cfg.enabled:
         await fail("disabled", "Voice wishes are switched off on this server. Type your wish instead.")
         return
-    if gs.guest:                                   # a magic-link guest: its daily voice limit (app/guest.py)
-        from ..guest import LimitReached, quota_of
-
-        try:
-            await asyncio.to_thread(quota_of(svc).charge, gs.owner, "voice")
-        except LimitReached as e:
-            await fail("limit", e.message)
-            return
     hub = _hub(app)
     login = login_id(cookie or "")
     ticket = VoiceTicket()
@@ -87,6 +79,14 @@ async def voice_live(ws: WebSocket):
             await fail("invalid", "Send a start message first.")
             return
         connect = getattr(app.state, "voice_connect", None) or vertex_live
+        if gs.guest:                               # a magic-link guest: its daily voice limit (app/guest.py), charged
+            from ..guest import LimitReached, quota_of   # only once the call is admitted and has a valid start
+
+            try:
+                await asyncio.to_thread(quota_of(svc).charge, gs.owner, "voice")
+            except LimitReached as e:
+                await fail("limit", e.message)
+                return
         if gs.guest:                               # Standard mode; only its own project can be the target
             opts = {**opts, "mode": "fast"}
             tp = str(opts.get("project_id") or "")
