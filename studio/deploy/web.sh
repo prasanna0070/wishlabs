@@ -42,6 +42,18 @@ except Exception:
 }
 SHARE_URL=${SHARE_URL:-$(live_env SHARE_URL)}
 LIVE_ALLOWED_ORIGINS=${LIVE_ALLOWED_ORIGINS:-$(live_env LIVE_ALLOWED_ORIGINS)}
+# The same for the design packs (GS_PACKS_ENABLED, GS_PACKS_OFF), the guest showcases (SHOWCASE_PROJECTS=p_a+p_b) and
+# the magic-link switches and guest limits (app/guest.py): a redeploy must never drop a revoked label (MAGIC_REVOKED)
+# or the off switch (MAGIC_LINKS=off). A value set in this shell wins. '+' separates list values; no commas.
+KEPT=""
+for k in GS_PACKS_ENABLED GS_PACKS_OFF SHOWCASE_PROJECTS MAGIC_LINKS MAGIC_REVOKED GUEST_DAILY_PROJECTS \
+         GUEST_DAILY_TURNS GUEST_DAILY_BUILDS GUEST_DAILY_VOICE GUEST_DAILY_SOUND GUESTS_DAILY_TURNS GUESTS_DAILY_BUILDS; do
+  v="${!k:-$(live_env "$k")}"
+  [ -n "$v" ] || continue
+  case "$v" in *,*) echo "$k must not contain a comma (use + between list values): $k" >&2; exit 1 ;; esac
+  KEPT="$KEPT,$k=$v"
+done
+[ -z "$KEPT" ] || echo "kept from the live service or this shell: $(printf '%s' "${KEPT#,}" | sed 's/=[^,]*//g')"
 
 # MAJ-33: story_player builds carry name_audio_url = $PUBLIC_URL/api/device/<token>/name-audio (empty on a first deploy)
 PUBLIC_URL=${PUBLIC_URL:-$(gcloud run services describe $SVC --region=$REGION --project=$P \
@@ -69,7 +81,7 @@ gcloud run deploy $SVC --project=$P --region=$REGION --image=$IMAGE \
   --service-account=$SA --allow-unauthenticated \
   --cpu=1 --memory=1Gi --no-cpu-throttling --min-instances=0 --max-instances=3 --concurrency=40 \
   --timeout=3600 --execution-environment=gen2 \
-  --set-env-vars="BUILDER=remote,BUILDER_URL=$BUILDER_URL,BUCKET=$BUCKET,AGENT=gemini,GOOGLE_CLOUD_PROJECT=$P${PUBLIC_URL:+,PUBLIC_URL=$PUBLIC_URL}${SHARE_URL:+,SHARE_URL=$SHARE_URL}$KNOBS" \
+  --set-env-vars="BUILDER=remote,BUILDER_URL=$BUILDER_URL,BUCKET=$BUCKET,AGENT=gemini,GOOGLE_CLOUD_PROJECT=$P${PUBLIC_URL:+,PUBLIC_URL=$PUBLIC_URL}${SHARE_URL:+,SHARE_URL=$SHARE_URL}$KEPT$KNOBS" \
   --set-secrets="ACCESS_KEY=gstudio-access-key:latest"
 URL=$(gcloud run services describe $SVC --region=$REGION --project=$P --format='value(status.url)')
 echo "deployed: $URL"
