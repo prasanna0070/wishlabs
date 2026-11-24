@@ -39,7 +39,7 @@ stories and remembers her favourite characters"* to an exported build package.
 
 That one wish produced, in 15 minutes and 34 seconds:
 
-| | |
+| Output | This build |
 |---|---|
 | **Printed parts** | 9 print files with STEP and STL: 4 shell parts and 5 fit-test pieces |
 | **Circuit board** | a routed 2-layer backplane PCB (KiCad project and Gerbers), DRC 0 errors, ERC 0 errors |
@@ -77,19 +77,19 @@ The export is a complete, self-checking build package (the Bedtime Story Robot's
 ```text
 lantern-robot/
 ├── PROJECT.md              the design record: brief, chosen concept, version
-├── BUILD_GUIDE.md          the illustrated assembly guide (with a stop banner if a check failed)
+├── BUILD_GUIDE.md          illustrated assembly guide (stops you if a check failed)
 ├── SOFTWARE_SETUP.md       flash and configure the device
 ├── PARTS_EVIDENCE.md       where every part and price came from
-├── spec.json  build.json  electrical.json  manifest.json (sha256 for every file)
+├── spec.json  build.json  electrical.json  manifest.json (sha256 of every file)
 ├── cad/        assembly.step, assembly.glb, components, anchors, cable routes
-├── print/      PRINT_Shell.stl, PRINT_BasePlate.stl, ... and TEST_* fit-test pieces
+├── print/      PRINT_Shell.stl, PRINT_BasePlate.stl, ... and TEST_* fit pieces
 ├── pcb/        backplane.kicad_pcb, backplane.kicad_sch, backplane-gerbers.zip
-├── firmware/   PlatformIO project, firmware.bin, firmware-merged.bin, SHA256SUMS, test results
+├── firmware/   PlatformIO project, firmware.bin, merged image, SHA256SUMS, tests
 ├── manual/     exploded.png, assembled.png, cable-end close-ups, ...
 ├── checks/     digital-checks.json, delivery-checks.json
 ├── order/      quote.json
 ├── references/ the saved vendor listings behind the prices
-└── verify_delivery.py      re-checks the whole package with the standard library
+└── verify_delivery.py      re-checks the whole package, standard library only
 ```
 
 ---
