@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import copy
-import fcntl
 import hashlib
 import json
 import os
@@ -12,6 +11,7 @@ import threading
 from pathlib import Path
 from typing import Any, Callable, Iterator
 
+from . import filelock
 from .base import JsonMixin, ObjectStat, StoreError
 
 
@@ -147,7 +147,7 @@ class LocalStore(JsonMixin):
         lock_path = p.with_name(p.name + ".lock")
         with self._thread_lock(key):
             with open(lock_path, "a+") as lf:
-                fcntl.flock(lf, fcntl.LOCK_EX)
+                filelock.lock(lf)
                 try:
                     raw = self.read_bytes(key)
                     cur = json.loads(raw) if raw is not None else copy.deepcopy(default)
@@ -157,4 +157,4 @@ class LocalStore(JsonMixin):
                     self.write_json(key, new)
                     return new
                 finally:
-                    fcntl.flock(lf, fcntl.LOCK_UN)
+                    filelock.unlock(lf)
