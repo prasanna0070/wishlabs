@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import subprocess
+import sys
 import threading
+from pathlib import Path
 
 import pytest
 
@@ -69,3 +72,26 @@ def test_update_json_exception_leaves_value(tmp_path):
     with pytest.raises(ValueError):
         s.update_json("x.json", boom)
     assert s.read_json("x.json") == {"v": 1}
+
+
+_BUMP = """
+import sys
+from pathlib import Path
+from app.store import LocalStore
+
+st = LocalStore(Path(sys.argv[1]))
+for _ in range(50):
+    st.update_json("n.json", lambda d: {"n": d["n"] + 1}, {"n": 0})
+"""
+
+
+def test_update_json_is_atomic_across_processes(tmp_path):
+    server = Path(__file__).resolve().parents[1]
+    procs = [
+        subprocess.Popen([sys.executable, "-c", _BUMP, str(tmp_path)], cwd=server, stderr=subprocess.PIPE)
+        for _ in range(4)
+    ]
+    for p in procs:
+        _, err = p.communicate(timeout=60)
+        assert p.returncode == 0, err.decode()
+    assert LocalStore(tmp_path).read_json("n.json") == {"n": 200}
