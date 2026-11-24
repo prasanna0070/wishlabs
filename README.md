@@ -29,7 +29,9 @@
 ## See it work
 
 A real session in the studio: the Bedtime Story Robot, from *"I want a cute robot that tells my daughter bedtime
-stories and remembers her favourite characters"* to an exported build package.
+stories and remembers her favourite characters"* to an exported build package (50 seconds, no sound).
+
+https://github.com/user-attachments/assets/01e47bae-e29b-4fae-8ecc-6717f11ba924
 
 <p align="center">
   <img src="docs/media/studio-3d.gif" alt="The 3D viewer: solid, exploded, close-up, transparent, separated parts and a section cut" width="88%">
