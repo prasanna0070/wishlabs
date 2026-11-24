@@ -314,6 +314,11 @@ def ship_component_sources(out: Path) -> tuple[str, str]:
     if not want:
         return "not_run", "components.json names no source files"
     lib = Path(__file__).resolve().parents[2] / "library"
+    if not (lib / "references").is_dir():
+        # The public repository does not redistribute vendor pages and datasheets (third-party content). Say so
+        # instead of failing every delivery; library/tools/fetch_listings.py saves fresh copies with their sha256.
+        return "not_run", ("vendor evidence snapshots (library/references/) are not in this checkout; "
+                           "fetch them with library/tools/fetch_listings.py")
     bad = []
     for name, f in want:
         src = lib / str(f.get("library_path") or "")
