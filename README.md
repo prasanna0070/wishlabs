@@ -1,7 +1,3 @@
-
-
-https://github.com/user-attachments/assets/6cc64bd5-53ce-4f66-a15e-9eddd1cc67fb
-
 <p align="center">
   <img src="docs/media/wishlabs-banner.svg" alt="Wish Labs. Wish it. We'll build it." width="100%">
 </p>
@@ -35,7 +31,7 @@ https://github.com/user-attachments/assets/6cc64bd5-53ce-4f66-a15e-9eddd1cc67fb
 A real session in the studio: the Bedtime Story Robot, from *"I want a cute robot that tells my daughter bedtime
 stories and remembers her favourite characters"* to an exported build package (50 seconds, no sound).
 
-https://github.com/user-attachments/assets/01e47bae-e29b-4fae-8ecc-6717f11ba924
+https://github.com/user-attachments/assets/6cc64bd5-53ce-4f66-a15e-9eddd1cc67fb
 
 <p align="center">
   <img src="docs/media/studio-3d.gif" alt="The 3D viewer: solid, exploded, close-up, transparent, separated parts and a section cut" width="88%">
